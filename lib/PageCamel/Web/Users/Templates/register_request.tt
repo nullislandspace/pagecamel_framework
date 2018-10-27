@@ -1,0 +1,215 @@
+<form name="login" method="post" action="[% PostLink %]" id="pwform">
+
+    <p>
+        <table class="data" align="center" id="MainDataTable">
+            <tr class="tabheader">
+                <th colspan="2">
+                    <div class="infotext">[% tr.trquote("Register new account") %]</div>
+                </th>
+            </tr>
+            [% IF statustext %]
+                <tr>
+                    <th colspan="2">
+                        <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+                    </th>
+                </tr>
+            [% END %]
+    
+            [% IF statuscolor != "oktext" %]
+                <tr>
+                    <td align="right">[% tr.trquote("Usage Policy") %]:</td>
+                    <td width="600px">
+                        <ul>
+                            <li>[% tr.trquote("If you post junk, spam, deflamatory comments, illegal or other bad stuff, i will strive to be 'not nice' about it.") %]</li>
+                            <li>[% tr.trquote("Posting spam here will NOT help your SEO, comments and other user submitted data are not indexed by search engines.") %]</li>
+                            <li>[% tr.trquote("This is a private server. No guaranteed 'freedom of speech'. While i strive for it, if your posts are against the law, in bad taste or completly off topic, i will delete them.") %]</li>
+                            <li>[% tr.trquote("I reserve to disable the comment function and/or delete users if i think there's a problem.") %]</li>
+                            <li>[% tr.trquote("This server is in Austria/Europe. Only Austrian law applies.") %]</li>
+                            <li>[% tr.trquote("All services provided 'as is'. This server is used to develop and test new software, no guaranteed availability or data integrity! Meaning: your data might be gone one day, either due to error or design changes, and you can't hold me responsible for it.") %]</li>
+                            <li>[% tr.trquote("Due to the 'used as development plattform' nature of this system, extensive logging might be enabled. While i strive to keep the data private, if you are very strict about your privacy, you should consider not registering.") %]</li>
+                            <li>[% tr.trquote("I do not sell your data to anyone. But there is always the (remote) possibility of a security breach. Do not reuse your password elsewhere, don't store private data on this server. If and when a breach happens, i will try to inform you about it, but i do not have any other responsibilities.") %]</li>
+                            <li>[% tr.trquote("Due to local law, i might be forced to hand over your data to the government or cooperate to help hunt you down.") %] <!--start-canary--><i>This hasn't happened yet.</i><!--end-canary--></li>
+                            <li>[% tr.trquote("By registering, you automatically accept this usage policy.") %]</li>
+                        </ul>
+                    </td>
+                    
+                <tr>
+                    <td align="right">[% tr.trquote("Username") %]:</td>
+                    <td align="left">
+                        <input type="text" name="username" size="30" value="[% username %]" maxLength="40" size="20" id="username">
+                        <div id="username_check"></div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td align="right">[% tr.trquote("First name") %]:</td>
+                    <td align="left">
+                        <input type="text" name="first_name" size="30" value="[% first_name %]" maxLength="50" size="30" id="first_name">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td align="right">[% tr.trquote("Last name") %]:</td>
+                    <td align="left">
+                        <input type="text" name="last_name" size="30" value="[% last_name %]" maxLength="50" size="30" id="last_name">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td align="right">[% tr.trquote("Email address") %]:</td>
+                    <td align="left">
+                        <input type="text" name="email" size="30" value="[% email %]" maxLength="50" size="30" id="email">
+                        <div id="email_check"></div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td colspan="2">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center">
+                        <input type="hidden" name="mode" value="request">
+                        <input type="submit" value="[% tr.trquote("Send Email") %]" id="submitbutton">
+                    </td>
+                </tr>
+            [% ELSE %]
+                <tr>
+                    <td colspan="2" align="center">[% tr.trquote("Please check your email account and follow the instructions contained in the email we just sent you.") %]</td>
+                </tr>
+            [% END %]
+        </table>
+    </p>
+
+</form>
+
+<span id="masktemplatedataset"
+    data-trquote-sendingmail="[% tr.trquote("Sending email...") %]"
+    data-userpath="[% userpath %]"
+    data-emailpath="[% emailpath %]"
+></span>
+
+<script>
+
+    var canSubmit = false;
+    var email_ok = false;
+    var username_ok = false;
+    
+    var last_username = '';
+    var last_email = '';
+    
+    function validateInput() {
+        var inPoints = 0;
+        canSubmit = false;
+                
+        if($('#username').val() != '') {
+            inPoints++;
+        }
+        
+        if($('#username').val() != last_username) {
+            username_ok = false;
+            last_username = $('#username').val();
+            checkUsername();
+        }        
+        
+        if($('#email').val() != '') {
+            inPoints++;
+        }
+        
+        if($('#email').val() != last_email) {
+            email_ok = false;
+            last_email = $('#email').val();
+            checkEmail();
+        }
+
+        if($('#first_name').val() != '') {
+            inPoints++;
+        }
+        
+        if($('#last_name').val() != '') {
+            inPoints++;
+        }
+        
+        if(username_ok) {
+            inPoints++;
+        }
+        
+        if(email_ok) {
+            inPoints++;
+        }
+                
+        if(inPoints == 6 && email_ok && username_ok) {
+            canSubmit = true;
+        } else {
+            canSubmit = false;
+        }
+        $( "#submitbutton" ).button( "option", "disabled", !canSubmit );
+        console.log("Points: " + inPoints);
+    }
+    
+    $('#username').keyup(function() {
+        validateInput();
+    });
+    
+    $('#email').keyup(function() {
+        validateInput();
+    });
+
+    $('#first_name').keyup(function() {
+        validateInput();
+    });
+    
+    $('#last_name').keyup(function() {
+        validateInput();
+    });
+    
+    function submitMe() {
+        if(canSubmit) {
+            $.blockUI({ message: '<h1>' + ttvars.trquote.Sendingmail + '<br/><img src="/static/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+        }
+        return canSubmit;
+    }
+        
+    function checkUsername () {
+        var params = "username=" + last_username;
+        srefresh.open("POST", ttvars.userpath, true);
+         
+        //Send the proper header information along with the request
+        srefresh.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+
+        srefresh.onreadystatechange=function() { // TT_IS_SAFE
+            if(srefresh.readyState == 4) {
+                if(srefresh.responseText == "OK") {
+                    username_ok = true;
+                }
+                $('#username_check').html(srefresh.responseText);
+                validateInput();
+            }
+        }
+        srefresh.send(params);
+    }
+    
+    function checkEmail() {
+        var params = "email=" + last_email;
+        srefresh.open("POST", ttvars.emailpath, true);
+         
+        //Send the proper header information along with the request
+        srefresh.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+
+        srefresh.onreadystatechange=function() {
+            if(srefresh.readyState == 4) {
+                if(srefresh.responseText == "OK") {
+                    email_ok = true;
+                }
+                $('#email_check').html(srefresh.responseText);
+                validateInput();
+            }
+        }
+        srefresh.send(params);
+    }
+    
+    function extraOnLoad() {
+        $('#pwform').on('submit', submitMe);
+        $( "#submitbutton" ).button( "option", "disabled", true );
+    }
+    
+</script>

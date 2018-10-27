@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+
+<head>
+    <title>[% PageTitle %]</title>
+    <!-- DISABLE_INLINE_CSS_WARNINGS --><style type="text/css"> 
+        tr.even {
+            background-color: #ffffff; color: black;
+        }
+        tr.odd {
+            background-color: #c0c0c0; color: black;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>[% tr.trquote("Too many files") %]</h1>
+    <p width="100%" align="left">
+        <table border="0">
+            <thead>
+                <tr>
+                    <th>[% tr.trquote("Directory") %]</th>
+                    <th>[% tr.trquote("File count") %]</th>
+                </tr>
+            </thead>
+            [% SET even = 0 %]
+            [% FOREACH file IN DirFileCounts %]
+                [% IF even == 0 %]
+                    <tr class="odd">
+                    [% SET even = 1 %]
+                [% ELSE %]
+                    <tr class="even">
+                    [% SET even = 0 %]
+                [% END %]
+                    <td>
+                        <a href="[% file.url %]">[% file.basepath%]</a>
+                    </td>
+                    <td align="right">[% tr.quote(file.filecount) %]</td>
+                </tr>
+            [% END %]
+        </table>
+    </p>
+    &nbsp;<br/>
+    <h1>[% tr.trquote("Directory to big") %]</h1>
+    <p width="100%" align="left">
+        <table border="0">
+            <thead>
+                <tr>
+                    <th>[% tr.trquote("Directory") %]</th>
+                    <th>[% tr.trquote("GB used") %]</th>
+                </tr>
+            </thead>
+            [% SET even = 0 %]
+            [% FOREACH file IN DirSizes %]
+                [% IF even == 0 %]
+                    <tr class="odd">
+                    [% SET even = 1 %]
+                [% ELSE %]
+                    <tr class="even">
+                    [% SET even = 0 %]
+                [% END %]
+                    <td>
+                        <a href="[% file.url %]">[% file.basepath%]</a>
+                    </td>
+                    <td align="right">[% tr.quote(file.dirsize_gb) %]</td>
+                </tr>
+            [% END %]
+        </table>
+    </p>
+
+</body>

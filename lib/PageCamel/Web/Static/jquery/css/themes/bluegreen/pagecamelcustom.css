@@ -1,0 +1,12 @@
+
+table.dataTable tr.odd { background-color: #F0F8F0; }
+table.dataTable tr.even { background-color: #E0E0F8; }
+
+tr.staticeven { color: black; background-color: #F0F8F0; }
+tr.staticodd { color: black; background-color: #E0E0F8; }
+th.statichead { color: black; background-color: #C0C0C0; }
+
+body {
+    background-color: #FFFFFF;
+    color: #000000;
+}

@@ -1,0 +1,84 @@
+[% dialog.modechangeform(name => "confirmDeleteEntry",
+                        title => "Delete entry",
+                        text => "Do you really want to delete this entry?",
+                        icon => "help",
+                        confirm => "Delete",
+                        cancel => "Cancel",
+                        mode => "delete") %]
+[% IF statustext %]
+<p align="center">
+    <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+</p>
+[% END %]
+
+
+<p align="center">
+    <form name="syncedit" method="post" action="[% webpath %]">
+        <table class="data" id="MainDataTable">
+            <thead>
+                <tr class="tabheader">
+                    <th>[% tr.trquote("Key") %]</th>
+                    <th>[% tr.trquote("Value") %]</th>
+                </tr>
+            </thead>
+            <tbody>            
+                <tr>
+                    <td>[% tr.trquote("Name") %]</td>
+                    <td>
+                        <input type="text" name="sync_name" size="30" maxLength="60" value="[% tr.quote(dir.sync_name) %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Source directory") %]</td>
+                    <td><input type="text" name="source_dir" size="50" maxLength="60" value="[% tr.quote(dir.source_dir) %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Destination directory") %]</td>
+                    <td><input type="text" name="destination_dir" size="50" maxLength="60" value="[% tr.quote(dir.destination_dir) %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Sync Time") %]</td>
+                    <td><input type="text" name="sync_time" size="8" maxLength="8" value="[% tr.quote(dir.sync_time) %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Max. age (days)") %]</td>
+                    <td><input type="text" name="max_age_days" size="5" maxLength="8" value="[% tr.quote(dir.max_age_days) %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Server") %]</td>
+                    <td>
+                        <select name="sync_server">
+                            [% FOREACH server IN servers %]
+                            <option value="[% tr.quote(server.enumvalue) %]"
+                                [% IF server.enumvalue == dir.sync_server %]
+                                    selected="selected"
+                                [% END %]
+                                >[% tr.quote(server.description) %] 
+                            </option>
+                            [% END %]
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" align="center">
+                        <input type="hidden" name="old_sync_name" value="[% tr.quote(dir.old_sync_name) %]">
+                        <input type="hidden" name="mode" id="editmode" value="[% mode %]">
+                        [% IF mode == "create" %]
+                            <input type="submit" value="[% tr.trquote("Create") %]">
+                        [% ELSE %]
+                            <input type="submit" value="[% tr.trquote("Update") %]">
+                            <input type="submit" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteEntry('syncedit', 'editmode');">
+                        [% END %]
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </form>
+</p>
+
+<script type="text/javascript">
+    function extraOnLoad() {
+        // DON'T DELETE: auto-uninline onfoo html tags to JS file
+    }
+</script>

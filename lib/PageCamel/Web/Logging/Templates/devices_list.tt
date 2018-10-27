@@ -1,0 +1,44 @@
+<p align="center">
+    <form name="powerdevices" method="post" action="[% PostLink %]"  id="MainFilterForm">
+        <table class="data" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("Hostname") %]</th>
+                    <th>[% tr.trquote("Type") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                    <th>[% tr.trquote("Scan speed") %]</th>
+                    <th>[% tr.trquote("IP") %]</th>
+                    <th>[% tr.trquote("Active") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH device IN devices %]
+                    <tr>
+                        <td><input type="radio" name="hostname" value="[% tr.quote(device.hostname) %]"</td>
+                        <td>[% tr.quote(device.hostname) %]</td>
+                        <td>[% tr.quote(device.device_type) %]</td>
+                        <td>[% tr.quote(device.description) %]</td>
+                        <td>[% tr.quote(device.scanspeed) %]</td>
+                        <td>[% tr.quote(device.ip_addr) %]</td>
+                        <td>
+                            [% IF device.is_active == "1" %]
+                                <img src="/pics/checkbox_classic_ON.png" width="26px" height="26px">
+                            [% ELSE %]
+                                <img src="/pics/checkbox_classic_OFF.png" width="26px" height="26px">
+                            [% END %]
+                        </td>
+                    </tr>
+                [% END %]
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="8" align="center">
+                        <input type="hidden" name="mode" value="[% mode %]">
+                        <input type="submit" value="[% tr.trquote("Select") %]">
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </form>
+</p>

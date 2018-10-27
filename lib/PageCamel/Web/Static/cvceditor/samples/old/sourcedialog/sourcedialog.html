@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2003-2018, CKSource - Frederico Knabben. All rights reserved.
+For licensing, see LICENSE.md or https://cvceditor.com/legal/cvceditor-oss-license
+-->
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Editing source code in a dialog &mdash; CVCEditor Sample</title>
+    <script src="../../../cvceditor.js"></script>
+    <link rel="stylesheet" href="../../../samples/old/sample.css">
+    <meta name="cvceditor-sample-name" content="Editing source code in a dialog">
+    <meta name="cvceditor-sample-group" content="Plugins">
+    <meta name="cvceditor-sample-description" content="Editing HTML content of both inline and classic editor instances.">
+    <meta name="cvceditor-sample-isnew" content="1">
+    <style>
+
+        #editable
+        {
+            padding: 10px;
+            float: left;
+        }
+
+    </style>
+</head>
+<body>
+    <h1 class="samples">
+        <a href="../../../samples/old/index.html">CVCEditor Samples</a> &raquo; Editing source code in a dialog
+    </h1>
+    <div class="warning deprecated">
+        This sample is not maintained anymore. Check out its <a href="https://sdk.cvceditor.com/samples/sourcearea.html">brand new version in CVCEditor SDK</a>.
+    </div>
+    <div class="description">
+        <p>
+            <strong>Sourcedialog</strong> plugin provides an easy way to edit raw HTML content
+            of an editor, similarly to what is possible with <strong>Sourcearea</strong>
+            plugin for classic (<code>iframe</code>-based) instances but using dialogs. Thanks to that, it's also possible
+            to manipulate raw content of inline editor instances.
+        </p>
+        <p>
+            This plugin extends the toolbar with a button,
+            which opens a dialog window with a source code editor. It works with both classic
+            and inline instances. To enable this
+            plugin, basically add <code>extraPlugins: 'sourcedialog'</code> to editor's
+            config:
+        </p>
+<pre class="samples">
+// Inline editor.
+CVCEDITOR.inline( 'editable', {
+    <strong>extraPlugins: 'sourcedialog'</strong>
+});
+
+// Classic (iframe-based) editor.
+CVCEDITOR.replace( 'textarea_id', {
+    <strong>extraPlugins: 'sourcedialog'</strong>,
+    removePlugins: 'sourcearea'
+});
+</pre>
+        <p>
+            Note that you may want to include <code>removePlugins: 'sourcearea'</code>
+            in your config when using <strong>Sourcedialog</strong> in classic editor instances.
+            This prevents feature redundancy.
+        </p>
+        <p>
+            Note that <code>editable</code> in the code above is the <code>id</code>
+            attribute of the <code>&lt;div&gt;</code> element to be converted into an inline instance.
+        </p>
+        <p>
+            Note that <code><em>textarea_id</em></code> in the code above is the <code>id</code> attribute of
+            the <code>&lt;textarea&gt;</code> element to be replaced with CVCEditor.
+        </p>
+    </div>
+    <div>
+        <label for="editor1">
+            Inline editor:
+        </label>
+        <div id="editor1" contenteditable="true" style="padding: 5px 20px;">
+            <p>This is some <strong>sample text</strong>. You are using <a href="https://cvceditor.com/">CVCEditor</a>.</p>
+        </div>
+    </div>
+    <br>
+    <div>
+        <label for="editor2">
+            Classic editor:
+        </label>
+        <textarea cols="80" id="editor2" name="editor2" rows="10">
+            This is some &lt;strong&gt;sample text&lt;/strong&gt;. You are using &lt;a href="https://cvceditor.com/"&gt;CVCEditor&lt;/a&gt;.
+        </textarea>
+    </div>
+    <script>
+
+        // We need to turn off the automatic editor creation first.
+        CVCEDITOR.disableAutoInline = true;
+
+        var config = {
+            toolbarGroups: [
+                { name: 'mode' },
+                { name: 'basicstyles' },
+                { name: 'links' }
+            ],
+            extraPlugins: 'sourcedialog',
+            removePlugins: 'sourcearea'
+        }
+
+        CVCEDITOR.inline( 'editor1', config );
+        CVCEDITOR.replace( 'editor2', config );
+
+    </script>
+    <div id="footer">
+        <hr>
+        <p>
+            CVCEditor - The text editor for the Internet - <a class="samples" href="https://cvceditor.com/">
+                https://cvceditor.com</a>
+        </p>
+        <p id="copy">
+            Copyright &copy; 2003-2018, <a class="samples" href="https://cksource.com/">CKSource</a>
+            - Frederico Knabben. All rights reserved.
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,378 @@
+[% dialogbody = 'No information available' %]
+[% IF posttype == 'Blueprint' %]
+    [% dialogbody = "This is a blueprint article, which contains a lot of technical information,
+                     theoretical designs, rants about broken standards and/or programming code. The content may get updated
+                     and changed if new information becomes available."%]
+[% ELSIF posttype == 'Rant' %]
+    [% dialogbody = "This is an aggresive rant, which contains angry language, possibly even
+                     (virtual) rude gestures. If you are easily upset, better sit down before reading
+                     this article."%]
+[% ELSIF posttype == 'Documentation' %]
+    [% dialogbody = "This is a documentation. It might be boring read, but you are encouraged
+                     to read it anyway. Warning, you might learn something new!"%]
+[% ELSIF posttype == 'Game review' %]
+    [% dialogbody = "This is a game review. I (usually) review games from a Linux user perspective."%]
+[% ELSIF posttype == 'Economy' %]
+    [% dialogbody = "<img src='/pics/blog/Economy.png'> In this article, i talk about the economy. I'm a bear, so expect a lot of doom and gloom.
+                     If you want the future painted as a rosy picture, go and talk to your local banker."%]
+[% ELSIF posttype == 'Garden Space Program' %]
+    [% dialogbody = "<img src='/pics/blog/garden_exploration_program.png'> Exploring my garden with remote probes. Just like Nasa, but with a fraction of the budget."%]
+[% ELSIF posttype == 'Standard' %]
+    [% dialogbody = "The Standard category of blog posts is a mixed bag. Anything that doesn't fall into any of the other categories, really."%]
+[% END %]
+
+[% IF MobileDesktopClientMode != 'mobile' %]
+    <table border="0" width="800px" id="blogtable">
+        <tr>
+            <td colspan="5"><div id="toppadding"></div></td>
+        </tr>
+        [% IF posttype == 'Garden Space Program' %]
+                <td></td>
+                <td></td>
+                <td></td>
+                <td align="right">
+                    <img src="/guest/blog/images/large/gsp_logo_blog_header.png"><br/>
+                    <a href="https://youtube.com/cavac">GSP on Youtube</a><br/>
+                    <a href="https://discord.gg/r2npgHD">GSP on Discord</a>
+                </td>
+                <td></td>
+            </tr>
+        [% END %]
+
+            <tr>
+                <td></td>
+                <td></td>
+                <td align="left">
+                    [% IF pretitle != '' %]<div id="pretitleinfo">[% tr.quote(pretitle) %]</div>[% END %]
+                </td>
+                <td align="right" valign="top" rowspan="2" width="300px">
+                    <span class="nowrap">Date: [% tr.quote(eternalseptember) %]<span class="cavacnote" popuptext="This article was released during eternal september: <br>[% tr.quote(eternalseptember) %]<br/>&nbsp;<br/>[% tr.trquote("Date outside the internet was:") %]<br/>[% releasedate %]" popuptitle="Article release date">[?]</span></span><br/>
+                    by [% tr.quote(author) %]<br/>
+                    Category: <span class="cavacnote" popuptext="[% dialogbody %]" popuptitle="[% tr.quote(posttype) %]">[% tr.quote(posttype) %]</span>
+                </td>
+                <td></td>
+            </tr>
+
+
+        <tr>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td align="left" valign="center">
+                <h1 class="blogtitle">
+                    [% tr.quote(blogtitle) %][% IF gsp_mission_status != "" %]:[% END %]
+                    [% IF gsp_mission_status != "" %]
+                        [% IF gsp_mission_status == "SUCCESS" %]
+                            <div class="title_green">SUCCESS</div>
+                        [% ELSIF gsp_mission_status == 'PARTIAL FAILURE' %]
+                            <div class="title_orange">PARTIAL FAILURE</div>
+                        [% ELSIF gsp_mission_status == 'FAILURE' %]
+                            <div class="title_red">FAILURE</div>
+                        [% ELSIF gsp_mission_status == 'CANCELED' %]
+                            <div class="title_grey">CANCELED</div>
+                        [% END %]
+                    [% END %]
+                </h1>
+            </td>
+
+            <td>&nbsp;</td>
+        </tr>
+
+        [% IF subtitle != '' %]
+            <tr>
+                <td></td>
+                <td></td>
+                <td align="left">
+                    <div id="subtitleinfo"><i>[% tr.quote(subtitle) %]</i></div><br/>
+                </td>
+                <td></td>
+                <td></td>
+            </tr>
+        [% END %]
+
+
+        <tr>
+            <td><div id="leftpadding"></div></td>
+            <td align="left" colspan="3">[% blogentry %]</td>
+            <td><div id="rightpadding"></div></td>
+        </tr>
+        <tr>
+            <td colspan="5"><div id="bottompadding"></div></td>
+        </tr>
+    </table>
+[% ELSE %]
+    <p>
+        by [% tr.quote(author) %] on [% tr.quote(releasedate) %]<br/>
+        Category: [% tr.quote(posttype) %]
+    </p>
+    [% IF posttype == 'Garden Space Program' %]
+        <p>
+            <img src="/guest/blog/images/large/gsp_logo_blog_header.png"><br/>
+            <a href="https://youtube.com/cavac">GSP on Youtube</a><br/>
+            <a href="https://discord.gg/r2npgHD">GSP on Discord</a>
+        </p>
+    [% END %]
+    <p>
+        [% IF pretitle != '' %]<div id="pretitleinfo">[% tr.quote(pretitle) %]</div>[% END %]
+        <h1>
+            [% tr.quote(blogtitle) %][% IF gsp_mission_status != "" %]:[% END %]
+            [% IF gsp_mission_status != "" %]
+                [% IF gsp_mission_status == "SUCCESS" %]
+                    <div class="title_green">SUCCESS</div>
+                [% ELSIF gsp_mission_status == 'PARTIAL FAILURE' %]
+                    <div class="title_orange">PARTIAL FAILURE</div>
+                [% ELSIF gsp_mission_status == 'FAILURE' %]
+                    <div class="title_red">FAILURE</div>
+                [% ELSIF gsp_mission_status == 'CANCELED' %]
+                    <div class="title_grey">CANCELED</div>
+                [% END %]
+            [% END %]
+        </h1>
+        [% IF subtitle != '' %]<div id="subtitleinfo"><i>[% tr.quote(subtitle) %]</i></div>[% END %]
+    </p>
+    <p align="left"><div align="left">[% blogentry %]</div></p>
+[% END %]
+
+[% IF MobileDesktopClientMode != 'mobile' %]
+    <table border="0" width="700px">
+        <tr>
+            <td align="left" width="200px">
+                [% IF prevlink == '' %]
+                    &nbsp;
+                [% ELSE %]
+                    <a href="[% prevlink %]">"[% tr.quote(prevtitle) %]"</a><br/>([% tr.trquote('Older') %])
+                [% END %]
+            </td>
+            <td align="center">
+                <a href="[% archivelink %]">[% tr.trquote('Complete Archive') %]</a>
+            </td>
+            <td align="right" width="200px">
+                [% IF nextlink == '' %]
+                    &nbsp;
+                [% ELSE %]
+                    <a href="[% nextlink %]">"[% tr.quote(nexttitle) %]"</a><br/>([% tr.trquote('Newer') %])
+                [% END %]
+            </td>
+        </tr>
+        [% IF RSSFeed != '' %]
+        <tr>
+            <td align="left"></td>
+            <td align="center">
+                <a href="[% RSSFeed %]">[% tr.trquote('RSS Feed') %]</a>
+            </td>
+            <td align="right"></td>
+        </tr>
+        [% END %]
+    </table>
+[% ELSE %]
+    [% IF nextlink != '' %]
+        <p><a href="[% nextlink %]">[% tr.trquote('Next') %]: "[% tr.quote(nexttitle) %]"</a></p>
+    [% END %]
+    [% IF prevlink != '' %]
+        <p><a href="[% prevlink %]">[% tr.trquote('Previous') %]: "[% tr.quote(prevtitle) %]"</a></p>
+    [% END %]
+
+    <p><a href="[% archivelink %]">[% tr.trquote('Complete Archive') %]</a></p>
+
+    <p><a href="[% RSSFeed %]">[% tr.trquote('RSS Feed') %]</a></p>
+
+[% END %]
+
+
+[% IF EnableComments == "1" AND MobileDesktopClientMode != 'mobile' %]
+    <p>
+        <table border="0" width="700px" id="commentstable">
+            <tr>
+                <th colspan="2" align="center">[% tr.trquote("Comments") %]</th>
+            </tr>
+            [% FOREACH comment IN comments %]
+                <tr>
+                    <td colspan="2" align="left"><br/>#[% comment.comment_id %] <b>[% tr.quote(comment.realusername) %]</b> [% tr.trquote("said on") %] [% comment.tlogtime %]:</td>
+                </tr>
+                <tr>
+                    <td width="80px">&nbsp;</td>
+                    <td width="600px">[% tr.quote(comment.usercomment) %]</td>
+                </tr>
+            [% END %]
+            [% IF commentsenabled == "1" %]
+                <tr>
+                    <td colspan="2" align="left">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td width="80px">&nbsp;</td>
+                    <td width="600px">
+                        <form name="postcomment" method="POST">
+                            [% tr.trquote("Post a new comment") %]:<br/>
+                            <textarea name="comment" type="textarea" rows="10" cols="80"></textarea>
+                            <input type="hidden" name="mode" value="comment"><br/>
+                            [% IF ShowDisclaimer == "1" %]<i>[% tr.trquote("BLOG_COMMENT_DISCLAIMER") %]</i><br/>[% END %]
+                            <p align="center"><input type="submit" value="[% tr.trquote("Submit") %]">
+                        </form><br/>
+                    </td>
+                </tr>
+            [% ELSE %]
+                <tr>
+                    <td colspan="2">
+                        <i>
+                            [% tr.trquote("To post comments, you need an user account") %]:
+                            <a href="/user/login">[% tr.trquote("Login") %]</a>/<a href="/user/register">[% tr.trquote("Register") %]</a>
+                        </i>
+                    </td>
+                </tr>
+            [% END %]
+        </table>
+    </p>
+[% END %]
+
+<span id="masktemplatedataset"
+    data-enablecomments="[% EnableComments %]"
+    data-commentsenabled="[% commentsenabled %]"
+    data-mobiledesktopmode="[% MobileDesktopClientMode %]"
+></span>
+
+<script>
+    var toc_hidden = 0;
+    var toc_enabled = 0;
+    function extraOnLoad() {
+        hljs.initHighlightingOnLoad();
+
+        $('#leftpadding').width(30);
+        $('#rightpadding').width(30);
+        $('#toppadding').height(20);
+        $('#bottompadding').height(50);
+
+        $('#pretitleinfo').css('color', 'darkred');
+
+        if(ttvars.enablecomments == "1" && ttvars.mobiledesktopclientmode != "mobile") {
+            if(ttvars.commentsenabled == "1") {
+                $('#commentstable').css('color', 'black');
+                $('#commentstable').css('background', '#FFFFDE');
+                $('#commentstable').css('border-color', '#FFFF1F');
+                $('#commentstable').css('border-width', '3');
+                $('#commentstable').css('padding', '15');
+                $('#commentstable').css('border-style', 'dotted');
+            }
+        }
+
+        $('#blogtochide').each(function() {
+            toc_enabled = 1;
+            console.log("TOC handling enabled");
+        });
+
+        if(toc_enabled == 1) {
+            var tmp = Cookies.get('BlogHideTOC');
+            if(typeof tmp == 'undefined') {
+                toc_hidden = 1; // Hide by default
+            } else {
+                tmp = parseInt(tmp);
+                if(tmp == 1) {
+                    toc_hidden = 1;
+                } else {
+                    toc_hidden = 0;
+                }
+            }
+
+            $('#blogtochide').on('click', function() {
+                showhidetoc();
+            });
+
+            // run the function once (this also writes the cookie with the current value)
+            updateTocVisibility();
+        }
+
+
+        if(window.blogExtraOnLoad) {
+            blogExtraOnLoad();
+        }
+
+        if(ttvars.mobiledesktopmode == "mobile") {
+            resizeBodyImages();
+            $(window).on('resize', function() {
+                console.log("Resize detected");
+                resizeBodyImages();
+            });
+        }
+
+        // Allow image resize to nearly fullscreen
+        $('img[articlecontent="1"]').on('click', function() {
+            //var iwidth = $(this).attr('width');
+            //var iheight = $(this).attr('height');
+            var iwidth = $(this).width();
+            var iheight = $(this).height();
+            var isrc = $(this).attr('src');
+
+            console.log(iwidth + 'x' + iheight);
+
+            var wwidth = $(window).width();
+            var wheight = $(window).height();
+
+            var xscalefactor = wwidth / iwidth;
+            var yscalefactor = wheight / iheight;
+
+            var scalefactor;
+            if(xscalefactor < yscalefactor) {
+                scalefactor = xscalefactor;
+            } else {
+                scalefactor = yscalefactor;
+            }
+            //scalefactor = scalefactor * 0.95;
+
+            var newwidth = Math.floor(iwidth * scalefactor);
+            var newheight = Math.floor(iheight * scalefactor);
+
+            var newtop = (wheight - newheight) / 2;
+            var newleft = (wwidth - newwidth) / 2;
+
+            var imgtag = '<img src="' + isrc + '" width="' + newwidth + '" height="' + newheight + '" id="blogfullscreenimage">';
+            $.blockUI({message: imgtag,
+                      centerX: false,
+                      centerY: false,
+                      css: { top: newtop + "px", left: newleft + "px", cursor: "default"},
+                      overlayCSS: { cursor: "not-allowed"},
+                      allowBodyStretch: false
+            });
+            $('#blogfullscreenimage').on('click', function() {
+                $.unblockUI();
+            });
+            console.log("TAG: " + imgtag);
+
+        });
+
+    }
+
+    function showhidetoc() {
+        if(toc_enabled != 1) {
+            // No table of contents, just return without doing anything
+            return;
+        }
+        if(toc_hidden == 1) {
+            toc_hidden = 0;
+        } else {
+            toc_hidden = 1;
+        }
+        updateTocVisibility();
+    }
+
+    function updateTocVisibility() {
+        if(toc_enabled != 1) {
+            // No table of contents, just return without doing anything
+            return;
+        }
+        if(toc_hidden == 1) {
+            document.getElementById('blogtoctable').style.display = 'none';
+            $('#blogtochide').html('Show');
+        } else {
+            document.getElementById('blogtoctable').style.display = 'block';
+            $('#blogtochide').html('Hide');
+        }
+        Cookies.set('BlogHideTOC', toc_hidden, { expires: 365, path: '/' });
+    }
+
+    function resizeBodyImages() {
+        var imgwidth = Math.round($(window).width() * 0.7); // 70% window width
+        $('img[articlecontent="1"]').each(function() {
+            $(this).attr('width', imgwidth);
+        });
+    }
+
+
+</script>

@@ -1,0 +1,186 @@
+[% IF ShowPageTitle == 1 %]
+    <p align="center"><h1>[% tr.trquote(PageTitle) %]
+    [% IF UseURLID == 1 %][% URLID %][% END %]</h1></p>
+[% END %]
+<p align="center">
+    <form name="listandeditform" method="post" action="[% webpath %]"  id="ListAndEditForm">
+        <table class="data" id="ListAndEditTable">
+            <thead>
+                <tr class="tabheader">
+                    [% IF ListOnly == "0" %]
+                        <th></th>
+                    [% END %]
+                    [% FOREACH column IN columns %]
+                        <th>[% tr.trquote(column.header) %]</th>
+                    [% END %]
+                </tr>
+            </thead>
+
+            <tbody>
+                [% FOREACH line IN lines %]
+                    <tr>
+                        <td colspan="[% column_count + 1 %]" class="dataTables_empty">[% tr.trquote("Loading data from server") %]</td>
+                    </tr>
+                [% END %]
+
+
+            </tbody>
+
+            <tfoot>
+                [% IF ColumnFilters == "1" %]
+                    <!-- column search bar -->
+                    <tr class="tabheader">
+                        [% IF ListOnly == "0" %]
+                            <th></th>
+                        [% END %]
+                        [% FOREACH column IN columns %]
+                            <th class="datatablescolumnsearch" align="left">[% tr.trquote(column.header) %]</th>
+                        [% END %]
+                    </tr>
+                [% END %]
+                [% IF cancreate == "1" %]
+                    <tr id="footereditrow">
+                        <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
+                        <td colspan="[% column_count %]" align="left" valign="top">[% tr.trquote("New") %]</td>
+
+                    </tr>
+                [% END %]
+            </tfoot>
+
+        </table>
+        <br/>
+    [% IF ListOnly == "0" %]
+        <div align="center">
+            <input type="hidden" name="mode" value="select">
+            <input type="submit" value="[% tr.trquote("Select") %]" id="SelectButton">
+        </div>
+    [% END %]
+    </form>
+</p>
+[% IF AllowSendCSV == "1" OR AllowDownloadCSV == "1" %]
+    <p id="csvlinkparagraph">
+        <br/>
+        [% IF AllowSendCSV == "1" %]
+            <a href="" id="sendcsvlink">[% tr.trquote("Send CSV via Email") %]</a><br/>
+        [% END %]
+        [% IF AllowDownloadCSV == "1" %]
+            <a href="[% DownloadCSVAjaxPath %]" target="_new">[% tr.trquote("Download CSV") %]</a>
+        [% END %]
+        <br/>
+    </p>
+[% END %]
+
+<!-- mask template TT vars dataset -->
+<span id="masktemplatedataset"
+        data-ajaxwebpath="[% ajaxwebpath %]"
+        data-json-aasorting='JSON:[% aaSorting %]'
+        data-ssearch="[% sSearch %]"
+        data-userawhtml="[% UseRawHTML %]"
+        data-useurlid="[% UseURLID %]"
+        data-urlid="[% URLID %]"
+        data-columnfilters="[% ColumnFilters %]"
+        data-allowsendcsv="[% AllowSendCSV %]"
+        data-sendcsvajaxpath="[% SendCSVAjaxPath %]"
+        data-trquote-sendingcsv="[% tr.trquote("Sending CSV mail!") %]"
+></span>
+<!-- master template TT vars dataset -->
+
+<script>
+    function extraOnLoad() {
+        var ajaxwebpath = ttvars.ajaxwebpath;
+        if(ttvars.useurlid == 1) {
+            ajaxwebpath = ajaxwebpath + '/' + ttvars.urlid;
+        }
+
+        if(ttvars.allowsendcsv == 1) {
+            $('#sendcsvlink').on('click', function() {
+               console.log('Sending CSV request');
+               $('#csvlinkparagraph').block({ message: ttvars.trquote.Sendingcsv });
+               $.ajax({
+                    url: ttvars.sendcsvajaxpath
+               }).done(function() {
+                    console.log("Sent");
+                    $('#csvlinkparagraph').unblock();
+               });
+               return false;
+            });
+        }
+
+        if(ttvars.columnfilters == 1) {
+            // Prepare column filters
+            $('#ListAndEditTable .datatablescolumnsearch').each(function() {
+                var title = $(this).text();
+                var fieldlen = title.length;
+                if(fieldlen > 30) {
+                    fieldlen = 30;
+                }
+                $(this).html('<input type="text" placeholder="'+title+'" class="datatablescolumnsearchinput" size="' + fieldlen + '" maxlength="100"/>');
+            });
+
+            // Auto-Resize input
+            $('.datatablescolumnsearchinput').on('input', function() {
+                var inlen = $(this).val().length + 1;
+                var placeholderlen = $(this).attr("placeholder").length;
+                if(inlen < placeholderlen) {
+                    inlen = placeholderlen;
+                }
+                $(this).attr('size', inlen);
+            });
+            $('.datatablescolumnsearchinput').on('click', function(event) {
+                event.stopPropagation();
+            });
+        }
+
+        var t = $('#ListAndEditTable').dataTable( {
+            "fnDrawCallback": function( oSettings ) {
+                $('pre code').each(function(i, block) {
+                    if(ttvars.userawhtml == 1) {
+                        hljs.highlightBlock(block);
+                    }
+                });
+            },
+            serverSide: true,
+            ordering: true,
+            order: ttvars.json.Aasorting,
+            searching: true,
+            ajax: ajaxwebpath,
+            serverMethod: "POST",
+            scrollY: 500,
+            scroller: {
+                loadingIndicator: true
+            },
+            "search": {"sSearch": ttvars.ssearch},
+            "language": {
+               "lengthMenu": ttvars.trquote.Countperpage,
+               "zeroRecords": ttvars.trquote.Nomatches,
+               "info": ttvars.trquote.Recordcount,
+               "infoEmpty": ttvars.trquote.Norecords,
+               "infoFiltered": ttvars.trquote.Maxrecords,
+               "first": ttvars.trquote.First,
+               "last": ttvars.trquote.Last,
+               "search": ttvars.trquote.Filterresults,
+               "processing": '<img src="/static/loading_bar.gif">'
+            },
+        });
+
+        if(ttvars.userawhtml == 1) {
+            hljs.initHighlightingOnLoad();
+        }
+
+        if(ttvars.columnfilters == 1) {
+            // Apply column filters
+            t.api().columns().every(function() {
+                var that = this;
+
+                $('input[type=text]', this.footer()).on('keyup change', function() {
+                    if(that.search() !== this.value) {
+                        that
+                            .search( this.value )
+                            .draw();
+                    }
+                });
+            });
+        }
+
+    }
+</script>

@@ -1,0 +1,45 @@
+<p align="center">
+    <table class="data" id="MainDataTable">
+        <thead>
+            <tr class="tabheader">
+                    <th>[% tr.tr("Description") %]</th>
+                    <th>[% tr.tr("Data") %]</th>
+            </tr>
+        </thead>
+        <tbody>
+                <tr>
+                    <td valign="top">[% tr.tr("ID") %]</td>
+                    <td>[% cable.cable_id %]</td>
+                </tr>
+                <tr>
+                    <td valign="top">[% tr.tr("Logtime") %]</td>
+                    <td>[% cable.logtime %]</td>
+                </tr>
+                <tr>
+                    <td valign="top">[% tr.tr("Origin ID") %]</td>
+                    <td>[% cable.origin_id %]</td>
+                </tr>
+                <tr>
+                    <td valign="top">[% tr.tr("Origin name") %]</td>
+                    <td>[% cable.origin_id %]</td>
+                </tr>
+                <tr>
+                    <td valign="top">[% tr.tr("Security Level") %]</td>
+                    <td>[% cable.security_level %]</td>
+                </tr>
+                <tr>
+                    <td valign="top">[% tr.tr("Reciever ID") %]</td>
+                    <td>[% cable.recieve_id %]</td>
+                </tr>
+                <tr>
+                    <td valign="top">[% tr.tr("Letterhead") %]</td>
+                    <td width="500px"><pre>[% cable.letterhead %]</pre></td>
+                </tr>
+                <tr>
+                    <td valign="top">[% tr.tr("Message") %]</td>
+                    <td width="500px"><pre>[% cable.message %]</pre></td>
+                </tr>
+
+        </tbody>
+    </table> 
+</p>

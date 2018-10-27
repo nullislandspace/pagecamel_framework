@@ -1,0 +1,22 @@
+<p align="center">
+    <form name="settheme" method="post" action="[% webpath %]" id="MainFilterForm">
+        <table class="data" align="center" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th>[% tr.trquote("Filename") %]</th>
+                    <th>[% tr.trquote("Size") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH File IN AvailFiles %]
+                    <tr>
+                        <td><a href="[% downwebpath %]/[% tr.quote(File.filename) %]">[% tr.quote(File.filename) %]</a></td>
+                        <td>[% tr.quote(File.filesize_bytes) %]</td>
+                        <td>[% tr.quote(File.description) %]</td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table>
+    </form>
+</p>

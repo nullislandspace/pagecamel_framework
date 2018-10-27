@@ -1,0 +1,56 @@
+package PageCamel::Web::PostgresDB;
+#---AUTOPRAGMASTART---
+use 5.020;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 1;
+use Fatal qw( close );
+use Array::Contains;
+#---AUTOPRAGMAEND---
+
+use base qw(PageCamel::Helpers::PostgresDB PageCamel::Web::BaseModule);
+use PageCamel::Helpers::DateStrings;
+
+sub new {
+    my ($proto, %config) = @_;
+    my $class = ref($proto) || $proto;
+
+    my $self = $class->SUPER::new(%config); # Call parent NEW
+    bless $self, $class; # Re-bless with our class
+
+    $self->updateConfig();
+
+    return $self;
+}
+sub handle_child_start {
+    my ($self) = @_;
+
+    # Make sure we get a database handle directly after forking in PreFork mode. With a properly
+    # set *SpareServers config, this should minimize the slow start problem when the number
+    # of connections spiked
+    # Set the $hasforked flag as well
+    $self->checkDBH(1);
+
+    return;
+}
+
+sub endconfig {
+    my ($self) = @_;
+
+    if($self->{forking}) {
+        # forking server: disconnect from database, generate new connection
+        # after the fork on demand
+        #print "   *** Will fork, disconnect PostgreSQL server...\n";
+        $self->rollback;
+        $self->{mdbh}->disconnect;
+        delete $self->{mdbh};
+    }
+    return;
+}
+
+1;
+__END__

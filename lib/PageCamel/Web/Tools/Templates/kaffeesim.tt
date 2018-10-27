@@ -1,0 +1,718 @@
+<table border="0" width="800px">
+    <tr>
+        <td align="left">
+            <h1 class="blogtitle">Coffee Factory</h1>
+        </td>
+    </tr>
+    <tr>
+        <td align=left">
+            This is a blueprint/simulation of an industrial coffee production system.
+            It uses HTML5 Canvas, Websockets and Clacks. There is only one background simulator,
+            so if someone else is also playing with it, it will syncronize to your screen as
+            well. Read <a href="https://cavac.at/sb/64">my blog entry</a> for more details.
+        </td>
+    </tr>
+</table>
+
+<p align="center">
+    <canvas id="kaffeesimcanvas" width="800px" height="600px"></canvas>
+</p>
+[% IF Readonly == 1 %]
+<p align="center">
+    [% tr.trquote("Note: This is the public readonly/non-interactive version") %]
+</p>
+[% END %]
+[% IF isDebugging == "1" %]<input type="button" value="Close Socket" onclick="closeSocket(); return false;">[% END %]
+<audio loop preload="auto" id="alarm1"><source src="/static/alarm1.mp3"></audio>
+<audio loop preload="auto" id="alarm2"><source src="/static/alarm2.mp3"></audio>
+
+<script>
+    var ws;
+    var wsconnected = 0;
+    var lastPing = Math.round(Date.now() / 1000);
+    
+    var machine = {
+        production_enable: 0,
+        manual_override: 0,
+        boiler_waterlevel: 100,
+        boiler_invalve: 0,
+        boiler_temp: 50,
+        boiler_heater: 0,
+        boiler_outvalve: 0,
+        boiler_fullrefill: 0,
+        beans_level: 0,
+        beans_invalve: 0,
+        grinder_power: 0,
+        grinder_rotation: 0,
+        mixer_power: 0,
+        mixer_rotation: 0,
+        outcounter_count: 0,
+        outcounter_flowing: 0,
+        blinkcount: 0,
+        alarm1_playing: 0,
+        alarm2_playing: 0,
+    };
+    
+    var textures = {
+        coffee_fresh_img: new Image(),
+        coffee_fresh: 0,
+        coffee_ground_img: new Image(),
+        coffee_ground: 0,
+        water_img: new Image(),
+        water: 0,
+        background_img: new Image(),
+        background: 0
+    };
+    
+    function extraOnLoad() {
+        $('#dataarea').block({ message: '<h1>[% tr.trquote("Loading Textures...") %]</h1>' });
+        // Load some textures
+        //var canvas = document.getElementById('kaffeesimcanvas');
+        //var ctx = canvas.getContext('2d');
+        
+        textures.coffee_fresh_img.onload = textureLoaded;
+        textures.coffee_fresh_img.src = '/guest/kaffeesim/textures/freshcoffee.png';
+        
+        textures.coffee_ground_img.onload = textureLoaded;
+        textures.coffee_ground_img.src = '/guest/kaffeesim/textures/groundcoffee.png';
+        
+        textures.water_img.onload = textureLoaded;
+        textures.water_img.src = '/guest/kaffeesim/textures/water.png';
+        
+        textures.background_img.onload = textureLoaded;
+        textures.background_img.src = '/guest/kaffeesim/textures/blueprintpaper.png';
+        
+    }
+    
+    var texturecount = 0;
+    function textureLoaded() {
+        texturecount++;
+        
+        if(texturecount == 4) {
+            var canvas = document.getElementById('kaffeesimcanvas');
+            var ctx = canvas.getContext('2d');
+            textures.coffee_ground = ctx.createPattern(textures.coffee_ground_img, "repeat");
+            textures.coffee_fresh = ctx.createPattern(textures.coffee_fresh_img, "repeat");
+            textures.water = ctx.createPattern(textures.water_img, "repeat");
+            textures.background = ctx.createPattern(textures.background_img, "repeat");
+            $('#dataarea').unblock();
+            startWebsocketConnection();
+        }
+    }
+    
+    function startWebsocketConnection() {
+        $('#dataarea').block({ message: '<h1>[% tr.trquote("Starting WebSocket...") %]</h1>' });
+    
+        ws = new WebSocket('[% WSURL %]', 'base64');
+        ws.onopen = function(ev) {
+            console.log("Connected!");
+            $('#dataarea').unblock();
+            sendPing();
+            wsconnected = 1;
+            
+            var updateoutmsg = {
+                type: 'NOTIFY',
+                varname: 'update_all'
+            };
+            ws.send(JSON.stringify(updateoutmsg));
+            paintCanvas();
+            $('#kaffeesimcanvas').click(canvasClicks);
+        };
+
+        ws.onmessage = function(ev) {
+            var rawmsg = String(ev.data);
+            //console.log("GOT " + rawmsg);
+            
+            var msg = JSON.parse(rawmsg);
+            
+            if(msg.type === "PING") {
+                lastPing = Math.round(Date.now() / 1000);
+                return;
+            }
+            
+            if(msg.type === "VALUE") {
+                machine[msg.varname] = msg.varval;
+                
+                return;
+            }
+            
+        };
+        
+        ws.onclose = function(ev) {
+            $('#dataarea').block({ message: '<h1>[% tr.trquote("Connection to websocket closed!") %]</h1>' });
+        };
+                
+        setTimeout(checkConnectTimeout, [% Settings.client_connect_timeout %] * 1000);
+  
+    }
+    
+    function paintCanvas() {
+        var canvas = document.getElementById('kaffeesimcanvas');
+        var ctx = canvas.getContext('2d');
+        
+        //machine.boiler_waterlevel++;
+        //if(machine.boiler_waterlevel > 100) {
+        //    machine.boiler_waterlevel = 0;
+        //}
+        
+        // Background
+        ctx.fillStyle = textures.background;
+        ctx.strokeStyle = '#000000';
+        ctx.fillRect(0, 0, 800, 600);
+        ctx.strokeRect(0, 0, 800, 600);
+        
+        // water boiler
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(67, 20, 3, 120);
+        ctx.fillRect(200, 20, 3, 120);
+        ctx.fillRect(67, 140, 136, 3);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(70, 40, 130, 100 - machine.boiler_waterlevel);
+        ctx.fillStyle = textures.water;
+        ctx.fillRect(70, 141 - machine.boiler_waterlevel, 130, machine.boiler_waterlevel);
+        
+        // water boiler heater
+        ctx.fillStyle = '#A0FFA0';
+        ctx.fillRect(170, 20, 15, 100);
+        if(machine.boiler_heater == 1) {
+            ctx.fillStyle = '#FF0000';
+        } else {
+            ctx.fillStyle = '#000000';
+        }
+        ctx.fillRect(170, 120, 15, 15);
+        
+        // water boiler text data
+        ctx.strokeStyle = '#000000';
+        ctx.strokeText(Math.round(machine.boiler_waterlevel) + '%', 80, 100);
+        ctx.strokeText(Math.round(machine.boiler_temp) + ' Celsius', 80, 120);
+        
+        // boiler inlet and valve
+        ctx.strokeStyle = '#000000'; // Pipe
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(200, 30, 80, 3);
+        ctx.fillRect(200, 40, 90, 3);
+        ctx.fillRect(280, 0, 3, 33);
+        ctx.fillRect(290, 0, 3, 43);
+        
+        ctx.fillStyle = textures.water;
+        ctx.fillRect(283, 0, 7, 40);
+        
+        if(machine.boiler_invalve == 1) {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(230, 25, 20, 24);
+            ctx.fillStyle = textures.water;
+            ctx.fillRect(200, 33, 89, 7);
+        } else {
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(200, 33, 30, 7);
+            
+            ctx.fillStyle = textures.water;
+            ctx.fillRect(230, 33, 59, 7);
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(230, 25, 20, 24);
+            
+        }
+        
+        // beans
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(517, 20, 3, 120);
+        ctx.fillRect(650, 20, 3, 120);
+        ctx.fillRect(517, 140, 136, 3);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(520, 40, 130, 100 - machine.beans_level);
+        ctx.fillStyle = textures.coffee_fresh;
+        ctx.fillRect(520, 141 - machine.beans_level, 130, machine.beans_level);
+        
+
+        // beans text data
+        ctx.strokeStyle = '#000000';
+        ctx.strokeText(Math.round(machine.beans_level) + '%', 530, 100);
+        
+        // beans inlet and valve
+        ctx.strokeStyle = '#000000'; // Pipe
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(650, 30, 80, 3);
+        ctx.fillRect(650, 40, 90, 3);
+        ctx.fillRect(730, 0, 3, 33);
+        ctx.fillRect(740, 0, 3, 43);
+        
+        ctx.fillStyle = textures.coffee_fresh;
+        ctx.fillRect(733, 0, 7, 40);
+        
+        if(machine.beans_invalve == 1) {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(680, 25, 20, 24);
+            ctx.fillStyle = textures.coffee_fresh;
+            ctx.fillRect(650, 33, 89, 7);
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(650, 33, 30, 7);
+            
+            ctx.fillStyle = textures.coffee_fresh;
+            ctx.fillRect(680, 33, 59, 7);
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(680, 25, 20, 24);
+            
+        }
+        
+        
+        // Grinder
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(550, 200, 100, 100);
+        if(machine.grinder_power == 1) {
+            machine.grinder_rotation = (machine.grinder_rotation + 3) % 360;
+            ctx.fillStyle = '#A0C0A0';
+        } else {
+            ctx.fillStyle = '#A0A0A0';
+        }
+        //ctx.fillRect(555, 205, 90, 90);
+        ctx.beginPath();
+        ctx.arc(600, 250, 45, 0, 2*Math.PI, false);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = '#A5BBC9';
+        for(i = 0; i < 360; i +=60) {
+            ctx.beginPath();
+            ctx.moveTo(600, 250);
+            ctx.arc(600, 250, 42, toRadians(i + machine.grinder_rotation), toRadians(i + machine.grinder_rotation + 20));
+            ctx.lineTo(600, 250);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(600, 250);
+            ctx.arc(600, 250, 42, toRadians(i + machine.grinder_rotation), toRadians(i + machine.grinder_rotation + 20));
+            ctx.lineTo(600, 250);
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        // Mixer
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(250, 200, 100, 100);
+        //ctx.fillStyle = '#A0A0A0';
+        //ctx.fillRect(255, 205, 90, 90);
+        if(machine.mixer_power == 1) {
+            machine.mixer_rotation = (machine.mixer_rotation + 4) % 360;    
+            ctx.fillStyle = '#A0C0A0';
+        } else {
+            ctx.fillStyle = '#A0A0A0';
+        }
+        //ctx.fillRect(255, 205, 90, 90);
+        ctx.beginPath();
+        ctx.arc(300, 250, 45, 0, 2*Math.PI, false);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = '#A00000';
+        for(i = 0; i < 360; i +=90) {
+            ctx.beginPath();
+            ctx.moveTo(300, 250);
+            ctx.arc(300, 250, 42, toRadians(i + machine.mixer_rotation), toRadians(i + machine.mixer_rotation + 10));
+            ctx.lineTo(300, 250);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(300, 250);
+            ctx.arc(300, 250, 42, toRadians(i + machine.mixer_rotation), toRadians(i + machine.mixer_rotation + 10));
+            ctx.lineTo(300, 250);
+            ctx.stroke();
+        }
+        
+        // Boiler outflow with valve to mixer
+        ctx.strokeStyle = '#000000'; // Pipe
+        ctx.fillStyle = '#000000';
+        
+        ctx.fillRect(190, 140, 3, 20);
+        ctx.fillRect(200, 140, 3, 10);
+        ctx.fillRect(190, 160, 110, 3);
+        ctx.fillRect(200, 150, 110, 3);
+        ctx.fillRect(300, 160, 3, 40);
+        ctx.fillRect(310, 150, 3, 50);
+        
+        // Paint valve one. If closed we repaint it later OVER the pipe
+        ctx.fillRect(210, 145, 25, 25);
+        
+        if((machine.boiler_waterlevel > 0 || machine.boiler_invalve == 1)) {
+            ctx.fillStyle = textures.water;
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+        }
+        
+        ctx.fillRect(193, 140, 7, 17);
+        ctx.fillRect(193, 153, 117, 7);
+        
+        
+        if((machine.boiler_waterlevel > 0 || machine.boiler_invalve == 1) && machine.boiler_outvalve == 1) {
+            ctx.fillStyle = textures.water;
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+        }
+        ctx.fillRect(236, 153, 74, 7);
+        ctx.fillRect(303, 160, 7, 40);
+       
+        ctx.fillStyle = '#000000';
+        if(machine.boiler_outvalve == 0) {
+            ctx.fillRect(210, 145, 25, 25);
+        }
+        
+        // Beans pipe to grinder
+        ctx.fillRect(600, 140, 3, 60);
+        ctx.fillRect(610, 140, 3, 60);
+        if(machine.beans_level > 0) {
+            ctx.fillStyle = textures.coffee_fresh;
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+        }
+        ctx.fillRect(603, 140, 7, 60);
+        
+        // Pipe Grinder to Mixer
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(350, 220, 200, 3);
+        ctx.fillRect(350, 230, 200, 3);
+
+       if(machine.beans_level > 0 && machine.grinder_power == 1) {
+            ctx.fillStyle = textures.coffee_ground;
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+        }
+        ctx.fillRect(350, 223, 200, 7);
+        
+        // Check if we produce "something" out of the Mixer
+        var mixerOutput = '#FFFFFF';
+        var makingWaste = 0;
+
+        if(machine.outcounter_flowing == 1) {
+            // We KNOW it's coffee
+            mixerOutput = '#D98107';
+        } else if(machine.beans_level > 0 && machine.grinder_power == 1) {
+            // coffee powder
+            mixerOutput = textures.coffee_ground;
+            makingWaste = 1;
+        } else if(machine.boiler_waterlevel > 0 && machine.boiler_outvalve == 1) {
+            // Water
+            mixerOutput = textures.water;
+            makingWaste = 1;
+        } else {
+            // Air
+            mixerOutput = '#FFFFFF';
+        }
+
+        
+        if(machine.beans_invalve == 1 && machine.beans_level == 100) {
+            makingWaste = 1;
+        }
+        
+        if(machine.boiler_invalve == 1 && machine.boiler_waterlevel == 100) {
+            makingWaste = 1;
+        }
+        
+        if(machine.boiler_outvalve == 1 && machine.mixer_power == 0 && (machine.boiler_waterlevel > 0 || machine.boiler_invalve == 1)) {
+            makingWaste = 1;
+        }
+        
+        if(machine.beans_level > 0 && machine.grinder_power == 1 && machine.mixer_power == 0) {
+            makingWaste = 1;
+        }
+        
+        // Counter
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(400, 380, 150, 80);
+        if(machine.outcounter_flowing == 1) {
+            ctx.fillStyle = '#A0C0A0';
+        } else {
+            ctx.fillStyle = '#A0A0A0';
+        }
+        ctx.fillRect(403, 383, 144, 74);
+        ctx.strokeStyle = '#000000';
+        ctx.strokeText(machine.outcounter_count + ' Liter', 420, 440);
+        
+        
+        // Mixer output pipes and decider valves
+        
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(300, 300, 3, 300);
+        ctx.fillRect(310, 300, 3, 300);
+        ctx.fillRect(310, 400, 490, 3);
+        ctx.fillRect(310, 410, 490, 3);
+                
+        // Just paint the valves over it. We'll repaint the closed one later
+        ctx.fillRect(293, 420, 25, 25);
+        ctx.fillRect(320, 393, 25, 25);
+        
+        // Fill the pipe with "default" fluid
+        ctx.fillStyle = mixerOutput;
+        ctx.fillRect(303, 300, 7, 300);
+        ctx.fillRect(310, 403, 490, 7);
+        
+        if(machine.outcounter_flowing == 0) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(330, 403, 470, 7);
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(320, 393, 25, 25);
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(303, 420, 7, 180);
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(293, 420, 25, 25);
+        }
+        
+        // Annotations
+        ctx.strokeStyle = '#0000A0';
+        ctx.strokeText("Boiler", 230, 100);
+        ctx.strokeText("Bean reservoir", 680, 100);
+        ctx.strokeText("Grinder", 680, 290);
+        ctx.strokeText("Mixer", 380, 290);
+        ctx.strokeText("Counter", 450, 490);
+        ctx.strokeText("Waste", 320, 580);
+        ctx.strokeText("to Bottling station ->", 650, 430);
+        
+        ctx.strokeText("Status", 60, 280);
+        ctx.strokeText("Mode", 60, 470);
+        
+        // -- Announciators --
+        machine.blinkcount = (machine.blinkcount + 1) % 20;
+        // "Waste"
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(30, 290, 100, 30);
+        if(makingWaste == 1 && machine.blinkcount < 10) {
+            ctx.fillStyle = '#FFA0A0';
+        } else {
+            ctx.fillStyle = '#A0A0A0';
+        }
+        ctx.fillRect(34, 294, 92, 22);
+        ctx.strokeStyle = '#000000';
+        ctx.strokeText("Wasting stuff", 40, 310);
+
+        // "Emergency refill"
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(30, 330, 100, 30);
+        if(machine.boiler_fullrefill == 1 && machine.blinkcount < 10) {
+            ctx.fillStyle = '#FFA0A0';
+        } else {
+            ctx.fillStyle = '#A0A0A0';
+        }
+        ctx.fillRect(34, 334, 92, 22);
+        ctx.strokeStyle = '#000000';
+        
+        ctx.strokeText("Emerg. Refill", 40, 350);
+
+        // "Producing"
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(30, 370, 100, 30);
+        if(machine.outcounter_flowing == 1) {
+            ctx.fillStyle = '#A0FFA0';
+        } else {
+            ctx.fillStyle = '#A0A0A0';
+        }
+        ctx.fillRect(34, 374, 92, 22);
+        ctx.strokeStyle = '#000000';
+        
+        ctx.strokeText("Output OK", 40, 390);
+
+        // "Overheat"
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(30, 410, 100, 30);
+        if((machine.boiler_temp > 102 || (machine.boiler_waterlevel < 15 && machine.boiler_heater == 1)) && machine.blinkcount < 10) {
+            ctx.fillStyle = '#FFA0A0';
+        } else {
+            ctx.fillStyle = '#A0A0A0';
+        }
+
+        ctx.fillRect(34, 414, 92, 22);
+        ctx.strokeStyle = '#000000';
+        
+        ctx.strokeText("Overheat", 40, 430);
+        
+        // -- Mode Switches --
+        // "Start"
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(30, 480, 100, 30);
+        if(machine.production_enable == 1) {
+            ctx.fillStyle = '#A0FFA0';
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+        }
+        ctx.fillRect(34, 484, 92, 22);
+        ctx.strokeStyle = '#000000';
+        
+        ctx.strokeText("START", 40, 500);
+        
+        // "STOP"
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(30, 520, 100, 30);
+        if(machine.production_enable == 0 && machine.manual_override == 0) {
+            ctx.fillStyle = '#A0FFA0';
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+        }
+        ctx.fillRect(34, 524, 92, 22);
+        ctx.strokeStyle = '#000000';
+        
+        ctx.strokeText("STOP", 40, 540);
+   
+        // "MANUAL"
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(30, 560, 100, 30);
+        if(machine.manual_override == 1) {
+            ctx.fillStyle = '#A0FFA0';
+        } else {
+            ctx.fillStyle = '#FFFFFF';
+        }
+        ctx.fillRect(34, 564, 92, 22);
+        ctx.strokeStyle = '#000000';
+        
+        ctx.strokeText("MANUAL", 40, 580);     
+        
+        
+        // Re-Paint border just to make it more pretty
+        ctx.strokeStyle = '#000000';
+        ctx.strokeRect(0, 0, 800, 600);        
+
+        // Overheat ALARM sound
+        if(machine.boiler_temp > 102 || (machine.boiler_waterlevel < 19 && machine.boiler_heater == 1)) {
+            if(machine.alarm1_playing == 0) {
+                machine.alarm1_playing = 1;
+                document.getElementById('alarm1').play();
+            }
+        } else {
+            if(machine.alarm1_playing == 1) {
+                machine.alarm1_playing = 0;
+                document.getElementById('alarm1').pause();
+            }
+        }
+
+        // Wasting stuff ALARM sound
+        if(makingWaste == 1) {
+            if(machine.alarm2_playing == 0) {
+                machine.alarm2_playing = 1;
+                document.getElementById('alarm2').play();
+            }
+        } else {
+            if(machine.alarm2_playing == 1) {
+                machine.alarm2_playing = 0;
+                document.getElementById('alarm2').pause();
+            }
+        }
+
+
+        setTimeout(paintCanvas, 40);
+    }
+    
+    function canvasClicks(e) {
+        var x = Math.floor((e.pageX-$("#kaffeesimcanvas").offset().left));
+        var y = Math.floor((e.pageY-$("#kaffeesimcanvas").offset().top));
+        
+        console.log("Clicked " + x + '/' + y);
+        
+        // Button START
+        if(x >= 30 && y >= 480 && x <=130 && y <= 510) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'manual_override', varvalue: 0}));
+            ws.send(JSON.stringify({type: 'SET', varname: 'production_enable', varvalue: 1}));
+            return;
+        }
+        
+        // Button STOP
+        if(x >= 30 && y >= 520 && x <=130 && y <= 550) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'production_enable', varvalue: 0}));
+            ws.send(JSON.stringify({type: 'SET', varname: 'manual_override', varvalue: 0}));
+            return;
+        }
+        
+        // Button MANUAL
+        if(x >= 30 && y >= 560 && x <=130 && y <= 590) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'production_enable', varvalue: 0}));
+            ws.send(JSON.stringify({type: 'SET', varname: 'manual_override', varvalue: 1}));    
+            return;
+        }
+        
+        // Cancel emergency refill
+        if(x >= 30 && y >= 330 && x <=130 && y <= 360) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'boiler_fullrefill', varvalue: 0}));
+            return;
+        }
+        
+        if(machine.manual_override == 0) {
+            console.log("Not in manual mode, ignoring other clicks");
+            return;
+        }
+        
+        // Water inlet valve
+        if(x >= 230 && y >= 25 && x <=250 && y <= 49) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'boiler_invalve', varvalue: 1 - machine.boiler_invalve}));
+            return;
+        }
+        
+        // Beans inlet valve
+        if(x >= 680 && y >= 25 && x <=700 && y <= 49) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'beans_invalve', varvalue: 1 - machine.beans_invalve}));
+            return;
+        }
+
+        // Water outlet valve
+        if(x >= 210 && y >= 145 && x <=235 && y <= 170) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'boiler_outvalve', varvalue: 1 - machine.boiler_outvalve}));
+            return;
+        }
+        
+        // Water heater
+        if(x >= 170 && y >= 20 && x <=185 && y <= 185) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'boiler_heater', varvalue: 1 - machine.boiler_heater}));
+            return;
+        }
+        
+        // Mixer
+        if(x >= 250 && y >= 200 && x <=350 && y <= 300) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'mixer_power', varvalue: 1 - machine.mixer_power}));
+            return;
+        }
+ 
+        // Grinder
+        if(x >= 550 && y >= 200 && x <=650 && y <= 300) {
+            ws.send(JSON.stringify({type: 'SET', varname: 'grinder_power', varvalue: 1 - machine.grinder_power}));
+            return;
+        }
+ 
+    }
+    
+    
+    function toRadians(indegree) {
+        indegree = indegree % 360;
+        return indegree * (Math.PI / 180);
+    }
+    
+    function sendPing () {
+        var neededPing = Math.round(Date.now() / 1000) - [% Settings.client_disconnect_timeout %];
+        if(lastPing != -1 && neededPing > lastPing) {
+            $('#dataarea').block({ message: '<h1>[% tr.trquote("Lost connection to Websocket!") %]</h1>' });
+            ws.close();
+            return;
+        }
+        
+        var outmsg = {
+            type: 'PING'
+        };
+        
+        ws.send(JSON.stringify(outmsg));
+        setTimeout(sendPing, [% PingTimeout %]);
+    }
+    
+    function checkConnectTimeout () {
+        if(wsconnected == 0) {
+            $('#dataarea').unblock();
+            $('#dataarea').block({ message: '<h1>[% tr.trquote("Connection to websocket failed!") %]</h1>' });
+            ws.close();
+        }
+    }
+    
+    function closeSocket() {
+        lastPing = -1;
+        ws.close();
+    }
+    
+    
+</script>

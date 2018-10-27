@@ -1,0 +1,83 @@
+[% IF statustext %]
+<p align="center">
+    <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+</p>
+[% END %]
+
+
+<p align="center">
+    <form name="report_selector" method="post" action="[% webpath %]">
+        <table class="data" id="HelperTable1">
+            <tr class="tabheader">
+                <th>[% tr.trquote("Report") %]</th>
+                [% IF ReportID != "" %]
+                    <th>[% tr.trquote("Timeframe") %]</th>
+                    <th>[% tr.trquote("Device") %]</th>
+                    <th>[% tr.trquote("Starttime") %]</th>
+                [% END %]
+            </tr>
+            <tr>
+                <td>
+                    <select name="reportid">
+                    <option value=""></option>
+                    [% FOREACH Report IN AvailReports %]
+                        <option value="[% tr.quote(Report.reportid) %]"
+                        [% IF Report.reportid == ReportID %]
+                            selected
+                        [% END %]
+                        >[% tr.quote(Report.device_type) %] : [% tr.quote(Report.report_name) %]</option>
+                    [% END %]
+                    </select>
+                </td>
+                [% IF ReportID != "" %]
+                    <td>
+                        <select name="timeframe">
+                        [% FOREACH Timeframe IN Timeframes %]
+                            <option value="[% tr.quote(Timeframe) %]"
+                            [% IF Timeframe == SelectedTimeframe %]
+                                selected
+                            [% END %]
+                            >[% tr.trquote(Timeframe) %]</option>
+                        [% END %]
+                        </select>
+                    </td>
+                    <td>
+                        <select name="device">
+                        [% FOREACH Device IN Devices %]
+                            <option value="[% tr.quote(Device.hostname) %]"
+                            [% IF Device.hostname == SelectedDevice %]
+                                selected
+                            [% END %]
+                            >[% tr.quote(Device.hostname) %] : [% tr.quote(Device.description) %]</option>
+                        [% END %]
+                        </select>                        
+                    </td>
+                    <td>
+                        <input type="text" displaytype="dateandtime" name="starttime" value="[% Starttime %]" size="19" maxlength="50" onChange="document.report_selector.submit();">
+                        <input type="hidden" name="mode" value="timeupdate">
+                    </td>
+                [% END %]
+            </tr>
+        </table>
+    </form>
+</p>
+
+[% IF ReportID != "" %]
+    [% FOREACH Graph IN Graphs %]
+        <p align="center">
+            <img src="[% graphpath %]/[% Graph.graph_name %]/[% Graph.rndsuffix %]">
+            <br/>&nbsp;<br/>
+        </p>
+    [% END %]
+[% END %]
+
+</form>
+
+<script language="javascript">
+    function extraOnLoad() {
+        $('select').on("selectmenuchange", function(e, ui){
+            document.report_selector.submit();
+        });
+    }
+    
+</script>

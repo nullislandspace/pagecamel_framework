@@ -1,0 +1,70 @@
+<p align="center">
+    <!--
+    <div class="errortext">[% tr.tr("Warning! This full-text search might take a few minutes!") %]</div>
+    <br>
+    -->
+    <form name="search" method="post" action="[% PostLink %]">
+        <input type="text" size="40" maxlength="100" name="searchterm" value="[% searchterm %]">
+        <input type="hidden" name="offset" value="0">
+        <input type="submit" value="Search">
+    </form>
+</p>
+
+[% IF hasresults == 1 %]
+    <p align="center">
+        <table class="data" id="MainDataTable">
+            <thead>
+                <tr class="tabheader">
+                        <th>[% tr.tr("ID") %]</th>
+                        <th>[% tr.tr("Logtime") %]</th>
+                        <th>[% tr.tr("Sender") %]</th>
+                        <th>[% tr.tr("Security") %]</th>
+                        <th>[% tr.tr("Snippet") %]</th>
+                        <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH cable IN cables %]
+                    <tr>
+                        <td>[% cable.cable_id %]</td>
+                        <td>[% cable.logtime %]</td>
+                        <td>[% cable.origin_name %]</td>
+                        <td>[% cable.security_level %]</td>
+                        <td class="snippet" width="300px">[% cable.snippet %]</td>
+                        <td><a href="[% cable.viewlink %]" target="_new">View</a></td>
+                        
+                    </tr>
+                [% END %]
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="6">
+                        <table width="100%" border="0">
+                            <tr>
+                                <td align="left" width="100px">
+                                    [% IF backoffset > -1 %]
+                                        <form name="backsearch" method="post" action="[% PostLink %]">
+                                            <input type="hidden" name="searchterm" value="[% searchterm %]">
+                                            <input type="hidden" name="offset" value="[% backoffset %]">
+                                            <input type="submit" value="<<<">
+                                        </form>
+                                    [% END %]
+                                </td>
+                                <td>&nbsp;</td>
+                                <td align="right"  width="100px">
+                                    [% IF nextoffset > -1 %]
+                                        <form name="nextsearch" method="post" action="[% PostLink %]">
+                                            <input type="hidden" name="searchterm" value="[% searchterm %]">
+                                            <input type="hidden" name="offset" value="[% nextoffset %]">
+                                            <input type="submit" value=">>>">
+                                        </form>
+                                    [% END %]
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </tfoot>
+        </table> 
+    </p>
+[% END %]

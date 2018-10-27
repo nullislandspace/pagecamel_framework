@@ -1,0 +1,118 @@
+[% WEBSOCKETMASK %]
+
+
+[% IF isDebugging == '1' %]
+    <p>
+        <input type="button" value="Close Socket" onclick="closeSocket(); return false;">
+    </p>
+[% END %]
+
+<span id="websocketmasktemplatedataset"
+    [% FOREACH key IN Settings.keys %]
+        data-[% key %]="[% Settings.$key %]"
+    [% END %]
+    data-trquote-wsconnecting="[% tr.trquote("Starting WebSocket...") %]"
+    data-trquote-wsclosed="[% tr.trquote("Connection to websocket closed!") %]"
+    data-trquote-wslost="[% tr.trquote("Lost connection to websocket!") %]"
+    data-trquote-wsfailed="[% tr.trquote("Connection to websocket failed!") %]"
+    data-websocketurl="[% WSURL %]"
+    
+></span>
+
+<script>
+    var ws;
+    var wsconnected = 0;
+    var lastPing = Math.round(Date.now() / 1000);
+    
+    function extraOnLoad() {
+        
+        if(window.websocketmaskOnload) {
+            websocketmaskOnload();
+        }
+                
+        console.log("Opening websocket.");
+        openWebsocket();
+            
+    }
+
+
+    function openWebsocket() {
+        $('#dataarea').block({ message: ttvars.trquote.Wsconnecting });
+    
+        ws = new WebSocket(ttvars.websocketurl, 'base64');
+
+        ws.onopen = function(ev) {
+            //console.log("Connected!");
+            $('#dataarea').unblock();
+            sendPing();
+            wsconnected = 1;
+            console.log("Websocket connected");
+            
+            if(window.websocketmaskOnSocketOpen) {
+                websocketmaskOnSocketOpen();
+            }
+        };
+        
+        ws.onmessage = handleServerRequests;
+        
+        ws.onclose = function(ev) {
+            $('#dataarea').block({ message: ttvars.trquote.Wsclosed });
+            isrecording = 0;
+        }
+        
+        setTimeout(checkConnectTimeout, ttvars.client_connect_timeout * 1000);
+        return;
+    }
+    
+    function handleServerRequests(ev) {
+        var rawmsg = String(ev.data);
+        
+        var msg = JSON.parse(rawmsg);
+        //console.log("GOT " + msg.type);
+        
+        if(msg.type === "PING") {
+            lastPing = Math.round(Date.now() / 1000);
+        } else if(msg.type === "CONSOLELOG") {
+            console.log(msg.logline);
+        } else if(window.handleMessage) {
+            handleMessage(msg);
+        }
+        
+    }
+    
+    function isValidNumber(n) {
+        return !isNaN(parseFloat(n)) && isFinite(n) && n > 0;
+    }
+    
+
+    function sendPing () {
+        var neededPing = Math.round(Date.now() / 1000) - ttvars.client_disconnect_timeout;
+        if(lastPing != -1 && neededPing > lastPing) {
+            $('#dataarea').block({ message: ttvars.trquote.Wslost });
+            ws.close();
+            return;
+        }
+        
+        var outmsg = {
+            type: 'PING'
+        };
+        
+        ws.send(JSON.stringify(outmsg));
+        setTimeout(sendPing, ttvars.ping_timeout);
+    }
+    
+    function checkConnectTimeout () {
+        if(wsconnected == 0) {
+            $('#dataarea').unblock();
+            $('#dataarea').block({ message: ttvars.trquote.Wsfailed });
+            ws.close();
+        }
+    }
+    
+    function closeSocket() {
+        lastPing = -1;
+        ws.close();
+    }
+    
+    
+</script>

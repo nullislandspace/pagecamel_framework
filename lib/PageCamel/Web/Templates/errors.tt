@@ -1,0 +1,37 @@
+<p align="center">
+    <form name="errors" method="post" action="[% PostLink %]" id="MainFilterForm" >
+        <table class="data" align="center" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th>[% tr.trquote("Reporttime") %]</th>
+                    <th>[% tr.trquote("Type") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                    <th>[% tr.trquote("ACK") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH error IN errors %]
+                    <tr>
+                        <td>
+                            <input type="hidden" name="error_id" value="[% tr.quote(error.error_id) %]">
+                            [% tr.fixdate(error.reporttime) %]
+                        </td>
+                        <td>
+                            <img src="/pics/[% error.error_image %]" alt="[% tr.quote(error.error_type) %]">
+                        </td>
+                        <td>
+                            [% tr.quote(error.description) %]
+                        </td>
+                        <td>
+                            <input type="checkbox" name="[% tr.quote(error.error_id) %]_ack">
+                        </td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table><br/>
+        <div align="center">
+            <input type="hidden" name="mode" value="change">
+            <input type="submit" value="[% tr.trquote("Change") %]">
+        </div>
+    </form>
+</p>

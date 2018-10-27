@@ -1,0 +1,349 @@
+<p align="center">
+    <input type="file" id="files" multiple/>
+</p>
+<div id="hashingprogressinfo">
+    <p align="center">
+        <div id="hashingprogressinfolabel"><span>Initializing...</span></div>
+        <div id="hashingprogressbar" class="jsworker_progressbar"></div>
+        <div class="hashingprogress-label">0 %</div>
+    </p>
+</div>
+
+<div id="uploadprogressinfo">
+    <p align="center">
+        <div id="uploadprogressinfolabel"><span>Initializing...</span></div>
+        <div id="uploadprogressbar" class="jsworker_progressbar"></div>
+        <div class="uploadprogress-label">0 %</div>
+    </p>
+</div>
+
+<p align="center">
+    <table class="data" id="FileTable">
+        <thead>
+            <tr class="tabheader">
+                <th>[% tr.trquote("File") %]</th>
+                <th>[% tr.trquote("Size") %]</th>
+                <th>[% tr.trquote("Date") %]</th>
+                <th>[% tr.trquote("Delete") %]</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</p><br/>
+[% IF UNCPath != '' %]
+    <p align="center">
+        [% tr.trquote("This directory is also reachable from Windows via UNC Path: ") %]<br/>
+        <b>[% UNCPath %]</b>
+    </p>
+[% END %]
+
+<span id="masktemplatedataset"
+    data-trquote-fileapinotsupported="[% tr.trquote("The HTML5 File APIs are not fully supported in this browser.") %]"
+    data-trquote-connectionlost="[% tr.trquote("Lost connection to websocket!") %]"
+    data-trquote-startingwebsocket="[% tr.trquote("Starting WebSocket...") %]"
+    data-trquote-websocketfailed="[% tr.trquote("Connection to websocket failed!") %]"
+    data-ajaxwebpath="[% ajaxwebpath %]"
+    data-hashingworker="[% HashingWorker %]"
+    data-uploadworker="[% UploadWorker %]"
+    data-wsurl="[% WSURL %]"
+    data-connecttimeout="[% Settings.client_connect_timeout %]"
+    data-disconnecttimeout="[% Settings.client_disconnect_timeout %]"
+    data-pingtimeout="[% PingTimeout %]"
+></span>
+
+<script>
+    var ws;
+    var wsconnected = 0;
+    var lastPing = Math.round(Date.now() / 1000);
+    
+    var hashingprogressBar;
+    var hashingprogressLabel;
+    var uploadprogressBar;
+    var uploadprogressLabel;
+    
+    var hashingworker;
+    var uploadworker;
+    var interworker;
+    
+    var activeWorkers = 0;
+    
+    var filetable;
+    
+    function extraOnLoad() {
+        filetable = $('#FileTable').DataTable( {
+            serverSide: true,
+            processing: true,
+            ordering: true,
+            orderMulti: false,
+            searching: true,
+            ajax: ttvars.ajaxwebpath,
+            serverMethod: "POST",
+            scrollY: 500,
+            scroller: {
+                loadingIndicator: true
+            },
+            columns: [
+                { "data": "file"},
+                { "data": "xsize", "className": "dt-body-right"},
+                { "data": "date"},
+                { "data": "delete", "orderable": false}
+            ],
+            "language": {
+               "search": ttvars.trquote.Filterresults,
+                "lengthMenu": ttvars.trquote.Countperpage,
+                "zeroRecords": ttvars.trquote.Nomatches,
+                "info": ttvars.trquote.Recordcount,
+                "infoEmpty": ttvars.trquote.Norecords,
+                "infoFiltered": ttvars.trquote.Maxrecords,
+                "first": ttvars.trquote.First,
+                "last": ttvars.trquote.Last,
+               "processing": '<img src="/static/loading_bar.gif' + ttvars.urlreloadpostfix + '">',
+               "loadingRecords": '<img src="/static/loading_doublerings.gif">'
+               
+            },
+        });
+        
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+            // Great success! All the File APIs are supported.
+        } else {
+            alert(ttvars.trquote.Fileapinotsupported);
+        }
+        
+        $('#files').change(handleFileSelect);
+        
+        hashingprogressBar = $('#hashingprogressbar');
+        hashingprogressLabel = $('.hashingprogress-label');
+        
+        uploadprogressBar = $('#uploadprogressbar');
+        uploadprogressLabel = $('.uploadprogress-label');
+        
+        
+        hashingprogressBar.progressbar({
+            value: 0,
+            change: function() {
+                hashingprogressLabel.text( hashingprogressBar.progressbar( "value" ) + "%" );
+            },
+            complete: function() {
+                hashingprogressLabel.text( "Complete!" );
+            }
+        });
+        
+        uploadprogressBar.progressbar({
+            value: 0,
+            change: function() {
+                uploadprogressLabel.text( uploadprogressBar.progressbar( "value" ) + "%" );
+            },
+            complete: function() {
+                uploadprogressLabel.text( "Complete!" );
+            }
+        });
+        
+        $('#hashingprogressinfo').hide();
+        $('#uploadprogressinfo').hide();
+        
+         interworker = new MessageChannel();
+        
+         hashingworker = new Worker(ttvars.hashingworker);
+         hashingworker.postMessage(['STARTUP', '?'], [interworker.port1]);
+         hashingworker.onmessage = handleWorkerMessage;
+         
+         uploadworker = new Worker(ttvars.uploadworker);
+         uploadworker.postMessage(['STARTUP', '?'], [interworker.port2]);
+         uploadworker.onmessage = handleWorkerMessage;
+         
+    }
+
+    function handleWorkerMessage(e) {
+        var command = e.data[0];
+        var data = e.data[1];
+        
+        if(command == 'STARTUP') {
+            console.log("Worker " + data + " started.");
+            activeWorkers += 1;
+            checkWorkerCount();
+            return;
+        }
+        if(command == 'SHOWHASHINGPROGRESS') {
+            $('#hashingprogressinfo').show();
+            return;
+        }
+        if(command == 'HIDEHASHINGPROGRESS') {
+            $('#hashingprogressinfo').hide();
+            return;
+        }
+        if(command == 'SETHASHINGPROGRESS') {
+            hashingprogressBar.progressbar("value", data);
+            return;
+        }
+        if(command == 'SETHASHINGPROGRESSLABEL') {
+            $('#hashingprogressinfolabel span').text(data);
+            return;
+        }
+
+        if(command == 'SHOWUPLOADPROGRESS') {
+            $('#uploadprogressinfo').show();
+            return;
+        }
+        if(command == 'HIDEUPLOADPROGRESS') {
+            $('#uploadprogressinfo').hide();
+            return;
+        }
+        if(command == 'SETUPLOADPROGRESS') {
+            uploadprogressBar.progressbar("value", data);
+            return;
+        }
+        if(command == 'SETUPLOADPROGRESSLABEL') {
+            $('#uploadprogressinfolabel span').text(data);
+            return;
+        }
+
+        
+        
+        if(command == 'TESTCOMPLETE') {
+            console.log("Test message roundtrip complete");
+            return;
+        }
+        
+        if(command == 'SENDTOSERVER') {
+            //console.log("SENDING " + data);
+            ws.send(data);
+            return;
+        }
+
+        if(command == 'RELOADTABLE') {
+            //console.log("Reloading data table");
+            reloadFiletable();
+            return;
+        }
+    }
+    
+    function deleteFile(fname) {
+        //console.log("Deleting file " + fname);
+        var outmsg = {
+            type: 'DELETEFILE',
+            filename: fname
+        };
+        
+        ws.send(JSON.stringify(outmsg));
+        return;
+    }
+    
+    function checkWorkerCount() {
+        if(activeWorkers == 2) {
+            console.log("All workers started, opening websocket.");
+            //hashingworker.postMessage(['SENDTESTMESSAGE', '']);
+            openWebsocket();
+        }
+    }
+
+    function handleFileSelect(evt) {
+        var files = evt.target.files; // FileList object
+        
+        // files is a FileList of File objects. List some properties.
+        for (var i = 0, f; f = files[i]; i++) {
+            hashingworker.postMessage(['ADDFILE', f]);
+        }
+        $('#files').val("");
+    }
+    
+
+
+    function openWebsocket() {
+        $('#dataarea').block({ message: ttvars.trquote.Startingwebsocket });
+    
+        ws = new WebSocket(ttvars.wsurl, 'base64');
+
+        ws.onopen = function(ev) {
+            //console.log("Connected!");
+            $('#dataarea').unblock();
+            sendPing();
+            wsconnected = 1;
+            console.log("Websocket connected");
+            
+            /*
+            var updateoutmsg = {
+                type: 'NOTIFY',
+                varname: 'set_all'
+            };
+            ws.send(JSON.stringify(updateoutmsg));
+            */
+            
+        };
+        
+        ws.onmessage = handleServerRequests;
+        
+        ws.onclose = function(ev) {
+            $('#dataarea').block({ message: ttvars.trquote.Connectionlost });
+            hashingworker.terminate();
+        }
+        
+        setTimeout(checkConnectTimeout, ttvars.connecttimeout * 1000);
+        return;
+    }
+    
+    function handleServerRequests(ev) {
+        var rawmsg = String(ev.data);
+        
+        var msg = JSON.parse(rawmsg);
+        //console.log("GOT " + msg.type);
+        
+        if(msg.type === "PING") {
+            lastPing = Math.round(Date.now() / 1000);
+            return;
+        }
+
+        if(msg.type === "UPLOADCHUNK") {
+            uploadworker.postMessage(['UPLOADCHUNK', msg.filename, msg.chunk, msg.percentage]);
+            return;
+        }
+                
+        if(msg.type === "FILEDONE") {
+            uploadworker.postMessage(['FILEDONE', msg.filename]);
+            return;
+        }
+
+        if(msg.type === "RELOADTABLE") {
+            //console.log("Reloading data table");
+            reloadFiletable();
+            return;
+        }
+        
+    }
+    
+
+    
+    function sendPing () {
+        var neededPing = Math.round(Date.now() / 1000) - ttvars.disconnecttimeout;
+        if(lastPing != -1 && neededPing > lastPing) {
+            $('#dataarea').block({ message: ttvars.trquote.Connectionlost });
+            ws.close();
+            return;
+        }
+        
+        var outmsg = {
+            type: 'PING'
+        };
+        
+        ws.send(JSON.stringify(outmsg));
+        setTimeout(sendPing, ttvars.pingtimeout);
+    }
+    
+    function checkConnectTimeout () {
+        if(wsconnected == 0) {
+            $('#dataarea').unblock();
+            $('#dataarea').block({ message: ttvars.trquote.Websocketfailed });
+            ws.close();
+        }
+    }
+    
+    function closeSocket() {
+        lastPing = -1;
+        ws.close();
+    }
+
+    function reloadFiletable() {
+        filetable.ajax.reload(null, false);
+    }
+    
+</script>

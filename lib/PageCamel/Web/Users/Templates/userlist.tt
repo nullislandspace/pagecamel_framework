@@ -1,0 +1,57 @@
+<p align="center">
+    <form name="errors" method="post" action="[% PostLink %]" id="MainFilterForm" >
+        <table class="data" align="center" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("Username") %]</th>
+                    <th>[% tr.trquote("Name") %]</th>
+                    <th>[% tr.trquote("Email") %]</th>
+                    <th>[% tr.trquote("Company") %]</th>
+                    <th>[% tr.trquote("Locked") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH user IN Users %]
+                    <tr>
+                        <td>
+                            <input type="radio" name="username" value="[% tr.quote(user.username) %]">
+                        </td>
+                        <td>
+                            [% tr.quote(user.username) %]
+                        </td>
+                        <td>
+                            [% tr.quote(user.first_name) %] [% tr.quote(user.last_name) %]
+                        </td>
+                        <td>
+                            [% tr.quote(user.email_addr) %]
+                        </td>
+                        <td>
+                            [% tr.quote(user.company_name) %]
+                        </td>
+
+                        [% IF user.account_locked == 1 %]
+                            <td valign="top" class="FALSEBOOLEAN">[% tr.quote(user.account_lock_reason) %]</td>
+                        [% ELSE %]
+                            <td></td>
+                        [% END %]
+                    </tr>
+                [% END %]
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>
+                        <input type="radio" name="username" value="NEW">
+                    </td>
+                    <td colspan="5">
+                        [% tr.trquote('New') %]
+                    </td>
+                </tr>
+            </tfoot>
+        </table><br/>
+        <div align="center">
+            <input type="hidden" name="mode" value="select">
+            <input type="submit" value="[% tr.trquote("Select") %]">            
+        </div>
+    </form>
+</p>

@@ -1,0 +1,21 @@
+[% IF bodytext != '' %]
+    <p align="center">[% bodytext %]</p>
+[% END %]
+
+<p align="center">
+    [% FOREACH camera IN cameras %]
+        <img id="webcamimg_[% camera.htmlname %]" width="[% camera.width %]" height="[% camera.height %]" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=">
+        [% IF camera.linebreak == "1" %]<br/>[% ELSE %]&nbsp;[% END %]
+    [% END %]
+</p>
+
+<script>    
+    function handleMessage(msg) {                
+        if(msg.type === "IMAGE") {
+            $("#webcamimg_" + msg.cameraname).attr('src', 'data:image/jpeg;base64, ' + msg.varval);
+            
+            return;
+        }
+        
+    }
+</script>

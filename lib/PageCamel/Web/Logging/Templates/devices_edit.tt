@@ -1,0 +1,140 @@
+[% dialog.modechangeform(name => "confirmDeleteComputer",
+                        title => "Delete computer",
+                        text => "Do you really want to delete this computer?",
+                        icon => "help",
+                        confirm => "Delete",
+                        cancel => "Cancel",
+                        mode => "delete") %]
+[% IF statustext %]
+<p align="center">
+    <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+</p>
+[% END %]
+<p align="center">
+    <form name="powerdevices" method="post" action="[% webpath %]"  id="MainFilterForm">
+        <table class="data" id="MainDataTable">
+            <thead>
+                <tr class="tabheader">
+                    <th>[% tr.trquote("Key") %]</th>
+                    <th>[% tr.trquote("Hostname") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>[% tr.trquote("Hostname") %]</td>
+                    <td>
+                        <input type="hidden" name="old_hostname" value="[% tr.quote(device.hostname) %]">
+                        <input type="text" name="hostname" value="[% tr.quote(device.hostname) %]">
+                    </td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Type") %]</td>
+                    [% IF mode == "create" %]
+                        <td align="center">
+                            <select name="device_type">
+                                [% FOREACH devtype IN devtypes %]
+                                    <option value="[% tr.quote(devtype.enumvalue) %]"
+                                    [% IF device.device_type == devtype.enumvalue %]
+                                        checked="checked"
+                                    [% END %]
+                                    >
+                                        [% tr.trquote(devtype.enumvalue) %]
+                                    </option>
+                                [% END %]
+                            </select>
+                        </td>
+                    [% ELSE %]
+                        <td>
+                            <input type="hidden" name="device_type" value="[% device.device_type %]">
+                            [% device.device_type %]
+                        </td>
+                    [% END %]
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Description") %]</td>
+                    <td><input type="text" size="30" maxlength="60" name="description" value="[% device.description %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("ComputerDB") %]</td>
+                    <td>
+                        <select name="computerdb_hostname">
+                            <option value=""></option>
+                            [% FOREACH Computer IN Computers %]
+                                <option value="[% Computer.computer_name %]"
+                                    [% IF device.computerdb_hostname == Computer.computer_name %]
+                                        selected="selected"
+                                    [% END %]
+                                    >[% tr.quote(Computer.computer_name) %]
+                                </option>
+                            [% END %]
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Scan speed") %]</td>
+                    <td>
+                        <select name="scanspeed">
+                            <option value="slow"
+                                [% IF device.scanspeed == "slow" %]
+                                    selected="selected"
+                                [% END %]
+                                >[% tr.trquote("Slow") %]
+                            </option>
+                            <option value="medium"
+                                [% IF device.scanspeed == "medium" %]
+                                    selected="selected"
+                                [% END %]
+                                >[% tr.trquote("Medium") %]
+                            </option>
+                            <option value="fast"
+                                [% IF device.scanspeed == "fast" %]
+                                    selected="selected"
+                                [% END %]
+                                >[% tr.trquote("Fast") %]
+                            </option>
+                        </select>
+                    </td>
+                </tr>
+                                    
+                    
+                    
+                <tr>
+                    <td>[% tr.trquote("IP") %]</td>
+                    <td><input type="text" size="16" maxlength="40" name="ip_addr" value="[% tr.quote(device.ip_addr) %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("User") %]</td>
+                    <td><input type="text" size="10" maxlength="40" name="device_username" value="[% tr.quote(device.device_username) %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Password") %]</td>
+                    <td><input type="text" size="10" maxlength="40" name="device_password" value="[% tr.quote(device.device_password) %]"></td>
+                </tr>
+                <tr>
+                    <td>[% tr.trquote("Active") %]</td>
+                    <td><input type="checkbox" name="is_active"
+                        [% IF device.is_active OR mode == "create" %]
+                            checked
+                        [% END %]
+                        >
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="9">
+                        <input type="hidden" name="mode" value="[% mode %]" id="editmode">
+                        <input type="submit" value="[% tr.trquote("Save") %]">
+                        <input type="submit" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteComputer('powerdevices', 'editmode');">
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </form>
+</p>
+
+<script type="text/javascript">
+    function extraOnLoad() {
+        // DON'T DELETE: auto-uninline onfoo html tags to JS file
+    }
+</script>

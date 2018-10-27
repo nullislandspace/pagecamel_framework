@@ -1,0 +1,65 @@
+[% dialog.modechangeform(name => "confirmDeleteLanguage",
+                        title => "Delete Translation Language",
+                        text => "Do you really want to delete this language? This will delete all translations for this language!",
+                        icon => "alert",
+                        confirm => "Delete",
+                        cancel => "Cancel",
+                        mode => "delete") %]
+<p align="center">    
+    <table class="data" align="center" id="MainDataTable">
+        <thead>
+            <tr class="tabheader">
+                <th>[% tr.trquote("Name") %]</th>
+                <th>[% tr.trquote("Description") %]</th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH Language IN AvailLanguages %]
+                <tr>
+                    <form name="lang_[% Language.lang %]" method="post" action="[% PostLink %]">
+                        <td>
+                            <input type="hidden" name="language" value="[% tr.quote(Language.lang) %]">
+                            <input type="text" name="newlanguage" value="[% tr.quote(Language.lang) %]" size="10" maxLength="10">
+                        </td>
+                        <td>
+                            <input type="text" name="description" value="[% tr.quote(Language.description) %]" size="30" maxLength="50">
+                        </td>
+                        <td>
+                            <input type="hidden" name="mode" id="mode_[% tr.quote(Language.lang) %]" value="change">
+                            <input type="submit" value="[% tr.trquote("Change") %]">
+                        </td>
+                        <td>
+                            <input type="submit" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteLanguage('lang_[% tr.quote(Language.lang) %]', 'mode_[% tr.quote(Language.lang) %]');">
+                        </td>
+                    </form>
+                </tr>
+            [% END %]
+        </tbody>
+        <tfoot>
+            <tr>
+                <form name="lang_new" method="post" action="[% PostLink %]">
+                    <td>
+                        <input type="text" name="newlanguage" value="" size="10" maxLength="10">
+                    </td>
+                    <td>
+                        <input type="text" name="description" value="" size="30" maxLength="50">
+                    </td>
+                    <td>
+                        <input type="hidden" name="mode" id="mode_new" value="create">
+                        <input type="submit" value="[% tr.trquote("Create") %]">
+                    </td>
+                    <td>
+                    </td>
+                </form>
+            </tr>
+        </tfoot>
+    </table>
+</p>
+
+<script type="text/javascript">
+    function extraOnLoad() {
+        // DON'T DELETE: auto-uninline onfoo html tags to JS file
+    }
+</script>

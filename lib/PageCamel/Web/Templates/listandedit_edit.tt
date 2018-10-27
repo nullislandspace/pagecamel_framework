@@ -1,0 +1,537 @@
+[% dialog.modechangeform(name => "confirmDeleteEntry",
+                        title => "Delete Entry",
+                        text => "Do you really want to delete this Entry?",
+                        icon => "help",
+                        confirm => "Delete",
+                        cancel => "Cancel",
+                        mode => "delete") %]
+[% IF errstr != '' %]
+    <div class="errortext" onclick="removeStatusText();" id="errorstatustext"><p align="center" >[% tr.quote(errstr) %]</div>
+[% END %]
+[% IF okstr != '' %]
+    <div class="oktext" onclick="removeStatusText();" id="okstatustext"><p align="center" >[% tr.quote(okstr) %]</div>
+[% END %]
+
+<p align="center">
+    <form name="listandedit" method="post" action="[% webpath %]"  id="MainForm">
+        <input type="hidden" name="primary_key" value="[% primary_key %]">
+        <input type="hidden" name="mode" value="list" id="mode">
+        [% IF UseTabs == 0 %]
+            <table class="data" align="center" id="MainDataTable">
+                <thead>
+                    <tr class="tabheader">
+                        <th>[% tr.trquote("Key") %]</th>
+                        <th>[% tr.trquote("Value") %]</th>
+                    </tr>
+                </thead>
+                <tbody>
+        [% ELSE %]
+            <input type="hidden" name="selectedTab" value="[% SelectedTab %]" id="selectedTab">
+            <div id="tabs">
+                <ul align="center">
+                    [% FOREACH column IN columns %]
+                        [% IF column.displaytype == "newtab" %]
+                            <li><a href="#[% column.tabname %]" tabname="[% column.tabname %]">[% tr.trquote(column.displayname) %]</a></li>
+                        [% END %]
+                    [% END %]
+                </ul>
+        [% END %]
+
+
+                [% FOREACH column IN columns %]
+                    [% IF column.displaytype == "newtab"%]
+                        <!-- [% column.tablename %] -->
+                        [% IF column.tablename != 'MainDataTable' %]
+                                        </tbody>
+                                    </table>
+                                </p>
+                            </div>
+                        [% END %]
+                        <div id="[% column.tabname %]">
+                            <p align="center">
+                                <table class="data" id="[% column.tablename %]">
+                                    <thead>
+                                        <tr class="tabheader">
+                                            <th>[% tr.trquote("Key") %]</th>
+                                            <th>[% tr.trquote("Value") %]</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+
+                    [% ELSIF column.displaytype == "hidden" %]
+                        <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                    [% ELSE %]
+                        <tr>
+                            <td valign="center">[% tr.trquote(column.displayname) %]</td>
+                            <td valign="center">
+                                [% IF column.displaytype == "text" %]
+                                    <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
+                                [% ELSIF column.displaytype == "date" %]
+                                    <input type="text" displaytype="dateandtime" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
+                                [% ELSIF column.displaytype == "textarea" %]
+                                    [% IF column.charcount > 0 %]
+                                        <div displaytype="charcount" charcount="[% column.charcount %]">
+                                            <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" ccpart="input">[% tr.quote(column.columnvalue) %]</textarea>
+                                            <br/><div id="[% tr.quote(column.columnname) %]_charcount" ccpart="count">...</div>
+                                        </div>
+                                    [% ELSE %]
+                                        <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]">[% tr.quote(column.columnvalue) %]</textarea>
+                                    [% END %]
+                                [% ELSIF column.displaytype == "textarea-readonly" %]
+                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" readonly="readonly">[% tr.quote(column.columnvalue) %]</textarea>
+                                [% ELSIF column.displaytype == "editor" %]
+                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" displaytype="editor">[% column.columnvalue %]</textarea>
+                                [% ELSIF column.displaytype == "scripteditor" %]
+                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" displaytype="scripteditor">[% tr.quote(column.columnvalue) %]</textarea>
+                                [% ELSIF column.displaytype == "codedisplay" %]
+                                    <pre><code>[% tr.quote(column.columnvalue) %]</code></pre>
+                                [% ELSIF column.displaytype == "number" %]
+                                    <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="18" maxlength="20" decimalcount="[% column.hasdecimal %]" min="[% column.value_min %]" max="[% column.value_max %]">
+                                [% ELSIF column.displaytype == "checkbox" %]
+                                    <input type="checkbox" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id"
+                                        [% IF column.columnvalue == 1 %]
+                                            checked="checked"
+                                        [% END %]
+                                        >
+                                [% ELSIF column.displaytype == "display" %]
+                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                                    [% tr.quote(column.columnvalue) %]
+                                [% ELSIF column.displaytype == "led" %]
+                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                                    [% IF column.columnvalue == 1 %]
+                                        <img src="/pics/led_OK.png" alt="ON">
+                                    [% ELSE %]
+                                        <img src="/pics/led_OFF.png" alt="OFF">
+                                    [% END %]
+                                [% ELSIF column.displaytype == "switch" %]
+                                    <div displaytype="switch">
+                                        <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
+                                                    id="[% tr.quote(column.columnname) %]_value" switchpart="value">
+                                        <table>
+                                            <tr>
+                                                <td width="20px"><img id="[% tr.quote(column.columnname) %]_led" switchpart="led" src="/pics/led_UNKNOWN.png"></td>
+                                                <td width="87px"><img id="[% tr.quote(column.columnname) %]_switch" switchpart="switch" src="/pics/switch_ON.png"></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+
+                                [% ELSIF column.displaytype == "enum" %]
+                                        <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
+                                            [% FOREACH enumvalue IN column.enum_values %]
+                                                <option value="[% enumvalue.selectorenumvalue %]"
+                                                [% IF enumvalue.selectorenumvalue == column.columnvalue %]
+                                                    selected="selected"
+                                                [% END %]
+                                                >
+                                                    [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
+                                                </option>
+                                            [% END %]
+                                        </select>
+                                [% ELSIF column.displaytype == "subenum" %]
+                                    <div displaytype="subenum" subenum="[% column.columnname %]" parentenum="[% column.parentcolumn %]" initialvalue="[% column.columnvalue %]" subenumdata="JSON:[% column.enum_values_json %]">
+                                        <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
+                                            <option value=""></option>
+                                        </select>
+                                        <!--<input type="hidden" name="[% column.columnname %]" value="[% column.columnvalue %]">-->
+                                    </div>
+                                [% ELSIF column.displaytype == "slider" %]
+                                    <div displaytype="slider" svalue="[% tr.quote(column.columnvalue) %]" smin="[% column.value_min %]" smax="[% column.value_max %]" sstep="[% column.step %]">
+                                        <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
+                                                    id="[% tr.quote(column.columnname) %]_value" sliderpart="value">
+                                        <table border="0">
+                                            <tr>
+                                                <td width="20px">&nbsp;</td>
+                                                <td width="200px"><div id="[% tr.quote(column.columnname) %]_slider" sliderpart="slider"></div></td>
+                                                <td width="20px">&nbsp;</td>
+                                                <td><div id="[% tr.quote(column.columnname) %]_display" sliderpart="display">[% tr.quote(column.columnvalue) %]</div></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+
+                                [% ELSIF column.displaytype == "array" %]
+                                    [% arraycount = 0 %]
+                                    [% FOREACH arrayvalue IN column.columnvalue %]
+                                        <input type="text" name="[% tr.quote(column.columnname) %]_[% arraycount %]" value="[% tr.quote(arrayvalue) %]" size="60" maxlength="200"><br/>
+                                        [% arraycount = arraycount + 1 %]
+                                    [% END %]
+                                    [% emptycount = 2 %]
+                                    [% WHILE emptycount > 0 %]
+                                        <input type="text" name="[% tr.quote(column.columnname) %]_[% arraycount %]" value="" size="60" maxlength="200"><br/>
+                                        [% arraycount = arraycount + 1 %]
+                                        [% emptycount = emptycount - 1 %]
+                                    [% END %]
+                                    <input type="hidden" name="[% tr.quote(column.columnname) %]_count" value="[% arraycount %]">
+                                [% ELSE %]
+                                    UNSUPPORTED DISPLAYTYPE [% column.fieldtype %] / [% column.displaytype %] FOR COLUMN [% column.columnname %]
+                                [% END %]
+
+                                [% IF column.goto == 1 %]
+                                    <input type="button" class="gotobutton" goto="[% column.gotourl %]">
+                                [% END %]
+                            </td>
+                        </tr>
+                    [% END %]
+                [% END %]
+            </tbody>
+            [% IF UseTabs == 0 %]
+                <tfoot>
+                    <tr>
+                        <td colspan="2" align="center">
+                            [% IF mode == "create" %]
+                                <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
+                            [% ELSE %]
+                                <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                                [% IF candelete == "1" %]
+                                    &nbsp;
+                                    <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
+                                [% END %]
+                            [% END %]
+                        </td>
+                    </tr>
+                </tfoot>
+            [% END %]
+        </table>
+        [% IF UseTabs == 1 %]
+                </p>
+            </div>
+        </div>
+            <p align="center">
+                [% IF mode == "create" %]
+                    <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
+                [% ELSE %]
+                    <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                    [% IF candelete == "1" %]
+                        &nbsp;
+                        <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
+                    [% END %]
+                [% END %]
+            </p>
+        [% END %]
+    </form>
+</p>
+
+<span id="masktemplatedataset"
+    data-trquote-charactersleft="[% tr.trquote("characters left") %]"
+    data-usetabs="[% UseTabs %]"
+    data-primarykey="[% primary_key %]"
+    data-autosave="[% autosave %]"
+    data-autosaveurl="[% webpath %]/autosave"
+    data-editmode="[% mode %]"
+    data-editcolumnlist="[% editcolumnlist %]"
+></span>
+
+
+<script>
+    function setMode(newmode) {
+        $('#mode').val(newmode);
+        return true;
+    }
+
+    function updateSwitch(element) {
+        var dataelem = element.find("input[switchpart='value']");
+        var ledelem = element.find("img[switchpart='led']");
+        var switchelem = element.find("img[switchpart='switch']");
+        var state = dataelem.val();
+        if(state == "1") {
+            switchelem.attr("src", "/pics/switch_ON.png");
+            ledelem.attr("src", "/pics/led_OK.png");
+        } else {
+            switchelem.attr("src", "/pics/switch_OFF.png");
+            ledelem.attr("src", "/pics/led_BLACK.png");
+        }
+    }
+
+    function updateCharcount(element) {
+        var dataelem = element.find("textarea[ccpart='input']");
+        var countelem = element.find("div[ccpart='count']");
+        var max = element.attr('charcount');
+        var len = dataelem.val().length;
+        var ccount = max - len;
+        countelem.html(ccount + ' ' + ttvars.trquote.Charactersleft);
+        var colorchangeoffs = Math.floor(max / 5); // 20%
+        var green = 255;
+        var red = 0;
+        if(ccount < colorchangeoffs) {
+            var offs = (255 / colorchangeoffs) * ccount;
+            red = Math.floor(green - offs);
+            green = Math.floor(offs);
+        }
+        if(green < 0) {
+            green = 0;
+        }
+        if(red > 255) {
+            red = 255;
+        }
+        var rgb = 'rgb(' + red + ',' + green + ',0)';
+        countelem.css('color', rgb);
+    }
+
+    function updateSubenum(element, parentvalue, selectvalue) {
+        var rawdata = element.attr('subenumdata');
+        rawdata = window.atob(rawdata.substring(5));
+        var subenumdata = JSON.parse(rawdata);
+        var selectelem = element.attr('selectmenuname');
+        $(selectelem).find('option').remove().end();
+        var searchable=$(selectelem).attr('searchable');
+        console.log("SEARCHABLE? " + searchable);
+
+        for(var i = 0; i < subenumdata.length; i++) {
+            if(parentvalue == subenumdata[i].parentenumvalue) {
+                for(var j = 0; j < subenumdata[i].subenums.length; j++) {
+                    var newoption = '<option value="' + subenumdata[i].subenums[j].selectorenumvalue;
+                    newoption = newoption +  '">' + subenumdata[i].subenums[j].selectorenumvalue;
+                    if(subenumdata[i].subenums[j].hasdescription == 1) {
+                        newoption = newoption + ' : ' + subenumdata[i].subenums[j].selectorenumdescription;
+                    }
+                    newoption = newoption + '</option>';
+                    $(selectelem).append(newoption);
+                }
+            }
+        }
+        if(selectvalue.length > 0) {
+            $(selectelem).val(selectvalue);
+        }
+        if(searchable == "1") {
+            $(selectelem).trigger('change');
+        } else {
+            $(selectelem).selectmenu('refresh');
+        }
+    }
+
+
+    function setFooterStatus(message, color) {
+        var elem = $('#pagecamelpagefooter');
+        elem.html(message);
+        elem.removeClass('pagecamelpagefooter_white');
+        elem.removeClass('pagecamelpagefooter_yellow');
+        elem.removeClass('pagecamelpagefooter_red');
+        elem.removeClass('pagecamelpagefooter_green');
+        elem.addClass('pagecamelpagefooter_' + color);
+    }
+
+    var codemirrors = {};
+    function extraOnLoad() {
+        $('a[tabname]').on('click', function() {
+            var tabname = $(this).attr('tabname');
+            $('#selectedTab').val(tabname);
+        });
+
+        if(ttvars.editmode != 'edit') {
+            setFooterStatus('Autosave not available', 'white');
+        } else {
+            setFooterStatus('Autosave available', 'white');
+        }
+
+        // SWITCH input
+        $("div[displaytype='switch']").each(function(index) {
+            updateSwitch($(this));
+            var switchelem = $(this).find("img[switchpart='switch']");
+            switchelem.on('click', function() {
+                $(this).parents("div[displaytype='switch']").each(function(index) {
+                    var dataelem = $(this).find("input[switchpart='value']");
+                    var state = dataelem.val();
+                    if(state == "1") {
+                        dataelem.val("0");
+                    } else {
+                        dataelem.val("1");
+                    }
+                    updateSwitch($(this));
+                });
+            });
+        });
+
+        // Editor
+        $("textarea[displaytype='editor']").each(function(index) {
+            var editorfield = $(this).attr('name');
+            var fielddata = $(this).val();
+            console.log("Found Editor for " + editorfield);
+            var thiseditor = $(this).cvceditor({
+                    allowedContent: true,
+                    extraPlugins: 'autogrow,aspell,cavacnote,cavacimage,cavacfiles,html5video,panelbutton,colorbutton',
+                    autoGrow_minHeight: 400,
+                    autoGrow_maxHeight: 700,
+                    autoGrow_bottomSpace: 50,
+                    autoGrow_onStartup: true,
+                    aspell_scriptPath: '/blog/aspell',
+                    removePlugins: 'resize,scayt,pastefromword,devtools,image,youtube',
+                    removeButtons: 'Image',
+                    colorButton_colors: '000000,009b0f,ffa100,ef0300,808080',
+                    colorButton_enableAutomatic: true
+                });
+        });
+
+        // Scripteditor
+        $("textarea[displaytype='scripteditor']").each(function(index) {
+            // Slight problem here. Our textarea has width and height in characters, we want to fit
+            // a similar amount of characters as set in the original textarea config.
+            // So we need to get current size of textarea, replace it with a codemirror editor, then
+            // set the size of the new element multiplied by 2 (font looks about twice as big) to the original one.
+            // The mapping from characters to pixels wont be perfect, but good enough
+            // for consistency in the config files.
+            var elemname = $(this).attr('name');
+            var tempwidth = Math.floor($(this).width() * 1.5);
+            var tempheight = Math.floor($(this).height() * 1.5);
+            var codeelement = CodeMirror.fromTextArea(this, {
+                lineNumbers: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                continueComments: "Enter",
+                indentUnit: 4,
+                theme: "3024-night",
+                extraKeys: {"Ctrl-Q": "toggleComment",
+                            "Ctrl-F": "findPersistent",
+                            }
+            });
+            codeelement.setSize(tempwidth, tempheight);
+            codemirrors[elemname] = codeelement;
+        });
+
+        $("div[displaytype='charcount']").each(function(index) {
+            var dataelem = $(this).find("textarea[ccpart='input']");
+            var countelem = $(this).find("div[ccpart='count']");
+            updateCharcount($(this));
+            dataelem.on('keyup', function() {
+                var divelem = $(this).parents("div[displaytype='charcount']").each(function(index) {
+                    updateCharcount($(this));
+                });
+            });
+        });
+
+        $("div[displaytype='slider']").each(function(index) {
+            var sliderelem = $(this).find("div[sliderpart='slider']");
+            var svalue = parseInt($(this).attr('svalue'));
+            var smin = parseInt($(this).attr('smin'));
+            var smax = parseInt($(this).attr('smax'));
+            var sstep = parseInt($(this).attr('sstep'));
+            sliderelem.slider({
+                value: svalue,
+                min: smin,
+                max: smax,
+                step: sstep,
+                slide: function( event, ui ) {
+                    $(this).parents("div[displaytype='slider']").each(function(index) {
+                        var displayelem = $(this).find("div[sliderpart='display']");
+                        var valueelem = $(this).find("input[sliderpart='value']");
+                        valueelem.val(ui.value );
+                        displayelem.html(ui.value );
+                    });
+                }
+            });
+        });
+
+        $("div[displaytype='subenum']").each(function(index) {
+            var rawdata = $(this).attr('subenumdata');
+            rawdata = window.atob(rawdata.substring(5));
+            var subenumdata = JSON.parse(rawdata);
+            var parentid = 'select[name=' + $(this).attr('parentenum') + "]";
+            var subenumname = 'div[displaytype="subenum"][subenum="' + $(this).attr('subenum') + '"]';
+            var selectmenuname = 'select[name="' + $(this).attr('subenum') + '"]';
+
+            // Make sure we handle select2/searchable for the parent correctly
+            var parentsearchable = $(parentid).attr('searchable');
+            var parentupdatetrigger = 'selectmenuchange';
+            if(parentsearchable == "1") {
+                parentupdatetrigger = 'change';
+            }
+
+            $(this).attr('selectmenuname', selectmenuname);
+            $(parentid).attr('subenum', subenumname);
+            $(parentid).on(parentupdatetrigger, function() {
+                console.log("bla");
+                var subenumname = $(this).attr('subenum');
+                var parentvalue = $(this).val();
+                updateSubenum($(subenumname), parentvalue, '');
+            });
+
+            var initialvalue = $(this).attr('initialvalue');
+            var initialparentvalue = $(parentid).val();
+            updateSubenum($(subenumname), initialparentvalue, initialvalue);
+        });
+
+
+    }
+
+    function lateExtraOnLoad() {
+        if(ttvars.usetabs == "1") {
+            var sel_tab = $('#selectedTab').val();
+            if(sel_tab != '') {
+                var index = $('#tabs a[href="#'+sel_tab+'"]').parent().index();
+                $("#tabs").tabs("option", "active", index);
+            }
+        }
+
+        $('#okstatustext').delay(1000).animate({height: 1}, 300, function() { $(this).remove(); });
+
+        if(window.LaEExtraOnLoad) {
+            LaEExtraOnLoad();
+        }
+
+        if(ttvars.editmode == "edit" && ttvars.autosave == "1") {
+            setInterval(runAutosave, 60000);
+        }
+    }
+
+    function removeStatusText() {
+        $('#errorstatustext').animate({height: 1}, 300, function() { $(this).remove(); });
+        $('#okstatustext').animate({height: 1}, 300, function() { $(this).remove(); });
+    }
+
+    function runAutosave() {
+        console.log("Autosaving...");
+        setFooterStatus('Autosaving', 'yellow');
+        var savedata = {
+            primary_key: ttvars.primarykey,
+            mode: ttvars.editmode
+        };
+
+        var fields = ttvars.editcolumnlist.split(";");
+        fields.forEach(function(field) {
+            var parts = field.split("=");
+            var fname = parts[0];
+            var ftype = parts[1];
+            var fid = fname + '_id';
+            var fieldvalue = '##FAIL##';
+            if(ftype == 'editor') {
+                fieldvalue = CVCEDITOR.instances[fid].getData();
+            } else if(ftype == 'enum' || ftype == 'subenum') {
+                fieldvalue = $('select[name=' + fname + '] option').filter(':selected').val();
+            } else if(ftype == 'array') {
+                var count =  $('input[name=' + fname + '_count]').val();
+                savedata[fname + '_count'] = count;
+                var i;
+                for(i = 0; i < count; i++) {
+                    savedata[fname + '_' + i] = $('input[name=' + fname + '_' + i + ']').val();
+                }
+                fname = '';
+            } else if(ftype == 'scripteditor') {
+                codemirrors[fname].save();
+                fieldvalue = $('textarea[name=' + fname + ']').val();
+            } else if(ftype == 'textarea') {
+                fieldvalue = $('textarea[name=' + fname + ']').val();
+            } else {
+                fieldvalue = $('input[name=' + fname + ']').val();
+            }
+            if(fname != '') {
+                savedata[fname] = fieldvalue;
+            }
+        });
+
+        console.log(savedata);
+
+        $.ajax({
+            type: "POST",
+            url: ttvars.autosaveurl,
+            dataType: "json",
+            data: savedata,
+            success: function(msg) {
+                setFooterStatus('Autosave OK', 'green');
+            },
+            error: function(msg) {
+                setFooterStatus('Autosave Error', 'red');
+                console.log('Autosave ERROR');
+            }
+        });
+
+    }
+
+</script>

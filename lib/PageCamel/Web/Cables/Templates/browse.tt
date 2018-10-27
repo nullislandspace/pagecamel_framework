@@ -1,0 +1,37 @@
+<p align="center">
+    <table class="data" id="MainDataTable">
+        <thead>
+            <tr class="tabheader">
+                    <th>[% tr.tr("ID") %]</th>
+                    <th>[% tr.tr("Logtime") %]</th>
+                    <th>[% tr.tr("Sender") %]</th>
+                    <th>[% tr.tr("Security") %]</th>
+                    <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH cable IN cables %]
+                <tr>
+                    <td>[% cable.cable_id %]</td>
+                    <td>[% cable.logtime %]</td>
+                    <td>[% cable.origin_name %]</td>
+                    <td>[% cable.security_level %]</td>
+                    <td><a href="[% cable.viewlink %]" target="_new">View</a></td>
+                </tr>
+            [% END %]
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" align="left">
+                    [% IF backlink %]
+                        <a href="[% backlink %]">&lt;&lt;&lt;</a>
+                    [% END %]
+                </td>
+                <td colspan="2" align="right">
+                    [% IF nextlink %]
+                        <a href="[% nextlink %]">&gt;&gt;&gt;</a>
+                    [% END %]
+            </tr>
+        </tfoot>
+    </table> 
+</p>

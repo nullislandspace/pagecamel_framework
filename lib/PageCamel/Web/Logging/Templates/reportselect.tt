@@ -1,0 +1,31 @@
+<p align="center">
+    <table class="data" id="MainFilterDisplayTable">
+        <thead>
+            <tr class="tabheader">
+                <th>[% tr.trquote("Device") %]</th>
+                <th>[% tr.trquote("Name") %]</th>
+                <th>[% tr.trquote("Title") %]</th>
+                <th>[% tr.trquote("Description") %]</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH Report IN Reports %]
+                <tr>
+                    <form name="selectreport_[% tr.quote(Report.report_name) %]__[% tr.quote(Report.device_type) %]" method="post" action="[% webpath %]">
+                    
+                        <td>[% tr.quote(Report.device_type) %]</td>
+                        <td>[% tr.quote(Report.report_name) %]</td>
+                        <td>[% tr.quote(Report.report_title) %]</td>
+                        <td>[% tr.quote(Report.description) %]</td>
+                        <td>
+                            <input type="hidden" name="reportid" value="[% tr.quote(Report.report_name) %]_#_[% tr.quote(Report.device_type) %]">
+                            <input type="hidden" name="mode" value="selectreport">
+                            <input type="submit" value="[% tr.trquote("Select") %]">
+                        </td>    
+                    </form>
+                </tr>
+            [% END %]
+        </tbody>
+    </table>
+</p>

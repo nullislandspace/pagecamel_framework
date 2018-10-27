@@ -1,0 +1,55 @@
+<p align="center">
+    <form name="selectcomputer_[% tr.quote(computer.computer_name) %]" method="post" action="[% webpath %]"  id="MainFilterForm">
+        <table class="data" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("Hostname") %]</th>
+                    [% IF HasDeveloperRights == 1 %]
+                        <th>[% tr.trquote("Designation") %]</th>
+                    [% END %]
+                    <th>[% tr.trquote("Prodline") %]</th>
+                    <th>[% tr.trquote("Location") %]</th>
+                    <th>[% tr.trquote("Cost Unit") %]</th>
+                    <th>[% tr.trquote("Device Type") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                    <th>[% tr.trquote("Public IP") %]</th>
+                    <th>[% tr.trquote("Public IPv6") %]</th>
+                    <th>[% tr.trquote("Private IP") %]</th>
+                    <th>[% tr.trquote("VBox0 IP") %]</th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                [% FOREACH computer IN computers %]
+                    <tr>
+                        <td><input type="radio" name="old_computer_name" value="[% tr.quote(computer.computer_name) %]"</td>
+                        <td>[% tr.quote(computer.computer_name) %]</td>
+                        [% IF HasDeveloperRights == 1 %]
+                            <td>[% tr.quote(computer.pagecamel_designation) %]</td>
+                        [% END %]
+                        <td>[% tr.quote(computer.line_id) %]</td>
+                        <td>[% tr.quote(computer.computerlocation) %]</td>
+                        <td>[% tr.quote(computer.costunit) %]</td>
+                        <td>[% tr.quote(computer.device_type) %]</td>
+                        <td>[% tr.quote(computer.description) %]</td>
+                        <td>[% tr.quote(computer.net_public1_ipv4) %]</td>
+                        <td>[% tr.quote(computer.net_public1_ipv6) %]</td>
+                        <td>[% tr.quote(computer.net_private1_ipv4) %]</td>
+                        <td>[% tr.quote(computer.net_vbox0_ipv4) %]</td>
+                    </tr>
+                [% END %]
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td><input type="radio" name="old_computer_name" value="NEW"></td>
+                    <td colspan="[% IF HasDeveloperRights == 1 %]11[% ELSE %]10[% END %]">[% tr.trquote('New') %]</td>
+                </tr>
+            </tfoot>
+        </table><br/>
+        <div align="center">
+            <input type="hidden" name="mode" value="select">
+            <input type="submit" value="[% tr.trquote("Select") %]">            
+        </div>
+    </form>
+</p>

@@ -1,0 +1,38 @@
+<form name="translations" method="post" action="[% webpath %]"  id="MainFilterForm">
+    <p align="center">    
+        <table class="data" align="center" id="MainFilterDisplayTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("Name") %]</th>
+                    <th>[% tr.trquote("Sample") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH FontFamily IN FontFamilies.keys.sort %]
+                <tr>
+                    <td>
+                        <input type="radio" name="fontfamily" value="[% tr.quote(FontFamily) %]"
+                        [% IF FontFamily == UIThemeFont %]
+                            checked="checked"
+                        [% END %]
+                        >
+                    </td>
+                    <td>[% tr.quote(FontFamily) %]</td>
+                    <td>
+                        <div style='font-family:[% FontFamilies.$FontFamily %];'>
+                            The quick brown fox jumped over the lazy dog!
+                        </div>
+                    </td>
+                </tr>
+                [% END %]
+            </tbody>
+        </table>
+    </p>
+
+  
+    <p align="center">
+        <input type="hidden" name="mode" value="setvalue">
+        <input type="submit" value="[% tr.trquote("Select") %]">
+    </p>
+</form>

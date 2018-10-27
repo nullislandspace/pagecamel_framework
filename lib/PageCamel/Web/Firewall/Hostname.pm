@@ -1,0 +1,192 @@
+package PageCamel::Web::Firewall::Hostname;
+#---AUTOPRAGMASTART---
+use 5.020;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 1;
+use Fatal qw( close );
+use Array::Contains;
+#---AUTOPRAGMAEND---
+
+use base qw(PageCamel::Web::BaseModule);
+
+use URI;
+
+# Detect "use server as proxy" attacks and block the client
+#
+# Also, if the client uses a hostname that is ours but isn't our default hostname, reroute
+# the client to the correct one ("moved permanently")
+
+sub new {
+    my ($proto, %config) = @_;
+    my $class = ref($proto) || $proto;
+
+    my $self = $class->SUPER::new(%config); # Call parent NEW
+    bless $self, $class; # Re-bless with our class
+
+    if($self->{isDebugging}) {
+        # Use 'localhost:8080' for debugging
+        push @{$self->{myhostnames}->{item}}, 'localhost:8080';
+        $self->{defaulthostname} = 'localhost:8080';
+    }
+
+    return $self;
+}
+
+sub register {
+    my $self = shift;
+    $self->register_prefilter("prefilter");
+    return;
+}
+
+sub prefilter {
+    my ($self, $ua) = @_;
+    
+    if($self->{isDebugging}) {
+        #print STDERR "Firewall::Hostname inactive while debugging!\n";
+        return;
+    }
+
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my $webpath = $ua->{original_path_info}; # Need the unmangled path
+    my $requesthostname = $ua->{headers}->{Host};
+    my $uriparser = URI->new($webpath);
+    my $ip = $ua->{remote_addr};
+
+    # Try to parse the hostname and relative PATH from URI.
+    # This will fail if we already have a relative URL, which is perfectly
+    # fine, since we want that anyway.
+    # If we DO get hostname and relative path out of this, we update the values
+    # in $ua
+    my $urihostname;
+    my $newwebpath;
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        $urihostname = $uriparser->host_port();
+        $newwebpath = $uriparser->path();
+    };
+
+    if(defined($urihostname) && defined($newwebpath)) {
+        # If on standard ports 80 or 443, remove those port numbers
+        $urihostname =~ s/\:80$//;
+        $urihostname =~ s/\:443$//;
+
+        $ua->{headers}->{Host} = $urihostname;
+        $ua->{url} = $newwebpath;
+    }
+
+    if(defined($urihostname) && $urihostname ne $requesthostname) {
+        # Hostname in URI does not match Host header
+        return (status => 400,
+                type => 'text/plain',
+                data => 'Hostnames given by client in request line and Host header do not match!',
+                );
+    }
+
+    if($requesthostname eq $self->{defaulthostname}) {
+        # Using the default hostname? We're done here, nothing else to do
+        return;
+    }
+
+    my $okname = 0;
+    foreach my $key (@{$self->{myhostnames}->{item}}) {
+        if($requesthostname eq $key) {
+            $okname = 1;
+        }
+    }
+
+    if($okname) {
+        # Need to re-route to default hostname
+        my $newurl = 'https://' . $self->{defaulthostname} . $ua->{url};
+
+        return (status => 301,
+                location => $newurl,
+                type => 'text/html',
+                data => '<html><body>Moved permanently to <a href="' . $newurl . '">here</a></body></html>'
+        );
+    }
+
+    # Seems like we have a "bad" hostname If we only got a bad hostname in the "Host" header (but a relative URL), it might just be
+    # an accident in someones DNS config, so just throw a 404
+    if(!defined($urihostname)) {
+        return (status => 404,
+                type   => 'text/plain',
+                data   => 'You requested information from ' . $requesthostname . ' which is unknown to this server. Maybe check your DNS settings?',
+                );
+    }
+
+    # Ooops, looks someone wanted to use us as proxy. Well, so let's forward the request... NO! Just NO!
+    # Block the client and be done with it. Actually, send a short, explanatory nastygram first!
+
+    my $sth = $dbh->prepare_cached("INSERT INTO accesslog_blocklist (ip_address, description, is_automatic, is_badbot)
+                                   VALUES (?, 'Proxy request detected', true, true)")
+            or croak($dbh->errstr);
+
+    if($sth->execute($ip)) {
+        $dbh->commit;
+    } else {
+        $dbh->rollback;
+    }
+
+    return (status  => 451,
+            type    => 'text/plain',
+            data    => "Congratulations! Your proxy request just won you an entry on my blacklist!",
+    );
+}
+
+1;
+__END__
+
+=head1 NAME
+
+PageCamel::Web::Firewall::Hostname -
+
+=head1 SYNOPSIS
+
+  use PageCamel::Web::Firewall::Hostname;
+
+
+
+=head1 DESCRIPTION
+
+
+
+=head2 new
+
+
+
+=head2 register
+
+
+
+=head2 prefilter
+
+
+
+=head1 IMPORTANT NOTE
+
+This module is part of the PageCamel framework. Currently, only limited support
+and documentation exists outside my DarkPAN repositories. This source is
+currently only provided for your reference and usage in other projects (just
+copy&paste what you need, see license terms below).
+
+To see PageCamel in action and for news about the project,
+visit my blog at L<https://cavac.at>.
+
+=head1 AUTHOR
+
+Rene Schickbauer, E<lt>pagecamel@cavac.atE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008-2016 by Rene Schickbauer
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.10.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut

@@ -1,0 +1,39 @@
+<h1>[% tr.trquote("Too many files") %]</h1>
+<p width="100%" align="left">
+    <table id="MainDataTable">
+        <thead>
+            <tr>
+                <th>[% tr.trquote("Directory") %]</th>
+                <th>[% tr.trquote("File count") %]</th>
+            </tr>
+        </thead>
+        [% FOREACH file IN DirFileCounts %]
+            <tr>
+                <td>
+                    <a href="[% file.url %]">[% file.basepath%]</a>
+                </td>
+                <td align="right">[% tr.quote(file.filecount) %]</td>
+            </tr>
+        [% END %]
+    </table>
+</p>
+&nbsp;<br/>
+<h1>[% tr.trquote("Directory to big") %]</h1>
+<p width="100%" align="left">
+    <table id="HelperTable1">
+        <thead>
+            <tr>
+                <th>[% tr.trquote("Directory") %]</th>
+                <th>[% tr.trquote("GB used") %]</th>
+            </tr>
+        </thead>
+        [% FOREACH file IN DirSizes %]
+            <tr>
+                <td>
+                    <a href="[% file.url %]">[% file.basepath%]</a>
+                </td>
+                <td align="right">[% tr.quote(file.dirsize_gb) %]</td>
+            </tr>
+        [% END %]
+    </table>
+</p>

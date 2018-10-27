@@ -1,0 +1,47 @@
+<p align="center">
+    <form name="setptouch" method="post" action="[% PostLink %]">
+        <table class="data" align="center" id="MainDataTable">
+            <tr class="tabheader">
+                <th>[% tr.trquote("Key") %]</th>
+                <th>[% tr.trquote("Value") %]</th>
+            </tr>
+
+            <tr>
+                <td>[% tr.trquote("Printer") %]</td>
+                <td>
+                    <select name="printername">
+                        [% FOREACH AvailPrinter IN AvailPrinters %]
+                            <option value="[% tr.quote(AvailPrinter.printer_name) %]"
+                            [% IF AvailPrinter.printer_name == PTouchDefaultPrinter %]
+                                selected="selected"
+                            [% END %]
+                            >[% tr.quote(AvailPrinter.printer_name) %] : [% tr.trquote(AvailPrinter.description) %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            </tr>
+
+            <tr>
+                <td>[% tr.trquote("Copies") %]</td>
+                <td>
+                    <select name="pagecount">
+                        [% FOREACH AvailPageCount IN AvailPageCounts %]
+                            <option value="[% tr.quote(AvailPageCount) %]"
+                            [% IF AvailPageCount == PTouchDefaultPageCount %]
+                                selected="selected"
+                            [% END %]
+                            >[% tr.quote(AvailPageCount) %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="2" align="center">
+                    <input type="hidden" name="mode" value="setvalue">
+                    <input type="submit" value="[% tr.trquote("Select") %]">
+                </td>
+            </tr>                
+        </table>
+    </form>
+</p>

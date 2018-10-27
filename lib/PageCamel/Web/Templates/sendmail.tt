@@ -1,0 +1,47 @@
+[% IF statustext %]
+    <p align="center>
+        <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+    </p>
+[% END %]
+
+<p>
+    <form name="sendmail" method="post"  id="MainFilterForm" action="[% webpath %]">
+        <table class="data" align="center" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th>[% tr.trquote("Username") %]</th>
+                    <th>[% tr.trquote("Email") %]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH user IN users %]
+                    <tr>
+                        <td>[% user.username %]</td>
+                        <td>[% user.email_addr %]</td>
+                        <td><input type="checkbox" name="reciever" value="" realvalue="[% tr.quote(user.email_addr) %]" [% IF user.checked == 1 %]checked="checked"[% END %]></td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table>
+        
+        <br>
+
+        <table class="data" align="center" id="MainDataTable">
+            <tr>
+                <td align="right">[% tr.trquote("Subject") %]:</td>
+                <td><input type="text" size="70" maxlength="100" name="subject" value="[% tr.quote(subject) %]">
+            </tr>
+            <tr>
+                <td align="right">[% tr.trquote("Text") %]:</td>
+                <td><textarea cols="70" rows="15" name="mailtext">[% tr.quote(mailtext) %]</textarea>
+            </tr>
+            <tr>
+                <td colspan="2" align="center">
+                    <input type="submit" value="[% tr.trquote("Send") %]">
+                </td>
+            </tr>
+        </table>
+        <input type="hidden" name="submitform" value="1">
+    </form>
+</p>

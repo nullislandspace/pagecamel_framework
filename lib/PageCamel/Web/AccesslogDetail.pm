@@ -1,0 +1,142 @@
+package PageCamel::Web::AccesslogDetail;
+#---AUTOPRAGMASTART---
+use 5.020;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 1;
+use Fatal qw( close );
+use Array::Contains;
+#---AUTOPRAGMAEND---
+
+use base qw(PageCamel::Web::BaseModule);
+use PageCamel::Helpers::DateStrings;
+use PageCamel::Helpers::URI qw[decode_uri_path];
+
+sub new {
+    my ($proto, %config) = @_;
+    my $class = ref($proto) || $proto;
+
+    my $self = $class->SUPER::new(%config); # Call parent NEW
+    bless $self, $class; # Re-bless with our class
+
+    return $self;
+}
+
+sub register {
+    my $self = shift;
+    $self->register_webpath($self->{webpath}, "get");
+
+    return;
+}
+
+sub get {
+    my ($self, $ua) = @_;
+
+    my $th = $self->{server}->{modules}->{templates};
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my $webpath = $ua->{url};
+    my $urlid = $webpath;
+    $urlid =~ s/^$self->{webpath}\///;
+    if($urlid eq '') {
+        return (status => 404);
+    }
+
+    $urlid = decode_uri_path($urlid);
+    if(!defined($urlid) || $urlid eq '' || (0 + $urlid) == 0) {
+        return (status => 404);
+    }
+    $urlid = 0 + $urlid;
+
+    my $selsth = $dbh->prepare_cached("SELECT * FROM accesslog WHERE logid = ?")
+            or croak($dbh->errstr);
+
+    if(!$selsth->execute($urlid)) {
+        $dbh->rollback;
+        return (status => 500);
+    }
+    my $line = $selsth->fetchrow_hashref;
+    $selsth->finish;
+    $dbh->rollback;
+
+    if(!defined($line)) {
+        return (status => 404);
+    }
+
+    if(!defined($line->{httpversion})) {
+        $line->{httpversion} = '';
+    }
+
+    my @splitparams = split/\;/, $line->{parameters};
+    $line->{splitparams} = \@splitparams;
+
+    my @splitheaders = split/\n/, $line->{headers};
+    $line->{splitheaders} = \@splitheaders;
+
+    my %webdata = (
+        $self->{server}->get_defaultwebdata(),
+        PageTitle   =>  $self->{pagetitle},
+        Data  => $line,
+    );
+
+    my $template = $self->{server}->{modules}->{templates}->get('accesslogdetail', 1, %webdata);
+    return (status  =>  404) unless $template;
+    return (status  =>  200,
+            type    => "text/html",
+            data    => $template);
+}
+
+1;
+__END__
+
+=head1 NAME
+
+PageCamel::Web::AccesslogDetail - Detailview of single accesslog entry
+
+=head1 SYNOPSIS
+
+  use PageCamel::Web::AccesslogDetail;
+
+=head1 DESCRIPTION
+
+Mask to show a detail view of a single accesslog entry
+
+=head2 new
+
+Create a new instance.
+
+=head2 register
+
+Register the webpath.
+
+=head2 get
+
+Get the webmask.
+
+=head1 IMPORTANT NOTE
+
+This module is part of the PageCamel framework. Currently, only limited support
+and documentation exists outside my DarkPAN repositories. This source is
+currently only provided for your reference and usage in other projects (just
+copy&paste what you need, see license terms below).
+
+To see PageCamel in action and for news about the project,
+visit my blog at L<https://cavac.at>.
+
+=head1 AUTHOR
+
+Rene Schickbauer, E<lt>pagecamel@cavac.atE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008-2016 by Rene Schickbauer
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.10.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut

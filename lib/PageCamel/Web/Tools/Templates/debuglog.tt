@@ -1,0 +1,213 @@
+<p align="center">
+    <canvas id="debuglogcanvas" width="1000px" height="800px"></canvas>
+</p>
+[% tr.trquote("Copy&Paste") %]: <input type="input" size="100" name="copypaste"><br/>
+[% tr.trquote("Enable updates") %]: <input type="checkbox" name="enableUpdate" checked="checked"><br/>
+
+<span id="masktemplatedataset"
+    data-webappusegst="[% WebAppUseGST %]"
+></span>
+
+
+<script>    
+    var lines = new Array;
+    var oldlines1 = new Array;
+    var oldlines2 = new Array;
+    var oldlines3 = new Array;
+    var oldlines4 = new Array;
+    var oldlines5 = new Array;
+    var oldlines6 = new Array;
+    var oldlines7 = new Array;
+    var maxlinelength;
+    
+    function websocketmaskOnload() {
+        if(ttvars.webappusegst == "1") {
+            maxlinelength = 32;
+        } else {
+            maxlinelength = 55;
+        }
+    }
+        
+    function websocketmaskOnSocketOpen() {
+        if(ttvars.webappusegst == "1") {
+            paintCanvas_gst();
+            $('#debuglogcanvas').click(canvasClicks_gst);
+        } else {
+            paintCanvas_nogst();
+            $('#debuglogcanvas').click(canvasClicks_nogst);
+        }
+    }
+
+
+    function handleMessage(msg) {                
+        if(msg.type === "VALUE") {
+            
+            if(getEnableStatus()) {
+                if(msg.varname === 'Debugline_new') {
+                    lines.push(msg.varval);
+                    if(lines.length > maxlinelength) {
+                        lines.shift();
+                    }
+                } else {
+                    if(lines.length > 0) {
+                        lines.pop();
+                    }
+                    lines.push(msg.varval);
+                }
+            }
+            
+            return;
+        }
+        
+    }
+
+    function paintCanvas_nogst() {
+        
+        var canvas = document.getElementById('debuglogcanvas');
+        var ctx = canvas.getContext('2d');
+        
+        ctx.font="normal normal lighter 10px Courier";
+        
+        // Background
+        ctx.fillStyle = '#000000';
+        ctx.strokeStyle = '#C0C0C0';
+        ctx.fillRect(0, 0, 1000, 800);
+        ctx.strokeRect(0, 0, 1000, 800);
+        
+        // Lines
+        ctx.strokeStyle = '#FFFFFF';
+        for(i = 0; i < lines.length; i++) {
+            ctx.strokeText(lines[i], 10, 20 + (i * 14));
+        }
+        
+        setTimeout(paintCanvas_nogst, 40);
+    }
+    
+    
+    function canvasClicks_nogst(e) {
+        var x = Math.floor((e.pageX-$("#debuglogcanvas").offset().left));
+        var y = Math.floor((e.pageY-$("#debuglogcanvas").offset().top));
+        
+        var linenum = y - 9;
+        if(linenum < 0) {
+            return;
+        }
+        linenum = Math.floor(linenum / 14);
+        
+        if(linenum >= lines.length) {
+            $('input[name="copypaste"]').val('');
+            return;
+        }
+        
+        $('input[name="copypaste"]').val(lines[linenum]);
+        
+    }
+
+    function paintCanvas_gst() {
+        
+        var canvas = document.getElementById('debuglogcanvas');
+        var ctx = canvas.getContext('2d');
+        
+        ctx.font="normal normal lighter 20px Courier";
+        
+        // Background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 1000, 800);
+        
+        // fading text lines
+        ctx.strokeStyle = '#001000';
+        for(i = 0; i < oldlines7.length; i++) {
+            ctx.strokeText(oldlines7[i], 10, 30 + (i * 24));
+        }
+        oldlines7 = oldlines6.slice();
+        
+        ctx.strokeStyle = '#003000';
+        for(i = 0; i < oldlines6.length; i++) {
+            ctx.strokeText(oldlines6[i], 10, 30 + (i * 24));
+        }
+        oldlines6 = oldlines5.slice();
+        
+        ctx.strokeStyle = '#005000';
+        for(i = 0; i < oldlines5.length; i++) {
+            ctx.strokeText(oldlines5[i], 10, 30 + (i * 24));
+        }
+        oldlines5 = oldlines4.slice();        
+
+
+        ctx.strokeStyle = '#007000';
+        for(i = 0; i < oldlines4.length; i++) {
+            ctx.strokeText(oldlines4[i], 10, 30 + (i * 24));
+        }
+        oldlines4 = oldlines3.slice();        
+        
+        ctx.strokeStyle = '#009000';
+        for(i = 0; i < oldlines3.length; i++) {
+            ctx.strokeText(oldlines3[i], 10, 30 + (i * 24));
+        }
+        oldlines3 = oldlines2.slice();
+
+        ctx.strokeStyle = '#00b000';
+        for(i = 0; i < oldlines2.length; i++) {
+            ctx.strokeText(oldlines2[i], 10, 30 + (i * 24));
+        }
+        oldlines2 = oldlines1.slice();
+
+        ctx.strokeStyle = '#00d000';
+        for(i = 0; i < oldlines1.length; i++) {
+            ctx.strokeText(oldlines1[i], 10, 30 + (i * 24));
+        }
+        oldlines1 = lines.slice();
+        
+        // Text Lines
+        ctx.strokeStyle = '#A0FFA0';
+        for(i = 0; i < lines.length; i++) {
+            ctx.strokeText(lines[i], 10, 30 + (i * 24));
+        }
+        
+        // CRT raster lines
+        //ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth=1;
+        for(i = 0; i < 800; i+=3) {
+            //ctx.strokeRect(0, i, 1000, i+1);
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(999, i);
+            ctx.stroke();
+        }
+        
+        
+        
+        setTimeout(paintCanvas_gst, 40);
+    }
+        
+    
+    function canvasClicks_gst(e) {
+        var x = Math.floor((e.pageX-$("#debuglogcanvas").offset().left));
+        var y = Math.floor((e.pageY-$("#debuglogcanvas").offset().top));
+        
+        //ctx.strokeText(lines[i], 10, 20 + (i * 14));
+        
+        var linenum = y - 19;
+        if(linenum < 0) {
+            return;
+        }
+        linenum = Math.floor(linenum / 24);
+        
+        if(linenum >= lines.length) {
+            $('input[name="copypaste"]').val('');
+            return;
+        }
+        
+        $('input[name="copypaste"]').val(lines[linenum]);
+        
+    }
+    
+    function getEnableStatus() {
+        var myval = $('input[name="enableUpdate"]').val();
+        if(myval != 'on') {
+            return false;
+        }
+        return true;
+    }    
+</script>

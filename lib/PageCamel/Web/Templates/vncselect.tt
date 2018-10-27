@@ -1,0 +1,63 @@
+[% IF UsageHint != '' %]
+    <p align="center"><h1>[% tr.trquote(UsageHint.settingvalue) %]</h1></p>
+[% END %]
+<p align="center">
+    <form name="selectcomputer" method="post" action="[% PostLink %]" id="MainFilterForm">
+        <table class="data" align="center" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("ProdLine") %]</th>
+                    <th>[% tr.trquote("Hostname") %]</th>
+                    <th>[% tr.trquote("Domain") %]</th>
+                    <th>[% tr.trquote("User") %]</th>
+                    <th>[% tr.trquote("Password") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH Computer IN AvailComputers %]
+                    <tr>
+                        <td>
+                            <input type="radio" name="computername" value="[% Computer.computer_name %]" onChange="return updateButton();">
+                        </td>
+                        <td>[% tr.quote(Computer.line_id) %]</td>
+                        <td>[% tr.quote(Computer.computer_name) %]</td>
+                        <td>[% tr.quote(Computer.account_domain) %]</td>
+                        <td>[% tr.quote(Computer.account_user) %]</td>
+                        <td>[% tr.quote(Computer.account_password) %]</td>
+                        <td>[% tr.quote(Computer.description) %]</td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table><br/>
+        <div align="center">
+            [% tr.trquote("Reason for connection") %]:<br/>
+            <textarea maxLength="8000" rows="7" cols="80" name="reason" id="reason" onkeyup="return updateButton();"></textarea>
+        </div>
+        <br/>
+        <div align="center">
+            <input type="hidden" name="mode" value="selectcomputer">
+            <input type="submit" value="[% tr.trquote("Select") %]" id="submitbutton" disabled="true">            
+        </div>
+        
+    </form>
+</p>
+<script language="javascript">
+    function updateButton () {
+        var noText = true;
+        var reason_c = document.getElementById("reason");
+        var hostname = $('input[name=computername]:checked').val()
+        if(hostname.length > 0 && reason_c.value.length > 10) {
+            noText = false;
+        }
+        $( "#submitbutton" ).button( "option", "disabled", noText );
+        return true;
+    }
+    
+    function extraOnLoad() {
+        // DON'T DELETE: auto-uninline onfoo html tags to JS file
+    }
+</script>
+    
+    

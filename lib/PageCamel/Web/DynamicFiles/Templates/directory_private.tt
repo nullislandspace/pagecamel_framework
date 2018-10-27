@@ -1,0 +1,54 @@
+<h1>[% DirTitle %]</h1>
+<p>
+    <form id="searchform" action="[% PostLink %]" method="POST">
+        [% tr.trquote("Filename") %]: <input type="text" name="filename" value="[% tr.quote(LastSearch) %]">
+        <input type="hidden" name="mode" value="search">
+        <input type="submit" value="Search">
+    </form>
+</p>
+<p width="100%" align="left">
+    <table id="MainDataTable">
+        <thead>
+            <tr>
+                <th>[% tr.trquote("Filename") %]</th>
+                [% IF ShowParent == 1 %]
+                    <th>[% tr.trquote("Directory") %]</th>
+                [% END %]
+                <th>[% tr.trquote("Type") %]</th>
+                <th>[% tr.trquote("Size") %]</th>
+                <th>[% tr.trquote("Date") %]</th>
+            </tr>
+        </thead>
+        [% FOREACH file IN files %]
+            <tr>
+                <td>
+                    <a href="[% file.url %]">[% file.linkname%]</a>
+                </td>
+                [% IF ShowParent == 1 %]
+                    <td>
+                        <a href="[% file.parenturl %]">[% file.parentlinkname%]</a>
+                    </td>
+                [% END %]
+                <td>
+                    [% file.type %]
+                </td>
+                [% IF file.type == "File" %]
+                    <td align="right">
+                        &nbsp;[% file.size_human %]&nbsp;
+                    </td>
+                    <td>
+                        [% file.lastmodified_simplified %]
+                    </td>
+                [% ELSE %]
+                    <td></td>
+                    <td></td>
+                [% END %]
+            </tr>
+        [% END %]
+    </table>
+</p>
+[% IF DynamicFilesWastedSpace.pagetitle != '' %]
+    <p>
+        <a href="[% DynamicFilesWastedSpace.webpath %]">[% tr.trquote(DynamicFilesWastedSpace.pagetitle) %]</a>
+    </p>
+[% END %]

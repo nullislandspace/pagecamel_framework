@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+
+<head>
+    <title>[% PageTitle %]</title>
+    <!-- DISABLE_INLINE_CSS_WARNINGS --><style type="text/css"> 
+        tr.even {
+            background-color: #ffffff; color: black;
+        }
+        tr.odd {
+            background-color: #c0c0c0; color: black;
+        }
+    </style>
+</head>
+<body>
+    <h1>[% DirTitle %]</h1>
+
+    <p>
+        <form id="searchform" action="[% PostLink %]" method="POST">
+            [% tr.quote("Filename") %]: <input type="text" name="filename" value="[% tr.quote(LastSearch) %]">
+            <input type="hidden" name="mode" value="search">
+            <input type="submit" value="Search">
+        </form>
+    </p>
+
+    <p width="100%" align="left">
+        <table border="0">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    [% IF ShowParent == 1 %]
+                        <th>Directory</th>
+                    [% END %]
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            [% SET even = 0 %]
+            [% FOREACH file IN files %]
+                [% IF even == 0 %]
+                    <tr class="odd">
+                    [% SET even = 1 %]
+                [% ELSE %]
+                    <tr class="even">
+                    [% SET even = 0 %]
+                [% END %]
+                    <td>
+                        <a href="[% file.url %]">[% file.linkname%]</a>
+                    </td>
+                    [% IF ShowParent == 1 %]
+                        <td>
+                            <a href="[% file.parenturl %]">[% file.parentlinkname%]</a>
+                        </td>
+                    [% END %]
+                    <td>
+                        [% file.type %]
+                    </td>
+                    [% IF file.type == "File" %]
+                        <td align="right">
+                            &nbsp;[% file.size_human %]&nbsp;
+                        </td>
+                        <td>
+                            [% file.lastmodified_simplified %]
+                        </td>
+                    [% ELSE %]
+                        <td></td>
+                        <td></td>
+                    [% END %]
+                </tr>
+            [% END %]
+        </table>
+    </p>
+    
+    [% IF DynamicFilesWastedSpace.pagetitle != '' %]
+        <p>
+            <a href="[% DynamicFilesWastedSpace.webpath %]">[% tr.trquote(DynamicFilesWastedSpace.pagetitle) %]</a>
+        </p>
+    [% END %]
+</body>

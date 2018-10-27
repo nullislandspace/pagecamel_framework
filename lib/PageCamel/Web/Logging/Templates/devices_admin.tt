@@ -1,0 +1,126 @@
+<p align="center">
+    <form name="powerdevices" method="post" action="[% webpath %]"  id="MainFilterForm">
+    <table class="data" id="MainFilterTable">
+        <thead>
+            <tr class="tabheader">
+                    <th>[% tr.trquote("Hostname") %]</th>
+                    <th>[% tr.trquote("Type") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                    <th>[% tr.trquote("ComputerDB") %]</th>
+                    <th>[% tr.trquote("Scan speed") %]</th>
+                    <th>[% tr.trquote("IP") %]</th>
+                    <th>[% tr.trquote("User") %]</th>
+                    <th>[% tr.trquote("Password") %]</th>
+                    <th>[% tr.trquote("Active") %]</th>
+                    <th>[% tr.trquote("Delete") %]</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH device IN devices %]
+                <tr>
+                        <td>[% tr.quote(device.hostname) %]<input type="hidden" name="hostname" value="[% tr.quote(device.hostname) %]"></td>
+                        <td align="center">[% device.device_type %]</td>
+                        <td><input type="text" size="30" maxlength="60" name="desc_[% tr.quote(device.hostname) %]" value="[% device.description %]"></td>
+                        <td>
+                            <select name="computerdb_[% tr.quote(device.hostname) %]">
+                                <option value=""></option>
+                                [% FOREACH Computer IN Computers %]
+                                    <option value="[% Computer.computer_name %]"
+                                        [% IF device.computerdb_hostname == Computer.computer_name %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.quote(Computer.computer_name) %]
+                                    </option>
+                                [% END %]
+                            </select>
+                        </td>
+                        <td>
+                            <select name="speed_[% tr.quote(device.hostname) %]">
+                                <option value="slow"
+                                    [% IF device.scanspeed == "slow" %]
+                                        selected="selected"
+                                    [% END %]
+                                    >[% tr.trquote("Slow") %]
+                                </option>
+                                <option value="medium"
+                                    [% IF device.scanspeed == "medium" %]
+                                        selected="selected"
+                                    [% END %]
+                                    >[% tr.trquote("Medium") %]
+                                </option>
+                                <option value="fast"
+                                    [% IF device.scanspeed == "fast" %]
+                                        selected="selected"
+                                    [% END %]
+                                    >[% tr.trquote("Fast") %]
+                                </option>
+                            </select>
+                        </td>
+                        <td><input type="text" size="16" maxlength="40" name="ip_[% tr.quote(device.hostname) %]" value="[% tr.quote(device.ip_addr) %]"></td>
+                        <td><input type="text" size="10" maxlength="40" name="user_[% tr.quote(device.hostname) %]" value="[% tr.quote(device.username) %]"></td>
+                        <td><input type="text" size="10" maxlength="40" name="pass_[% tr.quote(device.hostname) %]" value="[% tr.quote(device.password) %]"></td>
+                        <td><input type="checkbox" name="status_[% tr.quote(device.hostname) %]"
+                        [% IF device.is_active %]
+                        checked
+                        [% END %]
+                        ></td>
+                        <td><input type="checkbox" name="delete_[% tr.quote(device.hostname) %]"></td>
+                </tr>
+            [% END %]
+        </tbody>
+        <tfoot>
+            <tr>
+                    <td>
+                        <input type="text" size="16" maxlength="40" name="newhostname___NEW__" value="">
+                        <input type="hidden" name="hostname" value="__NEW__">
+                    </td>
+                    <!--
+                    <td align="center">
+                        <select name="devicetype___NEW__">
+                            [% FOREACH devtype IN devtypes %]
+                                <option value="[% tr.quote(devtype.enumvalue) %]">
+                                    [% tr.trquote(devtype.enumvalue) %]
+                                </option>
+                            [% END %]
+                        </select>
+                    </td>
+                    -->
+                    <!-- desc___NEW__ -->
+                    <td></td>
+                    
+                    
+
+                    <td align="center">
+                        <select name="computerdb___NEW__">
+                            <option value=""></option>
+                            [% FOREACH Computer IN Computers %]
+                                <option value="[% tr.quote(Computer.computer_name) %]">
+                                    [% tr.quote(Computer.computer_name) %]
+                                </option>
+                            [% END %]
+                        </select>
+                    </td>
+
+                    <td>
+                            <select name="speed___NEW__">
+                                <option value="slow">[% tr.trquote("Slow") %]</option>
+                                <option value="medium">[% tr.trquote("Medium") %]</option>
+                                <option value="fast">[% tr.trquote("Fast") %]</option>
+                            </select>
+                    </td>
+                    <td><input type="text" size="16" maxlength="40" name="ip___NEW__" value=""></td>
+                    <td><input type="text" size="10" maxlength="40" name="user___NEW__" value=""></td>
+                    <td><input type="text" size="10" maxlength="40" name="pass___NEW__" value=""></td>
+                    <td><input type="checkbox" name="status___NEW__"></td>
+                    <td><input type="hidden" name="delete___NEW__" value=""></td>
+            </tr>
+            <tr>
+                <td colspan="9">
+                    <input type="submit" value="[% tr.trquote("Save") %]">
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+    <input type="hidden" name="submitform" value="1">
+    </form>
+</p>

@@ -1,0 +1,40 @@
+<p align="center">
+    <form name="setlanguage" method="post" action="[% PostLink %]">
+        <table class="data" align="center" id="MainDataTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("Name") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH Language IN AvailLanguages %]
+                    <tr>
+                        <td>
+                            <input type="radio" name="language" value="[% tr.quote(Language.lang) %]"
+                            [% IF Language.lang == UserLanguage %]
+                                checked="checked"
+                            [% END %]
+                            >
+                        </td>
+                        <td>
+                            [% tr.quote(Language.lang) %]
+                        </td>
+                        <td width="200px">
+                            [% tr.quote(Language.description) %]
+                        </td>
+                    </tr>
+                [% END %]
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" align="center">
+                        <input type="hidden" name="mode" value="setvalue">
+                        <input type="submit" value="[% tr.trquote("Select") %]">
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </form>
+</p>

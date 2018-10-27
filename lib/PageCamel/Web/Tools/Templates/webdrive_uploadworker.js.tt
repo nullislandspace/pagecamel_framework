@@ -1,0 +1,106 @@
+[% FOREACH ExtraScript IN ExtraScripts %]
+importScripts('[% ExtraScript %]');
+[% END %]
+
+var interworker;
+
+var currentChunk = -1;
+var uploadqueue = {};
+var uploadActive = 0;
+
+var activeUploadFile = '';
+var activeUploadChunk = 0;
+
+onmessage = function(e) {
+    var command = e.data[0];
+    var data = e.data[1];
+    
+    if(command == 'STARTUP' && data == '?') {
+        // Tell main thread we are ready
+        interworker = e.ports[0];
+        interworker.onmessage = handleInterworker;
+        postMessage(['STARTUP', 'uploadworker']);
+        return;
+    }
+
+    if(command == 'UPLOADCHUNK') {
+        activeUploadFile = data;
+        activeUploadChunk = e.data[2];
+        var percentage = e.data[3];
+        
+        //console.log("START CHUNK UPLOAD FOR " + activeUploadFile + " chunk " + activeUploadChunk + " percentage: " + percentage);
+        
+        if(uploadActive == 0) {
+            postMessage(['SHOWUPLOADPROGRESS', '']);
+        }
+        uploadActive = 1;
+        
+        postMessage(["SETUPLOADPROGRESSLABEL", 'Uploading ' + activeUploadFile]);
+        postMessage(["SETUPLOADPROGRESS", percentage]);
+        
+        var startOffset = activeUploadChunk * [% Settings.chunk_size %];
+        var endOffset = startOffset + [% Settings.chunk_size %];
+        
+        var blob = uploadqueue[activeUploadFile].slice(startOffset, endOffset);
+        var bindata = new FileReaderSync().readAsArrayBuffer(blob);
+        var outmsg = {
+            type: 'SETCHUNK',
+            filename: activeUploadFile,
+            chunk: activeUploadChunk,
+            data: arrayBufferToBase64(bindata)
+        };
+        postMessage(["SENDTOSERVER", JSON.stringify(outmsg)]);
+    
+        return;
+    }
+    
+    if(command == "FILEDONE") {
+        postMessage(["SETUPLOADPROGRESSLABEL", 'Uploaded ' + data]);
+        postMessage(["SETUPLOADPROGRESS", 100]);
+        postMessage(["RELOADTABLE", 1]);
+        delete uploadqueue[data];
+        
+        var uploadlist = Object.keys(uploadqueue);
+        
+        if(uploadlist.length === 0) {
+            //console.log("No more files to upload");
+            uploadActive = 0;
+            postMessage(['HIDEUPLOADPROGRESS', '']);
+            return;
+        }
+    }   
+    
+    return;
+        
+}
+
+function handleInterworker(e) {
+    var command = e.data[0];
+    var data = e.data[1];
+    
+    if(command == 'TESTMESSAGE') {
+        console.log("uploadworker sending test message");
+        postMessage(['TESTCOMPLETE', '']);
+        return;
+    }
+    
+    if(command == 'QUEUEUPLOAD') {
+        uploadqueue[data.name] = data;
+        postMessage(["SENDTOSERVER", e.data[2]]);
+    }
+    
+    return;
+}
+
+
+function arrayBufferToBase64( buffer ) {
+    var binary = '';
+    var bytes = new Uint8Array( buffer );
+    var len = bytes.byteLength;
+    //console.log(' ---- ' + len);
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    //return binary;
+    return btoa( binary );
+}

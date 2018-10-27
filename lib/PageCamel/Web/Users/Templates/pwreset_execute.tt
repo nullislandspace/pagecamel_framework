@@ -1,0 +1,142 @@
+<form name="pwchange" method="post" action="[% PostLink %]" id="pwform">
+    <table class="data" align="center" id="MainDataTable">
+        <tr class="tabheader">
+            <th colspan="2">
+                <div class="infotext">[% tr.trquote("Reset Password") %]</div>
+            </th>
+        </tr>
+
+        <tr>
+            <td align="right">[% tr.trquote("Request-ID") %]</td>
+            <td align="left">
+                <input type="hidden" name="resetkey" value="[% tr.quote(resetkey) %]">[% tr.quote(resetkey) %]
+            </td>
+        </tr>
+
+        <tr>
+            <td align="right">[% tr.trquote("Username") %]</td>
+            <td align="left">
+                <input type="hidden" name="username" value="[% tr.quote(username) %]">[% tr.quote(username) %]
+            </td>
+        </tr>
+
+        [% IF statuscolor != "oktext" %]    
+            <tr>
+                <td align="right">[% tr.trquote("New Password") %]</td>
+                <td align="left">
+                    <input type="password" name="pwnew1" value="[% tr.quote(pwnew1) %]" id="pwnew1"><br>
+                    <div>
+                        <div id="progressbar" align="left"><div id="progress"></div></div>
+                        <div id="complexity">0%</div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td align="right">[% tr.trquote("Repeat Password") %]</td>
+                <td align="left">
+                    <input type="password" name="pwnew2" value="[% tr.quote(pwnew2) %]" id="pwnew2">
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
+            [% IF statustext %]
+                <tr class="odd">
+                    <th colspan="2">
+                        <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+                    </th>
+                </tr>
+            [% END %]
+            <tr>
+                <td colspan="2" align="center">
+                    <input type="submit" value="[% tr.trquote("Save") %]" id="submitbutton">
+                </td>
+            </tr>
+        [% END %]
+    </table>
+    <input type="hidden" name="mode" value="execute">
+</form>
+
+<span id="masktemplatedataset"
+    data-statuscolor="[% statuscolor %]"
+    data-trquote-resettingpassword="[% tr.trquote("Resetting password...") %]"
+    data-trquote-passwordchanged="[% tr.trquote("Password changed") %]"
+></span>
+
+<script type="text/javascript">  
+    var validPassword = false;
+    var canSubmit = false;
+        
+    function validateInput() {
+        var inPoints = 0;
+        
+        if($('#pwnew1').val() != '') {
+            inPoints++;
+        }
+        
+        if($('#pwnew2').val() != '') {
+            inPoints++;
+        }
+        
+        if($('#pwnew1').val() == $('#pwnew2').val()) {
+            inPoints++;
+        }
+        
+        if(validPassword) {
+            inPoints++;
+        }
+        
+        if(inPoints == 4) {
+            canSubmit = true;
+        } else {
+            canSubmit = false;
+        }
+        $( "#submitbutton" ).button( "option", "disabled", !canSubmit ); 
+    }
+        
+    function submitMe() {
+        if(canSubmit) {
+            $.blockUI({ message: '<h1>' + ttvars.trquote.Resettingpassword + '<br/><img src="/static/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+        }
+        return canSubmit;
+    }
+    
+    function extraOnLoad() {
+        
+        $('#pwform').on('submit', submitMe);
+        
+        if(ttvars.statuscolor == 'oktext') {
+            $.blockUI({ message: '<h1>' + ttvars.trquote.Passwordchanged + '</h1>' });
+            setTimeout(loadLogin, 2000);
+        } else {
+            $(function () {
+                $("#pwnew1").complexify({}, function (valid, complexity) {
+                    if (!valid) {
+                        $('#progress').css({'width':complexity + '%'}).removeClass('progressbarValid').addClass('progressbarInvalid');
+                    } else {
+                        $('#progress').css({'width':complexity + '%'}).removeClass('progressbarInvalid').addClass('progressbarValid');
+                    }
+                    $('#complexity').html(Math.round(complexity) + '%');
+                    validPassword = valid;
+                    
+                    validateInput();
+                });
+            });
+            
+            $('#pwold').keyup(function() {
+                validateInput();
+            });
+            
+            $('#pwnew2').keyup(function() {
+                validateInput();
+            });
+            validateInput();
+        }
+    }
+
+
+    function loadLogin() {
+        window.location.assign('/user/login');
+    }
+
+</script>

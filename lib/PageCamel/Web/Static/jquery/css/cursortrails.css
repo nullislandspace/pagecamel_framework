@@ -1,0 +1,21 @@
+.cursor-trail {
+    position: absolute;
+    z-index: 10000;
+    display: inline-block;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    background-color: black;
+    pointer-events: none;
+    border-radius: 50%;
+}
+
+.cursor-trail-color {
+    background-color: #6432EF;
+    border-style: dotted;
+    border-width: 2px;
+    border-color: #6432EF;
+}

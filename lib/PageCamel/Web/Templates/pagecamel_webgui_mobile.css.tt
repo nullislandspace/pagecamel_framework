@@ -1,0 +1,158 @@
+body {
+	border: 0px;
+	margin: 0px;
+    /*background-color: #FFFFFF;*/
+    font-size: 16px;
+}
+
+/* Blue info bar */
+div.webgui_headerinfo {
+	padding-top: 5px;
+	padding-bottom: 5px;
+    width: 100%;
+    background-color: #dce2ff;
+    text-align: center;
+}
+
+/* Yellow "maintenance" bar */
+div.webgui_headermessage {
+	padding-top: 5px;
+	padding-bottom: 5px;
+    width: 100%;
+    background-color: #fff000;
+    overflow: auto;
+}
+
+div.webgui_headermessage_left {
+    float: left;
+    width: 33%;
+}
+
+div.webgui_headermessage_middle {
+    float: left;
+    width: 33%;
+    text-align: center;
+}
+
+div.webgui_headermessage_right {
+    float: right;
+}
+
+/* Projectlogo, Motto and Login/Register/logout buttons */
+div.webgui_projectbar {
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 0px;
+	padding-right: 0px;
+    width: 100%;
+    overflow: auto;
+
+    [% IF ProjectHeaderColorGradient == 'none' %]
+        background-color: [% ProjectHeaderColor %];
+    [% ELSIF ProjectHeaderColorGradient == 'linear' %]
+        background: linear-gradient([% IF ProjectHeaderColorDirection == '' %]to right[% ELSE %][% ProjectHeaderColorDirection %][% END %], [% ProjectHeaderColor %], [% ProjectHeaderColor2 %][% IF ProjectHeaderColor3 != '' %], [% ProjectHeaderColor3 %][% END %]);
+    [% ELSIF ProjectHeaderColorGradient == 'repeating-linear' %]
+        background: repeating-linear-gradient([% IF ProjectHeaderColorDirection == '' %]to right[% ELSE %][% ProjectHeaderColorDirection %][% END %], [% ProjectHeaderColor %], [% ProjectHeaderColor2 %][% IF ProjectHeaderColor3 != '' %], [% ProjectHeaderColor3 %][% END %]);
+    [% ELSIF ProjectHeaderColorGradient == 'radial' %]
+        background: radial-gradient([% ProjectHeaderColorRadial %], [% ProjectHeaderColor %], [% ProjectHeaderColor2 %][% IF ProjectHeaderColor3 != '' %], [% ProjectHeaderColor3 %][% END %]);
+    [% ELSIF ProjectHeaderColorGradient == 'repeating-radial' %]
+        background: repeating-radial-gradient([% ProjectHeaderColorRadial %], [% ProjectHeaderColor %], [% ProjectHeaderColor2 %][% IF ProjectHeaderColor3 != '' %], [% ProjectHeaderColor3 %][% END %]);
+    [% END %]
+	//padding-left: [% ProjectHeaderLeftMargin %];
+	//padding-right: [% ProjectHeaderRightMargin %];
+}
+
+div.webgui_projectname {
+	color: [% ProjectNameColor %];
+	font-size: 150%;
+    text-align: center;
+    margin: auto;
+}
+
+div.webgui_projectmottobar {
+    text-align: center;
+    margin: auto;
+}
+div.webgui_projectmottotext {
+	color: [% ProjectMottoColor %];
+	font-size: 150%;
+    text-align: center;
+    margin: auto;
+}
+
+div.webgui_projectloginlink {
+	color: [% ProjectMottoColor %];
+	text-align: right;
+}
+
+a.webgui_projectloginlink {
+	color: [% ProjectMottoColor %];
+}
+
+div.webgui_projectusername {
+	color: [% ProjectUsernameColor %];
+	padding-right: 20px;
+}
+
+div.pagecamelpagefooter_red {
+    background: red;
+    color: white;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    height: 20px;
+}
+
+div.pagecamelpagefooter_green {
+    background: green;
+    color: white;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    height: 20px;
+}
+
+div.pagecamelpagefooter_yellow {
+    background: yellow;
+    color: black;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    height: 20px;
+}
+
+div.pagecamelpagefooter_white {
+    background: white;
+    color: black;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    height: 20px;
+}
+
+
+div.pagecamelmobiledesktopselectorbox {
+    background: lightgray;
+    color: black;
+    border: 1px;
+    text-align: center;
+}
+
+div.pagecamelmobiledesktopselectorboxtext {
+    margin-left: 5%;
+    margin-right: 5%;
+}
+
+div.pagecamelPageContent {
+    margin-left: 5%;
+    margin-right: 5%;
+}
+
+img.ledimage {
+    height: 20px;
+    width: 20px;
+}
+
+tr.staticeven { color: black; background-color: #E0E0E0; }
+tr.staticodd { color: black; background-color: white; }
+th.statichead { color: black; background-color: #C0C0C0; }

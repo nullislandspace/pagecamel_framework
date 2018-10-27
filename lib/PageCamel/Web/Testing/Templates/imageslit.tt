@@ -1,0 +1,209 @@
+<p>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+    Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+Text above<br/>
+</p>
+
+<p>
+<div id="slitimagediv">
+    <img id="slitimage" src="/guest/blog/images/large/eidolon_spirits_of_things_past_cropped.png">
+</div>
+</p>
+
+<p>
+    Text below<br/>
+    Text below<br/>
+    Text below<br/>
+    Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+
+
+    Text below<br/>
+    Text below<br/>
+    Text below<br/>
+    Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+    Text below<br/>
+    Text below<br/>
+    Text below<br/>
+    Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+Text below<br/>
+
+</p>
+
+<script>
+    var slittop = 0;
+    
+    function extraOnLoad() {
+        
+        var slitheight = $('#slitimage').height();
+        var windowheight = $(window).height();
+        
+        
+        
+        slittop = $('#slitimage').offset().top;
+        
+        if(slittop > windowheight) {
+            slittop = windowheight;
+            //slitheight = windowheight;
+        }
+        
+        //$('#slitimage').height(windowheight);
+        
+        $('#slitimagediv').css('height', '100px');
+        $('#slitimagediv').css('overflow', 'hidden');
+        
+        $('#slitimage').css('position', 'relative');
+        //$('#slitimage').css('top', '-200');
+        
+        $(window).scroll(function() {
+            updateSlitImage();
+        });
+        
+        updateSlitImage();
+        
+    }
+    
+    function updateSlitImage() {
+        var offs = ((slittop - $(window).scrollTop()) * -1);
+        console.log("OFFS: " + offs);
+        $('#slitimage').css('top', offs);
+    }
+    
+</script>

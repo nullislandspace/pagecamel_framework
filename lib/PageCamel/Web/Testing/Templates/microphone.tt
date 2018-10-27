@@ -1,0 +1,657 @@
+<!-- 
+    sox Dire\ Straits\ -\ Walk\ Of\ Life.mp3 -c 1 -r 11025 -e signed-integer -b 16 --endian little direstraits_walkoflife.raw
+    mv direstraits_walkoflife.raw direstraits_walkoflife.dat
+-->
+<p>
+    Microphone:<br/>
+    <input type="button" id="startbutton" value="START">
+    <input type="button" id="stopbutton" value="STOP">
+</p>
+
+<p>
+    Speaker:<br/>
+    <input type="button" id="playbackbutton" value="PLAYBACK">
+    <input type="button" id="playbackbutton_winamp" value="PLAYBACK WinAmp"><br/>
+    <input type="button" id="playbackbutton_sultans" value="Sultans of Swing">
+    <input type="button" id="playbackbutton_brothers" value="Brothers in Arms">
+    <input type="button" id="playbackbutton_walk" value="Walk of Life">
+    <input type="button" id="playbackbutton_tropico" value="Tropico (long)">
+</p>
+
+<p>
+    Options:<br/>
+    <input type="button" id="echoonbutton" value="ECHO ON">
+    <input type="button" id="echooffbutton" value="ECHO OFF"><br/>
+    <input type="button" id="vocoderonbutton" value="VOCODER ON">
+    <input type="button" id="vocoderoffbutton" value="VOCODER OFF"><br/>
+    Playback low pass filter: <input type="checkbox" id="uselowpassfilter" name="lowpassfilter" checked="checked">
+    Strong: <input type="checkbox" id="stronguselowpassfilter" name="stronglowpassfilter">
+</p>
+
+<p>
+    
+    
+    
+</p>
+
+<p>
+    <table border="0">
+        <tr>
+            <td><b>Record</b></td>
+            <td><b>Playback</b></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>Buffer: <div id="bufferbar"><div id="bufferbarlabel" class="progress-label">...</div></div></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>Speedbias: <div id="speedbiasbar"><div id="speedbiasbarlabel" class="progress-label">...</div></div></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>Bias target: <div id="speedbiastargetbar"><div id="speedbiastargetbarlabel" class="progress-label">...</div></div></td>
+        </tr>
+        <tr>
+            <td><canvas id="recorderbarscanvas" width="512px" height="128px"></canvas></td>
+            <td><canvas id="playbackbarscanvas" width="512px" height="128px"></canvas></td>
+        </tr>
+        <tr>
+            <td><canvas id="recorderspectrumcanvas" width="512px" height="128px"></canvas></td>
+            <td><canvas id="playbackspectrumcanvas" width="512px" height="128px"></canvas></td>
+        </tr>
+    </table>
+</p>
+
+<script>
+    
+    var bufferbar;
+    var bufferlabel;
+    function websocketmaskOnload() {
+        
+        initAudioStuff();
+        
+        bufferbar = $('#bufferbar');
+        bufferlabel = $('#bufferbarlabel');
+        bufferbar.progressbar({
+                value: 0,
+                max: 50000,
+                change: function() {
+                bufferlabel.text( bufferbar.progressbar( "value" ) );
+            }
+        });
+        bufferbar.progressbar("value", 1);
+        bufferbar.progressbar("value", 0);
+
+        speedbiasbar = $('#speedbiasbar');
+        speedbiaslabel = $('#speedbiasbarlabel');
+        speedbiasbar.progressbar({
+                value: 0,
+                max: 1600,
+                change: function() {
+                    speedbiaslabel.text( Math.floor(ratedivisorbias*1000)/1000 );
+                }
+        });
+        speedbiasbar.progressbar("value", 500);
+
+        speedbiastargetbar = $('#speedbiastargetbar');
+        speedbiastargetlabel = $('#speedbiastargetbarlabel');
+        speedbiastargetbar.progressbar({
+                value: 0,
+                max: 1600,
+                change: function() {
+                    speedbiastargetlabel.text( Math.floor(ratedivisorbias_target *1000)/1000 );
+                }
+        });
+        speedbiastargetbar.progressbar("value", 500);
+        
+        $("#startbutton").click(function() {
+            var outmsg = {
+                type: 'START',
+            };
+            
+            ws.send(JSON.stringify(outmsg));
+        });
+
+        $("#stopbutton").click(function() {
+            var outmsg = {
+                type: 'STOP',
+            };
+            ws.send(JSON.stringify(outmsg));
+        });
+
+        $("#echoonbutton").click(function() {
+            if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'ECHO',
+                    value: 1,
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+
+        $("#echooffbutton").click(function() {
+            if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'ECHO',
+                    value: 0,
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+        
+        $("#vocoderonbutton").click(function() {
+            if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'VOCODER',
+                    value: 1,
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+        
+        $("#vocoderoffbutton").click(function() {
+            if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'VOCODER',
+                    value: 0,
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+    
+        $("#playbackbutton").click(function() {
+            if(isrecording != 1) {
+                console.log("NOT RECORDING!");
+            } else if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'PLAYBACK',
+                    value: 'rawaudio.dat'
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+        $("#playbackbutton_winamp").click(function() {
+            if(isrecording != 1) {
+                console.log("NOT RECORDING!");
+            } else if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'PLAYBACK',
+                    value: 'winamp.dat'
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+        $("#playbackbutton_sultans").click(function() {
+            if(isrecording != 1) {
+                console.log("NOT RECORDING!");
+            } else if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'PLAYBACK',
+                    value: 'direstraits_sultansofswing.dat'
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+        $("#playbackbutton_walk").click(function() {
+            if(isrecording != 1) {
+                console.log("NOT RECORDING!");
+            } else if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'PLAYBACK',
+                    value: 'direstraits_walkoflife.dat'
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+        $("#playbackbutton_brothers").click(function() {
+            if(isrecording != 1) {
+                console.log("NOT RECORDING!");
+            } else if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'PLAYBACK',
+                    value: 'direstraits_brothersinarms.dat'
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+        $("#playbackbutton_tropico").click(function() {
+            if(isrecording != 1) {
+                console.log("NOT RECORDING!");
+            } else if(wsconnected != 1) {
+                console.log("NOT CONNECTED!");
+            } else {
+                var outmsg = {
+                    type: 'PLAYBACK',
+                    value: 'tropico.dat'
+                };
+                ws.send(JSON.stringify(outmsg));
+            }
+        });
+        
+        initCanvas('#playbackbarscanvas');
+        initCanvas('#recorderbarscanvas');
+        initCanvas('#playbackspectrumcanvas');
+        initCanvas('#recorderspectrumcanvas');
+    }
+
+    function websocketmaskOnSocketOpen() {
+        isrecording = 1;
+
+        isBuffering = 1;
+        audioOutput = new Array();
+        console.log("Buffering...");
+        
+        startRecording();
+    }
+
+
+    function handleMessage(msg) {        
+        if(msg.type === "OUTPUT") {
+            addAudioOutput(atob(msg.data));
+        }
+        
+    }
+        
+    // Hack to handle vendor prefixes
+    navigator.getUserMedia = ( navigator.getUserMedia ||
+                               navigator.webkitGetUserMedia ||
+                               navigator.mozGetUserMedia ||
+                               navigator.msGetUserMedia);
+
+    window.AudioContext = (function(){
+        return  window.webkitAudioContext || window.AudioContext || window.mozAudioContext;
+    })();
+    
+    // Global Variables for Audio
+    var isrecording = 0;
+    var audioContext;
+    var sourceNode;
+    var recorderNode;
+    var recorderAnalyzerNode;
+    var playbackNode;
+    var playbackAnalyzerNode;
+    var sampleSize;
+                            // decreasing this gives a faster sonogram, increasing it slows it down
+    var audioStream;
+    var targetrate;
+    var sourcerate = 44100;
+    var ratedivisor;
+    var ratedivisorbias = 0.0;
+    var ratedivisorbias_target = 0.0;
+    var sampleacumulator = 0;
+    var samplecounter = 0;
+    var effectivesamplerate;
+    var audioOutput = new Array();
+    var isbuffering = 0;
+    var recordcanvasdata;
+    var playbackcanvasdata;
+    var lowpassfilter = new Array();
+    
+    function initAudioStuff() {
+        try {
+            audioContext = new AudioContext();
+            sampleSize = ttvars.audio_buffer_size;
+            sourcerate = audioContext.sampleRate;
+            targetrate = ttvars.target_sample_rate;
+            ratedivisor = sourcerate / targetrate;
+            effectivesamplerate = sourcerate / ratedivisor;
+            console.log("Sample Size: " + sampleSize);
+            console.log('Source sample rate: ' + sourcerate);
+            console.log("Target sample rate: " + targetrate);
+            console.log("Rate divisor: " + ratedivisor);
+            console.log("Effective rate: " + effectivesamplerate);
+        } catch(e) {
+            alert('Web Audio API is not supported in this browser');
+        }
+    }
+    
+    function startRecording() {
+        // get the input audio stream and set up the nodes
+        try {
+            navigator.getUserMedia(
+              { video: false,
+                audio: true},
+              setupAudioNodes,
+              onError);
+        } catch (e) {
+            alert('webkitGetUserMedia threw exception :' + e);
+        }       
+    }
+    
+    function setupAudioNodes(stream) {
+        // create the media stream from the audio input source (microphone)
+        sourceNode = audioContext.createMediaStreamSource(stream);
+        audioStream = stream;
+
+        recorderNode = audioContext.createScriptProcessor(sampleSize, 1, 1);
+        recorderNode.onaudioprocess = recorderProcess;
+        
+        recorderAnalyzerNode = audioContext.createAnalyser();
+        recorderAnalyzerNode.fftSize = 256;
+        
+        playbackNode = audioContext.createScriptProcessor(sampleSize, 1, 1);
+        playbackNode.onaudioprocess = playbackProcess;
+        
+        playbackAnalyzerNode = audioContext.createAnalyser();
+        playbackAnalyzerNode.fftSize = 256;
+
+        sourceNode.connect(recorderNode);
+        recorderNode.connect(playbackNode);
+        sourceNode.connect(recorderAnalyzerNode);
+        playbackNode.connect(audioContext.destination);
+        playbackNode.connect(playbackAnalyzerNode);
+        
+        window.requestAnimationFrame(updateAnalyzers);
+    }
+    function onError(e) {
+        console.log(e);
+    }
+    
+    function recorderProcess(e) {
+        if(isrecording != 1) {
+            //console.log("Got sample but not recording");
+            return;
+        }
+        
+        var left = e.inputBuffer.getChannelData(0);
+        var outbuffer = convertToNetwork(left);
+
+        var outmsg = {
+            type: 'SAMPLE',
+            sample: outbuffer
+        };
+        ws.send(JSON.stringify(outmsg));
+    }
+    
+    function playbackProcess(e) {
+        var output = e.outputBuffer.getChannelData(0);
+        var uselowpassfilter = $('input[name="lowpassfilter"]').val() == 'on';
+        var stronglowpassfilter = $('input[name="stronglowpassfilter"]').val() == 'on';
+        var lowpasssize = ratedivisor;
+        if(stronglowpassfilter) {
+            lowpasssize *= 1.5;
+        }
+        
+        //console.log(audioOutput.length);
+        bufferbar.progressbar("value", audioOutput.length);
+        if(isbuffering == 1) {
+            if(audioOutput.length > (sampleSize * 6)) {
+                console.log("Playback enabled...");
+                isbuffering = 0;
+            } else {
+                // "Play" silence
+                for (var i = 0; i < sampleSize; i++) {
+                    output[i] = 0;
+                }
+                return;
+            }
+        } else {
+
+            var tdelta = ((sampleSize * 6) - audioOutput.length) / (sampleSize * 18);
+            //console.log(sampleSize + ' ' + audioOutput.length + ' ' + tdelta);
+            if(tdelta < -0.08) {
+                tdelta = -0.08;
+            } else if(tdelta > 0.08) {
+                tdelta = 0.08;
+            }
+            ratedivisorbias_target = tdelta;
+            speedbiastargetbar.progressbar("value", 1600 - Math.floor((ratedivisorbias_target + 0.08) * 10000.0));
+            
+            if(ratedivisorbias < ratedivisorbias_target) {
+                ratedivisorbias += 0.0002;
+                speedbiasbar.progressbar("value", 1600 - Math.floor((ratedivisorbias + 0.08) * 10000.0));
+            } else if(ratedivisorbias > ratedivisorbias_target) {
+                ratedivisorbias -= 0.0002;
+                speedbiasbar.progressbar("value", 1600 - Math.floor((ratedivisorbias + 0.08) * 10000.0));
+            }
+        }
+        
+        for (var i = 0; i < sampleSize; i++) {
+            if(audioOutput.length) {
+                lowpassfilter.push(audioOutput.shift());
+                //output[i] = audioOutput.shift();
+            } else {
+                lowpassfilter.push(0);
+                //output[i] = 0;
+            }
+            
+            while(lowpassfilter.length > lowpasssize) {
+                lowpassfilter.shift();
+            }
+            var acu = 0.0;
+            for(var j = 0; j < lowpassfilter.length; j++) {
+                acu += lowpassfilter[j];
+            }
+            acu /= lowpassfilter.length;
+            
+            if(uselowpassfilter) {
+                output[i] = acu;
+            } else {
+                output[i] = lowpassfilter[0];
+            }
+            
+        }
+        if(audioOutput.length === 0) {
+            console.log("Buffering...");
+            isbuffering = 1;
+        }
+    }
+        
+    function updateAnalyzers() {
+        paintAnalyzerBars(playbackAnalyzerNode, '#playbackbarscanvas');
+        paintAnalyzerBars(recorderAnalyzerNode, '#recorderbarscanvas');
+        
+        paintAnalyzerSpectrum(playbackAnalyzerNode, '#playbackspectrumcanvas');
+        paintAnalyzerSpectrum(recorderAnalyzerNode, '#recorderspectrumcanvas');
+        
+        window.requestAnimationFrame(updateAnalyzers);
+    }
+    
+    function initCanvas(id) {
+        var cwidth = $(id).width();
+        var cheight = $(id).height();
+        var ctx = $(id)[0].getContext("2d");
+        ctx.fillStyle = 'rgb(0, 0, 0)';
+        ctx.fillRect(0, 0, cwidth, cheight);
+    }
+    
+    function paintAnalyzerBars(node, id) {
+        var bufferLength = node.frequencyBinCount;
+        var data = new Uint8Array(bufferLength);
+        node.getByteFrequencyData(data);
+        
+        var cwidth = $(id).width();
+        var cheight = $(id).height();
+        var heightmultiplier = cheight / 256.0;
+        var ctx = $(id)[0].getContext("2d");
+        ctx.fillStyle = 'rgb(0, 0, 0)';
+        ctx.fillRect(0, 0, cwidth, cheight);
+        
+        bufferLength = Math.floor(bufferLength / 2); // Only show lower half of the spectrum
+        
+        ctx.lineWidth = 2;
+        var sliceWidth = Math.floor(cwidth / bufferLength);
+        for(var i = 0; i < bufferLength; i++) {
+            var barHeight = Math.floor(data[i] * heightmultiplier);
+            //var barBright = Math.floor((data[i] / 2) + 100);
+            //ctx.fillStyle = 'rgb(' + barBright + ',' + barBright + ',' + barBright + ')';
+            var g = data[i];
+            var r = Math.floor(g * (255/215));
+            var b = 0;
+            ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+            
+            var x = sliceWidth * i;
+            ctx.fillRect(x, cheight - barHeight, sliceWidth - 1, barHeight);
+            //ctx.fillRect(x, 0, sliceWidth - 1, barHeight);
+        }
+        //console.log(data);
+    }
+    
+    function paintAnalyzerSpectrum(node, id) {
+        var bufferLength = node.frequencyBinCount;
+        var data = new Uint8Array(bufferLength);
+        node.getByteFrequencyData(data);
+        
+        var cwidth = $(id).width();
+        var cheight = $(id).height();
+        var ctx = $(id)[0].getContext("2d");
+        
+        bufferLength = Math.floor(bufferLength / 2); // Only show lower half of the spectrum
+        
+        var heightmultiplier = cheight / bufferLength;
+        
+        //move the current pixel one step left
+        var imageData = ctx.getImageData(0,0,cwidth,cheight);
+        ctx.putImageData(imageData,-1,0);        
+        
+        ctx.fillStyle = 'rgb(0, 0, 0)';
+        ctx.fillRect(cwidth - 2, 0, 1, cheight);
+        
+        ctx.lineWidth = 2;
+        var sliceWidth = Math.floor(cwidth / bufferLength);
+        var barheight = Math.floor(heightmultiplier);
+        for(var i = 0; i < bufferLength; i++) {
+            var y = Math.floor(i * heightmultiplier);
+            //var barBright = Math.floor((data[i] / 2) + 100);
+            var r = data[i];
+            var g = 0; //Math.floor(r * (255/215));
+            var b = 0;
+            ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+            ctx.fillRect(cwidth - 2, cheight - y, 1, heightmultiplier);
+        }
+        //console.log(data);
+    }
+    
+    function addAudioOutput(rawdata) {
+        //console.log("GOT AUDIO! " + rawdata.length);
+        var startOffset = Math.floor(audioOutput.length - (ratedivisor * 2));
+        if(startOffset < 0) {
+            startOffset = 0;
+        }
+        var virtualStreamOffset = 0.0;
+        var bytebuffer = rawdata.split('');
+       //var inlen = bytebuffer.length;
+        var startlen = audioOutput.length;
+        while(bytebuffer.length) {
+            var b2 = bytebuffer.shift().charCodeAt(0);
+            var b1 = bytebuffer.shift().charCodeAt(0);
+            var i16 = (b1 << 8) + b2;
+            if(i16 > 32767) {
+                i16 -= 65536;
+            }
+            //var flt = (i16 - 32768) / 32768.0;
+            var flt = i16 / 32767.0;
+            
+            var currArrayOffs = Math.floor(virtualStreamOffset);
+            var nextArrayOffs = Math.floor(virtualStreamOffset + ratedivisor + ratedivisorbias);
+            audioOutput.push(flt);
+            while(currArrayOffs < (nextArrayOffs - 1)) {
+                audioOutput.push(-9999);
+                currArrayOffs++;
+            }
+            
+            virtualStreamOffset += ratedivisor;
+        }
+        //var outlen = audioOutput.length - startlen;
+        //console.log(outlen + ' <- ' + inlen);
+        
+        var currVal = 0;
+        var currOffs = startOffset;
+        //console.log("Startoffset: " + startOffset);
+
+        while(currOffs < audioOutput.length) {
+            if(audioOutput[currOffs] != -9999) {
+                currVal = audioOutput[currOffs];
+                if(audioOutput[currOffs + 1] === -9999) {
+                    var newOffs = currOffs + 1;
+                    while(audioOutput[newOffs] === -9999 && newOffs < audioOutput.length) {
+                        newOffs++;
+                    }
+                    if(typeof audioOutput[newOffs] != 'undefined' && audioOutput[newOffs] != -9999) {
+                        var newVal = audioOutput[newOffs];
+                        var stepCount = newOffs - currOffs - 1;
+                        //console.log(currOffs + ' ' + newOffs + ' ' + stepCount);
+                        var delta = (newVal - currVal) / stepCount;
+                        currOffs++;
+                        //currVal += delta;
+                        while(stepCount > 0) {
+                            if(currOffs >= audioOutput.length) {
+                                console.log("Overflow!");
+                            } else {
+                                audioOutput[currOffs] = currVal;
+                            }
+                            currOffs++;
+                            currVal += delta;
+                            stepCount--;
+                        }
+                    } else {
+                        currOffs = audioOutput.length;
+                    }
+                } else {
+                    currOffs++;
+                }
+            } else {
+                currOffs++;
+            }
+        }
+        //console.log(audioOutput.length);
+    }
+
+    function convertToNetwork(buffer) {
+        l = buffer.length;
+
+        var tempArray = new Array();
+        
+        var loop;
+        var binary = '';
+        
+        for(loop = 0; loop < l; loop++) {
+            sampleacumulator += buffer[loop]  / Math.floor(samplecounter + 1);
+            samplecounter++;
+            if(samplecounter >= ratedivisor) {
+                var temp = Math.floor(sampleacumulator * 32767);
+                if(temp < -32769) {
+                    temp = -32769;
+                } else if(temp > 32767) {
+                    temp = 32767;
+                }
+                
+                if(temp < 0) {
+                    temp += 65536;
+                }
+                
+                var t1 = temp % 256;
+                var t2 = Math.floor(temp / 256);
+
+                binary += String.fromCharCode(t1);
+                binary += String.fromCharCode(t2);
+                
+                sampleacumulator = 0;
+                samplecounter -= ratedivisor;
+            }
+        }
+
+        
+        return btoa( binary );
+    }
+   
+</script>

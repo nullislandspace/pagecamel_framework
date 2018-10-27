@@ -1,0 +1,177 @@
+[% IF account_ready == 1 %]
+    <form name="account" method="post" action="[% PostLink %]" onsubmit="return submitMe();">
+        <table class="data" align="center" id="MainDataTable">
+            <tr class="tabheader">
+                <th colspan="2">
+                    <div class="infotext">[% tr.trquote("Account") %]</div>
+                </th>
+            </tr>
+            <tr>
+                <td align="right">[% tr.trquote("Bitcoin Address") %]</td>
+                <td align="left">[% tr.quote(address) %]</td>
+            </tr>
+            <tr>
+                <td align="right">[% tr.trquote("Balance") %]</td>
+                <td align="right">[% tr.quote(current_amount) %]</td>
+            </tr>
+            <tr>
+                <td align="right">[% tr.trquote("Unconfirmed") %]</td>
+                <td align="right">[% tr.quote(unconfirmed_amount) %]</td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
+            <tr>
+                <td align="right">[% tr.trquote("Destination Address") %]</td>
+                <td align="left">
+                    <input type="text" name="destination_address" value="[% tr.quote(pwold) %]" maxLength="60" size="40" id="destination_address"><input type="button" value="..." id="showabook">
+                </td>
+            </tr>
+            <tr>
+                <td align="right">[% tr.trquote("Amount") %]</td>
+                <td align="left">
+                    <input type="text" name="destination_amount" value="[% tr.quote(pwold) %]" maxLength="60" size="40" id="destination_amount">
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    Transaction fee structure: Incoming: free, to another Cavac.AT<br/>
+                    user: [% internalbankfee %], to anyone else: [% bankfee %] (which<br/>
+                    includes the usual bitcoin network fee of [% networkfee %] to<br/>
+                    speed up processing.
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
+            [% IF statustext %]
+                <tr>
+                    <td colspan="2">
+                        <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+                    </td>
+                </tr>
+            [% END %]
+            <tr>
+                <td colspan="2" align="center">
+                    <input type="submit" value="[% tr.trquote("Send Bitcoins") %]" id="submitbutton">
+                </td>
+            </tr>
+        </table>
+        <input type="hidden" name="mode" value="send">
+    </form>
+[% ELSE %]
+    <p align="center"><div class="errortext">[% tr.trquote("Your account is still being processed. Please wait a few minutes") %]</div></p>
+[% END %]
+
+<!-- Address book -->
+<div id="dialog-form" title="[% tr.trquote("Address book") %]">
+    <p align="center">
+        <form name="addressbook" id="DialofFilterForm" >
+            <table class="data" align="center" id="DialogFilterTable" width="750px">
+                <thead>
+                    <tr class="tabheader">
+                        <th></th>
+                        <th>[% tr.trquote("Address") %]</th>
+                        <th>[% tr.trquote("Name") %]</th>
+                        <th>[% tr.trquote("Description") %]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    [% FOREACH abook IN abooks %]
+                        <tr>
+                            <td>
+                                <input type="radio" name="abookaddress" value="[% tr.quote(abook.destination_address) %]">
+                            </td>
+                            <td>
+                                [% tr.quote(abook.destination_address) %]
+                            </td>
+                            <td>
+                                [% tr.quote(abook.destination_name) %]
+                            </td>
+                            <td>
+                                [% tr.quote(abook.description) %]
+                            </td>
+                        </tr>
+                    [% END %]
+                </tbody>
+            </table>
+        </form>
+    </p>
+</div>
+
+
+
+<script>
+    function extraOnLoad() {
+    
+        $( "#dialog-form" ).dialog({
+           autoOpen: false,
+           height: 600,
+           width: 800,
+           modal: true,
+           buttons: {
+             "[% tr.trquote("Cancel") %]": function() {
+               $( this ).dialog( "close" );
+             }, 
+             "[% tr.trquote("Select") %]": function() {
+                var selVal = $('input:radio[name=abookaddress]:checked').val();
+                if(typeof selVal == 'undefined' || selVal == '') {
+                    alert("Please select a value!");
+                    return false;
+                }
+                $('#destination_address').val(selVal);
+               $( this ).dialog( "close" );
+             }
+           },
+         });
+      
+         $( "#showabook" ).click(function() {
+             $( "#dialog-form" ).dialog( "open" );
+           });
+           
+           
+        $('#DialogFilterTable').dataTable({
+                    "bStateSave": true, // Save state but we will override the SORTING later
+                    //"sPaginationType": "full_numbers",
+                    "aLengthMenu": [[10], [10]],
+                    "oLanguage": {
+                        "sLengthMenu": "[% tr.trquote("Display _MENU_ records per page") %]",
+                        "sZeroRecords": "[% tr.trquote("No matches found") %]",
+                        "sInfo": "[% tr.trquote("Showing _START_ to _END_ of _TOTAL_ records") %]",
+                        "sInfoEmpty": "[% tr.trquote("Showing 0 to 0 of 0 records") %]",
+                        "sInfoFiltered": "[% tr.trquote("(filtered from _MAX_ total records)") %]",
+                        "sFirst": "[% tr.trquote("First") %]",
+                        "sLast": "[% tr.trquote("Last") %]",
+                        "sNext": "[% tr.trquote("Next") %]",
+                        "sPrevious": "[% tr.trquote("Previous") %]",
+                        "sSearch": "[% tr.trquote("Filter results") %]"
+                    },
+                    "aaSorting": [],
+                    "bJQueryUI": false,
+                    "bAutoWidth": false
+                });
+           
+    }
+
+/*
+    function doCancel() {
+        alert("Cancel!");
+        return false;
+    }
+    
+    function doSelect() {
+        my selVal = $('input:radio[name=abookaddress]:checked').val();
+        if(typeof selVal == 'undefined' || selVal == '') {
+            alert("Please select a value!");
+            return false;
+        }
+        $('#destination_address').val(selVal);
+        return false;
+    }
+*/
+
+
+</script>

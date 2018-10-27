@@ -1,0 +1,43 @@
+<p align="center">
+    <form name="selectcomputer_[% computer.computer_name %]" method="post" action="[% webpath %]"  id="MainFilterForm">
+        <table class="data" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("Name") %]</th>
+                    <th>[% tr.trquote("Sync Time") %]</th>
+                    <th>[% tr.trquote("Max. Age") %]</th>
+                    <th>[% tr.trquote("Server") %]</th>
+                    <th>[% tr.trquote("Last State") %]</th>
+                    <th>[% tr.trquote("Last Sync") %]</th>
+                    <th>[% tr.trquote("Error") %]</th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                [% FOREACH dir IN dirs %]
+                    <tr>
+                        <td><input type="radio" name="old_sync_name" value="[% tr.quote(dir.sync_name) %]"</td>
+                        <td>[% tr.quote(dir.sync_name) %]</td>
+                        <td>[% tr.quote(dir.sync_time) %]</td>
+                        <td>[% tr.quote(dir.max_age_days) %]</td>
+                        <td>[% tr.quote(dir.sync_server_longname) %]</td>
+                        <td><img src="/pics/led_[% dir.last_state %].png" alt="[% dir.last_state %]"></td>
+                        <td>
+                        [% IF dir.last_state != 'UNKNOWN' %]
+                            [% tr.quote(dir.last_sync_trunc) %]
+                        [% ELSE %]
+                            ?
+                        [% END %]
+                        </td>
+                        <td>[% tr.trquote(dir.errortext) %]</td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table><br/>
+        <div align="center">
+            <input type="hidden" name="mode" value="select">
+            <input type="submit" value="[% tr.trquote("Select") %]">
+        </div>
+    </form>
+</p>

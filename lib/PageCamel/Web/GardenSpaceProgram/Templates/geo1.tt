@@ -1,0 +1,50 @@
+<h1>GEO-1 live view</h1>
+<p>
+    This is the live data from GEO-1. Depending on circumstances, this might not always update.<br/>
+    You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
+</p>
+
+<table border="1">
+    <tr>
+        <td>Last frame</td>
+        <td><span id="liveview_timestamp"></span></td>
+    </tr>
+    <tr>
+        <td>Uptime (milliseconds)</td>
+        <td><span id="liveview_ticks"></span></td>
+    </tr>
+    <tr>
+        <td>Free memory (bytes)</td>
+        <td><span id="liveview_memfree"></span></td>
+    </tr>
+    <tr>
+        <td>Thermistor (raw)</td>
+        <td><span id="liveview_thermistor_raw"></span></td>
+    </tr>
+    <tr>
+        <td>Voltage (raw)</td>
+        <td><span id="liveview_voltage_raw"></span></td>
+    </tr>
+    <tr>
+        <td>Voltage (calculated)</td>
+        <td><span id="liveview_voltage_calculated"></span> Volt</td>
+    </tr>
+    <tr>
+        <td>Packets in</td>
+        <td><span id="liveview_packets_in"></span></td>
+    </tr>
+    <tr>
+        <td>Packets out</td>
+        <td><span id="liveview_packets_out"></span></td>
+    </tr>
+</table>
+
+<script>    
+    function handleMessage(msg) {                
+        if(msg.type === "probedata") {
+            $("#liveview_" + msg.sensor).text(msg.measurement);
+            return;
+        }
+        
+    }
+</script>

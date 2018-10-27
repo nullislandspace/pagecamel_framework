@@ -1,0 +1,118 @@
+<p align="center">
+    <table class="data" id="MainDataTable">
+        <tr class="tabheader">
+                <th>ID</th>
+                <th>[% tr.trquote("Planned Starttime") %]</th>
+                <th>[% tr.trquote("Command") %]</th>
+                <th>[% tr.trquote("Arguments") %]</th>
+                <th>[% tr.trquote("Queue Time") %]</th>
+                <th>[% tr.trquote("Worker") %]</th>
+                <th></th>
+        </tr>
+        [% FOREACH command IN commands %]
+            <form name="command_[% command.id %]" method="post" action="[% webpath %]">
+                <tr>
+                    <td>[% tr.quote(command.id) %]</td>
+                    <td>[% tr.fixdate(command.starttime) %]</td>
+                    [% IF command.class  %]
+                        <td class="[% tr.quote(command.class) %]">
+                    [% ELSE %]
+                        <td>
+                    [% END %]
+                        [% tr.trquote(command.name) %]</td>
+                    <td>[% tr.quote(command.args) %]</td>
+                    <td>[% tr.fixdate(command.time) %]</td>
+                    <td>[% tr.quote(command.worker) %]</td>
+                    <td valign="center">
+                        <input type="hidden" name="command" value="[% tr.quote(command.id) %]">
+                        <input type="hidden" name="submitform" value="1">
+                        <input type="hidden" name="mode" value="deletecommand">
+                        <input type="submit" value="[% tr.trquote("Delete") %]">
+                    </td>
+                </tr>
+            </form>
+        [% END %]
+    </table>
+</p>
+
+[% IF statustext %]
+    <p align="center">
+        <table class="data">
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
+            <tr class="tabheader">
+                <th colspan="2">
+                    <div class="infotext">[% tr.trquote("Status") %]</div>
+                </th>
+            </tr>
+            <tr class="odd">
+                <th colspan="2">
+                    <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+                </th>
+            </tr>
+        </table>
+    </p>
+[% END %]
+
+<p align="center">
+    <table class="data" id="HelperTable1">
+        <tr class="tabmasterheader">
+            <th colspan="4">
+                [% tr.trquote("Admin commands") %]
+            </th>
+        </tr>
+        <tr class="tabheader">
+            <th>[% tr.trquote("Command") %]</th>
+            <th>[% tr.trquote("Argument(s)") %]</th>
+            <th>[% tr.trquote("Starttime") %]</th>
+            <th></th>
+        </tr>
+    [% FOREACH command IN admincommands %]
+    <form name="admincommand_[% command.name %]" method="post" action="[% webpath %]">
+        <tr>
+            <td>
+                [% tr.trquote(command.name) %]
+                <input type="hidden" name="command" value="[% tr.quote(command.name) %]"
+            </td>
+            [% IF command.type == 'simple' %]
+                <td></td>
+            [% ELSIF command.type == 'table' %]
+                <td>
+                    <select name="tablename">
+                        [% FOREACH Table IN Tables %]
+                            <option value="[% tr.quote(Table) %]">[% tr.quote(Table) %]</option>
+                        [% END %]
+                    </select>
+                </td>
+            [% ELSIF command.type == 'computer' %]
+                <td>
+                    <select name="computername">
+                        [% FOREACH Computer IN Computers %]
+                            <option value="[% tr.quote(Computer.computer_name) %]">[% tr.quote(Computer.computer_name) %]</option>
+                        [% END %]
+                    </select>
+                </td>
+
+            [% ELSIF command.type == 'dirsync' %]
+                <td>
+                    <select name="sync_name">
+                        [% FOREACH Sync IN Syncs %]
+                            <option value="[% tr.quote(Sync.sync_name) %]">[% tr.quote(Sync.sync_name) %] ([% tr.quote(Sync.sync_server_longname) %])</option>
+                        [% END %]
+                    </select>
+                </td>
+            [% ELSE %]
+                <td>[% tr.tr("Error: command not implemented") %]: [% tr.quote(command.type) %]</td>
+            [% END %]
+            <td><input type="text" displaytype="dateandtime" name="starttime" maxLength="40" size="30" value=""></td>
+            <td>
+                <input type="hidden" name="submitform" value="1">
+                <input type="hidden" name="mode" value="schedulecommand">
+                <input type="submit" value="Schedule"
+            </td>
+        </tr>
+    </form>
+    [% END %]
+</p>
+

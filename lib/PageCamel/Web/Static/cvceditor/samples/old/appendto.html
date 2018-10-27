@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2003-2018, CKSource - Frederico Knabben. All rights reserved.
+For licensing, see LICENSE.md or https://cvceditor.com/legal/cvceditor-oss-license
+-->
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Append To Page Element Using JavaScript Code &mdash; CVCEditor Sample</title>
+    <script src="../../cvceditor.js"></script>
+    <link rel="stylesheet" href="sample.css">
+</head>
+<body>
+    <h1 class="samples">
+        <a href="index.html">CVCEditor Samples</a> &raquo; Append To Page Element Using JavaScript Code
+    </h1>
+    <div class="warning deprecated">
+        This sample is not maintained anymore. Check out the <a href="https://sdk.cvceditor.com/">brand new samples in CVCEditor SDK</a>.
+    </div>
+    <div id="section1">
+        <div class="description">
+            <p>
+                The <code><a class="samples" href="https://docs.cvceditor.com/cvceditor4/docs/#!/api/CVCEDITOR-method-appendTo">CVCEDITOR.appendTo()</a></code> method serves to to place editors inside existing DOM elements. Unlike <code><a class="samples" href="https://docs.cvceditor.com/cvceditor4/docs/#!/api/CVCEDITOR-method-replace">CVCEDITOR.replace()</a></code>,
+                a target container to be replaced is no longer necessary. A new editor
+                instance is inserted directly wherever it is desired.
+            </p>
+<pre class="samples">CVCEDITOR.appendTo( '<em>container_id</em>',
+    { /* Configuration options to be used. */ }
+    'Editor content to be used.'
+);</pre>
+        </div>
+        <script>
+
+            // This call can be placed at any point after the
+            // DOM element to append CVCEditor to or inside the <head><script>
+            // in a window.onload event handler.
+
+            // Append a CVCEditor instance using the default configuration and the
+            // provided content to the <div> element of ID "section1".
+            CVCEDITOR.appendTo( 'section1',
+                null,
+                '<p>This is some <strong>sample text</strong>. You are using <a href="https://cvceditor.com/">CVCEditor</a>.</p>'
+            );
+
+        </script>
+    </div>
+    <br>
+    <div id="footer">
+        <hr>
+        <p>
+            CVCEditor - The text editor for the Internet - <a class="samples" href="https://cvceditor.com/">https://cvceditor.com</a>
+        </p>
+        <p id="copy">
+            Copyright &copy; 2003-2018, <a class="samples" href="https://cksource.com/">CKSource</a> - Frederico
+            Knabben. All rights reserved.
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<p align="center">
+    <form name="setlanguage" method="post" action="[% PostLink %]">
+        <table class="data" align="center" id="MainDataTable">
+            <tr class="tabheader">
+                <th>[% tr.trquote("WebApp") %]</th>
+                <th>[% tr.trquote("Active") %]</th>
+                <th>[% tr.trquote("Description") %]</th>
+            </tr>
+            [% IF EnableSanta == 1 %]
+                <tr>
+                    <td>[% tr.trquote("Santa") %]</td>
+                    <td>
+                        <input type="checkbox" name="WebAppShowSanta" value="1"
+                        [% IF WebAppShowSanta == "1" %]
+                            checked="checked"
+                        [% END %]
+                        >
+                    </td>
+                    <td width="300px">[% tr.trquote("Add Santa Claus") %]</td>
+                </tr>
+            [% END %]
+            [% IF EnableEyes == 1 %]
+                <tr>
+                    <td>[% tr.trquote("Eyes") %]</td>
+                    <td>
+                        <input type="checkbox" name="WebAppShowEyes" value="1"
+                        [% IF WebAppShowEyes == "1" %]
+                            checked="checked"
+                        [% END %]
+                        >
+                    </td>
+                    <td width="300px">[% tr.trquote("Add watching Eyes") %]</td>
+                </tr>
+            [% END %]
+            [% IF EnableGST == 1 %]
+                <tr>
+                    <td>[% tr.trquote("GST") %]</td>
+                    <td>
+                        <input type="checkbox" name="WebAppUseGST" value="1"
+                        [% IF WebAppUseGST == "1" %]
+                            checked="checked"
+                        [% END %]
+                        >
+                    </td>
+                    <td width="300px">[% tr.trquote("CVC Green Screen Technologies") %]</td>
+                </tr>
+            [% END %]
+            [% IF EnableMouseTrail == 1 %]
+                <tr>
+                    <td>[% tr.trquote("Mouse Trail") %]</td>
+                    <td>
+                        <input type="checkbox" name="WebAppUseMouseTrail" value="1"
+                        [% IF WebAppUseMouseTrail == "1" %]
+                            checked="checked"
+                        [% END %]
+                        >
+                    </td>
+                    <td width="300px">[% tr.trquote("Make the mouse pointer easier to find") %]</td>
+                </tr>
+            [% END %]
+            <tr>
+                <td colspan="4" align="center">
+                    <input type="hidden" name="mode" value="update">
+                    <input type="submit" value="[% tr.trquote("Select") %]">
+                </td>
+            </tr>                
+        </table>
+    </form>
+</p>

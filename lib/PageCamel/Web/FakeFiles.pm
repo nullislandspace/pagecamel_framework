@@ -1,0 +1,223 @@
+package PageCamel::Web::FakeFiles;
+#---AUTOPRAGMASTART---
+use 5.020;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 1;
+use Fatal qw( close );
+use Array::Contains;
+#---AUTOPRAGMAEND---
+
+use base qw(PageCamel::Web::BaseModule);
+use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
+use Data::Dumper;
+
+sub new {
+    my ($proto, %config) = @_;
+    my $class = ref($proto) || $proto;
+
+    my $self = $class->SUPER::new(%config); # Call parent NEW
+    bless $self, $class; # Re-bless with our class
+
+    return $self;
+}
+
+sub reload {
+    my ($self) = @_;
+
+    # Can load files only once due to register(),
+    # and we ain't doing it here
+
+    return;
+}
+
+sub load_files {
+    my ($self) = shift;
+
+    # Empty cache
+    my %files;
+    $self->{cache} = \%files;
+
+    my $fcount = 0;
+
+    my @DIRS = reverse @INC;
+
+    my %tmp;
+    my %fastmap;
+    foreach my $item (@{$self->{mapping}->{item}}) {
+        $tmp{$item->{src}} = 1;
+        $fastmap{$item->{content}} = $item->{src};
+    }
+
+    my @sourcefiles = sort keys %tmp;
+    $self->{sourcefiles} = \@sourcefiles;
+    $self->{fastmap} = \%fastmap;
+
+
+    foreach my $bdir (@DIRS) {
+        next if($bdir eq ".");
+        my $fulldir = $bdir . '/' . $self->{path};
+        print "   ** checking $fulldir \n";
+        if(-d $fulldir) {
+            #print "   **** loading extra static files\n";
+            $fcount += $self->load_dir($fulldir);
+        }
+    }
+
+    if(-d $self->{path}) {
+        $fcount += $self->load_dir($self->{path});
+    } else {
+        #print "   **** WARNING: configured dir " . $self->{path} . " does not exist!\n";
+    }
+    $fcount += 0; # Dummy for debug breakpoint
+    return;
+
+}
+
+sub load_dir {
+    my ($self, $basedir) = @_;
+
+    my $fcount = 0;
+
+    opendir(my $dfh, $basedir) or croak($ERRNO);
+    while((my $fname = readdir($dfh))) {
+        next if($fname =~ /^\./);
+        my $nfname = $basedir . "/" . $fname;
+        if(-d $nfname) {
+            # Got ourself a directory, go recursive
+            $fcount += $self->load_dir($nfname);
+            next;
+        }
+
+        next if(!contains($fname, $self->{sourcefiles}));
+
+        my $data = slurpBinFile($nfname);
+        my %entry = (
+                    fullname=> $nfname,
+                    type    => 'text/html', # Whatever, fake stuff anyway
+                    data    => $data,
+                    );
+        $self->{cache}->{$fname} = \%entry; # Store under full name
+        $fcount++;
+    }
+    closedir($dfh);
+    return $fcount;
+}
+
+sub register {
+    my $self = shift;
+
+    $self->load_files;
+
+    return;
+}
+
+
+sub crossregister {
+    my $self = shift;
+
+    # Register every file on its own
+    foreach my $url (keys %{$self->{fastmap}}) {
+        $self->register_webpath($url, "get", 'GET', 'POST'); # yeah, let the hackers think they can POST
+
+        $self->register_public_url($url); # Of course they need to access the files
+    }
+    return;
+}
+
+sub get {
+    my ($self, $ua) = @_;
+
+    if($ua->{method} eq 'POST') {
+        # "ooops, we are so so sorryyyy that we can't parse whatever junk you just POSTed"
+        return(status => 400,
+                type=>'text/plain',
+                data=>'Invalid or incomplete form data',
+            );
+    }
+
+    my $urlname = $ua->{url};
+
+    my $name = $self->{fastmap}->{$urlname};
+
+    return (status  =>  404) unless defined($self->{cache}->{$name});
+    return (status          =>  200,
+            type            => $self->{cache}->{$name}->{type},
+            data            => $self->{cache}->{$name}->{data},
+            expires         => $self->{expires},
+            cache_control   =>  $self->{cache_control},
+            );
+}
+
+1;
+__END__
+
+=head1 NAME
+
+PageCamel::Web::FakeFiles -
+
+=head1 SYNOPSIS
+
+  use PageCamel::Web::FakeFiles;
+
+
+
+=head1 DESCRIPTION
+
+
+
+=head2 new
+
+
+
+=head2 reload
+
+
+
+=head2 load_files
+
+
+
+=head2 load_dir
+
+
+
+=head2 register
+
+
+
+=head2 crossregister
+
+
+
+=head2 get
+
+
+
+=head1 IMPORTANT NOTE
+
+This module is part of the PageCamel framework. Currently, only limited support
+and documentation exists outside my DarkPAN repositories. This source is
+currently only provided for your reference and usage in other projects (just
+copy&paste what you need, see license terms below).
+
+To see PageCamel in action and for news about the project,
+visit my blog at L<https://cavac.at>.
+
+=head1 AUTHOR
+
+Rene Schickbauer, E<lt>pagecamel@cavac.atE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008-2016 by Rene Schickbauer
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.10.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut

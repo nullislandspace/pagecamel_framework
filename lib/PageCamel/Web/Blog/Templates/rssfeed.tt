@@ -1,0 +1,30 @@
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>[% PageTitle %]</title>
+        <link>[% RSSConfig.host %][% WebPath %]</link>
+        <description>[% RSSConfig.description %]</description>
+        <copyright>[% RSSConfig.copyright %]</copyright>
+        <ttl>[% RSSConfig.ttl %]</ttl>
+        <atom:link href="[% RSSConfig.host %][% RSSConfig.url %]" rel="self" type="application/rss+xml"/>
+        <image>
+            <url>[% RSSConfig.host %][% RSSConfig.image.url %]</url>
+            <title>[% PageTitle %]</title>
+            <link>[% RSSConfig.host %][% WebPath %]</link>
+            <description>[% RSSConfig.description %]</description>
+            <width>[% RSSConfig.image.width %]</width>
+            <height>[% RSSConfig.image.height %]</height>
+        </image>
+        <lastBuildDate>[% LastChange %]</lastBuildDate>
+        [% FOREACH Article IN Articles %]
+            <item>
+                <title>[% Article.title %][% IF gsp__mission_status != '' %]: [% Article.gsp_mission_status %][% END %]</title>
+                <link>[% RSSConfig.host %][% WebPath %]/[% Article.article_id %]</link>
+                <guid isPermaLink="true">[% RSSConfig.host %][% WebPath %]/[% Article.article_id %]</guid>
+                <pubDate>[% Article.pubdate %]</pubDate>
+                <description>[% Article.description %]</description>
+                <dc:creator>[% Article.author %]</dc:creator>
+                <category>[% Article.category %]</category>
+            </item>
+        [% END %]
+    </channel>
+</rss>

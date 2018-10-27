@@ -1,0 +1,449 @@
+package PageCamel::Web::BaseWebSocket;
+#---AUTOPRAGMASTART---
+use 5.020;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 1;
+use Fatal qw( close );
+use Array::Contains;
+#---AUTOPRAGMAEND---
+
+use base qw(PageCamel::Web::BaseModule);
+use PageCamel::Helpers::DateStrings;
+use MIME::Base64;
+use PageCamel::Helpers::WSockFrame;
+use JSON::XS;
+use Time::HiRes qw[sleep alarm time];
+use Data::Dumper;
+use PageCamel::Helpers::WebPrint;
+use Digest::SHA1  qw(sha1 sha1_hex);
+
+sub new {
+    my ($proto, %config) = @_;
+    my $class = ref($proto) || $proto;
+
+    my $self = $class->SUPER::new(%config); # Call parent NEW
+    bless $self, $class; # Re-bless with our class
+    
+    if(defined($self->{wspath})) {
+        croak("Option 'wspath' set, but not allowed with new BaseWebSocket class");
+    }
+
+    return $self;
+}
+
+sub register {
+    my $self = shift;
+
+    $self->register_webpath($self->{webpath}, 'get', "GET", "CONNECT");
+    $self->register_protocolupgrade($self->{webpath}, 'sockethandler', "websocket");
+    
+    $self->wsregister();
+    
+    return;
+}
+
+sub crossregister {
+    my ($self) = @_;
+    
+    $self->wscrossregister();
+    return;
+}
+
+sub reload {
+    my ($self) = @_;
+
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+
+    $sysh->createNumber(modulename => $self->{modname},
+                    settingname => 'client_connect_timeout',
+                    settingvalue => 10,
+                    description => 'Client connect timeout (seconds)',
+                    value_min => 5.0,
+                    value_max => 120.0,
+                    processinghints => [
+                        'decimal=0',
+                    ],
+                    )
+        or croak("Failed to create setting client_connect_timeout!");
+
+    $sysh->createNumber(modulename => $self->{modname},
+                    settingname => 'client_disconnect_timeout',
+                    settingvalue => 25,
+                    description => 'Client disconnect timeout (seconds)',
+                    value_min => 5.0,
+                    value_max => 120.0,
+                    processinghints => [
+                        'decimal=0',
+                    ],
+                    )
+        or croak("Failed to create setting client_disconnect_timeout!");
+
+   $sysh->createText(modulename => $self->{modname},
+                    settingname => 'websocket_encryption',
+                    settingvalue => 'auto',
+                    description => 'Allow https/ssl encryption of sockets',
+                    processinghints => [
+                        'type=tristate',
+                        'on=Always',
+                        'off=Disable',
+                        'auto=Automatic'
+                                        ])
+        or croak("Failed to create setting websocket_encryption!");
+
+    $sysh->createNumber(modulename => $self->{modname},
+                    settingname => 'chunk_size',
+                    settingvalue => 1 * 1024 * 1024, # Default 1 MB per chunk
+                    description => 'Chunk size (bytes)',
+                    value_min => 100.0,
+                    value_max => 5 * 1024 * 1024, # max 5 MB per chunk
+                    processinghints => [
+                        'decimal=0',
+                    ],
+                    )
+        or croak("Failed to create setting chunk_size!");
+
+    $self->wsreload();
+        
+    return;
+}
+
+# define empty Websocket base callbacks (in case the specific implementation doesn't overload them)
+sub wsregister {
+    my ($self) = @_;
+    
+    return;
+}
+
+sub wscrossregister {
+    my ($self) = @_;
+    
+    return;
+}
+
+sub wsreload {
+    my ($self) = @_;
+    
+    return;
+}
+
+sub wsmaskget {
+    my ($self, $ua, $settings, $webdata) = @_;
+    
+    return;
+}
+
+sub wsstart {
+    my ($self, $ua, $webdata) = @_;
+    
+    return;
+}
+
+sub wshandlerstart {
+    my ($self, $ua, $settings) = @_;
+    
+    return;
+}
+
+sub wsdisconnect {
+    my ($self, $ua, $settings) = @_;
+    
+    return;
+}
+
+sub wscleanup {
+    my ($self, $ua, $settings) = @_;
+    
+    return;
+}
+
+
+sub wshandlemessage {
+    my ($self, $message) = @_;
+    
+    return 1;
+}
+
+sub wscyclic {
+    my ($self) = @_;
+    
+    return 1;
+}
+
+sub wsprint {
+    my ($self, $message) = @_;
+    
+    my $frame = $self->{sessiondata}->{frame};
+    my $ua = $self->{sessiondata}->{ua};
+    my $settings = $self->{sessiondata}->{settings};
+    
+    my $frametype = 'text';
+
+    if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json($message), type => 'text')->to_bytes)) {
+        #print STDERR "Write to socket failed, closing connection!\n";
+        return 0;
+    }
+    
+    return 1;
+}
+
+sub get {
+    my ($self, $ua) = @_;
+
+    my $th = $self->{server}->{modules}->{templates};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+    
+    my $upgrade = $ua->{headers}->{"Upgrade"};
+    if(defined($upgrade)) {
+        # Handle Websocket connection
+        return $self->socketstart($ua);
+    }
+
+    my %settings;
+    my @setnames = qw[websocket_encryption client_connect_timeout client_disconnect_timeout chunk_size];
+    push @setnames, @{$self->{extrasettings}};
+    foreach my $setname (@setnames) {
+        my ($ok, $setref) = $sysh->get($self->{modname}, $setname);
+        if(!$ok || !defined($setref->{settingvalue})) {
+            croak("Failed to read setting $setname");
+        }
+        $settings{$setname} = $setref->{settingvalue};
+    }
+
+    my $wsurl;
+    if($settings{websocket_encryption} eq 'on') {
+        $wsurl = 'wss://';
+    } elsif($settings{websocket_encryption} eq 'off') {
+        $wsurl = 'ws://';
+    } else {
+        # Decide on server ssl settings
+        if($self->{usessl}) {
+            $wsurl = 'wss://';
+        } else {
+            $wsurl = 'ws://';
+        }
+    }
+    $wsurl .= $ua->{headers}->{Host} . $self->{webpath};
+    $settings{ping_timeout} = int($settings{client_disconnect_timeout} * 1000 / 2);
+    
+    my %webdata =
+    (
+        $self->{server}->get_defaultwebdata(),
+        PageTitle       =>  $self->{pagetitle},
+        webpath         =>  $self->{webpath},
+        Settings        =>  \%settings,
+        WSURL           =>  $wsurl,
+    );
+    
+    $self->wsmaskget($ua, \%settings, \%webdata);
+    
+    my $subtemplate = $th->render_partials($self->{template}, %webdata);
+    return (status  =>  404) unless $subtemplate;
+    $webdata{WEBSOCKETMASK} = $subtemplate;
+
+    my $template = $th->get("basewebsocket", 1, %webdata);
+    return (status  =>  404) unless $template;
+    return (status  =>  200,
+            type    => "text/html",
+            data    => $template);
+}
+
+    
+sub socketstart {
+    my ($self, $ua) = @_;
+
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $upgrade = $ua->{headers}->{"Upgrade"};
+    my $seckey = $ua->{headers}->{"Sec-WebSocket-Key"};
+    my $protocol = $ua->{headers}->{"Sec-WebSocket-Protocol"};
+    my $version = $ua->{headers}->{"Sec-WebSocket-Version"};
+
+    if(!defined($upgrade) || !defined($seckey) || !defined($version)) {
+        return (status => 400); # BAAAD Request! Sit! Stay!
+    }
+
+    my %settings;
+    my @setnames = qw[websocket_encryption client_connect_timeout client_disconnect_timeout chunk_size];
+    push @setnames, @{$self->{extrasettings}};
+    foreach my $setname (@setnames) {
+        my ($ok, $setref) = $sysh->get($self->{modname}, $setname);
+        if(!$ok || !defined($setref->{settingvalue})) {
+            croak("Failed to read setting $setname");
+        }
+        $settings{$setname} = $setref->{settingvalue};
+    }
+
+    my %webdata = (
+        $self->{server}->get_defaultwebdata(),
+    );
+    my $session = {};
+    $session->{user} = $webdata{userData}->{user};
+    $self->{sessiondata} = $session;
+
+    $seckey .= "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"; # RFC6455 GUID for Websockets
+
+    $seckey = encode_base64(sha1($seckey), '');
+
+    my $proto = 'base64';
+    if($settings{binaryMode}) {
+        $proto = 'binary';
+    }
+    
+    $self->wsstart($ua, \%webdata);
+
+    my %result = (status      =>  101,
+                  Upgrade     => "websocket",
+                  Connection  => "Upgrade",
+                  "Sec-WebSocket-Accept"  => $seckey,
+                  "Sec-WebSocket-Protocol" => $proto,
+                 );
+
+    return %result;
+}
+
+sub sockethandler {
+    my ($self, $ua) = @_;
+
+    my $session = $self->{sessiondata};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+    my $th = $self->{server}->{modules}->{templates};
+
+    my %settings;
+    my @setnames = qw[websocket_encryption client_connect_timeout client_disconnect_timeout chunk_size];
+    push @setnames, @{$self->{extrasettings}};
+    foreach my $setname (@setnames) {
+        my ($ok, $setref) = $sysh->get($self->{modname}, $setname);
+        if(!$ok || !defined($setref->{settingvalue})) {
+            croak("Failed to read setting $setname");
+        }
+        $settings{$setname} = $setref->{settingvalue};
+    }
+    
+    $self->wshandlerstart($ua, \%settings);
+
+    my $timeout = time + $settings{client_disconnect_timeout};
+
+    my $frame = PageCamel::Helpers::WSockFrame->new(max_payload_size => 500 * 1024 * 1024);
+    $self->{sessiondata}->{frame} = $frame;
+    $self->{sessiondata}->{ua} = $ua;
+    $self->{sessiondata}->{settings} = \%settings;
+
+    {
+        local $INPUT_RECORD_SEPARATOR = undef;
+
+        my $socketclosed = 0;
+
+        $ua->{realsocket}->blocking(0);
+        binmode($ua->{realsocket}, ':bytes');
+
+        my $starttime = time + 10;
+
+        while(!$socketclosed) {
+            my $workCount = 0;
+
+            # Read data from websocket
+            my $buf;
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                local $SIG{ALRM} = sub{croak "alarm"};
+                alarm 0.5;
+                my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
+                if(!$ua->{realsocket}) {
+                #if(0 && defined($status) && $status == 0) {
+                    if($self->{isDebugging}) {
+                        print STDERR "Websocket closed\n";
+                    }
+                    $socketclosed = 1;
+                    last;
+                }
+                alarm 0;
+            };
+            if(defined($buf) && length($buf)) {
+                $frame->append($buf);
+                $workCount++;
+            }
+
+            while (my $message = $frame->next) {
+                $workCount++;
+
+                my $realmsg;
+                my $parseok = 0;
+                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                    $realmsg = decode_json($message);
+                    $parseok = 1;
+                };
+                if(!$parseok || !defined($realmsg) || !defined($realmsg->{type})) {
+                    # Broken message
+                    next;
+                }
+
+                if($frame->opcode == 8) {
+                    #print STDERR "Connection closed by Browser\n";
+                    $socketclosed = 1;
+                    last;
+                }
+
+                #print STDERR "GOT TYPE ", $realmsg->{type}, "\n";
+                if($realmsg->{type} eq 'PING') {
+                    $timeout = time + $settings{client_disconnect_timeout};
+                    my %msg = (
+                        type => 'PING',
+                    );
+                    if(!$self->wsprint(\%msg)) {
+                        #print STDERR "Write to socket failed, closing connection!\n";
+                        $socketclosed = 1;
+                        last;
+                    }
+                    next;
+
+                } else {
+                    if(!$self->wshandlemessage($realmsg)) {
+                        $socketclosed = 1;
+                        last;
+                    }
+                }
+            }
+
+            # This is OUTSIDE the $frame->next loop, because a close event never returns a full frame
+            # from WSockFrame
+            if($frame->is_close) {
+                #print STDERR "CLOSE FRAME RECIEVED!\n";
+                $socketclosed = 1;
+                if(!webPrint($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                    #print STDERR "Write to socket failed, failed to properly close connection!\n";
+                }
+            }
+            
+            if(!$self->wscyclic($ua)) {
+                $socketclosed = 1;
+                last;
+            }
+            
+            if(!$workCount) {
+                sleep(0.01);
+            }
+
+            if($timeout < time) {
+                #print STDERR "CLIENT TIMEOUT\n";
+                $socketclosed = 1;
+            }
+
+        }
+    }
+
+    $self->wsdisconnect($ua, \%settings);
+    $self->wscleanup($ua, \%settings);
+
+    delete $self->{sessiondata};
+
+    return 1;
+}
+
+
+1;
+__END__

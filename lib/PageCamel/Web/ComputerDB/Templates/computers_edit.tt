@@ -1,0 +1,886 @@
+[% dialog.modechangeform(name => "confirmDeleteComputer",
+                        title => "Delete computer",
+                        text => "Do you really want to delete this computer?",
+                        icon => "help",
+                        confirm => "Delete",
+                        cancel => "Cancel",
+                        mode => "delete") %]
+[% dialog.notification(name => "noCoordinatesError",
+                        title => "No coordinates",
+                        text => "This computer has no coordinates on the map!",
+                        picture => "/pics/computer_map_preview.png"
+                        icon => "alert",
+                        confirm => "OK") %]
+
+[% IF statustext %]
+<p align="center">
+    <div class="[% statuscolor %]">[% tr.quote(statustext) %]</div>
+</p>
+[% END %]
+
+<h1><div class="computer_name_display" width="250px" align="center" valign="center"></div></h1><br/>
+
+<form name="computeredit" method="post" action="[% webpath %]">
+
+    <div id="tabs">
+        <ul align="center">
+            <li><a href="#tabs-baseinfo">[% tr.trquote("Base information") %]</a></li>
+            <li><a href="#tabs-software">[% tr.trquote("Software") %]</a></li>
+            <li><a href="#tabs-realnetwork">[% tr.trquote("Network") %]</a></li>
+            <li><a href="#tabs-vboxnetwork">[% tr.trquote("VBox Network") %]</a></li>
+            <li><a href="#tabs-vnc">[% tr.trquote("VNC") %]</a></li>
+            <li><a href="#tabs-map">[% tr.trquote("Map") %]</a></li>
+            <li><a href="#tabs-developer">[% tr.trquote("Developer") %]</a></li>
+            <li><a href="#tabs-notes">[% tr.trquote("Notes") %]</a></li>
+            <li><a href="#tabs-debug">[% tr.trquote("Debug") %]</a></li>
+            <!--<li><div class="computer_name_display" width="250px" align="center" valign="center"></div></li>-->
+        </ul>
+        
+        <div id="tabs-baseinfo">
+            <p align="center">
+                <table class="data" id="MainDataTable">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Base information") %]</th>
+                        </tr> 
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <input type="hidden" name="old_computer_name" value="[% tr.quote(computer.computer_name) %]">
+                                <input type="text" name="computer_name" id="computer_name" size="30" maxLength="60" value="[% tr.quote(computer.computer_name) %]">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Device Type") %]</td>
+                            <td>
+                                <select name="device_type">
+                                    <option value=""></option>
+                                    [% FOREACH devicetype IN devicetypes %]
+                                    <option value="[% tr.quote(devicetype.device_type) %]"
+                                        [% IF devicetype.device_type == computer.device_type %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.quote(devicetype.device_type) %] : [% tr.quote(devicetype.description) %] 
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Cost Unit") %]</td>
+                            <td>
+                                <select name="costunit">
+                                    <option value=""></option>
+                                    [% FOREACH costunit IN costunits %]
+                                    <option value="[% tr.quote(costunit.costunit) %]"
+                                        [% IF costunit.costunit == computer.costunit %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.quote(costunit.costunit) %] : [% tr.quote(costunit.description) %] 
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Line") %]</td>
+                            <td>
+                                <select name="line_id">
+                                    <option value=""></option>
+                                    [% FOREACH Prodline IN AvailProdLines %]
+                                    <option value="[% tr.quote(Prodline.line_id) %]"
+                                        [% IF Prodline.line_id == computer.line_id %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.quote(Prodline.line_id) %] : [% tr.quote(Prodline.description) %]
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Location") %]</td>
+                            <td>
+                                <select name="computerlocation">
+                                    <option value=""></option>
+                                    [% FOREACH location IN locations %]
+                                    <option value="[% tr.quote(location.enumvalue) %]"
+                                        [% IF location.enumvalue == computer.computerlocation %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.quote(location.enumvalue) %] : [% tr.quote(location.description) %] 
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Description") %]</td>
+                            <td><input type="text" name="description" size="30" maxLength="60" value="[% tr.quote(computer.description) %]"></td>
+                        </tr>
+                        
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Operating System") %]</th>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Operating System") %]</td>
+                            <td>
+                                <select name="operating_system" onChange="changeosdefaults(this.value);">
+                                    <option value=""></option>
+                                    [% FOREACH operating_system IN operating_systems %]
+                                    <option value="[% tr.quote(operating_system.operating_system) %]"
+                                        [% IF operating_system.operating_system == computer.operating_system %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.quote(operating_system.operating_system) %]
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.tr("Servicepack") %]</td>
+                            <td><input type="text" name="servicepack" id="servicepack_c" size="30" maxLength="60" value="[% tr.quote(computer.servicepack) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("64 Bit") %]</td>
+                            <td>
+                                <input type="checkbox" name="is_64bit"
+                                [% IF computer.is_64bit == "1" %]
+                                    checked="checked"
+                                [% END %]
+                                >
+                            </td>
+                        </tr>
+
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("DynDNS Configuration") %]</th>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("User") %]</td>
+                            <td><input type="text" name="dyndns_user" size="30" maxLength="60" value="[% tr.quote(computer.dyndns_user) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Password") %]</td>
+                            <td><input type="text" name="dyndns_password" size="30" maxLength="60" value="[% tr.quote(computer.dyndns_password) %]"></td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </p>
+        </div>
+        
+        <div id="tabs-software">
+            <p align="center">
+                <table class="data" id="HelperTable1">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <div class="computer_name_display"></div>
+                            </td>
+                        </tr>
+                        
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Software") %]</th>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Database") %]</td>
+                            <td>
+                                <select name="database_name">
+                                    <option value=""></option>
+                                    [% FOREACH database IN databases %]
+                                    <option value="[% tr.quote(database.database_name) %]"
+                                        [% IF database.database_name == computer.database_name %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.quote(database.database_name) %] : [% tr.quote(database.description) %]
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </p>
+        </div>
+
+        
+        <div id="tabs-realnetwork">
+            <p align="center">
+                <table class="data" id="HelperTable2">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <div class="computer_name_display"></div>
+                            </td>
+                        </tr>
+                        
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Public LAN 1") %]</th>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Network type") %]</td>
+                            <td>
+                                <select name="net_public1_type">
+                                    [% FOREACH networktype IN networktypes %]
+                                    <option value="[% tr.quote(networktype) %]"
+                                        [% IF networktype == computer.net_public1_type %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.trquote(networktype) %]
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("IPv4 address") %]</td>
+                            <td><input type="text" name="net_public1_ipv4" size="30" maxLength="60" value="[% tr.quote(computer.net_public1_ipv4) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("IPv6 address") %]</td>
+                            <td><input type="text" name="net_public1_ipv6" size="40" maxLength="60" value="[% tr.quote(computer.net_public1_ipv6) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("MAC address") %]</td>
+                            <td><input type="text" name="net_public1_mac" id="prod_mac_input" size="30" maxLength="60" value="[% tr.quote(computer.net_public1_mac) %]"></td>
+                        </tr>
+
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Public LAN 2") %]</th>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Network type") %]</td>
+                            <td>
+                                <select name="net_public2_type">
+                                    [% FOREACH networktype IN networktypes %]
+                                    <option value="[% tr.quote(networktype) %]"
+                                        [% IF networktype == computer.net_public2_type %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.trquote(networktype) %]
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("IPv4 address") %]</td>
+                            <td><input type="text" name="net_public2_ipv4" size="30" maxLength="60" value="[% tr.quote(computer.net_public2_ipv4) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("IPv6 address") %]</td>
+                            <td><input type="text" name="net_public2_ipv6" size="40" maxLength="60" value="[% tr.quote(computer.net_public2_ipv6) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("MAC address") %]</td>
+                            <td><input type="text" name="net_public2_mac" id="prod_mac_input" size="30" maxLength="60" value="[% tr.quote(computer.net_public2_mac) %]"></td>
+                        </tr>
+
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Private LAN 1") %]</th>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Network type") %]</td>
+                            <td>
+                                <select name="net_private1_type">
+                                    [% FOREACH networktype IN networktypes %]
+                                    <option value="[% tr.quote(networktype) %]"
+                                        [% IF networktype == computer.net_private1_type %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.trquote(networktype) %]
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("IPv4 address") %]</td>
+                            <td><input type="text" name="net_private1_ipv4" size="30" maxLength="60" value="[% tr.quote(computer.net_private1_ipv4) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("IPv6 address") %]</td>
+                            <td><input type="text" name="net_private1_ipv6" size="40" maxLength="60" value="[% tr.quote(computer.net_private1_ipv6) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("MAC address") %]</td>
+                            <td><input type="text" name="net_private1_mac" id="prod_mac_input" size="30" maxLength="60" value="[% tr.quote(computer.net_private1_mac) %]"></td>
+                        </tr>
+
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Private LAN 2") %]</th>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Network type") %]</td>
+                            <td>
+                                <select name="net_private2_type">
+                                    [% FOREACH networktype IN networktypes %]
+                                    <option value="[% tr.quote(networktype) %]"
+                                        [% IF networktype == computer.net_private2_type %]
+                                            selected="selected"
+                                        [% END %]
+                                        >[% tr.trquote(networktype) %]
+                                    </option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("IPv4 address") %]</td>
+                            <td><input type="text" name="net_private2_ipv4" size="30" maxLength="60" value="[% tr.quote(computer.net_private2_ipv4) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("IPv6 address") %]</td>
+                            <td><input type="text" name="net_private2_ipv6" size="40" maxLength="60" value="[% tr.quote(computer.net_private2_ipv6) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("MAC address") %]</td>
+                            <td><input type="text" name="net_private2_mac" id="prod_mac_input" size="30" maxLength="60" value="[% tr.quote(computer.net_private2_mac) %]"></td>
+                        </tr>
+                       
+                    </tbody>
+                </table>
+            </p>
+        </div>
+
+        
+        <div id="tabs-vboxnetwork">
+            <p align="center">
+                <table class="data" id="HelperTable3">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <div class="computer_name_display"></div>
+                            </td>
+                        </tr>
+                        
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("VBOX 0") %]</th>
+                        </tr>                
+
+                        <tr>
+                            <td>[% tr.trquote("IPv4 address") %]</td>
+                            <td><input type="text" name="net_vbox0_ipv4" size="30" maxLength="60" value="[% tr.quote(computer.net_vbox0_ipv4) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("MAC address") %]</td>
+                            <td><input type="text" name="net_vbox0_mac" size="30" maxLength="60" value="[% tr.quote(computer.net_vbox0_mac) %]"></td>
+                        </tr>
+
+                         <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("VBOX 1") %]</th>
+                        </tr>                
+
+                        <tr>
+                            <td>[% tr.trquote("IPv4 address") %]</td>
+                            <td><input type="text" name="net_vbox1_ipv4" size="30" maxLength="60" value="[% tr.quote(computer.net_vbox1_ipv4) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("MAC address") %]</td>
+                            <td><input type="text" name="net_vbox1_mac" size="30" maxLength="60" value="[% tr.quote(computer.net_vbox1_mac) %]"></td>
+                        </tr>                       
+
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("VBOX 2") %]</th>
+                        </tr>                
+
+                        <tr>
+                            <td>[% tr.trquote("IPv4 address") %]</td>
+                            <td><input type="text" name="net_vbox2_ipv4" size="30" maxLength="60" value="[% tr.quote(computer.net_vbox2_ipv4) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("MAC address") %]</td>
+                            <td><input type="text" name="net_vbox2_mac" size="30" maxLength="60" value="[% tr.quote(computer.net_vbox2_mac) %]"></td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </p>
+        </div>
+                
+        <div id="tabs-vnc">
+            <p align="center">
+                [% IF admindirectvncpath != '' %]
+                    <a href="[% admindirectvncpath %]" target="_blank">[% tr.trquote("Open VNC viewer in new tab") %]</a>
+                    <br/>
+                [% END %]
+                <table class="data" id="HelperTable5">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <div class="computer_name_display"></div>
+                            </td>
+                        </tr>
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("VNC Remote Control") %] 3</th>
+                        </tr>  
+                        <tr>
+                            <td valign="top">[% tr.trquote("VNC") %]</td>
+                            <td>
+                                <input type="checkbox" name="has_vnc"
+                                [% IF computer.has_vnc == "1" %]
+                                    checked="checked"
+                                [% END %]
+                                >
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Password") %]</td>
+                            <td><input type="text" name="vnc_password" value="[% tr.quote(computer.vnc_password) %]"></td>
+                        </tr>
+                        [% IF computer.has_vnc == "1" %]
+                            <tr>
+                                <td>[% tr.trquote("Screen resolution") %]</td>
+                                <td>[% computer.vnc_width %]x[% computer.vnc_height %]</td>
+                            </tr>
+                        [% END %]
+                                
+                        [% FOREACH vnccompany IN vnccompanies %]
+                            <tr>
+                                <td>[% tr.quote(vnccompany.name) %]</td>
+                                <td>
+                                    <input type="checkbox" name="vnccompany" realvalue="[% tr.quote(vnccompany.name) %]"
+                                        [% IF vnccompany.is_active == "1" %]
+                                           checked="checked"
+                                        [% END %]
+                                    >
+                                </td>
+                            </tr>
+                        [% END %]
+                    </tbody>
+                </table>
+            </p>
+        </div>
+
+        <div id="tabs-map">
+            <p align="center">
+                <table class="data" id="HelperTable6">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <div class="computer_name_display"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Coordinates") %]</td>
+                            <td>
+                                <div id="openlayerscoords">[% tr.quote(computer.openlayers_pos_x) %] : [% tr.quote(computer.openlayers_pos_y) %]</div>
+                                <input type="hidden" name="openlayers_pos_x" id="openlayers_pos_x_c" value="[% tr.quote(computer.openlayers_pos_x) %]">
+                                <input type="hidden" name="openlayers_pos_y" id="openlayers_pos_y_c" value="[% tr.quote(computer.openlayers_pos_y) %]">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </p>
+
+            <p align="center">
+                <div id="xxystreetMap" class="pagecamelmap"></div>
+            </p>
+        </div>
+
+        <div id="tabs-developer">
+            <p align="center">
+                <table class="data" id="HelperTable7">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <div class="computer_name_display"></div>
+                            </td>
+                        </tr>
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Developer Internals") %]</th>
+                        </tr>  
+                        <tr>
+                            <td>[% tr.trquote("System Designation") %]</td>
+                            <td>
+                            [% IF HasDeveloperRights == 1 %]
+                                <input type="text" name="pagecamel_designation" value="[% tr.quote(computer.pagecamel_designation) %]">
+                            [% ELSE %]
+                                [% tr.quote(computer.pagecamel_designation) %]
+                            [% END %]
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("PageCamel Notes") %]</td>
+                            <td>
+                                [% IF HasDeveloperRights == 1 %]
+                                    <textarea name="pagecamel_notes" id="pagecamel_notes_id">[% computer.pagecamel_notes %]</textarea>
+                            [% ELSE %]
+                                [% computer.pagecamel_notes %]
+                            [% END %]
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </p>
+        </div>
+
+        <div id="tabs-notes">
+            <p align="center">
+                <table class="data" id="HelperTable8">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <div class="computer_name_display"></div>
+                            </td>
+                        </tr>
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Notes") %]</th>
+                        </tr>  
+                        <tr>
+                            <td>[% tr.trquote("Admin Notes") %]</td>
+                            <td>
+                                <textarea name="admin_notes" id="admin_notes_id">[% computer.admin_notes %]</textarea>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </p>
+        </div>
+
+        <div id="tabs-debug">
+            <p align="center">
+                <table class="data" id="HelperTable9">
+                    <thead>
+                        <tr class="tabheader">
+                            <th>[% tr.trquote("Key") %]</th>
+                            <th>[% tr.trquote("Value") %]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>[% tr.trquote("Hostname") %]</td>
+                            <td>
+                                <div class="computer_name_display"></div>
+                            </td>
+                        </tr>
+                        <tr class="tabheader">
+                            <th colspan="2">[% tr.trquote("Last Edit") %]</th>
+                        </tr>  
+                        <tr>
+                            <td>[% tr.trquote("User") %]</td>
+                            <td>[% tr.quote(computer.lastedit_user) %]</td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Timestamp") %]</td>
+                            <td>[% tr.fixdate(computer.lastedit_time) %]</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </p>
+        </div>
+    
+    
+    </div>
+
+
+    <p align="center">
+        <table class="data" id="HelperTable10">
+            <tfoot>
+                [% IF EditMode != "create" %]
+                    <!-- PTOUCH PRINTING -->
+                    <tr>
+                        <td colspan="2" align="center">
+                            <input type="checkbox" name="do_print">
+                            [% tr.trquote("Print") %]
+                            <select name="print_pagecount">
+                                [% FOREACH AvailPageCount IN AvailPageCounts %]
+                                    <option value="[% tr.quote(AvailPageCount) %]"
+                                    [% IF AvailPageCount == PTouchDefaultPageCount %]
+                                        selected="selected"
+                                    [% END %]
+                                    >[% tr.quote(AvailPageCount) %]</option>
+                                [% END %]
+                            </select>
+                            [% tr.trquote("copies on printer") %]
+                            <select name="print_printername">
+                                [% FOREACH AvailPrinter IN AvailPrinters %]
+                                    <option value="[% tr.quote(AvailPrinter.printer_name) %]"
+                                    [% IF AvailPrinter.printer_name == PTouchDefaultPrinter %]
+                                        selected="selected"
+                                    [% END %]
+                                    >[% tr.quote(AvailPrinter.printer_name) %]</option>
+                                [% END %]
+                            </select>
+                        </td>
+                    </tr>
+                [% END %]
+                <tr>
+                    <td colspan="2" align="center">
+                        <input type="hidden" name="mode" id="editmode" value="[% EditMode %]">
+                        [% IF EditMode == "create" %]
+                            <input type="submit" value="[% tr.trquote("Create") %]" onClick="return checkCoordinates();">
+                        [% ELSE %]
+                            <input type="submit" value="[% tr.trquote("Update") %]" onClick="return checkCoordinates();">
+                            <input type="submit" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteComputer('computeredit', 'editmode');">
+                        [% END %]
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </p>
+</form>
+
+
+<script language="javascript">    
+    function extraOnLoad() {
+        $('#computer_name').keyup(function() {
+            $('.computer_name_display').text($('#computer_name').val());
+        });
+        $('.computer_name_display').text($('#computer_name').val());
+        [% IF HasDeveloperRights == 1 %]
+            $('#pagecamel_notes_id').cvceditor({
+                    allowedContent: true,
+                    extraPlugins: 'autogrow,aspell,cavacnote,cavacimage,cavacfiles,html5video,panelbutton,colorbutton',
+                    autoGrow_minHeight: 500,
+                    autoGrow_maxHeight: 800,
+                    autoGrow_bottomSpace: 50,
+                    autoGrow_onStartup: true,
+                    aspell_scriptPath: '/blog/aspell',
+                    removePlugins: 'resize,scayt,pastefromword,devtools,image,youtube',
+                    removeButtons: 'Image'
+                    });
+        [% ELSE %]
+            hljs.initHighlightingOnLoad();
+        [% END %]
+        
+        $('#admin_notes_id').cvceditor({
+                allowedContent: true,
+                extraPlugins: 'autogrow,aspell,cavacnote,cavacimage,cavacfiles,html5video,panelbutton,colorbutton',
+                autoGrow_minHeight: 500,
+                autoGrow_maxHeight: 800,
+                autoGrow_bottomSpace: 50,
+                autoGrow_onStartup: true,
+                aspell_scriptPath: '/blog/aspell',
+                removePlugins: 'resize,scayt,pastefromword,devtools,image,youtube',
+                removeButtons: 'Image'
+                });
+        
+        mapExtraOnLoad();
+    }
+
+    function checkCoordinates() {
+        var xcoord = $('#openlayers_pos_x_c').val();
+        var ycoord = $('#openlayers_pos_x_c').val();
+        
+        if(xcoord == 0.0 && ycoord == 0.0) {
+            noCoordinatesError();
+            return false;
+        }
+        
+        return true;
+    }
+        
+    function changeosdefaults(osname) {
+        var servicepack_c = document.getElementById("servicepack_c");
+        
+        var default_sp = "";
+        
+        [% FOREACH operating_system IN operating_systems %]
+            if(osname == '[% operating_system.operating_system %]') {
+                default_sp = '[% tr.quote(operating_system.default_servicepack) %]';
+            }
+        [% END %]
+        
+        if(default_sp != '') {
+            servicepack_c.value = default_sp;
+        }
+
+        return false;
+    }   
+
+    // -- OpenLayers --
+    var map;
+    var mapBounds;// = new OpenLayers.Bounds( 0.0, -7000.0, 4764.0, 0.0);
+    var mapMinZoom = 0;
+    var mapMaxZoom = 7;
+    var markers;
+    var firstOSMDisplay = 1;
+    OpenLayers.ImgPath = "[% imagepath %]";
+    
+    // *********** CAN ONLY INITIALIZE OpenLayers WHEN VISIBLE. This is a
+    // major OpenLayers bug, but we can work around it. Of course, this might slow
+    // the user down, but there is nothing we can do about short of rewriting OpenLayers ******************
+    function mapExtraOnLoad(){
+        $("#tabs").bind("tabsactivate", function(event, ui) {
+            if(firstOSMDisplay == 1 && ui.newPanel.selector == '#tabs-map') {
+                setTimeout(initOSM, 1000);
+                firstOSMDisplay = 0;
+            }
+        });
+    }
+        
+
+    function initOSMVars() {
+        mapBounds = new OpenLayers.Bounds(0.0, -7000.0, 15000.0, 0.0);
+    
+        // avoid pink tiles
+        OpenLayers.IMAGE_RELOAD_ATTEMPTS = 3;
+        OpenLayers.Util.onImageLoadErrorColor = "transparent";
+
+
+        OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {                
+            defaultHandlerOptions: {
+                'single': true,
+                'double': false,
+                'pixelTolerance': 0,
+                'stopSingle': false,
+                'stopDouble': false
+            },
+
+            initialize: function(options) {
+                this.handlerOptions = OpenLayers.Util.extend(
+                    {}, this.defaultHandlerOptions
+                );
+                OpenLayers.Control.prototype.initialize.apply(
+                    this, arguments
+                ); 
+                this.handler = new OpenLayers.Handler.Click(
+                    this, {
+                        'click': this.trigger
+                    }, this.handlerOptions
+                );
+            }, 
+
+            trigger: function(e) {
+                var lonlat = map.getLonLatFromPixel(e.xy);
+                /*
+                var tmpStr = lonlat.toShortString();
+                var newLonLat = OpenLayers.LonLat.fromString(tmpStr);
+                markers.clearMarkers();
+                var marker = new OpenLayers.Marker(newLonLat);
+                */
+                markers.clearMarkers();
+                var marker = new OpenLayers.Marker(lonlat);
+                markers.addMarker(marker);
+                var dispcoords = lonlat.lon + ' : ' + lonlat.lat;
+                $('#openlayerscoords').html(dispcoords);
+                $('#openlayers_pos_x_c').val(lonlat.lon);
+                $('#openlayers_pos_y_c').val(lonlat.lat);
+                
+                /*
+                marker.events.register('click', marker, function(evt){
+                    alert("Hello");
+                     //this.pop.show();
+                     // OpenLayers.Event.stop(evt); 
+                });
+                */
+
+            }
+
+        });
+    }
+
+    function initOSM(){
+        initOSMVars();
+        
+        var options = {
+            controls: [],
+            maxExtent: new OpenLayers.Bounds(0.0, -7000.0, 15000.0, 0.0 ),
+            maxResolution: 64.000000,
+            numZoomLevels: 8,
+            transitionEffect: "resize",
+            attribution: "<p align=\"center\">Prod-IT Ilz</p>"
+        };
+
+        map = new OpenLayers.Map('xxystreetMap', options);
+
+        var layer = new OpenLayers.Layer.TMS( "TMS Layer","",
+            {  url: '', serviceVersion: '.', layername: '.', alpha: true,
+                type: 'png', getURL: overlay_getTileURL 
+            });
+        map.addLayer(layer);
+        //map.zoomToExtent( mapBounds );    
+
+        map.addControl(new OpenLayers.Control.Navigation());
+        map.addControl(new OpenLayers.Control.PanZoomBar());
+        map.addControl(new OpenLayers.Control.MousePosition());
+        //map.addControl(new OpenLayers.Control.MouseDefaults());
+        map.addControl(new OpenLayers.Control.KeyboardDefaults());
+        map.addControl(new OpenLayers.Control.Attribution());
+
+        markers = new OpenLayers.Layer.Markers( "Markers" );
+        map.addLayer(markers);
+
+        var click = new OpenLayers.Control.Click();
+        map.addControl(click);
+        click.activate();
+        
+        var lonlat = new OpenLayers.LonLat($('#openlayers_pos_x_c').val(), $('#openlayers_pos_y_c').val());
+        var marker = new OpenLayers.Marker(lonlat);
+        markers.addMarker(marker);
+        map.setCenter(lonlat, 5);
+        
+    }
+    
+    function overlay_getTileURL(bounds) {
+        var res = this.map.getResolution();
+        var x = Math.round((bounds.left - this.maxExtent.left) / (res * this.tileSize.w));
+        var y = Math.round((bounds.bottom - this.maxExtent.bottom) / (res * this.tileSize.h));
+        var z = this.map.getZoom();
+        if (x >= 0 && y >= 0) {
+            return "[% tiles %]" + z + "/" + x + "/" + y + "." + this.type;                
+        } else {
+            return "[% tiles %]herebedragons.png";
+        }
+    }
+    
+
+</script>
+

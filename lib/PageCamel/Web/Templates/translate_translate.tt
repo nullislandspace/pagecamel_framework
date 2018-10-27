@@ -1,0 +1,56 @@
+<p align="center">
+    <form name="setlang" method="post" action="[% PostLink %]">
+        <input type="hidden" name="mode" value="setlanguage">
+        [% tr.trquote("Language") %]: <select name="language" id="languageselector">
+                    [% FOREACH Language IN AvailLanguages %]
+                        <option value="[% tr.quote(Language.lang) %]"
+                        [% IF Language.lang == EditLanguage %]
+                            selected="selected"
+                        [% END %]
+                        >[% tr.quote(Language.lang) %] : [% tr.quote(Language.description) %]</option>
+                    [% END %]
+                </select>
+    </form>
+</p>
+&nbsp;<br>
+<p align="center">
+    <form name="translations"  id="MainFilterForm" method="post" action="[% PostLink %]">
+        <table class="data" align="center" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th>[% tr.trquote("Original") %]</th>
+                    <th>[% tr.trquote("Translation") %]</th>
+                    <th>[% tr.trquote("Delete") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH trLine IN trLines %]
+                    <tr>
+                        <td width="300px">
+                            <input type="hidden" name="originaltext" value="[% tr.quote(trLine.originaltext) %]">
+                            [% tr.quote(trLine.originaltext) %]
+                        </td>
+                        <td>
+                            <textarea name="translate_[% tr.quote(trLine.originaltext) %]" rows="3" cols="40">[% tr.quote(trLine.translation) %]</textarea>
+                        </td>
+                        <td>
+                            <input type="checkbox" name='delkeys' realvalue="[% tr.quote(trLine.originaltext) %]" class="delete">
+                        </td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table><br/>
+        <div align="center">
+            <input type="hidden" name="mode" value="change">
+            <input type="submit" value="[% tr.trquote("Change") %]">            
+        </div>
+    </form>
+</p>
+
+<script type="text/javascript">
+    function extraOnLoad() {
+        $('#languageselector').on('selectmenuchange', function(e, ui) {
+           document.setlang.submit(); 
+        });
+    }
+</script>

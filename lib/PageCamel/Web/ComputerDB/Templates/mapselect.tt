@@ -1,0 +1,179 @@
+[% IF statustext %]
+<p align="center">
+    <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+</p>
+[% END %]
+
+<p align="center">
+    [% tr.trquote('Filter') %]: <input type="text" length="40" name="filter" id="filter" value="[% tr.quote(filter) %]"><br/>
+    <div id="xxystreetMap" class="pagecamelmap"></div>
+</p>
+
+<span id="masktemplatedataset"
+    data-imagepath="[% imagepath %]"
+    data-tiles="[% tiles %]"
+    data-ajaxpath="[% ajaxpath %]"
+    data-trquote-edit="[% tr.trquote('Edit...') %]"
+></span>
+            
+<!-- OpenLayers -->
+
+            <script type="text/javascript">
+                var map;
+                var mapBounds;// = new OpenLayers.Bounds( 0.0, -7000.0, 4764.0, 0.0);
+                var mapMinZoom = 0;
+                var mapMaxZoom = 7;
+                var markers;
+                var firstOSMDisplay = 1;
+                
+                // *********** CAN ONLY INITIALIZE OpenLayers WHEN VISIBLE. This is a
+                // major OpenLayers bug, but we can work around it. Of course, this might slow
+                // the user down, but there is nothing we can do about short of rewriting OpenLayers ******************
+                function extraOnLoad(){
+                    OpenLayers.ImgPath = ttvars.imagepath;
+                    initOSM();
+                    /*
+                    $("#tabs").bind("tabsselect", function(event, ui) {
+                        if(firstOSMDisplay == 1 && ui.panel.id == 'tabs-map') {
+                            setTimeout(initOSM, 1000);
+                            firstOSMDisplay = 0;
+                        }
+                    });
+                    */
+                }
+                    
+
+                function initOSMVars() {
+                    mapBounds = new OpenLayers.Bounds(0.0, -7000.0, 15000.0, 0.0);
+                
+                    // avoid pink tiles
+                    OpenLayers.IMAGE_RELOAD_ATTEMPTS = 3;
+                    OpenLayers.Util.onImageLoadErrorColor = "transparent";
+    
+    
+                    OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {                
+                        defaultHandlerOptions: {
+                            'single': true,
+                            'double': false,
+                            'pixelTolerance': 0,
+                            'stopSingle': false,
+                            'stopDouble': false
+                        },
+    
+                        initialize: function(options) {
+                            this.handlerOptions = OpenLayers.Util.extend(
+                                {}, this.defaultHandlerOptions
+                            );
+                            OpenLayers.Control.prototype.initialize.apply(
+                                this, arguments
+                            ); 
+                            this.handler = new OpenLayers.Handler.Click(
+                                this, {
+                                    'click': this.trigger
+                                }, this.handlerOptions
+                            );
+                        }
+    
+                    });
+                }
+
+                function initOSM(){
+                    $('#xxystreetMap').css('position', 'relative');
+                    $('#xxystreetMap').css('z-index', 0);
+                    
+                    initOSMVars();
+                    
+                    var options = {
+                        controls: [],
+                        maxExtent: new OpenLayers.Bounds(0.0, -7000.0, 15000.0, 0.0),
+                        maxResolution: 64.000000,
+                        numZoomLevels: 8,
+                        transitionEffect: "resize",
+                        attribution: "<p align=\"center\">Prod-IT Ilz</p>"
+                    };
+    
+                    map = new OpenLayers.Map('xxystreetMap', options);
+        
+                    var layer = new OpenLayers.Layer.TMS( "TMS Layer","",
+                        {  url: '', serviceVersion: '.', layername: '.', alpha: true,
+                            type: 'png', getURL: overlay_getTileURL 
+                        });
+                    map.addLayer(layer);
+                    map.zoomToExtent( mapBounds );    
+            
+                    map.addControl(new OpenLayers.Control.Navigation());
+                    map.addControl(new OpenLayers.Control.PanZoomBar());
+                    map.addControl(new OpenLayers.Control.MousePosition());
+                    //map.addControl(new OpenLayers.Control.KeyboardDefaults());
+                    map.addControl(new OpenLayers.Control.Attribution());
+    
+                    markers = new OpenLayers.Layer.Markers( "Markers" );
+                    map.addLayer(markers);
+        
+                    var click = new OpenLayers.Control.Click();
+                    map.addControl(click);
+                    click.activate();
+                    
+                    var lonlat;
+                    var marker;
+                    
+                    $('#filter').keyup(updateMarkers);
+                    updateMarkers();
+                    
+                }
+                
+                function overlay_getTileURL(bounds) {
+                    var res = this.map.getResolution();
+                    var x = Math.round((bounds.left - this.maxExtent.left) / (res * this.tileSize.w));
+                    var y = Math.round((bounds.bottom - this.maxExtent.bottom) / (res * this.tileSize.h));
+                    var z = this.map.getZoom();
+                    if (x >= 0 && y >= 0) {
+                        return ttvars.tiles + z + "/" + x + "/" + y + "." + this.type;                
+                    } else {
+                        return ttvars.tiles + "herebedragons.png";
+                    }
+                }
+                
+
+                function updateMarkers() {
+                    var myval = $('#filter').val();
+                    
+                    $.ajax({
+                        type: "POST",
+                        url: ttvars.ajaxpath,
+                        data: "filter=" + encodeURIComponent(myval)
+                    }).done(function( computers ) {
+                        //console.log(computers);
+                        markers.clearMarkers();
+                        computers.forEach(function(computer) {
+
+                            var lonlat = new OpenLayers.LonLat(computer.openlayers_pos_x, computer.openlayers_pos_y);
+                            var marker = new OpenLayers.Marker(lonlat);
+                            marker.events.register('click', marker, function(evt){
+                                while( map.popups.length ) {
+                                    map.removePopup(map.popups[0]);
+                                }
+
+                                map.addPopup(new OpenLayers.Popup.FramedCloud(
+                                                        computer.computer_name + '_popup>', 
+                                                        new OpenLayers.LonLat(computer.openlayers_pos_x, computer.openlayers_pos_y),
+                                                        null,
+                                                        '<b>' + computer.computer_name + '</b></br>' + computer.line_id + '</br>' + computer.description + '<br><a href="' + computer.url +'">' + ttvars.trquote.Edit + '</a>',
+                                                        null,
+                                                        true
+                                                    ));
+
+                                
+                            });
+                            markers.addMarker(marker);
+                        
+                        });
+                        
+                        
+                    });
+                    return false;
+                }
+
+
+            </script>
+

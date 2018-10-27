@@ -1,0 +1,43 @@
+
+<div id="xxystreetMap" class="pagecamelmap"></div>
+
+<span id="masktemplatedataset"
+    data-imagepath="[% imagepath %]"
+    data-minzoomlevel="[% minZoomLevel %]"
+    data-maxzoomlevel="[% maxZoomLevel %]"
+    data-tiles="[% tiles %]"
+    data-centerzoom="[% centerzoom %]"
+    data-center_x="[% center.x %]"
+    data-center_y="[% center.y %]"
+></span>
+
+<script>
+    function startMap() {
+        var fromProjection = new OpenLayers.Projection("EPSG:4326"); // transform from WGS 1984
+        var toProjection = new OpenLayers.Projection("EPSG:900913"); // to Spherical Mercator Projection
+        
+        OpenLayers.ImgPath = ttvars.imagepath;
+        var options = {
+            //restrictedExtent : extent,
+            controls: [
+                new OpenLayers.Control.Navigation(),
+                new OpenLayers.Control.PanZoomBar(),
+                new OpenLayers.Control.Attribution()
+            ]
+        };
+        map = new OpenLayers.Map("xxystreetMap", options);
+        var basemap = new OpenLayers.Layer.OSM(
+            "Basemap", 
+            ttvars.tiles, 
+            {
+                minZoomLevel: ttvars.minzoomlevel,
+                maxZoomLevel: ttvars.maxzoomlevel,
+                numZoomLevels: ttvars.maxzoomlevel - ttvars.minzoomlevel + 1,
+                transitionEffect: "resize",
+                attribution: "<p align=\"center\"><b>Cavac's Map Server</b><br>Map data: CC-by-SA OpenSteetMap.org</p>"
+            }
+        );
+        map.addLayer(basemap);
+        map.setCenter(new OpenLayers.LonLat(ttvars.center_x, ttvars.center_y).transform(fromProjection,toProjection), ttvars.centerzoom);
+    }
+</script>

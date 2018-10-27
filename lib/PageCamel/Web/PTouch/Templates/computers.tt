@@ -1,0 +1,58 @@
+<p align="center">
+    <form name="selectcomputer_[% tr.quote(computer.computer_name) %]" method="post" action="[% webpath %]"  id="MainFilterForm">
+        <table class="data" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("Hostname") %]</th>
+                    <th>[% tr.trquote("Prodline") %]</th>
+                    <th>[% tr.trquote("Cost Unit") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                    <th>[% tr.trquote("Prod IP") %]</th>
+                    <th>[% tr.trquote("Prod MAC") %]</th>
+                    <th>[% tr.trquote("Haustechnik IP") %]</th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                [% FOREACH computer IN computers %]
+                    <tr>
+                        <td><input type="checkbox" name="computer_name" realvalue="[% tr.quote(computer.computer_name) %]"</td>
+                        <td>[% tr.quote(computer.computer_name) %]</td>
+                        <td>[% tr.quote(computer.line_id) %]</td>
+                        <td>[% tr.quote(computer.costunit) %]</td>
+                        <td>[% tr.quote(computer.description) %]</td>
+                        <td>[% tr.quote(computer.net_prod_ip) %]</td>
+                        <td>[% tr.quote(computer.net_prod_mac) %]</td>
+                        <td>[% tr.quote(computer.net_haustechnik_ip) %]</td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table><br/>
+        <div align="center">
+            [% tr.trquote("Print") %]
+            <select name="print_pagecount">
+                [% FOREACH AvailPageCount IN AvailPageCounts %]
+                    <option value="[% tr.quote(AvailPageCount) %]"
+                    [% IF AvailPageCount == PTouchDefaultPageCount %]
+                        selected="selected"
+                    [% END %]
+                    >[% tr.quote(AvailPageCount) %]</option>
+                [% END %]
+            </select>
+            [% tr.trquote("copies on printer") %]
+            <select name="print_printername">
+                [% FOREACH AvailPrinter IN AvailPrinters %]
+                    <option value="[% tr.quote(AvailPrinter.printer_name) %]"
+                    [% IF AvailPrinter.printer_name == PTouchDefaultPrinter %]
+                        selected="selected"
+                    [% END %]
+                    >[% tr.quote(AvailPrinter.printer_name) %]</option>
+                [% END %]
+            </select>
+            <br/>
+            <input type="hidden" name="mode" value="print">
+            <input type="submit" value="[% tr.trquote("Print") %]">            
+        </div>
+    </form>
+</p>

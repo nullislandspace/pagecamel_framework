@@ -1,0 +1,46 @@
+<p align="center">
+    <table class="data" align="center" id="MainDataTable">
+        <thead>
+            <tr class="tabheader">
+                <th>[% tr.trquote("Key") %]</th>
+                <th>[% tr.trquote("Value") %]</th>
+            </tr>
+        </thead>
+        <tbody>
+<!--
+
+username
+-->
+            <tr>
+                <td>[% tr.trquote("Log ID") %]</td>
+                <td>[% Data.logid %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Logtime") %]</td>
+                <td>[% Data.logtime %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Worker") %]</td>
+                <td>[% Data.worker_name %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Module") %]</td>
+                <td>[% tr.quote(Data.module_name) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Referer") %]</td>
+                <td>[% tr.quote(Data.referer) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("User") %]</td>
+                <td>[% tr.quote(Data.username) %]</td>
+            </tr>
+            [% FOREACH extraline IN Data.extralines %]
+                <tr>
+                    <td>[% tr.quote(extraline.name) %]</td>
+                    <td>[% tr.quote(extraline.value) %]</td>
+                </tr>
+            [% END %]
+        </tbody>
+    </table>
+</p>

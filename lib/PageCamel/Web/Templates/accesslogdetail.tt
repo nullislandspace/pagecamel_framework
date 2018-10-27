@@ -1,0 +1,84 @@
+<p align="center">
+    <table class="data" align="center" id="MainDataTable">
+        <thead>
+            <tr class="tabheader">
+                <th>[% tr.trquote("Key") %]</th>
+                <th>[% tr.trquote("Value") %]</th>
+            </tr>
+        </thead>
+        <tbody>
+<!--
+
+username
+-->
+            <tr>
+                <td>[% tr.trquote("Log ID") %]</td>
+                <td>[% Data.logid %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Logtime") %]</td>
+                <td>[% Data.logtime %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Process ID") %]</td>
+                <td>[% Data.processid %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Request") %]</td>
+                <td>[% tr.quote(Data.method) %] [% tr.quote(Data.protocol) %]/[% tr.quote(Data.httpversion) %] [% tr.quote(Data.url) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Referer") %]</td>
+                <td>[% tr.quote(Data.referer) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Compression") %]</td>
+                <td>[% tr.quote(Data.compression) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Rangeheader") %]</td>
+                <td>[% tr.quote(Data.rangeheader) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Remote Host") %]</td>
+                <td>[% tr.quote(Data.remotehost) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("UserAgent") %]</td>
+                <td>[% tr.quote(Data.useragent) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("UserAgent simplified") %]</td>
+                <td>[% tr.quote(Data.useragent_simplified) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Headers") %]</td>
+                <td>
+                    [% FOREACH splitheader IN Data.splitheaders %]
+                        [% tr.quote(splitheader) %]<br/>
+                    [% END %]
+                </td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Parameters") %]</td>
+                <td>
+                    [% FOREACH splitparam IN Data.splitparams %]
+                        [% tr.quote(splitparam) %]<br/>
+                    [% END %]
+                </td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Username") %]</td>
+                <td>[% tr.quote(Data.username) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Result") %]</td>
+                <td>[% tr.quote(Data.returncode) %] [% tr.quote(Data.doctype) %]</td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("PageCamel debug info") %]</td>
+                <td>[% tr.quote(Data.pagecamel_debug_info) %]</td>
+            </tr>
+        </tbody>
+    </table>
+</p>

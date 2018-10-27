@@ -1,0 +1,106 @@
+[% IF ExtraInfo != '' %]
+    <p>
+        <div class="infotext">[% ExtraInfo %]</div>
+    </p>
+[% END %]
+
+<form name="login" method="post" action="[% PostLink %]" id="pwform">
+
+    <p>
+        <table class="data" align="center" id="MainDataTable">
+            <tr class="tabheader">
+                <th colspan="2">
+                    <div class="infotext">[% tr.trquote("Reset Password") %]</div>
+                </th>
+            </tr>
+            [% IF statustext %]
+                <tr>
+                    <th colspan="2">
+                        <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+                    </th>
+                </tr>
+            [% END %]
+    
+            [% IF statuscolor != "oktext" %]
+                <tr>
+                    <td align="right">[% tr.trquote("Username") %]:</td>
+                    <td align="left">
+                        <input type="text" name="username" size="30" value="" maxLength="40" size="20" id="username">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td align="right">[% tr.trquote("Email address") %]:</td>
+                    <td align="left">
+                        <input type="text" name="email" size="30" value="" maxLength="50" size="30" id="email">
+                    </td>
+                </tr>
+
+
+                <tr>
+                    <td colspan="2">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center">
+                        <input type="hidden" name="mode" value="request">
+                        <input type="submit" value="[% tr.trquote("Send Email") %]" id="submitbutton">
+                    </td>
+                </tr>
+            [% ELSE %]
+                <tr>
+                    <td colspan="2" align="center">[% tr.trquote("Please check your email account and follow the instructions contained in the email we just sent you.") %]</td>
+                </tr>
+            [% END %]
+        </table>
+    </p>
+
+</form>
+
+<span id="masktemplatedataset"
+    data-trquote-sendingmail="[% tr.trquote("Sending email...") %]"
+    data-imageurl="[% imageurl %]"
+></span>
+
+<script>
+
+    var canSubmit = false;
+    function validateInput() {
+        var inPoints = 0;
+        
+        if($('#username').val() != '') {
+            inPoints++;
+        }
+        
+        if($('#email').val() != '') {
+            inPoints++;
+        }
+                
+        if(inPoints == 2) {
+            canSubmit = true;
+        } else {
+            canSubmit = false;
+        }
+        $( "#submitbutton" ).button( "option", "disabled", !canSubmit ); 
+    }
+    
+    $('#username').keyup(function() {
+        validateInput();
+    });
+    
+    $('#email').keyup(function() {
+        validateInput();
+    });
+    
+    function submitMe() {
+        if(canSubmit) {
+            $.blockUI({ message: '<h1>' + ttvars.trquote.Sendingmail + '<br/><img src="/static/loading_bar_large.gif' + ttvars.urlreloadpostfix +'" /></h1>' });
+        }
+        return canSubmit;
+    }
+    
+    function extraOnLoad() {
+        //validateInput();
+        $('#pwform').on('submit', submitMe);
+    }
+    
+</script>

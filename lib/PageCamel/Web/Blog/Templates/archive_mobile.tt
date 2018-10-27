@@ -1,0 +1,6 @@
+[% FOREACH Article IN Articles %]
+<p>[% Article.archive_teaser %]<br/>
+by [% Article.realauthorname %] on [% Article.releasedate %]<br/>
+in category [% Article.post_type %]
+</p>
+[% END %]

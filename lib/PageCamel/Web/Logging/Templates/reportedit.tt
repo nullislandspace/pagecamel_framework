@@ -1,0 +1,115 @@
+[% dialog.modechangeform(name => "confirmDeleteReport",
+                        title => "Delete Report",
+                        text => "Do you really want to delete this Report?",
+                        icon => "help",
+                        confirm => "Delete",
+                        cancel => "Cancel",
+                        mode => "deletereport") %]
+[% IF statustext %]
+<p align="center">
+    <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+</p>
+[% END %]
+
+<form id="power_reportedit" method="post" action="[% CardEdit %]">
+<p align="center">
+
+    <table class="data" id="MainDataTable">
+        <tr class="tabheader">
+            <th>[% tr.trquote("Key") %]</th>
+            <th>[% tr.trquote("Value") %]</th>
+        </tr>
+        
+            <tr>
+                <td>[% tr.trquote("Report name") %]</td>
+                <td>
+                    [% IF ReportID != "" %]
+                        <input type="text" name="report_name" size="15" maxlength="60" value="[% tr.quote(report_name) %]">
+                    [% ELSE %]
+                        <i>[% tr.trquote("No report selected") %]</i>&nbsp;&nbsp;
+                    [% END %]
+                    <a class="bodylink" href="[% ReportSelect %]">[% tr.quote("Select...") %]</a>
+                </td>
+            </tr>
+
+        [% IF ReportID != "" %]
+            <tr>
+                <td>[% tr.trquote("Device type") %]</td>
+                <td>
+                    <input type="hidden" name="device_type" value="[% device_type %]">
+                    [% tr.quote(device_type) %]
+                </td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Title") %]</td>
+                <td>
+                    <input type="text" name="report_title" size="30" maxLength="60" value="[% tr.quote(report_title) %]">
+                </td>
+            </tr>
+            <tr>
+                <td>[% tr.trquote("Description") %]</td>
+                <td>
+                    <input type="text" name="description" size="30" maxLength="60" value="[% tr.quote(description) %]">
+                </td>
+            </tr>
+
+        [% END %]
+    </table>
+</p>
+
+<script type="text/javascript">
+    function serializeSortableList(listID, inputID) {
+        var listElems = $(listID).sortable('toArray');
+        var listString = listElems.join(";");
+        var modeElem = document.getElementById(inputID);
+        modeElem.value = listString;
+        return false;
+    }
+    
+    function extraOnLoad() {
+        $("#sortable1, #sortable2").sortable({
+            connectWith: '.connectedSortable'
+        }).disableSelection();
+    }
+    
+</script>
+
+[% IF ReportID != "" %]
+<p align="center">
+    <table class="data" id="HelperTable1">
+        <tr class="tabheader">
+            <th>[% tr.trquote("Active Graphs") %]</th>
+            <th>[% tr.trquote("Available Graphs") %]</th>
+        </tr>
+        <tr>
+            <td valign="top">
+                <ul id="sortable1" class="connectedSortable" border="1">
+                    [% FOREACH Item IN ActiveItems %]
+                        <li id="[% tr.quote(Item.graph_name) %]" class="olditem"><b>[% tr.quote(Item.graph_name) %]</b><br>[% tr.quote(Item.title) %]</li>
+                    [% END %]
+                    <li id="__pc_1" class="placeholder"></li>
+                </ul>
+                <input type="hidden" id="graph_order" name="graph_order">
+            </td>
+            <td valign="top">
+                <ul id="sortable2" class="connectedSortable" border="1">
+                    [% FOREACH Item IN AvailItems %]
+                        <li id="[% tr.quote(Item.graph_name) %]" class="newitem"><b>[% tr.quote(Item.graph_name) %]</b><br>[% tr.quote(Item.title) %]</li>
+                    [% END %]
+                    <li id="__pc_2" class="placeholder"></li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" align="center">
+                <input type="hidden" name="reportid" value="[% tr.quote(ReportID) %]">
+                <input type="hidden" name="mode" id="usereditmode" value="[% tr.quote(EditMode) %]">
+                <input type="submit" value="[% tr.trquote("Update") %]" onClick="return serializeList('#sortable1', 'graph_order');">&nbsp;
+                <input type="submit" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteReport('power_reportedit', 'usereditmode');">
+            </td>
+        </tr>
+    </table>    
+</p>
+[% END %]
+
+</form>

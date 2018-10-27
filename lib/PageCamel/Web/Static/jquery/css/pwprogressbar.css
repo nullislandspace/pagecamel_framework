@@ -1,0 +1,30 @@
+#progressbar {
+    width:100px;
+    height:10px;
+    display:block;
+    border-left:1px solid #ccc;
+    border-right:1px solid #ccc;
+    border-top:1px solid #ccc;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-top-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    overflow:hidden;
+    background-color: white;
+}
+
+#progress {
+    display:block;
+    height:100px;
+    width:0%;
+}
+
+.progressbarValid {
+    background-color:green;
+    background-image: -o-linear-gradient(-90deg, #8AD702 0%, #389100 100%);
+}
+
+.progressbarInvalid {
+    background-color:red;
+    background-image: -o-linear-gradient(-90deg, #F94046 0%, #92080B 100%);
+}

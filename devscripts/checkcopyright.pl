@@ -1,0 +1,73 @@
+#!/usr/bin/env perl
+#---AUTOPRAGMASTART---
+use 5.020;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 1;
+use Fatal qw( close );
+use Array::Contains;
+#---AUTOPRAGMAEND---
+
+# PAGECAMEL  (C) 2008-2018 Rene Schickbauer
+# Developed under Artistic license
+
+
+print "Searching files...\n";
+my @files = (find_pm('lib'), find_pm('devscripts'));
+
+print "Changing files:\n";
+foreach my $file (@files) {
+    #print "Editing $file...\n";
+
+    my @lines;
+    open(my $ifh, "<", $file) or die($ERRNO);
+    @lines = <$ifh>;
+    close $ifh;
+
+    my ($namedate, $license) = (0,0);
+
+    foreach my $line (@lines) {
+        if($line =~ /\(C\)\ \d\d\d\d-\d\d\d\d\ Rene\ Schickbauer/i) {
+            $namedate = 1;
+        }
+        if($line =~ /Artistic\ license/i) {
+            $license = 1;
+        }
+    }
+    if(!$namedate || !$license) {
+        print "File $file is missing: ";
+        if(!$namedate) {
+            print "Copyright ";
+        }
+        if(!$license) {
+            print "License ";
+        }
+        print "\n";
+    }
+}
+print "Done.\n";
+exit(0);
+
+
+
+sub find_pm {
+    my ($workDir) = @_;
+
+    my @files;
+    opendir(my $dfh, $workDir) or die($ERRNO);
+    while((my $fname = readdir($dfh))) {
+        next if($fname eq "." || $fname eq ".." || $fname eq ".hg");
+        $fname = $workDir . "/" . $fname;
+        if(-d $fname) {
+            push @files, find_pm($fname);
+        } elsif($fname =~ /\.p[lm]$/i && -f $fname) {
+            push @files, $fname;
+        }
+    }
+    closedir($dfh);
+    return @files;
+}

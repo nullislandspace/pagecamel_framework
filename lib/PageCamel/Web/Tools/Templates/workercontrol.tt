@@ -1,0 +1,151 @@
+<p align="center">
+    <form name="workercontrol" method="post" action="[% webpath %]"  id="MainFilterForm">
+        <table class="data" id="MainDataTable">
+            <thead>
+                <tr class="tabheader">
+                    <th>[% tr.trquote("Worker") %]</th>
+                    <th>[% tr.trquote("Switch") %]</th>
+                    <th>[% tr.trquote("Status") %]</th>
+                    <th>[% tr.trquote("Reset") %]</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                [% FOREACH Worker IN Workers %]
+                    <tr>
+                        <td>[% tr.quote(Worker.workername) %]</td>
+                        <td>
+                            <input type="hidden" id="[% Worker.buttonname %]_val" value="[% Worker.buttonstatus %]" displaytype="worker" bname="[% Worker.buttonname %]" sname="[% Worker.statusname %]">
+                            <img id="[% Worker.buttonname %]_img" src="/pics/switch_[% IF Worker.buttonstatus == "1" %]ON[% ELSE %]OFF[% END %].png" imagetype="clickablebutton" buttonname="[% Worker.buttonname %]">
+                        </td>
+                        <td><img id="[% Worker.statusname %]" src="/pics/led_BLACK.png"></td>
+                        <td><input type="button" value="[% tr.trquote("Reset")%]" imagetype="fixmebutton" buttonname="[% Worker.realworkername %]"></td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table>
+    </form>
+</p>
+
+
+<script>
+    function websocketmaskOnload() {
+        $("img[imagetype='clickablebutton']").each(function() {
+            var buttonname = $( this ).attr('buttonname');
+            $( this ).on('click', function() {
+                toggleButton(buttonname);
+                return false;
+            });
+        });
+        $("input[imagetype='fixmebutton']").each(function() {
+            var buttonname = $( this ).attr('buttonname');
+            $( this ).on('click', function() {
+                fixmeButton(buttonname);
+                return false;
+            });
+        });
+    }
+
+    function websocketmaskOnSocketOpen() {
+        $("input[displaytype='worker']").each(function(index) {
+            var bname = $(this).attr('bname');
+            var sname = $(this).attr('sname');
+
+            var listenstatusmsg = {
+                type: 'LISTEN',
+                varname: sname
+            };
+            ws.send(JSON.stringify(listenstatusmsg));
+
+            var listenbuttonmsg = {
+                type: 'LISTEN',
+                varname: bname
+            };
+            ws.send(JSON.stringify(listenbuttonmsg));
+        });
+
+
+        var updateoutmsg = {
+            type: 'NOTIFY',
+            varname: 'set_all'
+        };
+        ws.send(JSON.stringify(updateoutmsg));
+
+    }
+
+    function handleMessage(msg) {
+        if(msg.type === "LED") {
+            var ledid = '#' + msg.varname;
+            var ledimg = '/pics/led_';
+            if(msg.varval == 1) {
+                ledimg = ledimg + 'OK.png';
+            } else if(msg.varval == 2) {
+                ledimg = ledimg + 'SHOULDRUN_EXIT.png';
+            } else if(msg.varval == 3) {
+                ledimg = ledimg + 'SHOULDRUN_LIFETICK.png';
+            } else if(msg.varval == 4) {
+                ledimg = ledimg + 'SHOULDRUN_RESET.png';
+            } else {
+                ledimg = ledimg + 'ERROR.png';
+            }
+            $(ledid).attr("src", ledimg);
+
+            return;
+        }
+
+        if(msg.type === "SWITCH") {
+            var buttonid = '#' + msg.varname + '_img';
+            var buttonval = '#' + msg.varname + '_img';
+            var buttonimg = '/pics/switch_';
+            if(msg.varval == 1) {
+                buttonimg = buttonimg + 'ON.png';
+            } else {
+                buttonimg = buttonimg + 'OFF.png';
+            }
+            $(buttonid).attr("src", buttonimg);
+            $(buttonval).val(msg.varval);
+
+            return;
+        }
+
+    }
+
+    function toggleButton (buttonname) {
+        var inputid = '#' + buttonname + '_val';
+        var imageid = '#' + buttonname + '_img';
+
+        var inputval = 1 - $(inputid).val();
+        $(inputid).val(inputval);
+
+        var newpic = '/pics/switch_';
+        if(inputval == 1) {
+            newpic = newpic + 'ON';
+        } else {
+            newpic = newpic + 'OFF';
+        }
+
+        newpic = newpic + '.png';
+        $(imageid).attr("src", newpic);
+
+        var outmsg = {
+            type: 'SET',
+            varname: buttonname,
+            varvalue: inputval
+        };
+
+        ws.send(JSON.stringify(outmsg));
+    }
+
+    function fixmeButton (buttonname) {
+
+        var outmsg = {
+            type: 'SET',
+            varname: 'restart::service',
+            varvalue: buttonname
+        };
+
+        ws.send(JSON.stringify(outmsg));
+    }
+
+
+</script>

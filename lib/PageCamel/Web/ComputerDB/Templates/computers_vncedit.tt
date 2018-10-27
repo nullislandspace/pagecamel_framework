@@ -1,0 +1,77 @@
+[% colcount = 3 %]
+<form name="computersvncedit" method="post" action="[% webpath %]" id="MainFilterForm">
+    <p align="center">
+        <select name="blaselectedcompany" id="selectedcompanyid">
+            [% FOREACH Company IN AvailCompanies %]
+                <option value="[% tr.quote(Company.company_name) %]" [% IF Company.company_name == SelectedCompany %]selected="selected"[% END %]>[% tr.quote(Company.company_name) %]</option>
+            [% END %]
+        </select>
+    </p>
+    <p align="center">
+        <table class="data" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th filter-type='ddl'>[% tr.trquote("Prodline") %]</th>
+                    <th>[% tr.trquote("Hostname") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                    <th><input type="button" value="[% tr.quote(SelectedCompany) %]" onclick="return checkifyInvertAll('VNCRights');"></th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                
+                [% FOREACH computer IN AvailComputers %]    
+                    <tr>
+                        <td>[% tr.quote(computer.line_id) %]</td>
+                        <td>[% tr.quote(computer.computer_name) %]</td>
+                        <td>[% tr.quote(computer.description) %]</td>
+                        [% FOREACH eright IN computer.rights %]
+                            [% colcount = colcount + 1 %]
+                            <td>
+                                <input type="checkbox" name="vnc_[% computer.computer_name %]_[% eright.company %]" realvalue="1" callback="checkboxclick" colname="VNCRights" 
+                                    [% IF eright.val == "1" %]
+                                        checked=checked"
+                                    [% END %]
+                                >
+                            </td>
+                        [% END %]
+                    </tr>    
+                [% END %]
+                
+            </tbody>
+        </table><br/>
+        <div align="center">
+            <input type="hidden" name="selectedcompany" id="activecompany" value="[% tr.quote(SelectedCompany) %]">
+            <input type="hidden" name="mode" id="modeid" value="save">
+            <input type="submit" id="submitbutton" value="[% tr.trquote("Save") %]" disabled="true">
+            <input type="button" id="cancelbutton" value="[% tr.trquote("Cancel") %]" disabled="true" onclick="changecompany();">            
+        </div>
+    </p>
+</form>
+
+<script type="text/javascript">
+    function extraOnLoad() {
+        
+        $('#selectedcompanyid').on("selectmenuchange", function(e, ui){
+            changecompany();
+        });
+    };
+    
+    $('#MainFilterTable').on('init.dt', function() {
+        var settings = $(this).dataTable().fnSettings();
+        settings.aoColumns[3].bSearchable = false;
+    });
+
+    function changecompany() {
+        $('#modeid').val('reload');
+        var newcompany = $('#selectedcompanyid').val();
+        $('#activecompany').val(newcompany);
+        $('#MainFilterForm').submit();
+    }
+    
+    function checkboxclick() {
+        $("#submitbutton").button("option", "disabled", false);
+        $("#cancelbutton").button("option", "disabled", false);
+        $("#selectedcompanyid").selectmenu("option", "disabled", true);
+    }
+</script>

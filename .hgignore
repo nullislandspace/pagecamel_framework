@@ -1,0 +1,14 @@
+server/websocket.pyc
+server/tmp.*html$
+MANIFEST.bak
+server/webgui.lock
+server/webgui_ssl.lock
+server/MegaSAS.log
+server/komodo_changed_files
+server/debugwebgui.lock
+blib/
+MYMETA.json
+MYMETA.yml
+Makefile$
+pm_to_blib
+
