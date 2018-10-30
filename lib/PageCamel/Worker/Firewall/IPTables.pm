@@ -131,7 +131,10 @@ sub updateIPTables {
     my @four;
     my @six;
 
-    my $dnssel = $dbh->prepare_cached("SELECT DISTINCT external_sender FROM nameserver_blocklist_ip")
+    my $dnsipsel = $dbh->prepare_cached("SELECT DISTINCT external_sender FROM nameserver_blocklist_ip")
+            or croak($dbh->errstr);
+
+    my $dnshostsel = $dbh->prepare_cached("SELECT DISTINCT domain_fqdn FROM nameserver_blocklist_hostname")
             or croak($dbh->errstr);
 
     my $webipsel = $dbh->prepare_cached("SELECT DISTINCT ip_address FROM accesslog_blocklist")
@@ -152,16 +155,32 @@ sub updateIPTables {
     my $permablocksel = $dbh->prepare_cached("SELECT DISTINCT ip_addr FROM firewall_permablock")
             or croak($dbh->errstr);
 
-    if(!$dnssel->execute) {
+    if(!$dnsipsel->execute) {
         $reph->debuglog($dbh->errstr);
         $dbh->rollback;
         return;
     }
     my @dnsips;
-    while((my $line = $dnssel->fetchrow_hashref)) {
+    while((my $line = $dnsipsel->fetchrow_hashref)) {
         push @dnsips, $line->{external_sender};
     }
-    $dnssel->finish;
+    $dnsipsel->finish;
+
+    if(!$dnshostsel->execute) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return;
+    }
+    my @dnshosts;
+    while((my $line = $dnshostsel->fetchrow_hashref)) {
+        my $hname = '';
+        my @hparts = split(/\./, $line->{domain_fqdn});
+        foreach my $hpart (@hparts) {
+            $hname .= '|' . unpack("(H2)*", chr(length($hpart))) . '|' . $hpart;
+        }
+        push @dnshosts, $hname;
+    }
+    $dnshostsel->finish;
 
     if(!$sshsel->execute) {
         $reph->debuglog($dbh->errstr);
@@ -237,21 +256,27 @@ sub updateIPTables {
     push @six, "#    PermaBlock";
     foreach my $ip (@permablockips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -j REJECT";
+            push @four, "-A INPUT -s $ip -j DROP";
         } else {
-            push @six, "-A INPUT -s $ip -j REJECT";
+            push @six, "-A INPUT -s $ip -j DROP";
         }
     }
+    
+    # IPv4 only for DNS Hostnames for the moment.
+    push @four, "#    DNS Hostname";
+    foreach my $host (@dnshosts) {
+        push @four, '-A INPUT -p udp --dport 53 -m string --hex-string "' . $host . '" --algo bm -j DROP';
+    }
 
-    push @four, "#    DNS";
-    push @six, "#    DNS";
+    push @four, "#    DNS IP";
+    push @six, "#    DNS IP";
     foreach my $ip (@dnsips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p udp --dport 53 -j REJECT";
-            push @four, "-A INPUT -s $ip -p tcp --dport 53 -j REJECT";
+            push @four, "-A INPUT -s $ip -p udp --dport 53 -j DROP";
+            push @four, "-A INPUT -s $ip -p tcp --dport 53 -j DROP";
         } else {
-            push @six, "-A INPUT -s $ip -p udp --dport 53 -j REJECT";
-            push @six, "-A INPUT -s $ip -p tcp --dport 53 -j REJECT";
+            push @six, "-A INPUT -s $ip -p udp --dport 53 -j DROP";
+            push @six, "-A INPUT -s $ip -p tcp --dport 53 -j DROP";
         }
     }
 
@@ -259,9 +284,9 @@ sub updateIPTables {
     push @six, "#    SSH";
     foreach my $ip (@sships) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 22 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 22 -j DROP";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 22 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 22 -j DROP";
         }
     }
 
@@ -269,11 +294,11 @@ sub updateIPTables {
     push @six, "#    IMAP/Dovecot";
     foreach my $ip (@dovecotips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 143 -j REJECT";
-            push @four, "-A INPUT -s $ip -p tcp --dport 993 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 143 -j DROP";
+            push @four, "-A INPUT -s $ip -p tcp --dport 993 -j DROP";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 143 -j REJECT";
-            push @six, "-A INPUT -s $ip -p tcp --dport 993 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 143 -j DROP";
+            push @six, "-A INPUT -s $ip -p tcp --dport 993 -j DROP";
         }
     }
 
@@ -281,11 +306,11 @@ sub updateIPTables {
     push @six, "#    IMAP/Postfix";
     foreach my $ip (@postfixips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 25 -j REJECT";
-            push @four, "-A INPUT -s $ip -p tcp --dport 587 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 25 -j DROP";
+            push @four, "-A INPUT -s $ip -p tcp --dport 587 -j DROP";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 25 -j REJECT";
-            push @six, "-A INPUT -s $ip -p tcp --dport 587 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 25 -j DROP";
+            push @six, "-A INPUT -s $ip -p tcp --dport 587 -j DROP";
         }
     }
 
@@ -293,11 +318,11 @@ sub updateIPTables {
     push @six, "#    Web/IP";
     foreach my $ip (@webips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
-            push @four, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 80 -j DROP";
+            push @four, "-A INPUT -s $ip -p tcp --dport 443 -j DROP";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
-            push @six, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 80 -j DROP";
+            push @six, "-A INPUT -s $ip -p tcp --dport 443 -j DROP";
         }
     }
 
@@ -305,11 +330,11 @@ sub updateIPTables {
     push @six, "#    Web/CIDR";
     foreach my $cidr (@webcidrs) {
         if($cidr =~ /\./) {
-            push @four, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
-            push @four, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            push @four, "-A INPUT -s $cidr -p tcp --dport 80 -j DROP";
+            push @four, "-A INPUT -s $cidr -p tcp --dport 443 -j DROP";
         } else {
-            push @six, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
-            push @six, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            push @six, "-A INPUT -s $cidr -p tcp --dport 80 -j DROP";
+            push @six, "-A INPUT -s $cidr -p tcp --dport 443 -j DROP";
         }
     }
 
