@@ -173,11 +173,36 @@ sub updateIPTables {
     }
     my @dnshosts;
     while((my $line = $dnshostsel->fetchrow_hashref)) {
+        # Also make sure we validate that hostname is valid according to RFC
+        my $isvalid = 1;
+        my $requestname = $line->{domain_fqdn};
+        if($requestname =~ /[^A-Za-z0-9\.]+/) {
+            $isvalid = 0;
+        }
+        if(length($requestname) > 253) {
+            $isvalid = 0;
+        }
+        if($requestname =~ /\.\./) {
+            $isvalid = 0;
+        }
+
+        next unless($isvalid);
+
         my $hname = '';
-        my @hparts = split(/\./, $line->{domain_fqdn});
+        my @hparts = split(/\./, $requestname);
+
         foreach my $hpart (@hparts) {
+            # Hyphen only in the middle
+            if($hpart =~ /^\-/ || $hpart =~ /\-$/) {
+                $isvalid = 0;
+            }
+            if(length($hpart > 63)) {
+                $isvalid = 0;
+            }
+            next unless($isvalid);
             $hname .= '|' . unpack("(H2)*", chr(length($hpart))) . '|' . $hpart;
         }
+        next unless($isvalid);
         push @dnshosts, $hname;
     }
     $dnshostsel->finish;
