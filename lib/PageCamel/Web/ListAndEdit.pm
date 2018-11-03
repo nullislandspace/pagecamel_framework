@@ -340,6 +340,10 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
     }
 
+    if(!defined($self->{extrattvars})) {
+        $self->{extrattvars} = '';
+    }
+
     my @editcolumns;
     my @readonlycolumns;
     my %editcolumntypes;
@@ -1393,6 +1397,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         cancreate       =>  $self->{cancreate},
         autosave        =>  $self->{autosave},
         editcolumnlist  =>  $self->{editcolumnlist},
+        extrattvars     =>  $self->{extrattvars},
     );
 
     if($self->{autosave}) {

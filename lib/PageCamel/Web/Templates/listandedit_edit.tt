@@ -218,6 +218,7 @@
     data-autosaveurl="[% webpath %]/autosave"
     data-editmode="[% mode %]"
     data-editcolumnlist="[% editcolumnlist %]"
+    [% extrattvars %]
 ></span>
 
 

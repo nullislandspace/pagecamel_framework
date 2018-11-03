@@ -79,7 +79,7 @@ sub get_manage {
     my $maxheight = $self->{thumbheight};
 
     if($mode eq "delete") {
-        my $delsth = $dbh->prepare_cached("DELETE FROM blog_images WHERE filename = ?")
+        my $delsth = $dbh->prepare_cached("DELETE FROM " . $self->{tablename} . " WHERE filename = ?")
                 or croak($dbh->errstr);
         my @delfiles;
         if(ref $ua->{postparams}->{'delfile'} eq 'ARRAY') {
@@ -105,7 +105,7 @@ sub get_manage {
 
         if($filename ne '' && $realfname ne '' && defined($ua->{files}->{$realfname}->{data})) {
             # First delete the existing file (if there is one)
-            my $delsth = $dbh->prepare_cached("DELETE FROM blog_images WHERE filename = ?")
+            my $delsth = $dbh->prepare_cached("DELETE FROM " . $self->{tablename} . " WHERE filename = ?")
                     or croak($dbh->errstr);
             $delsth->execute($filename) or croak($dbh->errstr);
 
@@ -155,7 +155,7 @@ sub get_manage {
 
 
 
-            my $insth = $dbh->prepare("INSERT INTO blog_images (filename, filesize_bytes, description, file_datablob_id,
+            my $insth = $dbh->prepare("INSERT INTO " . $self->{tablename} . " (filename, filesize_bytes, description, file_datablob_id,
                                       thumbnail, size_width, size_height)
                                       VALUES (?,?,?,?,?,?,?)")
                     or croak($dbh->errstr);
@@ -167,7 +167,7 @@ sub get_manage {
     }
 
     my @files;
-    my $selsth = $dbh->prepare_cached("SELECT * FROM blog_images ORDER BY filename")
+    my $selsth = $dbh->prepare_cached("SELECT * FROM " . $self->{tablename} . " ORDER BY filename")
             or croak($dbh->errstr);
     $selsth->execute or croak($dbh->errstr);
     while((my $file = $selsth->fetchrow_hashref)) {
@@ -205,7 +205,7 @@ sub get_download {
 
     my $blobid;
     my $selsth = $dbh->prepare("SELECT *
-                               FROM blog_images
+                               FROM " . $self->{tablename} . "
                                WHERE filename = ?")
             or croak($dbh->errstr);
     $selsth->execute($filename);
@@ -255,7 +255,7 @@ sub get_thumb {
 
     my $encthumb;
     my $selsth = $dbh->prepare("SELECT *
-                               FROM blog_images
+                               FROM " . $self->{tablename} . "
                                WHERE filename = ?")
             or croak($dbh->errstr);
     $selsth->execute($filename);
@@ -307,7 +307,7 @@ sub get_fname {
 
     # Check for existing filename
     my $selsth = $dbh->prepare_cached("SELECT *
-                                      FROM blog_images
+                                      FROM " . $self->{tablename} . "
                                       WHERE filename = ?
                                       LIMIT 1")
             or croak($dbh->errstr);
@@ -442,7 +442,7 @@ sub get_lines {
         $orderby = $self->{orderby};
     }
 
-    my $tcountsth = $dbh->prepare_cached("SELECT count(*) FROM blog_images")
+    my $tcountsth = $dbh->prepare_cached("SELECT count(*) FROM " . $self->{tablename})
                 or croak($dbh->errstr);
     $tcountsth->execute or croak($dbh->errstr);
     my ($tcount) = $tcountsth->fetchrow_array;
@@ -473,7 +473,7 @@ sub get_lines {
 
     my $selstmt = "SELECT " . join(', ', qw[filename description size_width size_height filesize_bytes]) .
                     ", count(*) OVER () as whereclause_totalcount " .
-                    " FROM blog_images " .
+                    " FROM " . $self->{tablename} . 
                     " $where " .
                     " ORDER BY $orderby" .
                     " LIMIT $limit OFFSET $offset ";
