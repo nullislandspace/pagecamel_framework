@@ -1,4 +1,4 @@
-package PageCamel::Web::Blog::ASpell;
+package PageCamel::Web::ListAndEdit::ASpell;
 #---AUTOPRAGMASTART---
 use 5.020;
 use strict;
@@ -93,7 +93,7 @@ sub get {
     );
 
 
-    my $template = $th->get('blog/aspell', 0, %webdata);
+    my $template = $th->get('listandedit/aspell', 0, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "text/html",

@@ -1,4 +1,4 @@
-package PageCamel::Web::ListAndEdit;
+package PageCamel::Web::ListAndEdit::Main;
 #---AUTOPRAGMASTART---
 use 5.020;
 use strict;
@@ -1003,7 +1003,7 @@ sub get_list {
 
     $webdata{aaSorting} = $lastsort;
 
-    my $template = $self->{server}->{modules}->{templates}->get("listandedit_list", 1, %webdata);
+    my $template = $self->{server}->{modules}->{templates}->get("listandedit/list", 1, %webdata);
     return (status  =>  404) unless $template;
     if($self->{support_mobile}) {
         return (status  =>  200,
@@ -2035,7 +2035,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
     $webdata{HeadExtraScripts} = \@headextrascripts;
     $webdata{HeadExtraCSS} = \@headextracss;
 
-    my $template = $self->{server}->{modules}->{templates}->get("listandedit_edit", 1, %webdata);
+    my $template = $self->{server}->{modules}->{templates}->get("listandedit/edit", 1, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "text/html",

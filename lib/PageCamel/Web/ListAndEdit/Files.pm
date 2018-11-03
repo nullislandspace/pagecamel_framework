@@ -1,4 +1,4 @@
-package PageCamel::Web::Blog::Files;
+package PageCamel::Web::ListAndEdit::Files;
 #---AUTOPRAGMASTART---
 use 5.020;
 use strict;
@@ -141,7 +141,7 @@ sub get_manage {
         AvailFiles  =>  \@files,
     );
 
-    my $template = $self->{server}->{modules}->{templates}->get("blog/files", 1, %webdata);
+    my $template = $self->{server}->{modules}->{templates}->get("listandedit/files", 1, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "text/html",

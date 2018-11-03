@@ -1,4 +1,4 @@
-package PageCamel::Web::Blog::Images;
+package PageCamel::Web::ListAndEdit::Images;
 #---AUTOPRAGMASTART---
 use 5.020;
 use strict;
@@ -187,7 +187,7 @@ sub get_manage {
         AvailFiles  =>  \@files,
     );
 
-    my $template = $self->{server}->{modules}->{templates}->get("blog/images", 1, %webdata);
+    my $template = $self->{server}->{modules}->{templates}->get("listandedit/images", 1, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "text/html",
