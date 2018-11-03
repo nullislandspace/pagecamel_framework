@@ -1,0 +1,3 @@
+[% FOREACH Article IN Articles %]
+<p>[% Article.archive_teaser %]</p>
+[% END %]

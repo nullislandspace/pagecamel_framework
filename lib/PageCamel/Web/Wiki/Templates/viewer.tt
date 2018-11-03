@@ -1,0 +1,177 @@
+[% IF MobileDesktopClientMode != 'mobile' %]
+    <table border="0" id="wikitable">
+        <tr>
+            <td colspan="3"><div id="toppadding"></div></td>
+        </tr>
+
+        <tr>
+            <td>&nbsp;</td>
+            <td align="left" valign="center">
+                <h1 class="wikititle">
+                    [% tr.quote(wikititle) %]
+                </h1>
+            </td>
+
+            <td>&nbsp;</td>
+        </tr>
+
+        <tr>
+            <td><div id="leftpadding"></div></td>
+            <td align="left">[% wikientry %]</td>
+            <td><div id="rightpadding"></div></td>
+        </tr>
+        <tr>
+            <td colspan="3"><div id="bottompadding"></div></td>
+        </tr>
+    </table>
+[% ELSE %]
+    <p>
+        <h1>
+            [% tr.quote(wikititle) %]
+        </h1>
+    </p>
+    <p align="left"><div align="left">[% wikientry %]</div></p>
+[% END %]
+
+<p align="left"><a href="[% archivelink %]">[% tr.trquote('List of articles') %]</a></p>
+
+<span id="masktemplatedataset"
+    data-enablecomments="[% EnableComments %]"
+    data-commentsenabled="[% commentsenabled %]"
+    data-mobiledesktopmode="[% MobileDesktopClientMode %]"
+></span>
+
+<script>
+    var toc_hidden = 0;
+    var toc_enabled = 0;
+    function extraOnLoad() {
+        hljs.initHighlightingOnLoad();
+
+        $('#leftpadding').width(30);
+        $('#rightpadding').width(30);
+        $('#toppadding').height(20);
+        $('#bottompadding').height(50);
+
+        $('#wikitochide').each(function() {
+            toc_enabled = 1;
+            console.log("TOC handling enabled");
+        });
+
+        if(toc_enabled == 1) {
+            var tmp = Cookies.get('WikiHideTOC');
+            if(typeof tmp == 'undefined') {
+                toc_hidden = 1; // Hide by default
+            } else {
+                tmp = parseInt(tmp);
+                if(tmp == 1) {
+                    toc_hidden = 1;
+                } else {
+                    toc_hidden = 0;
+                }
+            }
+
+            $('#wikitochide').on('click', function() {
+                showhidetoc();
+            });
+
+            // run the function once (this also writes the cookie with the current value)
+            updateTocVisibility();
+        }
+
+
+        if(window.wikiExtraOnLoad) {
+            wikiExtraOnLoad();
+        }
+
+        if(ttvars.mobiledesktopmode == "mobile") {
+            resizeBodyImages();
+            $(window).on('resize', function() {
+                console.log("Resize detected");
+                resizeBodyImages();
+            });
+        }
+
+        // Allow image resize to nearly fullscreen
+        $('img[articlecontent="1"]').on('click', function() {
+            //var iwidth = $(this).attr('width');
+            //var iheight = $(this).attr('height');
+            var iwidth = $(this).width();
+            var iheight = $(this).height();
+            var isrc = $(this).attr('src');
+
+            console.log(iwidth + 'x' + iheight);
+
+            var wwidth = $(window).width();
+            var wheight = $(window).height();
+
+            var xscalefactor = wwidth / iwidth;
+            var yscalefactor = wheight / iheight;
+
+            var scalefactor;
+            if(xscalefactor < yscalefactor) {
+                scalefactor = xscalefactor;
+            } else {
+                scalefactor = yscalefactor;
+            }
+            //scalefactor = scalefactor * 0.95;
+
+            var newwidth = Math.floor(iwidth * scalefactor);
+            var newheight = Math.floor(iheight * scalefactor);
+
+            var newtop = (wheight - newheight) / 2;
+            var newleft = (wwidth - newwidth) / 2;
+
+            var imgtag = '<img src="' + isrc + '" width="' + newwidth + '" height="' + newheight + '" id="wikifullscreenimage">';
+            $.blockUI({message: imgtag,
+                      centerX: false,
+                      centerY: false,
+                      css: { top: newtop + "px", left: newleft + "px", cursor: "default"},
+                      overlayCSS: { cursor: "not-allowed"},
+                      allowBodyStretch: false
+            });
+            $('#wikifullscreenimage').on('click', function() {
+                $.unblockUI();
+            });
+            console.log("TAG: " + imgtag);
+
+        });
+
+    }
+
+    function showhidetoc() {
+        if(toc_enabled != 1) {
+            // No table of contents, just return without doing anything
+            return;
+        }
+        if(toc_hidden == 1) {
+            toc_hidden = 0;
+        } else {
+            toc_hidden = 1;
+        }
+        updateTocVisibility();
+    }
+
+    function updateTocVisibility() {
+        if(toc_enabled != 1) {
+            // No table of contents, just return without doing anything
+            return;
+        }
+        if(toc_hidden == 1) {
+            document.getElementById('wikitoctable').style.display = 'none';
+            $('#wikitochide').html('Show');
+        } else {
+            document.getElementById('wikitoctable').style.display = 'block';
+            $('#wikitochide').html('Hide');
+        }
+        Cookies.set('WikiHideTOC', toc_hidden, { expires: 365, path: '/' });
+    }
+
+    function resizeBodyImages() {
+        var imgwidth = Math.round($(window).width() * 0.7); // 70% window width
+        $('img[articlecontent="1"]').each(function() {
+            $(this).attr('width', imgwidth);
+        });
+    }
+
+
+</script>

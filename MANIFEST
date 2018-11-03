@@ -2843,6 +2843,9 @@ lib/PageCamel/Web/VNC5.pm
 lib/PageCamel/Web/WebApi/LetsEncryptDNS.pm
 lib/PageCamel/Web/WebApps.pm
 lib/PageCamel/Web/Webcam.pm
+lib/PageCamel/Web/Wiki/Templates/archive_mobile.tt
+lib/PageCamel/Web/Wiki/Templates/viewer.tt
+lib/PageCamel/Web/Wiki/Viewer.pm
 lib/PageCamel/WebBase.pm
 lib/PageCamel/WebPreFork.pm
 lib/PageCamel/WebSingle.pm
