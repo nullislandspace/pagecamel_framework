@@ -25,7 +25,7 @@
 ################################################################
 
 package PageCamel::Net::Server::Log::Log::Log4perl;
-our $VERSION = 1;
+our $VERSION = 2;
 
 use strict;
 use warnings;

@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English qw(-no_match_vars);
 use Carp;
-our $VERSION = 1;
+our $VERSION = 2;
 use Fatal qw( close );
 use Array::Contains;
 #---AUTOPRAGMAEND---
@@ -37,7 +37,7 @@ foreach my $file (@files) {
 
     open(my $ofh, ">", $file) or die($ERRNO);
     foreach my $line (@lines) {
-        $line =~ s/VERSION = \d\.\d+/VERSION = $newversion/g;
+        $line =~ s/VERSION = [\d\.]+/VERSION = $newversion/g;
         print $ofh $line;
     }
     close $ofh;
