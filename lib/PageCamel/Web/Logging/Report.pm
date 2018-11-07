@@ -298,7 +298,7 @@ sub get_edit {
         }
     } elsif($mode eq "createreport") {
         my $reportname = $ua->{postparams}->{'report_name'} || 'unnamed report';
-        my $reportdevice = $ua->{postparams}->{'device_type'} || 'PAC3200';
+        my $reportdevice = $ua->{postparams}->{'device_type'} || 'WEBGUI';
         my $reporttitle = $ua->{postparams}->{'report_title'} || 'untitled report';
         my $reportdescription = $ua->{postparams}->{'report_description'} || '';
         my $sth = $dbh->prepare_cached("INSERT INTO logging_reports
@@ -328,7 +328,7 @@ sub get_edit {
         $webdata{ReportID} = $reportid;
 
         my $reportname = $ua->{postparams}->{'report_name'} || 'unnamed report';
-        my $reportdevice = $ua->{postparams}->{'device_type'} || 'PAC3200';
+        my $reportdevice = $ua->{postparams}->{'device_type'} || 'WEBGUI';
         my $reporttitle = $ua->{postparams}->{'report_title'} || 'untitled report';
         my $reportdescription = $ua->{postparams}->{'description'} || '';
         my $itemstring = $ua->{postparams}->{'graph_order'} || '';

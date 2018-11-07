@@ -2887,8 +2887,6 @@ lib/PageCamel/Worker/GardenSpaceProgram/Modem.pm
 lib/PageCamel/Worker/GardenSpaceProgram/Upload.pm
 lib/PageCamel/Worker/Logging/PluginBase.pm
 lib/PageCamel/Worker/Logging/Plugins/DummyPlugin.pm
-lib/PageCamel/Worker/Logging/Plugins/EMCTime.pm
-lib/PageCamel/Worker/Logging/Plugins/PAC3200.pm
 lib/PageCamel/Worker/Logging/Plugins/PageCamelStats.pm
 lib/PageCamel/Worker/Logging/Plugins/Ping.pm
 lib/PageCamel/Worker/Logging/Plugins/Raid3ware.pm
@@ -2896,7 +2894,6 @@ lib/PageCamel/Worker/Logging/Plugins/RaidMega.pm
 lib/PageCamel/Worker/Logging/Plugins/SmartStatus.pm
 lib/PageCamel/Worker/Logging/Plugins/SystemStatus.pm
 lib/PageCamel/Worker/Logging/Plugins/TempSensor_HWG_STE.pm
-lib/PageCamel/Worker/Logging/Plugins/USV.pm
 lib/PageCamel/Worker/Logging/Scheduler.pm
 lib/PageCamel/Worker/Minecraft/Mapcrafter.pm
 lib/PageCamel/Worker/Minecraft/PlayerCoords.pm
