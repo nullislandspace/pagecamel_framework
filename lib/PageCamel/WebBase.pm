@@ -18,7 +18,6 @@ use PageCamel::Web::AccesslogDetail;
 use PageCamel::Web::AuditlogDetail;
 use PageCamel::Web::BaseModule;
 use PageCamel::Web::BaseWebSocket;
-use PageCamel::Web::Bitcoin::Account;
 use PageCamel::Web::Blog::Viewer;
 use PageCamel::Web::BrowserWorkarounds;
 use PageCamel::Web::CSPHeader;

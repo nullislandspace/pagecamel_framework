@@ -16,7 +16,6 @@ use base qw(Exporter);
 
 #=!=START-AUTO-INCLUDES
 use PageCamel::Helpers::AutoDialogs;
-use PageCamel::Helpers::Bitcoind;
 use PageCamel::Helpers::CSVFilter;
 use PageCamel::Helpers::ClacksCache;
 use PageCamel::Helpers::ClacksCachePg;

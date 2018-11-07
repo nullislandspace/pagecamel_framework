@@ -106,7 +106,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # ------------- LIST -------------
-    my @listallowedtypes = qw[text url boolean array date bitcoin led html];
+    my @listallowedtypes = qw[text url boolean array date led html];
 
     foreach my $mustattr (qw[orderby primarykey table webpath pagetitle db session]) {
         if(!defined($self->{$mustattr})) {
@@ -255,7 +255,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         my %listtesttypes = (
             array   => [qw[array]],
             boolean => [qw[led boolean]],
-            numeric => [qw[text bitcoin url]],
+            numeric => [qw[text url]],
             text    => [qw[text url html boolean]],
         );
 
@@ -1298,8 +1298,6 @@ sub get_lines {
             if($type eq 'date') {
                 $type = 'text';
                 $value =~ s/\..*//;
-            } elsif($type eq 'bitcoin') {
-                $value = sprintf "%.8f", $value;
             } elsif($type eq 'array') {
                 if(ref $rawline->{$item->{column}} eq 'ARRAY') {
                     $value = join("<br/>", @{$rawline->{$item->{column}}});

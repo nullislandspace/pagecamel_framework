@@ -24,7 +24,6 @@ lib/PageCamel/DNS.pm
 lib/PageCamel/Framework.pm
 lib/PageCamel/Helpers.pm
 lib/PageCamel/Helpers/AutoDialogs.pm
-lib/PageCamel/Helpers/Bitcoind.pm
 lib/PageCamel/Helpers/ClacksCache.pm
 lib/PageCamel/Helpers/ClacksCachePg.pm
 lib/PageCamel/Helpers/CommandHelper.pm
@@ -86,8 +85,6 @@ lib/PageCamel/Web/AccesslogDetail.pm
 lib/PageCamel/Web/AuditlogDetail.pm
 lib/PageCamel/Web/BaseModule.pm
 lib/PageCamel/Web/BaseWebSocket.pm
-lib/PageCamel/Web/Bitcoin/Account.pm
-lib/PageCamel/Web/Bitcoin/Templates/account.tt
 lib/PageCamel/Web/Blog/Templates/archive_mobile.tt
 lib/PageCamel/Web/Blog/Templates/rssfeed.tt
 lib/PageCamel/Web/Blog/Templates/viewer.tt
@@ -2856,11 +2853,6 @@ lib/PageCamel/Worker/AutoScheduler.pm
 lib/PageCamel/Worker/AXFRSync.pm
 lib/PageCamel/Worker/BackupCommand.pm
 lib/PageCamel/Worker/BaseModule.pm
-lib/PageCamel/Worker/Bitcoin/BTCHandler.pm
-lib/PageCamel/Worker/Bitcoin/BTCStats.pm
-lib/PageCamel/Worker/Bitcoin/CreateAccounts.pm
-lib/PageCamel/Worker/Bitcoin/Incoming.pm
-lib/PageCamel/Worker/Bitcoin/Outgoing.pm
 lib/PageCamel/Worker/Clacks/Bridge.pm
 lib/PageCamel/Worker/Clacks/LocalCache.pm
 lib/PageCamel/Worker/ClacksCache.pm
