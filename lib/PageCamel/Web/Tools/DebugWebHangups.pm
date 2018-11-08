@@ -89,8 +89,6 @@ sub logstart {
     $self->{clacks}->doNetwork();
     $self->{debuginfo} = $debuginfo;
 
-    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=LOGSTART " , $debuginfo, "\n";
-
     return;
 }
 
@@ -99,8 +97,6 @@ sub logend {
 
     $self->{clacks}->store($self->{clackskey}, 'LOGEND ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
-
-    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=LOGEND " , $self->{debuginfo}, "\n";
 
     return;
 }
@@ -112,8 +108,6 @@ sub logdatadelivery {
     $self->{clacks}->store($self->{clackskey}, 'LOGDATADELIVERY ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
 
-    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=LOGDATADELIVERY " , $self->{debuginfo}, "\n";
-
     return;
 }
 
@@ -123,8 +117,6 @@ sub logwebsocket {
     $self->{clacks}->store($self->{clackskey}, 'LOGWEBSOCKET ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
 
-    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=LOGWEBSOCKET " , $self->{debuginfo}, "\n";
-
     return;
 }
 
@@ -133,7 +125,6 @@ sub logrequestfinished {
 
     $self->{clacks}->store($self->{clackskey}, 'IDLE');
     $self->{clacks}->doNetwork();
-    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=IDLE\n";
     delete $self->{debuginfo};
 
     return;
