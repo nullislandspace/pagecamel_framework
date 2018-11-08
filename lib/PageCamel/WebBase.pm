@@ -96,6 +96,7 @@ use PageCamel::Web::Testing::VoiceComm;
 use PageCamel::Web::Tools::AccessToDebuglog;
 use PageCamel::Web::Tools::ClacksConsole;
 use PageCamel::Web::Tools::ContentSecurityPolicyViolation;
+use PageCamel::Web::Tools::DebugWebHangups;
 use PageCamel::Web::Tools::Debuglog;
 use PageCamel::Web::Tools::HostnameRedirect;
 use PageCamel::Web::Tools::KaffeeSim;
@@ -1458,6 +1459,14 @@ nextrequest:
     # handle protocol upgrades like WebSockets
     if($result{status} eq "101") {
         $self->trace('process_request protocolupgrade');
+
+        # run some logging callbacks
+        foreach my $filtermodule (@{$self->{logwebsocket}}) {
+            my $module = $filtermodule->{Module};
+            my $funcname = $filtermodule->{Function};
+            $module->$funcname($ua, \%header, \%result);
+        }
+
         $ua->{keepalive} = 0;
         my $upgradeTo = $ua->{headers}->{'Upgrade'} || '';
         foreach my $dpath (keys %{$self->{protocolupgrade}}) {
@@ -1481,6 +1490,14 @@ nextrequest:
         }
     } elsif(defined($result{dataGenerator})) {
         $self->trace('process_request datagenerator');
+
+        # run some logging callbacks
+        foreach my $filtermodule (@{$self->{logrequestfinished}}) {
+            my $module = $filtermodule->{Module};
+            my $funcname = $filtermodule->{Function};
+            $module->$funcname($ua, \%header, \%result);
+        }
+
         my $module = $result{dataGenerator}->{module};
         my $funcname = $result{dataGenerator}->{funcname};
         my ($totallength, $partcount) = (0, 0);
@@ -1496,6 +1513,14 @@ nextrequest:
             last if($dpart{done});
         }
         print STDERR getISODate() . "     Send $totallength bytes in $partcount datagenerator parts.\n";
+    }
+    
+    # run some logging callbacks
+    $self->trace('process_request logrequestfinished');
+    foreach my $filtermodule (@{$self->{logrequestfinished}}) {
+        my $module = $filtermodule->{Module};
+        my $funcname = $filtermodule->{Function};
+        $module->$funcname($ua, \%header, \%result);
     }
 
     my $endtime = time();
@@ -1577,7 +1602,7 @@ sub startconfig {
     foreach my $anonhash (qw[paths modules custom_methods protocolupgrade cors basic_auth]) {
         $self->{$anonhash} = {};
     }
-    foreach my $anonarrays (qw[logstart logend authcheck prefilter postauthfilter prerender tasks postfilter
+    foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished authcheck prefilter postauthfilter prerender tasks postfilter
                                 default_webdata late_default_webdata loginitems logoutitems sessionrefresh cleanup
                                 public_urls remotelog sitemap firewall fastredirect
                                 ]) {
@@ -2084,6 +2109,9 @@ BEGIN {
         authcheck       => "authcheck",
         logstart        => "logstart",
         logend          => "logend",
+        logdatadelivery => "logdatadelivery",
+        logwebsocket    => "logwebsocket",
+        logrequestfinished => "logrequestfinished",
         remotelog       => "remotelog",
         fastredirect    => "fastredirect",
     );

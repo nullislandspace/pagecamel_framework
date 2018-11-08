@@ -1,0 +1,202 @@
+package PageCamel::Web::Tools::DebugWebHangups;
+#---AUTOPRAGMASTART---
+use 5.020;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 2;
+use Fatal qw( close );
+use Array::Contains;
+#---AUTOPRAGMAEND---
+
+use base qw(PageCamel::Web::BaseModule);
+
+sub new {
+    my ($proto, %config) = @_;
+    my $class = ref($proto) || $proto;
+
+    my $self = $class->SUPER::new(%config); # Call parent NEW
+    bless $self, $class; # Re-bless with our class
+
+    return $self;
+}
+
+sub register {
+    my $self = shift;
+
+    $self->register_logstart("logstart");
+    $self->register_logend("logend");
+    $self->register_logrequestfinished("logrequestfinished");
+    $self->register_logwebsocket("logwebsocket");
+    $self->register_logdatadelivery("logdatadelivery");
+
+    return;
+}
+
+sub crossregister {
+    my ($self) = @_;
+
+    my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
+    my $clacks = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    for(my $id = 0; $id <= 65535; $id++) {
+        my $key = "PageCamel::WebHangups::$id";
+        $clacks->remove($key);
+    }
+    $clacks->doNetwork();
+
+    return;
+}
+
+sub handle_child_start {
+    my ($self) = @_;
+
+    my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
+    $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    $self->{clackskey} = 'PageCamel::WebHangups::' . $PID;
+    $self->{clacks}->disablePing();
+    $self->{clacks}->store($self->{clackskey}, 'IDLE');
+    $self->{clacks}->doNetwork();
+
+    return;
+}
+
+sub handle_child_stop {
+    my ($self) = @_;
+
+    $self->{clacks}->remove($self->{clackskey});
+    $self->{clacks}->doNetwork();
+
+    return;
+}
+
+
+sub logstart {
+    my ($self, $ua) = @_;
+
+    my $webpath = $ua->{url} || '--unknown--';
+
+    my $method = $ua->{method} || '--unknown--';
+    my $protocol = 'http';
+    if($self->{usessl}) {
+        $protocol = 'https';
+    }
+
+    my $debuginfo = join(' ## ', $webpath, $method, $protocol);
+    $self->{clacks}->store($self->{clackskey}, 'LOGSTART ' . $debuginfo);
+    $self->{clacks}->doNetwork();
+    $self->{debuginfo} = $debuginfo;
+
+    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=LOGSTART " , $debuginfo, "\n";
+
+    return;
+}
+
+sub logend {
+    my ($self, $ua) = @_;
+
+    $self->{clacks}->store($self->{clackskey}, 'LOGEND ' . $self->{debuginfo});
+    $self->{clacks}->doNetwork();
+
+    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=LOGEND " , $self->{debuginfo}, "\n";
+
+    return;
+}
+
+
+sub logdatadelivery {
+    my ($self, $ua) = @_;
+
+    $self->{clacks}->store($self->{clackskey}, 'LOGDATADELIVERY ' . $self->{debuginfo});
+    $self->{clacks}->doNetwork();
+
+    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=LOGDATADELIVERY " , $self->{debuginfo}, "\n";
+
+    return;
+}
+
+sub logwebsocket {
+    my ($self, $ua) = @_;
+
+    $self->{clacks}->store($self->{clackskey}, 'LOGWEBSOCKET ' . $self->{debuginfo});
+    $self->{clacks}->doNetwork();
+
+    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=LOGWEBSOCKET " , $self->{debuginfo}, "\n";
+
+    return;
+}
+
+sub logrequestfinished {
+    my ($self, $ua, $header, $result) = @_;
+
+    $self->{clacks}->store($self->{clackskey}, 'IDLE');
+    $self->{clacks}->doNetwork();
+    print STDERR "^^^^^^^^^^^^^^^ ", $self->{clackskey}, "=IDLE\n";
+    delete $self->{debuginfo};
+
+    return;
+}
+
+
+# logdatadelivery logwebsocket logrequestfinished
+
+1;
+__END__
+
+=head1 NAME
+
+PageCamel::Web::Accesslog - log all webcalls
+
+=head1 SYNOPSIS
+
+  use PageCamel::Web::Accesslog;
+
+=head1 DESCRIPTION
+
+Logs all webcalls in the "accesslog" table
+
+=head2 new
+
+Create a new instance.
+
+=head2 register
+
+Register the logstart and logend callbacks
+
+=head2 logstart
+
+"Remember" initial request informations.
+
+=head2 logend
+
+Write log entry.
+
+=head2 get_defaultwebdata
+
+Default "__do_not_log_to_accesslog" to false (= log always)
+
+=head1 IMPORTANT NOTE
+
+This module is part of the PageCamel framework. Currently, only limited support
+and documentation exists outside my DarkPAN repositories. This source is
+currently only provided for your reference and usage in other projects (just
+copy&paste what you need, see license terms below).
+
+To see PageCamel in action and for news about the project,
+visit my blog at L<https://cavac.at>.
+
+=head1 AUTHOR
+
+Rene Schickbauer, E<lt>pagecamel@cavac.atE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008-2016 by Rene Schickbauer
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.10.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut
