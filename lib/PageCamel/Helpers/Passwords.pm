@@ -51,7 +51,7 @@ sub update_password {
     #print $bsalt . "\n";
     my $bsalt_b64 = encode_base64($bsalt, '');
     #my $cost = getCurrentYear() - 2000 + 3;
-    my $cost = 10; # FIXME: Make SystemSetting
+    my $cost = 5; # FIXME: Make SystemSetting
 
     my $bcrypt = Digest->new('Bcrypt');
     $bcrypt->cost($cost);
