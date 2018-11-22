@@ -1,3 +1,4 @@
+[% IF ListPageHeader != "" %][% ListPageHeader %][% END %]
 [% IF ShowPageTitle == 1 %]
     <p align="center"><h1>[% tr.trquote(PageTitle) %]
     [% IF UseURLID == 1 %][% URLID %][% END %]</h1></p>

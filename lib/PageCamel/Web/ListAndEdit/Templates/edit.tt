@@ -5,6 +5,7 @@
                         confirm => "Delete",
                         cancel => "Cancel",
                         mode => "delete") %]
+[% IF EditPageHeader != "" %][% EditPageHeader %][% END %]
 [% IF errstr != '' %]
     <div class="errortext" onclick="removeStatusText();" id="errorstatustext"><p align="center" >[% tr.quote(errstr) %]</div>
 [% END %]
