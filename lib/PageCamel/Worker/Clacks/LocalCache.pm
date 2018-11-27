@@ -45,7 +45,7 @@ sub register {
 sub crossregister {
     my ($self) = @_;
 
-    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    $self->initLocal();
 
 
     return;
@@ -55,9 +55,10 @@ sub crossregister {
 sub initLocal {
     my ($self) = @_;
 
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $now = time;
     foreach my $varname (@{$self->{item}}) {
-        print "Listening for $varname\n";
+        $reph->debuglog("Listening for $varname");
         $self->{clacks}->listen($varname);
     }
     $self->{clacks}->ping();
