@@ -138,7 +138,8 @@ sub work {
             my $imgkeyname = 'Webcam::' . $self->{modname} . '::' . $crop->{clacksname} . '::imagedata';
             my $encoded = encode_base64(slurpBinFile($fname), '');
             $reph->debuglog(length($encoded) . " base64 bytes @ $imgkeyname");
-            $memh->clacks_set($imgkeyname, $encoded);
+            $memh->clacks_set($imgkeyname, $encoded); # real time notification via SET
+            $memh->set($imgkeyname, $encoded); # = "store" in Clacks terminology, "set" in memcached terminology...
         }
         $workCount++;
     } else {
