@@ -1132,7 +1132,6 @@ if(1) {
     if(!defined($reply) && !defined($error)) {
         my $resolver;
         if($self->{config}->{usegoogle}) {
-            $self->debuglog("Using GOOGLE Nameservers");
             $resolver = Net::DNS::Resolver->new(nameservers => ['8.8.8.8', '8.8.4.4']);
         } else {
             $resolver = Net::DNS::Resolver::Recurse->new(config_file => $self->{config}->{resolvconf},  recurse => 1, debug => 0, search => '');
