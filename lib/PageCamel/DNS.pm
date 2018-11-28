@@ -99,6 +99,10 @@ sub child_init_hook {
         $self->{config}->{remotelookup} = 0;
     }
 
+    if(!defined($self->{config}->{usegoogle})) {
+        $self->{config}->{usegoogle} = 0;
+    }
+
 
     # Re-init randomness after fork()
     srand();
@@ -1126,8 +1130,13 @@ if(1) {
 }
 
     if(!defined($reply) && !defined($error)) {
-        my $resolver = Net::DNS::Resolver::Recurse->new(config_file => $self->{config}->{resolvconf},  recurse => 1, debug => 0, search => '');
-        #my $resolver = Net::DNS::Resolver->new(nameservers => ['8.8.8.8', '8.8.4.4']);
+        my $resolver;
+        if($self->{config}->{usegoogle}) {
+            $self->debuglog("Using GOOGLE Nameservers");
+            $resolver = Net::DNS::Resolver->new(nameservers => ['8.8.8.8', '8.8.4.4']);
+        } else {
+            $resolver = Net::DNS::Resolver::Recurse->new(config_file => $self->{config}->{resolvconf},  recurse => 1, debug => 0, search => '');
+        }
         $reply = $resolver->search($qname, $qtype);
 
         my @fasterrors = qw[NOERROR SERVFAIL NOTIMP REFUSED NOTZONE];
