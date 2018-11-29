@@ -19,7 +19,9 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::Passwords qw(verify_password gen_textsalt);
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
+use PageCamel::Helpers::URI qw[decode_uri_path];
 use MIME::Base64;
+use Data::Dumper;
 
 use Readonly;
 
@@ -64,6 +66,14 @@ sub register {
     $self->register_authcheck("prefilter");
     $self->register_postfilter("postfilter");
     $self->register_defaultwebdata("get_defaultwebdata");
+
+    if(defined($self->{switchtouser}->{webpath})) {
+        $self->register_webpath($self->{switchtouser}->{webpath}, "get_switchtouser", 'GET');
+    }
+    if(defined($self->{switchfromuser}->{webpath})) {
+        $self->register_webpath($self->{switchfromuser}->{webpath}, "get_switchfromuser", 'GET');
+    }
+
     return;
 }
 
@@ -411,6 +421,202 @@ sub getAutologin {
     return $session;
 }
 
+sub get_switchtouser {
+    my ($self, $ua) = @_;
+
+    my $remove = $self->{switchtouser}->{webpath};
+    my $targetuser = $ua->{url};
+    substr($targetuser, 0, length($remove)) = '';
+
+    $targetuser = decode_uri_path($targetuser);
+    $targetuser =~ s/^\///g;
+
+    my $startpage = $self->adminSwitchToUser($targetuser, $ua);
+    if(!defined($startpage)) {
+        return (status => 403); # Forbidden
+    }
+
+    my %webdata = (
+        $self->{server}->get_defaultwebdata(),
+        PageTitle   =>  $self->{switchtouser}->{pagetitle},
+    );
+
+    my $template = $self->{server}->{modules}->{templates}->get("users/switchinguser", 1, %webdata);
+    return (status  =>  404) unless $template;
+    return (status  =>  303,
+            location => $startpage,
+            type    => "text/html",
+            data    => $template);
+}
+
+sub get_switchfromuser {
+    my ($self, $ua) = @_;
+
+    my $startpage = $self->adminSwitchFromUser($ua);
+    if(!defined($startpage)) {
+        return (status => 403); # Forbidden
+    }
+
+    my %webdata = (
+        $self->{server}->get_defaultwebdata(),
+        PageTitle   =>  $self->{switchfromuser}->{pagetitle},
+    );
+
+    my $template = $self->{server}->{modules}->{templates}->get("users/switchinguser", 1, %webdata);
+    return (status  =>  404) unless $template;
+    print STDERR "***************************** $startpage\n";
+    return (status  =>  303,
+            location => $startpage,
+            type    => "text/html",
+            data    => $template);
+}
+
+
+sub adminSwitchToUser {
+    my ($self, $username, $ua) = @_;
+
+    my $host_addr = $ua->{remote_addr};
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
+    my $viewh = $self->{server}->{modules}->{$self->{views}};
+
+    my $session = $ua->{cookies}->{"pagecamel-session"};
+
+    $self->updateSessionUsername($session, $username);
+
+    my $user = $self->{server}->{modules}->{$self->{memcache}}->get($session);
+    if(defined($user)) {
+        $user = dbderef($user);
+    }
+
+    my @realrights = @{$user->{rights}};
+
+    my %realuser = (
+        username => $user->{username},
+        first_name => $user->{first_name},
+        last_name => $user->{last_name},
+        email_addr => $user->{email_addr},
+        company => $user->{company},
+        rights => \@realrights,
+    );
+
+    $user->{realuser} = \%realuser;
+
+
+    my $sth = $dbh->prepare_cached("SELECT username, email_addr,
+                                   first_name, last_name,
+                                   company_name
+                                   FROM users
+                            WHERE username = ?")
+                or croak($dbh->errstr);
+
+    $sth->execute($username);
+
+
+    while((my $line = $sth->fetchrow_hashref)) {
+        $user->{username} = $line->{username};
+        $user->{email_addr} = $line->{email_addr};
+        $user->{first_name} = $line->{first_name};
+        $user->{last_name} = $line->{last_name};
+        $user->{company} = $line->{company_name};
+        $user->{require_password_change} = 0; # NEVER force password change
+        last;
+    }
+    $sth->finish;
+
+    my @dbRights;
+    my $rightssth = $dbh->prepare_cached("SELECT * FROM users_permissions
+                                         WHERE username = ?
+                                         AND has_access = true
+                                         ORDER BY permission_name")
+            or croak($dbh->errstr);
+    $rightssth->execute($user->{username}) or croak($dbh->errstr);
+    while((my $right = $rightssth->fetchrow_hashref)) {  ## no critic (NamingConventions::ProhibitAmbiguousNames)
+        my $restrict = 0;
+        foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
+            if(defined($ur->{restrict}) && $right->{permission_name} eq $ur->{db}) {
+                $restrict = 1;
+                last;
+            }
+        }
+        if(!$restrict) {
+            push @dbRights, $right->{permission_name};
+        }
+    }
+    $rightssth->finish;
+    foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
+        if(defined($ur->{restrict}) && contains($user->{username}, $ur->{restrict})) {
+            push @dbRights, $ur->{db};
+        }
+    }
+    $user->{rights} = \@dbRights;
+
+    my $upsth = $dbh->prepare_cached("UPDATE users
+                                     SET last_login_time = now(),
+                                     last_login_ip = ?
+                                     WHERE username = ?")
+            or croak($dbh->errstr);
+    $upsth->execute($host_addr, $user->{username}) or croak($dbh->errstr);
+    $upsth->finish;
+    $dbh->commit;
+
+    $user->{startpage} = $viewh->getstarturl(\@dbRights);
+    $user->{realstartpage} = $user->{startpage};
+
+    $self->{server}->{modules}->{$self->{memcache}}->set($session, $user);
+
+    print STDERR "***************************** User\n";
+    print STDERR Dumper($user);
+
+    return $user->{startpage};
+}
+
+sub adminSwitchFromUser {
+    my ($self, $ua) = @_;
+
+    my $host_addr = $ua->{remote_addr};
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
+    my $viewh = $self->{server}->{modules}->{$self->{views}};
+
+    my $session = $ua->{cookies}->{"pagecamel-session"};
+
+    my $user = $self->{server}->{modules}->{$self->{memcache}}->get($session);
+    if(defined($user)) {
+        $user = dbderef($user);
+    }
+
+    if(!defined($user->{realuser})) {
+        return;
+    }
+
+    my $username = $user->{realuser}->{username};
+
+    $self->updateSessionUsername($session, $username);
+
+    my @realrights = @{$user->{realuser}->{rights}};
+
+    $user->{username} = $user->{realuser}->{username};
+    $user->{first_name} = $user->{realuser}->{first_name};
+    $user->{last_name} = $user->{realuser}->{last_name};
+    $user->{email_addr} = $user->{realuser}->{email_addr};
+    $user->{company} = $user->{realuser}->{company};
+    $user->{rights} = \@realrights;
+
+    delete $user->{realuser};
+
+    $user->{startpage} = $viewh->getstarturl(\@realrights);
+    $user->{realstartpage} = $user->{startpage};
+
+    $self->{server}->{modules}->{$self->{memcache}}->set($session, $user);
+
+    print STDERR "***************************** User\n";
+    print STDERR Dumper($user);
+
+    return $user->{startpage};
+}
+
+
 sub preauthcleanup {
     my ($self) = @_;
 
@@ -527,6 +733,12 @@ sub prefilter {
                                activeurl    => $webpath,
                                require_password_change  => $user->{require_password_change},
                               );
+
+            if(defined($user->{realuser})) {
+                $currentData{hasrealuser} = 1;
+            } else {
+                $currentData{hasrealuser} = 0;
+            }
             $self->{currentData} = \%currentData;
         } else {
             #warn "No user session data for $session\n";
@@ -820,6 +1032,26 @@ sub deleteSession {
         }
     }
 
+
+    return;
+}
+
+sub updateSessionUsername {
+    my ($self, $session, $username) = @_;
+
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
+
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my $sth = $dbh->prepare_cached("UPDATE sessions SET username = ?
+                                   WHERE sid = ?")
+            or croak($dbh->errstr);
+
+    if(!$sth->execute($username, $session)) {
+        $dbh->rollback;
+    } else {
+        $dbh->commit;
+    }
 
     return;
 }

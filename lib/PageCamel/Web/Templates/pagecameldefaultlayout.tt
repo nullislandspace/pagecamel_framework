@@ -427,7 +427,11 @@
                         [% ELSE %]
                             <div class="webgui_projectusername">[% userData.first_name %] [%userData.last_name %]&nbsp;/&nbsp;
                         [% END %]
-                        <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a></div>
+                        <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a>
+                        [% IF userData.hasrealuser == 1 %]
+                            / <a class="webgui_projectloginlink" href="/user/switchback">[% tr.trquote("Back") %]</a>
+                        [% END %]
+                        </div>
                     [% END %]
                 </div>
             </div>

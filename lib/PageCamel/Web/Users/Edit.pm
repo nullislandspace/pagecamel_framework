@@ -16,9 +16,14 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::Strings qw(elemNameQuote);
 use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::Strings qw(stripString);
+use PageCamel::Helpers::URI qw(encode_uri_path);
 
 sub register {
     my $self = shift;
+
+    if(!defined($self->{switchtouser})) {
+        $self->{switchtouser} = '';
+    }
 
     $self->register_webpath($self->{list}->{webpath}, "get_list");
     $self->register_webpath($self->{edit}->{webpath}, "get_edit");
@@ -54,6 +59,11 @@ sub get_list {
     $selsth->execute or croak($dbh->errstr);
     my @users;
     while((my $user = $selsth->fetchrow_hashref)) {
+        if($self->{switchtouser} ne '') {
+            $user->{switchtouser} = $self->{switchtouser} . '/' . encode_uri_path($user->{username});
+        } else {
+            $user->{switchtouser} = '';
+        }
         push @users, $user;
     }
     $selsth->finish;

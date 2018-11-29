@@ -9,6 +9,7 @@
                     <th>[% tr.trquote("Email") %]</th>
                     <th>[% tr.trquote("Company") %]</th>
                     <th>[% tr.trquote("Locked") %]</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -35,6 +36,11 @@
                         [% ELSE %]
                             <td></td>
                         [% END %]
+                        <td>
+                            [% IF user.switchtouser != '' %]
+                                <a href="[% user.switchtouser %]">[% tr.trquote("Switch to User") %]</a>
+                            [% END %]
+                        </td>
                     </tr>
                 [% END %]
             </tbody>
@@ -43,7 +49,7 @@
                     <td>
                         <input type="radio" name="username" value="NEW">
                     </td>
-                    <td colspan="5">
+                    <td colspan="6">
                         [% tr.trquote('New') %]
                     </td>
                 </tr>

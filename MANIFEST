@@ -2833,6 +2833,7 @@ lib/PageCamel/Web/Users/Templates/pwreset_execute.tt
 lib/PageCamel/Web/Users/Templates/pwreset_request.tt
 lib/PageCamel/Web/Users/Templates/register_execute.tt
 lib/PageCamel/Web/Users/Templates/register_request.tt
+lib/PageCamel/Web/Users/Templates/switchinguser.tt
 lib/PageCamel/Web/Users/Templates/useredit.tt
 lib/PageCamel/Web/Users/Templates/userlist.tt
 lib/PageCamel/Web/Users/Userlevels.pm
