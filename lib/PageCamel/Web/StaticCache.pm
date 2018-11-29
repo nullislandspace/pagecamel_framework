@@ -151,11 +151,12 @@ sub load_dir {
         my $data = slurpBinFile($nfname);
 
         # Fill with default mime type (not always correct!)
-        my $mtype = $ft->mime_type($data);
+        my $mtype = $ft->checktype_contents($data);
 
         # Now update MIME type from file extensions
+        my ($kname, $type);
         if($fname =~ /(.*)\.([a-zA-Z0-9]+)$/) {
-            my ($kname, $type) = ($1, $2);
+            ($kname, $type) = ($1, $2);
             if($type =~ /htm/i) {
                 $mtype = "text/html";
             } elsif($type =~ /txt/i) {
@@ -173,54 +174,62 @@ sub load_dir {
             } elsif($type =~ /(jpg|jpeg|jpe)/i) {
                 $mtype = "image/jpeg";
             }
-
-            if(!$self->{isDebugging}) {
-                # Only minify when not debugging for faster startup
-                if($mtype eq "text/css") {
-                    print $ofh ("   MINIFY $nfname\n");
-                    my $tmp = CSS::Minifier::XS::minify($data);
-                    $data = $tmp;
-                }
-            }
-
-            my $lastmodified = getLastModifiedWebdate($nfname);
-            my $tmp = parseWebdate($lastmodified);
-            $lastmodified = getWebdate($tmp);
-            my %entry = (name   => $kname,
-                        fullname=> $nfname,
-                        type    => $mtype,
-                        size    => length($data),
-                        etag    => sha1_hex($self->{reloadTime} . sha1_hex($data)), # Force browser reload after pagecamel reload with timestamp
-                        "Last-Modified" => $lastmodified,
-                        disable_compression => 0,
-                        );
-
-            # !!! only store the data itself in RAM if the file is small enough !!!
-            if($self->{isDebugging}) {
-                #print $ofh "   !Debugging mode, will only cache metadata: $nfname\n";
-            } elsif(!$self->{sizelimit}) {
-                print $ofh "   !Size limit = 0, will only cache metadata: $nfname\n";
-            } elsif($entry{size} > $self->{sizelimit}) {
-                print $ofh "   !File too big (", $entry{size}, " > ", $self->{sizelimit}, "bytes), will only cache metadata: $nfname\n";
-            } else {
-                $entry{data} = $data;
-
-                if($nfname !~ /\.(?:exe|msi|swf)/gio) {
-                    #print STDERR "Compressing $nfname\n";
-                    my $gzipped;
-                    if(gzip(\$data => \$gzipped)) {
-                        if(length($gzipped) < length($data)) {
-                            $entry{gzipdata} = $gzipped;
-                        }
-                    }
-                } else {
-                    $entry{disable_compression} = 1;
-                }
-            }
-
-            $self->{cache}->{$basewebpath . $fname} = \%entry; # Store under full name
-            $fcount++;
+        } else {
+            # File without extension
+            $kname = $fname;
         }
+
+        if(!defined($mtype) || $mtype eq '') {
+            # Whoops. Just use the most generic mime type available
+            $mtype = 'application/octet-stream';
+        }
+
+        if(!$self->{isDebugging}) {
+            # Only minify when not debugging for faster startup
+            if($mtype eq "text/css") {
+                print $ofh ("   MINIFY $nfname\n");
+                my $tmp = CSS::Minifier::XS::minify($data);
+                $data = $tmp;
+            }
+        }
+
+        my $lastmodified = getLastModifiedWebdate($nfname);
+        my $tmp = parseWebdate($lastmodified);
+        $lastmodified = getWebdate($tmp);
+        my %entry = (name   => $kname,
+                    fullname=> $nfname,
+                    type    => $mtype,
+                    size    => length($data),
+                    etag    => sha1_hex($self->{reloadTime} . sha1_hex($data)), # Force browser reload after pagecamel reload with timestamp
+                    "Last-Modified" => $lastmodified,
+                    disable_compression => 0,
+                    );
+
+        # !!! only store the data itself in RAM if the file is small enough !!!
+        if($self->{isDebugging}) {
+            #print $ofh "   !Debugging mode, will only cache metadata: $nfname\n";
+        } elsif(!$self->{sizelimit}) {
+            print $ofh "   !Size limit = 0, will only cache metadata: $nfname\n";
+        } elsif($entry{size} > $self->{sizelimit}) {
+            print $ofh "   !File too big (", $entry{size}, " > ", $self->{sizelimit}, "bytes), will only cache metadata: $nfname\n";
+        } else {
+            $entry{data} = $data;
+
+            if($nfname !~ /\.(?:exe|msi|swf)/gio) {
+                #print STDERR "Compressing $nfname\n";
+                my $gzipped;
+                if(gzip(\$data => \$gzipped)) {
+                    if(length($gzipped) < length($data)) {
+                        $entry{gzipdata} = $gzipped;
+                    }
+                }
+            } else {
+                $entry{disable_compression} = 1;
+            }
+        }
+
+        $self->{cache}->{$basewebpath . $fname} = \%entry; # Store under full name
+        $fcount++;
     }
     closedir($dfh);
     return $fcount;
