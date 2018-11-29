@@ -16,6 +16,7 @@ use PageCamel::Web;
 use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep);
 use PageCamel::Helpers::Logo;
+use Data::Dumper;
 
 # For turning off SSL session cache
 use Readonly;
@@ -91,7 +92,10 @@ sub init {
     
     # Debugging on port 8080 only on 127.0.0.1!
     if($self->{isDebugging}) {
-        $config->{server}->{port} = 8080;
+        if(!$self->{forceSSL}) {
+            # forceSSL forces to run in the original network config
+            $config->{server}->{port} = 8080;
+        }
         $isForking = 0;
         if($self->{forceForking}) {
             $isForking = 1;
@@ -134,6 +138,15 @@ sub init {
                                 # Disable session tickets
                                 Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
 
+                                # Check requested server name
+                                #Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
+                                #    my $ssl = shift;
+                                #    my $h = Net::SSLeay::get_servername($ssl);
+                                #    print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
+                                #    print STDERR ref $self, "\n";
+                                #    #Net::SSLeay::set_SSL_CTX($ssl, $hostnames{$h}->{ctx}) if exists $hostnames{$h};
+                                #});
+
                                 #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
                                 ## Advertise supported HTTP versions
                                 #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
@@ -144,9 +157,10 @@ sub init {
                 push @runargs, (SSL_cipher_list => $config->{server}->{sslciphers});
             }
     }
-    
-    if($self->{isDebugging} || !defined($config->{server}->{bind_adresses})) {
+
+    if(!$self->{forceSSL} && $self->{isDebugging} || !defined($config->{server}->{bind_adresses})) {
         # fallback to classic behaviour
+        # When forceSSL is in use, we assume we want modern behaviour anyway
         push  @runargs, (port => $config->{server}->{port});
     } else {
         my @ports;
