@@ -40,13 +40,21 @@ sub prefilter {
     my $webpath = $ua->{url} || '--unknown--';
     return unless($webpath =~ /favicon/);
 
+    if(defined($self->{exceptions})) {
+        foreach my $exception (@{$self->{exceptions}->{item}}) {
+            if($ua->{url} =~ /$exception/) {
+                return;
+            }
+        }
+    }
+
     if($webpath =~ /\/favicon\.ico$/i && $webpath ne $self->{favicon}) {
         print STDERR "Changing internal favicon path from $webpath to ", $self->{favicon}, "\n";
         $ua->{url} = $self->{favicon};
     }
     
     return unless($self->{debugreplace} && $self->{isDebugging});
-    
+
     $ua->{url} =~ s#^/pics/favicons/#/pics/favicons_debug/#;
 
     return;
