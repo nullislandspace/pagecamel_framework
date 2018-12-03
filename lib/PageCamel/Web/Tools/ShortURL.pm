@@ -56,8 +56,6 @@ sub get {
     my $path = $ua->{url};
     $path =~ s/^$remove//g;
 
-    print STDERR "------------------------------------- ", $path, "\n";
-    
     if($path eq '/favicon.ico' && defined $self->{favicon}) {
         return (status => 200,
                 type => 'image/vnd.microsoft.icon',
