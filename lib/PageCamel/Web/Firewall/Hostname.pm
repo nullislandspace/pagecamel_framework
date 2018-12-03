@@ -30,9 +30,10 @@ sub new {
 
     if($self->{isDebugging}) {
         # Use 'localhost:8080' for debugging
-        push @{$self->{myhostnames}->{item}}, 'localhost:8080';
-        $self->{defaulthostname} = 'localhost:8080';
+        my %debugitem = (host => 'localhost:8080');
+        push @{$self->{myhostnames}->{item}}, \%debugitem;
     }
+
 
     return $self;
 }
@@ -45,11 +46,6 @@ sub register {
 
 sub prefilter {
     my ($self, $ua) = @_;
-    
-    if($self->{isDebugging}) {
-        #print STDERR "Firewall::Hostname inactive while debugging!\n";
-        return;
-    }
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -87,55 +83,40 @@ sub prefilter {
                 );
     }
 
-    if($requesthostname eq $self->{defaulthostname}) {
-        # Using the default hostname? We're done here, nothing else to do
-        return;
-    }
-
     my $okname = 0;
-    foreach my $key (@{$self->{myhostnames}->{item}}) {
-        if($requesthostname eq $key) {
-            $okname = 1;
+    foreach my $item (@{$self->{myhostnames}->{item}}) {
+        next unless($requesthostname eq $item->{host});
+        $okname = 1;
+        if(defined($item->{pathprefix})) {
+            if($ua->{url} !~ /^\//) {
+                $ua->{url} = '/' . $ua->{url};
+            }
+            $ua->{url} = $item->{pathprefix} . $ua->{url};
+            if($self->{isDebugging}) {
+                print STDERR "******************************************    internally rerouting to ", $ua->{url}, "\n";
+            }
         }
+
+        if(defined($item->{reroute})) {
+            my $newurl = 'https://' . $item->{reroute} . $ua->{url};
+            return (status => 301,
+                    location => $newurl,
+                    type => 'text/html',
+                    data => '<html><body>Moved permanently to <a href="' . $newurl . '">here</a></body></html>'
+            );
+        }
+
+        last;
     }
 
-    if($okname) {
-        # Need to re-route to default hostname
-        my $newurl = 'https://' . $self->{defaulthostname} . $ua->{url};
-
-        return (status => 301,
-                location => $newurl,
-                type => 'text/html',
-                data => '<html><body>Moved permanently to <a href="' . $newurl . '">here</a></body></html>'
-        );
-    }
-
-    # Seems like we have a "bad" hostname If we only got a bad hostname in the "Host" header (but a relative URL), it might just be
-    # an accident in someones DNS config, so just throw a 404
-    if(!defined($urihostname)) {
+    if(!$okname) {
         return (status => 404,
                 type   => 'text/plain',
                 data   => 'You requested information from ' . $requesthostname . ' which is unknown to this server. Maybe check your DNS settings?',
                 );
     }
 
-    # Ooops, looks someone wanted to use us as proxy. Well, so let's forward the request... NO! Just NO!
-    # Block the client and be done with it. Actually, send a short, explanatory nastygram first!
-
-    my $sth = $dbh->prepare_cached("INSERT INTO accesslog_blocklist (ip_address, description, is_automatic, is_badbot)
-                                   VALUES (?, 'Proxy request detected', true, true)")
-            or croak($dbh->errstr);
-
-    if($sth->execute($ip)) {
-        $dbh->commit;
-    } else {
-        $dbh->rollback;
-    }
-
-    return (status  => 451,
-            type    => 'text/plain',
-            data    => "Congratulations! Your proxy request just won you an entry on my blacklist!",
-    );
+    return;
 }
 
 1;

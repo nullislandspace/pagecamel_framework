@@ -116,46 +116,75 @@ sub init {
     }
     
     if($config->{server}->{usessl}) {
-            if(!-f $config->{server}->{sslkey}) {
-                croak("SSL Key file not found! " . $config->{server}->{sslkey});
-            }
-            if(!-f $config->{server}->{sslcert}) {
-                croak("SSL Cert file not found! " . $config->{server}->{sslcert});
-            }
-            push @runargs, (proto => 'ssl',
-                            usessl=>1,
-                            SSL_key_file=>  $config->{server}->{sslkey},
-                            SSL_cert_file=> $config->{server}->{sslcert},
-                            SSL_create_ctx_callback => sub {
-                                my $ctx = shift;
+        if(!defined($config->{server}->{ssldefaultdomain})) {
+            croak("SSL ssldefaultdomain not configured!");
+        }
+        my $defaultdomain = $config->{server}->{ssldefaultdomain};
+        if(!defined($config->{server}->{ssldomains}->{$defaultdomain})) {
+            croak("SSL domain $defaultdomain not configured");
+        }
+        if(!-f $config->{server}->{ssldomains}->{$defaultdomain}->{sslkey}) {
+            croak("SSL Key file not found! " . $config->{server}->{ssldomains}->{$defaultdomain}->{sslkey});
+        }
+        if(!-f $config->{server}->{ssldomains}->{$defaultdomain}->{sslcert}) {
+            croak("SSL Cert file not found! " . $config->{server}->{ssldomains}->{$defaultdomain}->{sslcert});
+        }
+        push @runargs, (proto => 'ssl',
+                        usessl=>1,
+                        SSL_key_file=>  $config->{server}->{ssldomains}->{$defaultdomain}->{sslkey},
+                        SSL_cert_file=> $config->{server}->{ssldomains}->{$defaultdomain}->{sslcert},
+                        SSL_create_ctx_callback => sub {
+                            my $ctx = shift;
 
-                                # Enable workarounds for broken clients
-                                Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL);
-    
-                                # Disable session resumption completely
-                                Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
-    
-                                # Disable session tickets
-                                Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
+                            #print STDERR "******************* CREATING NEW CONTEXT ********************\n";
 
-                                # Check requested server name
-                                #Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
-                                #    my $ssl = shift;
-                                #    my $h = Net::SSLeay::get_servername($ssl);
-                                #    print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
-                                #    print STDERR ref $self, "\n";
-                                #    #Net::SSLeay::set_SSL_CTX($ssl, $hostnames{$h}->{ctx}) if exists $hostnames{$h};
-                                #});
+                            # Enable workarounds for broken clients
+                            Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL);
 
-                                #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
-                                ## Advertise supported HTTP versions
-                                #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
-    
-                            },
-                           );
-            if(defined($config->{server}->{sslciphers})) {
-                push @runargs, (SSL_cipher_list => $config->{server}->{sslciphers});
-            }
+                            # Disable session resumption completely
+                            Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
+
+                            # Disable session tickets
+                            Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
+
+                            # Check requested server name
+                            Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
+                                my $ssl = shift;
+                                my $h = Net::SSLeay::get_servername($ssl);
+
+                                if(!defined($config->{server}->{ssldomains}->{$h})) {
+                                    print STDERR "SSL: Hostname $h not configured\n";
+                                    return;
+                                }
+                                if($h eq $config->{server}->{ssldefaultdomain}) {
+                                    # Already the correct CTX setting, just return
+                                    return;
+                                }
+
+                                #print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
+                                my $newctx;
+                                if(defined($config->{server}->{ssldomains}->{$h}->{ctx})) {
+                                    $newctx = $config->{server}->{ssldomains}->{$h}->{ctx};
+                                } else {
+                                    $newctx = Net::SSLeay::CTX_new or croak("Can't create new SSL CTX");
+                                    Net::SSLeay::CTX_set_cipher_list($newctx, $config->{server}->{sslciphers});
+                                    Net::SSLeay::set_cert_and_key($newctx, $config->{server}->{ssldomains}->{$h}->{sslcert},
+                                                                        $config->{server}->{ssldomains}->{$h}->{sslkey})
+                                            or croak("Can't set cert and key file");
+                                    $config->{server}->{ssldomains}->{$h}->{ctx} = $newctx;
+                                }
+                                Net::SSLeay::set_SSL_CTX($ssl, $newctx);
+                            });
+
+                            #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
+                            ## Advertise supported HTTP versions
+                            #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
+
+                        },
+                       );
+        if(defined($config->{server}->{sslciphers})) {
+            push @runargs, (SSL_cipher_list => $config->{server}->{sslciphers});
+        }
     }
 
     if(!$self->{forceSSL} && $self->{isDebugging} || !defined($config->{server}->{bind_adresses})) {
