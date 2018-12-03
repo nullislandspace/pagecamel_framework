@@ -54,6 +54,9 @@ sub get {
 
     my $remove = $self->{webpath};
     my $path = $ua->{url};
+    $path =~ s/^$remove//g;
+
+    print STDERR "------------------------------------- ", $path, "\n";
     
     if($path eq '/favicon.ico' && defined $self->{favicon}) {
         return (status => 200,
