@@ -51,6 +51,7 @@ sub prefilter {
 
     my $webpath = $ua->{original_path_info}; # Need the unmangled path
     my $requesthostname = $ua->{headers}->{Host};
+    #print STDERR "Requested HOSTNAME: $requesthostname ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
     my $uriparser = URI->new($webpath);
     my $ip = $ua->{remote_addr};
 
@@ -92,7 +93,7 @@ sub prefilter {
                 $ua->{url} = '/' . $ua->{url};
             }
             $ua->{url} = $item->{pathprefix} . $ua->{url};
-            if($self->{isDebugging}) {
+            if(1 || $self->{isDebugging}) {
                 print STDERR "******************************************    internally rerouting to ", $ua->{url}, "\n";
             }
         }
