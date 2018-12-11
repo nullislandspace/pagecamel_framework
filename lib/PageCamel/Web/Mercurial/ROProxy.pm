@@ -14,6 +14,7 @@ use Array::Contains;
 
 use base qw(PageCamel::Web::BaseModule);
 use IO::Socket::IP;
+use PageCamel::Helpers::URI qw[encode_uri_path encode_uri_part];
 
 my @ignoremercurialheaders = qw[Date Server Title X-Meta-Robots];
 my @ignoreclientheaders = qw[Connection Cookie DNT Host Referer Upgrade-Insecure-Requests];
@@ -55,11 +56,13 @@ sub get {
     if($mercurialpath !~ /^\//) {
         $mercurialpath = '/' . $mercurialpath;
     }
+
+    $mercurialpath = encode_uri_path($mercurialpath);
     my @uriparamkey = keys %{$ua->{uriparams}};
     if(@uriparamkey) {
         my @parts;
         foreach my $key (@uriparamkey) {
-            push @parts, $key . '=' . $ua->{uriparams}->{$key};
+            push @parts, $key . '=' . encode_uri_part($ua->{uriparams}->{$key});
         }
         $mercurialpath .= '?' . join('&', @parts);
     }
@@ -72,6 +75,8 @@ sub get {
     return(status => 500) unless($socket);
     #binmode $socket;
     
+    #print STDERR "++++++++++++ GET $mercurialpath HTTP/1.1\n";
+    #print STDERR "???????????? ", $ua->{'original_path_info'}, "\n";
     $socket->send("GET $mercurialpath HTTP/1.1\r\n");
     
     foreach my $key (keys %{$ua->{headers}}) {
@@ -82,13 +87,13 @@ sub get {
     }
     $socket->send("\r\n");
     my %retpage;
-    my $statusline = $self->readsocketline($socket);
+    my $statusline = $self->readsocketline($socket, 30);
     my @statusparts = split/\ /, $statusline, 3;
     $retpage{status} = $statusparts[1];
     $retpage{statustext} = $statusparts[2];
     
     while(1) {
-        my $headerline = $self->readsocketline($socket);
+        my $headerline = $self->readsocketline($socket, 10);
         last if($headerline eq '');
         my ($hname, $hvalue) = split/\:/, $headerline, 3;
         if($hname eq 'Content-Type') {
@@ -126,12 +131,19 @@ sub get {
 }
 
 sub readsocketline {
-    my ($self, $socket) = @_;
+    my ($self, $socket, $timeout) = @_;
+
+    if(!defined($timeout) || !$timeout) {
+        $timeout = 10;
+    };
+
+    my $failat = time + $timeout;
     
     my $line = '';
     while(1) {
         my $char = '';
         $socket->recv($char, 1);
+        last if(time > $timeout);
         next if(!defined($char) || $char eq '');
         next if($char eq "\r");
         last if($char eq "\n");
@@ -146,12 +158,12 @@ sub readChunked {
     
     my $content = '';
     while(1) {
-        my $chunklen = $self->readsocketline($socket);
+        my $chunklen = $self->readsocketline($socket, 30);
         $chunklen = hex($chunklen);
         last unless $chunklen;
         my $partial = $self->readPlain($socket, $chunklen);
         $content .= $partial;
-        my $dummycrlf = $self->readsocketline($socket);
+        my $dummycrlf = $self->readsocketline($socket, 5);
     }
     
     return $content;
