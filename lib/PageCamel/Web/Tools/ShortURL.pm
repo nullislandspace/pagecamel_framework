@@ -52,11 +52,10 @@ sub register {
 sub get {
     my ($self, $ua) = @_;
 
-    my $remove = $self->{webpath};
     my $path = $ua->{url};
-    $path =~ s/^$remove//g;
+    $path =~ s/^.*\///g;
 
-    if($path eq '/favicon.ico' && defined $self->{favicon}) {
+    if($path eq 'favicon.ico' && defined $self->{favicon}) {
         return (status => 200,
                 type => 'image/vnd.microsoft.icon',
                 data => $self->{favicon},
@@ -65,14 +64,7 @@ sub get {
         );
     }
     
-    $path =~ s/^$remove//;
     my $client_ip = $ua->{remote_addr} || '0.0.0.0';
-
-    if($path =~ /favicon/i) {
-        return (
-            status  => 404,
-        );
-    }
 
     my $result = '';
     
@@ -130,7 +122,8 @@ sub get {
         $cachesth->finish;
         if(defined($id) && $id ne '') {
             $dbh->commit;
-            $result = 'Short URL created: ' . $self->{basehost} . $self->{webpath} . $id;
+            my $shorturl = $self->{basehost} . '/' . $id;
+            $result = 'Short URL created: <a href="' . $shorturl . '">' . $shorturl . '</a>';
             if($logsth->execute('RECREATEURL', $longurl, $id, $client_ip)) {
                 $dbh->commit;
             } else {
@@ -148,7 +141,8 @@ sub get {
         my $insth = $dbh->prepare_cached("INSERT INTO shorturl (short_url, long_url)
                                          VALUES (?, ?)")
                 or croak($dbh->errstr);
-        $result = 'Short URL created: ' . $self->{basehost} . $self->{webpath} . $id;
+        my $shorturl = $self->{basehost} . '/' . $id;
+        $result = 'Short URL created: <a href="' . $shorturl . '">' . $shorturl . '</a>';
         if($insth->execute($id, $longurl)) {
             $dbh->commit;
         } else {
@@ -228,7 +222,7 @@ sub getInputForm {
     my $form = '<html><head><title>' . $self->{pagetitle} . '</title>' . $self->{faviconheader} . '</head>' .
                 '<body>' . $self->{longpagetitle} . '<br/>' .
                 $self->{logo} .
-                '<form action="' . $self->{webpath} . '" method="post">' .
+                '<form action="/" method="post">' .
                 '<input type="text" name="longurl" size="80" maxlength="2000">' .
                 '<input type="submit" value="Shorten me!">' .
                 '</form><br/>' .
