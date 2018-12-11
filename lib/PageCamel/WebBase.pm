@@ -699,6 +699,22 @@ sub process_request { ## no critic (Subroutines::ProhibitExcessComplexity)
     binmode($realsocket, ':bytes');
     $realsocket->blocking(0);
 
+    local $SIG{USR1} = sub {
+        print STDERR "******************   SIGNAL USR1 DETECTED ****************\n";
+        eval {
+            confess();
+        };
+        my $stacktrace = join("\n", $@);
+        #print STDERR "###########\n$stacktrace\n###########\n";
+        foreach my $filtermodule (@{$self->{logstacktrace}}) {
+            my $module = $filtermodule->{Module};
+            my $funcname = $filtermodule->{Function};
+            $module->$funcname($stacktrace);
+        }
+        return;
+    };
+
+
     # Run pre-connection handling functions (for example, check that all translations are up to date etc...)
     foreach my $worker (@{$self->{preconnect}}) {
         my $module = $worker->{Module};
@@ -1602,7 +1618,7 @@ sub startconfig {
     foreach my $anonhash (qw[paths modules custom_methods protocolupgrade cors basic_auth]) {
         $self->{$anonhash} = {};
     }
-    foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished authcheck prefilter postauthfilter prerender tasks postfilter
+    foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished logstacktrace authcheck prefilter postauthfilter prerender tasks postfilter
                                 default_webdata late_default_webdata loginitems logoutitems sessionrefresh cleanup
                                 public_urls remotelog sitemap firewall fastredirect
                                 ]) {
@@ -2112,6 +2128,7 @@ BEGIN {
         logdatadelivery => "logdatadelivery",
         logwebsocket    => "logwebsocket",
         logrequestfinished => "logrequestfinished",
+        logstacktrace   => "logstacktrace",
         remotelog       => "remotelog",
         fastredirect    => "fastredirect",
     );

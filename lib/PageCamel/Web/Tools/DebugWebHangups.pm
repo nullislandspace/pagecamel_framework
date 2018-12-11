@@ -14,6 +14,9 @@ use Array::Contains;
 
 use base qw(PageCamel::Web::BaseModule);
 
+use MIME::Base64;
+use Time::HiRes qw[sleep];
+
 sub new {
     my ($proto, %config) = @_;
     my $class = ref($proto) || $proto;
@@ -32,6 +35,7 @@ sub register {
     $self->register_logrequestfinished("logrequestfinished");
     $self->register_logwebsocket("logwebsocket");
     $self->register_logdatadelivery("logdatadelivery");
+    $self->register_logstacktrace("logstacktrace");
 
     return;
 }
@@ -126,6 +130,22 @@ sub logrequestfinished {
     $self->{clacks}->store($self->{clackskey}, 'IDLE');
     $self->{clacks}->doNetwork();
     delete $self->{debuginfo};
+
+    return;
+}
+
+sub logstacktrace {
+    my ($self, $message) = @_;
+
+    my $key = 'DEBUG::STACKTRACE::' . $PID;
+    print STDERR "############################# KEY $key\n";
+    $message = encode_base64($message, '');
+
+    $self->{clacks}->set($key, $message);
+    for(1..5) {
+        $self->{clacks}->doNetwork();
+        sleep(0.1);
+    }
 
     return;
 }
