@@ -59,7 +59,7 @@
                     console.log("Bound the desktop link");
                 });
 
-                _init_pagecamel_pageviewstats();
+                //_init_pagecamel_pageviewstats();
 
                 // register all "pagecamelnavdestination onclick events
                 $('[pagecamelnavdestination]').each(function() {
