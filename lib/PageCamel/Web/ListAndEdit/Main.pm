@@ -1501,8 +1501,8 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = 0;
                     }
                 } elsif ($self->{editcolumntypes}->{$column} eq 'date') {
-                    if($tmp eq '-- ::') {
-                        # Compensate for datetimepicker mask when field is empty
+                    if($tmp eq '-- ::' || $tmp !~ /\d+/) {
+                        # Compensate for datetimepicker empty template or when field is empty
                         $tmp = 'now';
                     }
                     if($tmp eq '') {
@@ -1619,8 +1619,8 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = 0;
                     }
                 } elsif ($self->{editcolumntypes}->{$column} eq 'date') {
-                    if($tmp eq '-- ::') {
-                        # Compensate for datetimepicker mask when field is empty
+                    if($tmp eq '-- ::' || $tmp !~ /\d+/) {
+                        # Compensate for datetimepicker empty template or when field is empty
                         $tmp = 'now';
                     }
                     if($tmp eq '') {
