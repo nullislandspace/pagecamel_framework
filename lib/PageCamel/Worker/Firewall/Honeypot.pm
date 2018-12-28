@@ -78,8 +78,8 @@ sub crossregister {
                                                 HAVING count(*) > " . $self->{limit}->{ratelimitcount})
             or croak($dbh->errstr);
 
-    $self->{loghoneylogin} = $dbh->prepare_cached("INSERT INTO honeypot_logins (username, pass)
-                                                    VALUES (?, ?)")
+    $self->{loghoneylogin} = $dbh->prepare_cached("INSERT INTO honeypot_logins (username, pass, ip_addr)
+                                                    VALUES (?, ?, ?)")
             or croak($dbh->errstr);
 
     $dbh->commit;
@@ -127,7 +127,7 @@ sub work {
                 # Most likely an unwanted portscan. Log it as unsucessful login attempt
                 my ($user, $pass, $ip, $port) = ($1, $2, $3, $4);
 
-                if(!$self->{loghoneylogin}->execute($user, $pass)) {
+                if(!$self->{loghoneylogin}->execute($user, $pass, $ip)) {
                     $reph->debuglog($dbh->errstr);
                     $dbh->rollback;
                 } else {
