@@ -39,6 +39,7 @@ use PageCamel::Worker::Firewall::BlockCIDRWhois;
 use PageCamel::Worker::Firewall::DNS;
 use PageCamel::Worker::Firewall::Dovecot;
 use PageCamel::Worker::Firewall::Floodcheck;
+use PageCamel::Worker::Firewall::Honeypot;
 use PageCamel::Worker::Firewall::IPTables;
 use PageCamel::Worker::Firewall::PermaBlock;
 use PageCamel::Worker::Firewall::Postfix;

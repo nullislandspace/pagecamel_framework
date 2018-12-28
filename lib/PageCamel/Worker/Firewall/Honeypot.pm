@@ -1,4 +1,4 @@
-package PageCamel::Worker::Firewall::SSH;
+package PageCamel::Worker::Firewall::Honeypot;
 #---AUTOPRAGMASTART---
 use 5.020;
 use strict;
@@ -56,29 +56,30 @@ sub crossregister {
 
     $dbh->{disconnectIsFatal} = 1; # Don't automatically reconnect but exit instead!
 
-    $self->{ipfloodinssth} = $dbh->prepare_cached("INSERT INTO ssh_failedlogins (ip_addr) VALUES(?)")
+    $self->{ipfloodinssth} = $dbh->prepare_cached("INSERT INTO honeypot_failedlogins (ip_addr) VALUES(?)")
             or croak($dbh->errstr);
 
-    $self->{auditloginssth} = $dbh->prepare_cached("INSERT INTO ssh_auditlog (logtext) VALUES(?)")
-            or croak($dbh->errstr);
-
-    $self->{ipblockdelsth} = $dbh->prepare_cached("DELETE FROM ssh_blocklist
+    $self->{ipblockdelsth} = $dbh->prepare_cached("DELETE FROM honeypot_blocklist
                                            WHERE blockeduntil < now()")
             or croak($dbh->errstr);
 
-    $self->{ipflooddelsth} = $dbh->prepare_cached("DELETE FROM ssh_failedlogins
+    $self->{ipflooddelsth} = $dbh->prepare_cached("DELETE FROM honeypot_failedlogins
                                            WHERE recievetime < now() - interval '" . $self->{limit}->{ratelimitinterval} . "'")
             or croak($dbh->errstr);
 
-    $self->{ipblockinssth} = $dbh->prepare_cached("INSERT INTO ssh_blocklist (ip_addr, blockedsince, blockeduntil)
+    $self->{ipblockinssth} = $dbh->prepare_cached("INSERT INTO honeypot_blocklist (ip_addr, blockedsince, blockeduntil)
                                                 SELECT ip_addr, now(), now() + interval '" . $self->{limit}->{banlimittime} ."'
-                                                FROM ssh_failedlogins flo
+                                                FROM honeypot_failedlogins flo
                                                 WHERE NOT EXISTS (
-                                                    SELECT 1 FROM ssh_blocklist blo
+                                                    SELECT 1 FROM honeypot_blocklist blo
                                                     WHERE blo.ip_addr = flo.ip_addr
                                                 )
                                                 GROUP BY flo.ip_addr
                                                 HAVING count(*) > " . $self->{limit}->{ratelimitcount})
+            or croak($dbh->errstr);
+
+    $self->{loghoneylogin} = $dbh->prepare_cached("INSERT INTO honeypot_logins (username, pass)
+                                                    VALUES (?, ?)")
             or croak($dbh->errstr);
 
     $dbh->commit;
@@ -121,11 +122,17 @@ sub work {
             #my $key = $message->{name};
             my $logtext = $message->{data};
             next unless($logtext =~ /^sshd\[/); # Only work on SSH messages
-            $reph->debuglog('SSH ' . $logtext);
 
-            if($logtext =~ /Failed\ password.*from\ (.+?)\ port\ (.*?)/i) {
-                my ($ip, $port) = ($1, $2);
-                $port =~ s/\ ssh.*$//;
+            if($logtext =~ /HONEY\:\ Username\ \[(.+)\]\ Password \[(.+)\]\ IP\[(.+)\]\ Port\[(.+)\]/i) {
+                # Most likely an unwanted portscan. Log it as unsucessful login attempt
+                my ($user, $pass, $ip, $port) = ($1, $2, $3, $4);
+
+                if(!$self->{loghoneylogin}->execute($user, $pass)) {
+                    $reph->debuglog($dbh->errstr);
+                    $dbh->rollback;
+                } else {
+                    $dbh->commit;
+                }
                 if(!$self->{ipfloodinssth}->execute($ip)) {
                     $reph->debuglog($dbh->errstr);
                     $dbh->rollback;
@@ -133,58 +140,9 @@ sub work {
                     $dbh->commit;
                 }
                 $memh->incr('WebStats::ssh_loginerror_count');
-                $reph->debuglog("*** Failed login ***");
-            } elsif($logtext =~ /Invalid user.*\ from\ (.*)/i) {
-                my ($ip) = ($1);
-                $ip =~ s/\ port.*//g;
-                if(!$self->{ipfloodinssth}->execute($ip)) {
-                    $reph->debuglog($dbh->errstr);
-                    $dbh->rollback;
-                } else {
-                    $dbh->commit;
-                }
-                $reph->debuglog("*** Invalid User ***");
-            } elsif($logtext =~ /Connection\ closed\ by\ (.*)\ port\ .*\[preauth\]/i && $logtext !~ /invalid user/) {
-                my ($ip) = ($1);
-                $ip =~ s/.*\ //g; # Remove the "authenticating user USERNAME" that *sometimes* shows up
-                if(!$self->{ipfloodinssth}->execute($ip)) {
-                    $reph->debuglog($dbh->errstr);
-                    $dbh->rollback;
-                } else {
-                    $dbh->commit;
-                }
-                $reph->debuglog("*** Invalid User ***");
-            } elsif($logtext =~ /Did\ not\ receive\ identification\ string\ from\ (.+?)\ port/i) {
-                # Most likely an unwanted portscan. Log it as unsucessful login attempt
-                my ($ip) = ($1);
-                if(!$self->{ipfloodinssth}->execute($ip)) {
-                    $reph->debuglog($dbh->errstr);
-                    $dbh->rollback;
-                } else {
-                    $dbh->commit;
-                }
-                $reph->debuglog("*** Portscan detected ***");
-            } elsif($logtext =~ /\ ([^\s]+?)\ port\ .*Change\ of\ username\ or\ service\ not\ allowed/i) {
-                # Tries an exploit by changing username or service
-                my ($ip) = ($1);
-                if(!$self->{ipfloodinssth}->execute($ip)) {
-                    $reph->debuglog($dbh->errstr);
-                    $dbh->rollback;
-                } else {
-                    $dbh->commit;
-                }
-                $reph->debuglog("*** Username change in the middle of login ***");
+                $reph->debuglog("*** Honeypot-Login detected from $ip $port***");
             }
  
-            if($logtext =~ /ssh/i &&$logtext =~ /(Accepted.*)/i) {
-                if(!$self->{auditloginssth}->execute($1)) {
-                    $reph->debuglog($dbh->errstr);
-                    $dbh->rollback;
-                } else {
-                    $dbh->commit;
-                }
-                $memh->incr('WebStats::ssh_loginerror_count');
-            }
         }
     }
 

@@ -1,0 +1,12 @@
+diff -ur openssh-7.9p1/auth-passwd.c openssh-7.9p1_patched/auth-passwd.c
+--- openssh-7.9p1/auth-passwd.c	2018-10-17 02:01:20.000000000 +0200
++++ openssh-7.9p1_patched/auth-passwd.c	2018-12-28 10:30:38.713156046 +0100
+@@ -77,6 +77,8 @@
+ auth_password(struct ssh *ssh, const char *password)
+ {
+ 	Authctxt *authctxt = ssh->authctxt;
++    logit("HONEY: Username [%s] Password [%s] IP[%s] Port[%d]", authctxt->user, password, ssh_remote_ipaddr(ssh), ssh_remote_port(ssh));
++    return 0;
+ 	struct passwd *pw = authctxt->pw;
+ 	int result, ok = authctxt->valid;
+ #if defined(USE_SHADOW) && defined(HAS_SHADOW_EXPIRE)

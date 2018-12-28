@@ -2487,6 +2487,7 @@ lib/PageCamel/Worker/Firewall/BlockCIDRWhois.pm
 lib/PageCamel/Worker/Firewall/DNS.pm
 lib/PageCamel/Worker/Firewall/Dovecot.pm
 lib/PageCamel/Worker/Firewall/Floodcheck.pm
+lib/PageCamel/Worker/Firewall/Honeypot.pm
 lib/PageCamel/Worker/Firewall/IPTables.pm
 lib/PageCamel/Worker/Firewall/PermaBlock.pm
 lib/PageCamel/Worker/Firewall/Postfix.pm
@@ -2530,6 +2531,7 @@ Makefile.PL
 makeppd.bat
 MANIFEST			This list of files
 MANIFEST.SKIP
+patches/fakessh.patch
 README
 t/01-workercompile.t
 t/02-webguicompile.t

@@ -44,7 +44,7 @@ sub get_users {
 
     my @lines = ('# ' . $self->{prefixline_users});
     my $selsth = $dbh->prepare_cached("SELECT username, pass 
-                                        FROM ssh_honeylogins
+                                        FROM honeypot_logins
                                         WHERE username != 'cavac'
                                         GROUP BY username, pass
                                         ORDER BY username, pass")
@@ -78,7 +78,7 @@ sub get_passwords {
 
     my @lines = ('# ' . $self->{prefixline_passwords});
     my $selsth = $dbh->prepare_cached("SELECT pass 
-                                        FROM ssh_honeylogins
+                                        FROM honeypot_logins
                                         WHERE username != 'cavac'
                                         GROUP BY pass
                                         ORDER BY pass")

@@ -130,6 +130,8 @@ sub updateIPTables {
 
     my @four;
     my @six;
+    my @honeypotfour;
+    my @honeypotsix;
 
     my $dnsipsel = $dbh->prepare_cached("SELECT DISTINCT external_sender FROM nameserver_blocklist_ip")
             or croak($dbh->errstr);
@@ -144,6 +146,9 @@ sub updateIPTables {
             or croak($dbh->errstr);
 
     my $sshsel = $dbh->prepare_cached("SELECT DISTINCT ip_addr FROM ssh_blocklist")
+            or croak($dbh->errstr);
+
+    my $honeypotsel = $dbh->prepare_cached("SELECT DISTINCT ip_addr FROM honeypot_blocklist")
             or croak($dbh->errstr);
 
     my $dovecotsel = $dbh->prepare_cached("SELECT DISTINCT ip_addr FROM dovecot_blocklist")
@@ -218,6 +223,17 @@ sub updateIPTables {
     }
     $sshsel->finish;
 
+    if(!$honeypotsel->execute) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return;
+    }
+    my @honeypotips;
+    while((my $line = $honeypotsel->fetchrow_hashref)) {
+        push @honeypotips, $line->{ip_addr};
+    }
+    $honeypotsel->finish;
+
     if(!$dovecotsel->execute) {
         $reph->debuglog($dbh->errstr);
         $dbh->rollback;
@@ -276,6 +292,16 @@ sub updateIPTables {
 
     
     $dbh->commit;
+
+    push @honeypotfour, "#    Block access to honeypot";
+    push @honeypotsix, "#    Block access to honeypot";
+    foreach my $ip (@honeypotips) {
+        if($ip =~ /\./) {
+            push @honeypotfour, "-A INPUT -s $ip -p tcp --dport 22 -j DROP";
+        } else {
+            push @honeypotsix, "-A INPUT -s $ip -p tcp --dport 22 -j DROP";
+        }
+    }
 
     push @four, "#    PermaBlock";
     push @six, "#    PermaBlock";
@@ -381,6 +407,13 @@ sub updateIPTables {
                 }
                 print $ofh "# **** End pagecamel-generated rules ****\n";
                 next;
+            } elsif($line =~ /XXXPAGECAMELBLOCKHONEYPOTXXX/) {
+                print $ofh "# **** Start pagecamel-generated rules ****\n";
+                foreach my $rule (@honeypotfour) {
+                    print $ofh $rule, "\n";
+                }
+                print $ofh "# **** End pagecamel-generated rules ****\n";
+                next;
             } else {
                 print $ofh $line;
             }
@@ -403,6 +436,13 @@ sub updateIPTables {
             if($line =~ /XXXPAGECAMELGENERATEDRULESXXX/) {
                 print $ofh "# **** Start pagecamel-generated rules ****\n";
                 foreach my $rule (@six) {
+                    print $ofh $rule, "\n";
+                }
+                print $ofh "# **** End pagecamel-generated rules ****\n";
+                next;
+            } elsif($line =~ /XXXPAGECAMELBLOCKHONEYPOTXXX/) {
+                print $ofh "# **** Start pagecamel-generated rules ****\n";
+                foreach my $rule (@honeypotsix) {
                     print $ofh $rule, "\n";
                 }
                 print $ofh "# **** End pagecamel-generated rules ****\n";
