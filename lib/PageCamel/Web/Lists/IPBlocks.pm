@@ -53,6 +53,8 @@ sub get {
                                             UNION
                                             SELECT ip_addr AS hostip FROM firewall_permablock
                                             UNION
+                                            SELECT ip_addr AS hostip FROM honeypot_blocklist
+                                            UNION
                                             SELECT external_sender AS hostip FROM nameserver_blocklist_ip
                                         ) AS allblocks
                                         ORDER BY hostip;")
