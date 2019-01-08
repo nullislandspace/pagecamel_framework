@@ -37,7 +37,7 @@ sub filter {
     my $header = shift @lines;
     chomp $header;
     @headers = split/;/, $header;
-    for(my $i = 0; $i < scalar @headers; $i++) {
+    for(my $i = 0; $i < $#headers; $i++) {
         $headcount[$i] = 0;
     }
 
@@ -46,7 +46,7 @@ sub filter {
     foreach my $line (@lines) {
         chomp $line;
         my @parts = split/;/o, $line;
-        for(my $i = 0; $i < scalar @parts; $i++) {
+        for(my $i = 0; $i < $#parts; $i++) {
             if(length($parts[$i]) > 0) {
                 $headcount[$i]++;
             }
@@ -67,7 +67,7 @@ sub filter {
             open($ofh, ">", $ofname) or croak($ERRNO); ## no critic (InputOutput::RequireBriefOpen)
             $self->{logger}->debuglog("Opening new output file $ofname");
             $outline = "";
-            for(my $i = 0; $i < scalar @headers; $i++) {
+            for(my $i = 0; $i < $#headers; $i++) {
                 if($headcount[$i] > 0) {
                     $outline .= "=\"" . $headers[$i] . "\";";
                 }
@@ -80,7 +80,7 @@ sub filter {
         chomp $line;
         my @parts = split/;/o, $line;
         $outline = "";
-        for(my $i = 0; $i < scalar @headers; $i++) {
+        for(my $i = 0; $i < $#headers; $i++) {
             if($headcount[$i] > 0) {
                 if(!defined($parts[$i])) {
                     $parts[$i] = "";
