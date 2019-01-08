@@ -56,7 +56,7 @@ sub post_configure_hook {
 sub _tracker_first_empty_index {
   my ($self) = @_;
   my @tracker = @{ $self->{tracker}{array} };
-  grep { defined($tracker[$_]) || return $_ } (0 .. $#tracker);
+  grep { defined($tracker[$_]) || return $_ } (0 .. scalar @tracker);
   Carp::confess("no empty slots in tracker!");
 }
 

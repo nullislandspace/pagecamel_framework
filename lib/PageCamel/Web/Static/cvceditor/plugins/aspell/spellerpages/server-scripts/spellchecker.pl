@@ -29,7 +29,7 @@ my $input_separator = "A";
 
 # set the 'wordtext' JavaScript variable to the submitted text.
 sub printTextVar {
-	for( my $i = 0; $i <= $#textinputs; $i++ ) {
+	for( my $i = 0; $i <= scalar @textinputs; $i++ ) {
 	        print "textinputs[$i] = decodeURIComponent('" . escapeQuote( $textinputs[$i] ) . "')\n";
 	}
 }
@@ -48,9 +48,9 @@ sub printWordsElem {
 sub printSuggsElem {
 	my( $textIdx, $wordIdx, @suggs ) = @_;
 	print "suggs[$textIdx][$wordIdx] = [";
-	for my $i ( 0..$#suggs ) {
+	for my $i ( 0..scalar @suggs ) {
 		print "'" . escapeQuote( $suggs[$i] ) . "'";
-		if( $i < $#suggs ) {
+		if( $i < scalar @suggs ) {
 			print ", ";
 		}
 	}
@@ -68,7 +68,7 @@ sub printCheckerResults {
 	# temp file was created properly?
 
 	# open temp file, add the submitted text.
-	for( my $i = 0; $i <= $#textinputs; $i++ ) {
+	for( my $i = 0; $i <= scalar @textinputs; $i++ ) {
 		$text = url_decode( $textinputs[$i] );
 		# Strip all tags for the text. (by FredCK - #339 / #681)
 		$text =~ s/<[^>]+>/ /g;

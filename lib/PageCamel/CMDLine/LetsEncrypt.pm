@@ -449,7 +449,7 @@ sub _path_mismatch {
         my @paths = grep {$_} split /\s*,\s*/, $opt->{'path'};
         if (@paths > 1) {
             return 1 unless @{$domains} == @paths;
-            for (my $i = 0; $i <= $#paths; $i++) {
+            for (my $i = 0; $i <= scalar @paths; $i++) {
                 $opt->{'multiroot'}->{$domains->[$i]} = $paths[$i];
             }
         }

@@ -274,9 +274,9 @@ sub prepared_ports {
     my %bound;
     my $bind = $prop->{'_bind'} = [];
     for my $_port (ref($ports) ? @$ports : $ports) {
-        my $_host  = ref($hosts)  ? $hosts->[ @$bind >= @$hosts  ? -1 : $#$bind + 1] : $hosts; # if ports are greater than hosts - augment with the last host
-        my $_proto = ref($protos) ? $protos->[@$bind >= @$protos ? -1 : $#$bind + 1] : $protos;
-        my $_ipv   = ref($ipvs)  ? $ipvs->[ @$bind >= @$ipvs  ? -1 : $#$bind + 1] : $ipvs;
+        my $_host  = ref($hosts)  ? $hosts->[ @$bind >= @$hosts  ? -1 : scalar @$bind + 1] : $hosts; # if ports are greater than hosts - augment with the last host
+        my $_proto = ref($protos) ? $protos->[@$bind >= @$protos ? -1 : scalar @$bind + 1] : $protos;
+        my $_ipv   = ref($ipvs)  ? $ipvs->[ @$bind >= @$ipvs  ? -1 : scalar @$bind + 1] : $ipvs;
         foreach my $info ($self->port_info($_port, $_host, $_proto, $_ipv)) {
             my ($port, $host, $proto, $ipv) = @$info{qw(port host proto ipv)}; # use cleaned values
             if ($port ne "0" && $bound{"$host\e$port\e$proto\e$ipv"}++) {
@@ -1010,7 +1010,7 @@ sub process_args {
             my ($key, $val) = ($1, $2);
             splice @$args, $i, 1;
             if (! defined $val) {
-                if ($i > $#$args
+                if ($i > scalar @$args
                     || ($args->[$i] && $args->[$i] =~ /^--\w+/)) {
                     $val = 1; # allow for options such as --setsid
                 } else {
