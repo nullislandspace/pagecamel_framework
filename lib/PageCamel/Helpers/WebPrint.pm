@@ -66,7 +66,7 @@ sub webPrint {
             $written = 0;
         }
         last if($written == length($full));
-        print STDERR "Sent $written bytes\n";
+        #print STDERR "Sent $written bytes (", length($full) - $written, "remaining)\n";
         if($!{EWOULDBLOCK} || $!{EAGAIN}) {
             if(!$shownlimitmessage) {
                 print STDERR "Rate limiting output\n";
