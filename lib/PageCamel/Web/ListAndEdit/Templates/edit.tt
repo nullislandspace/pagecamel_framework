@@ -348,11 +348,13 @@
             var fielddata = $(this).val();
             console.log("Found Editor for " + editorfield);
             var extrapluginlist = 'autogrow,aspell,cavacnote,cavacimage,cavacfiles,html5video,panelbutton,colorbutton';
+            var removepluginlist = 'resize,scayt,pastefromword,devtools,image,youtube';
             if(typeof ttvars.wikiarticleselect !== 'undefined') {
-                console.log("WIKI mode");
+                //console.log("WIKI mode");
                 extrapluginlist = extrapluginlist + ',cavacwiki';
             } else {
-                console.log("non-WIKI mode");
+                //console.log("non-WIKI mode");
+                removepluginlist = removepluginlist + ',cavacwiki';
             };
             var thiseditor = $(this).cvceditor({
                     allowedContent: true,
@@ -362,7 +364,7 @@
                     autoGrow_bottomSpace: 50,
                     autoGrow_onStartup: true,
                     aspell_scriptPath: '/blog/aspell',
-                    removePlugins: 'resize,scayt,pastefromword,devtools,image,youtube',
+                    removePlugins: removepluginlist,
                     removeButtons: 'Image',
                     colorButton_colors: '000000,009b0f,ffa100,ef0300,808080',
                     colorButton_enableAutomatic: true
