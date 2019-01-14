@@ -819,6 +819,9 @@ lib/PageCamel/Web/Static/cvceditor/plugins/cavacimage/plugin.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacnote/dialogs/cavacnote.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacnote/icons/cavacnote.png
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacnote/plugin.js
+lib/PageCamel/Web/Static/cvceditor/plugins/cavacwiki/dialogs/cavacwiki.js
+lib/PageCamel/Web/Static/cvceditor/plugins/cavacwiki/icons/cavacwiki.png
+lib/PageCamel/Web/Static/cvceditor/plugins/cavacwiki/plugin.js
 lib/PageCamel/Web/Static/cvceditor/plugins/clipboard/dialogs/paste.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cloudservices/plugin.js
 lib/PageCamel/Web/Static/cvceditor/plugins/codesnippet/dialogs/codesnippet.js
@@ -2455,6 +2458,7 @@ lib/PageCamel/Web/VNC5.pm
 lib/PageCamel/Web/WebApi/LetsEncryptDNS.pm
 lib/PageCamel/Web/WebApps.pm
 lib/PageCamel/Web/Webcam.pm
+lib/PageCamel/Web/Wiki/Articles.pm
 lib/PageCamel/Web/Wiki/Templates/archive_mobile.tt
 lib/PageCamel/Web/Wiki/Templates/viewer.tt
 lib/PageCamel/Web/Wiki/Viewer.pm

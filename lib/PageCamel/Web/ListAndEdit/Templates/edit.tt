@@ -347,9 +347,16 @@
             var editorfield = $(this).attr('name');
             var fielddata = $(this).val();
             console.log("Found Editor for " + editorfield);
+            var extrapluginlist = 'autogrow,aspell,cavacnote,cavacimage,cavacfiles,html5video,panelbutton,colorbutton';
+            if(typeof ttvars.wikiarticleselect !== 'undefined') {
+                console.log("WIKI mode");
+                extrapluginlist = extrapluginlist + ',cavacwiki';
+            } else {
+                console.log("non-WIKI mode");
+            };
             var thiseditor = $(this).cvceditor({
                     allowedContent: true,
-                    extraPlugins: 'autogrow,aspell,cavacnote,cavacimage,cavacfiles,html5video,panelbutton,colorbutton',
+                    extraPlugins: extrapluginlist,
                     autoGrow_minHeight: 400,
                     autoGrow_maxHeight: 700,
                     autoGrow_bottomSpace: 50,

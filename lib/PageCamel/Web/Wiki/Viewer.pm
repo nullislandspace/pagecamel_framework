@@ -289,14 +289,22 @@ sub get {
 
     # Replace markup links with real links
     my $baselink = $self->{webpath} . '/';
-    while($fulltext =~ /\[wiki\:(.+?)]/) {
-        my ($pre, $rest) = split /\[wiki\:/, $fulltext, 2;
-        my ($linktitle, $post) = split/\]/, $rest, 2;
+    while($fulltext =~ /\<a\ class\=\"cavacwiki\"/) {
+        my ($pre, $rest) = split /\<a\ class\=\"cavacwiki\"\ linktitle\=\"/, $fulltext, 2;
+        my ($linktitle, $post) = split/\"/, $rest, 2;
+        $post =~ s/^(.+?)\<\/a\>//;
         if(defined($fulltitles{$linktitle})) {
             $fulltext = $pre . '<a href="' . $baselink . $linktitle . '">' . $fulltitles{$linktitle} . '</a>' . $post;
         } else {
             $fulltext = $pre . ' &#10068;&#10068;&#10068;' . $linktitle . '&#10068;&#10068;&#10068; ' . $post;
         }
+    }
+
+    # Mark legacy links as broken
+    while($fulltext =~ /\[wiki\:(.+?)]/) {
+        my ($pre, $rest) = split /\[wiki\:/, $fulltext, 2;
+        my ($linktitle, $post) = split/\]/, $rest, 2;
+        $fulltext = $pre . ' &#10068;&#10068;&#10068;' . $linktitle . '&#10068;&#10068;&#10068; ' . $post;
     }
 
     my %webdata = (
