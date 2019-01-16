@@ -75,8 +75,8 @@ sub get {
     return(status => 500) unless($socket);
     #binmode $socket;
 
-    print STDERR "++++++++++++ GET $mercurialpath HTTP/1.1\n";
-    print STDERR "???????????? ", $ua->{'original_path_info'}, "\n";
+    #print STDERR "++++++++++++ GET $mercurialpath HTTP/1.1\n";
+    #print STDERR "???????????? ", $ua->{'original_path_info'}, "\n";
     $socket->send("GET $mercurialpath HTTP/1.1\r\n");
     
     foreach my $key (keys %{$ua->{headers}}) {
