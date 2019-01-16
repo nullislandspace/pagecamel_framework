@@ -155,8 +155,14 @@ sub get {
 }
 
 sub readsocketline {
-    my ($self, $socket) = @_;
+    my ($self, $socket, $timeout) = @_;
 
+    if(!defined($timeout) || !$timeout) {
+        $timeout = 30;
+    };
+
+    my $failat = time + $timeout;
+    
     my $line = '';
     while(1) {
         my $char = '';
