@@ -32,7 +32,7 @@ sub webPrint {
     my $full;
     foreach my $npart (@parts) {
         if(!defined($npart)) {
-            print STDERR "Empty npart in Webprint!\n";
+            #print STDERR "Empty npart in Webprint!\n";
             next;
         }
         if(is_utf8($npart)) {
@@ -99,7 +99,7 @@ sub webPrint {
         $needprintdone = 1;
     }
     if($needprintdone) {
-        print STDERR "Webprint Done\n";
+        #print STDERR "Webprint Done\n";
     }
     return 1;
 
