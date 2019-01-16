@@ -111,13 +111,13 @@ sub get {
         $socket->send($ua->{postdata});
     }
     my %retpage;
-    my $statusline = $self->readsocketline($socket);
+    my $statusline = $self->readsocketline($socket, 30);
     my @statusparts = split/\ /, $statusline, 3;
     $retpage{status} = $statusparts[1];
     $retpage{statustext} = $statusparts[2];
 
     while(1) {
-        my $headerline = $self->readsocketline($socket);
+        my $headerline = $self->readsocketline($socket, 10);
         last if($headerline eq '');
         my ($hname, $hvalue) = split/\:/, $headerline, 3;
         if($hname eq 'Content-Type') {
@@ -167,6 +167,7 @@ sub readsocketline {
     while(1) {
         my $char = '';
         $socket->recv($char, 1);
+        last if(time > $failat);
         next if(!defined($char) || $char eq '');
         next if($char eq "\r");
         last if($char eq "\n");
@@ -181,12 +182,12 @@ sub readChunked {
 
     my $content = '';
     while(1) {
-        my $chunklen = $self->readsocketline($socket);
+        my $chunklen = $self->readsocketline($socket, 30);
         $chunklen = hex($chunklen);
         last unless $chunklen;
         my $partial = $self->readPlain($socket, $chunklen);
         $content .= $partial;
-        my $dummycrlf = $self->readsocketline($socket);
+        my $dummycrlf = $self->readsocketline($socket, 10);
     }
 
     return $content;
