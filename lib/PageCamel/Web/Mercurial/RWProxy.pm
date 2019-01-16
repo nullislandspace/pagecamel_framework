@@ -14,6 +14,7 @@ use Array::Contains;
 
 use base qw(PageCamel::Web::BaseModule);
 use IO::Socket::IP;
+use PageCamel::Helpers::URI qw[encode_uri_path encode_uri_part];
 
 my @ignoremercurialheaders = qw[Date Server Title X-Meta-Robots];
 my @ignoreclientheaders = qw[Connection Cookie DNT Host Referer Upgrade-Insecure-Requests];
@@ -76,11 +77,13 @@ sub get {
     if($mercurialpath !~ /^\//) {
         $mercurialpath = '/' . $mercurialpath;
     }
+
+    $mercurialpath = encode_uri_path($mercurialpath);
     my @uriparamkey = keys %{$ua->{uriparams}};
     if(@uriparamkey) {
         my @parts;
         foreach my $key (@uriparamkey) {
-            push @parts, $key . '=' . $ua->{uriparams}->{$key};
+            push @parts, $key . '=' . encode_uri_part($ua->{uriparams}->{$key});
         }
         $mercurialpath .= '?' . join('&', @parts);
     }
