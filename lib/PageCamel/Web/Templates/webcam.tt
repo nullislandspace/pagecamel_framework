@@ -9,13 +9,175 @@
     [% END %]
 </p>
 
+[% IF WebcamAdminMode == "1" %]
+<table border="1px" width="800px">
+    <tr>
+        <th>[% tr.trquote("Setting name") %]</th>
+        <th>[% tr.trquote("Value") %]</th>
+    </tr>
+    <tr>
+        <td>[% tr.trquote("Day/Night mode") %]</td>
+        <td>
+            <input type="button" value="[% tr.trquote("Color") %]" id="button_daynight_color">
+            <input type="button" value="[% tr.trquote("Infrared") %]" id="button_daynight_infrared">
+            <input type="button" value="[% tr.trquote("Auto") %]" id="button_daynight_auto">
+        </td>
+    </tr>
+    <tr>
+        <td>[% tr.trquote("Image settings") %]</td>
+        <td>
+            <input type="button" value="[% tr.trquote("Load") %]" id="button_load_image_settings">
+            <input type="button" value="[% tr.trquote("Reset") %]" id="button_reset_image_settings">
+        </td>
+    </tr>
+    <tr>
+        <td>[% tr.trquote("Brightness") %]</td>
+        <td>
+            <div id="slider_brightness"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>[% tr.trquote("Contrast") %]</td>
+        <td>
+            <div id="slider_contrast"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>[% tr.trquote("Hue") %]</td>
+        <td>
+            <div id="slider_hue"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>[% tr.trquote("Saturation") %]</td>
+        <td>
+            <div id="slider_saturation"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>[% tr.trquote("Sharpness") %]</td>
+        <td>
+            <div id="slider_sharpness"></div>
+        </td>
+    </tr>
+</table>
+[% END %]
+
 <script>    
+    function websocketmaskOnload() {
+        // Day / Night / Auto
+        $('#button_daynight_color').on('click', function() {
+            sendCameraCommand('setInfraLedConfig&mode=1');
+            sendCameraCommand('closeInfraLed');
+        });
+        $('#button_daynight_infrared').on('click', function() {
+            sendCameraCommand('setInfraLedConfig&mode=1');
+            sendCameraCommand('openInfraLed');
+        });
+        $('#button_daynight_auto').on('click', function() {
+            sendCameraCommand('setInfraLedConfig&mode=0');
+        });
+
+        // Load image settings
+        $('#button_load_image_settings').on('click', function() {
+            sendCameraCommand('getImageSetting');
+        });
+
+        // Reset image settings
+        $('#button_reset_image_settings').on('click', function() {
+            sendCameraCommand('resetImageSetting');
+            sendCameraCommand('getImageSetting');
+        });
+
+        // Brightness
+        $('#slider_brightness').slider({
+            min: 0,
+            max: 100,
+            step: 1,
+            value: 50,
+            change: function(event, ui) {
+                sendCameraCommand('setBrightness&brightness=' + ui.value);
+            }
+        });
+        
+        // Contrast
+        $('#slider_contrast').slider({
+            min: 0,
+            max: 100,
+            step: 1,
+            value: 50,
+            change: function(event, ui) {
+                sendCameraCommand('setContrast&contrast=' + ui.value);
+            }
+        });
+
+        // Hue
+        $('#slider_hue').slider({
+            min: 0,
+            max: 100,
+            step: 1,
+            value: 50,
+            change: function(event, ui) {
+                sendCameraCommand('setHue&hue=' + ui.value);
+            }
+        });
+        
+        // Saturation
+        $('#slider_saturation').slider({
+            min: 0,
+            max: 100,
+            step: 1,
+            value: 50,
+            change: function(event, ui) {
+                sendCameraCommand('setSaturation&saturation=' + ui.value);
+            }
+        });
+        
+        // Sharpness
+        $('#slider_sharpness').slider({
+            min: 0,
+            max: 100,
+            step: 1,
+            value: 50,
+            change: function(event, ui) {
+                sendCameraCommand('setSharpness&sharpness=' + ui.value);
+            }
+        });
+    }
+
+    function websocketmaskOnSocketOpen() {
+        sendCameraCommand('getImageSetting');
+    }
+
+
     function handleMessage(msg) {                
         if(msg.type === "IMAGE") {
             $("#webcamimg_" + msg.cameraname).attr('src', 'data:image/jpeg;base64, ' + msg.varval);
             
             return;
         }
+
+        if(msg.type === 'SETTINGS') {
+            console.log('Got camera settings');
+            console.log(msg);
+            $('#slider_brightness').slider('value', msg.brightness);
+            $('#slider_contrast').slider('value', msg.contrast);
+            $('#slider_hue').slider('value', msg.hue);
+            $('#slider_saturation').slider('value', msg.saturation);
+            $('#slider_sharpness').slider('value', msg.sharpness);
+        }
         
     }
+
+    function sendCameraCommand(command) {
+        var outmsg = {
+            type: 'COMMAND',
+            cmdstring: command
+        };
+
+        ws.send(JSON.stringify(outmsg));
+        console.log(command);
+    }
+
+
 </script>

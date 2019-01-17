@@ -21,6 +21,7 @@ use Image::Imlib2;
 use Time::HiRes qw(sleep);
 use MIME::Base64;
 use Data::Dumper;
+use XML::Simple;
 
 sub new {
     my ($proto, %config) = @_;
@@ -36,6 +37,15 @@ sub new {
     # run startup commands (init camera on first cycle)
     $self->{needInit} = 1;
 
+    $self->{nextImageTime} = 0;
+    if(!defined($self->{cycletime})) {
+        $self->{cycletime} = 10;
+    };
+
+    my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
+    $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    $self->{clacks}->listen($self->{camname} . '::Command');
+    $self->{clacks}->doNetwork();
 
     return $self;
 }
@@ -101,7 +111,47 @@ sub work {
     }
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
-    my $memh = $self->{server}->{modules}->{$self->{memcache}};
+
+    $self->{clacks}->doNetwork();
+    while((my $message = $self->{clacks}->getNext())) {
+        if($message->{type} eq 'disconnect') {
+            $self->{clacks}->listen($self->{camname} . '::Command');
+            $self->{clacks}->ping();
+            $self->{clacks}->doNetwork();
+            next;
+        }
+
+        if($message->{type} eq 'set' && $message->{name} eq $self->{camname} . '::Command') {
+            $reph->debuglog("Running command " . $message->{data} . ' ...');
+            my ($ok, $value) = $self->runCommand($message->{data});
+            if($ok) {
+                $reph->debuglog("  OK");
+            } else {
+                $reph->debuglog("  Failed");
+            }
+
+            if($message->{data} eq 'getImageSetting' && $ok) {
+                # Need to return the current image settings to frontend
+                my $camconf = XMLin($value);
+                my @parts;
+                foreach my $key (keys %{$camconf}) {
+                    push @parts, $key . '=' . $camconf->{$key};
+                }
+                my $clackscamconf = join('&', @parts);
+                print STDERR '######: ', $clackscamconf, "\n";
+                $self->{clacks}->set($self->{camname} . '::Config', $clackscamconf);
+            }
+            $self->{nextImageTime} = 0; # Trigger new image automatically
+        }
+
+    }
+
+    my $now = time;
+    if($now < $self->{nextImageTime}) {
+        return $workCount;
+    }
+    $self->{nextImageTime} = $now + $self->{cycletime};
+    $self->{clacks}->ping();
 
     $reph->debuglog("Getting image for " . $self->{modname});
 
@@ -135,11 +185,13 @@ sub work {
 
             $img->save($fname);
 
-            my $imgkeyname = 'Webcam::' . $self->{modname} . '::' . $crop->{clacksname} . '::imagedata';
+            my $imgkeyname = 'Webcam::' . $self->{camname} . '::' . $crop->{clacksname} . '::imagedata';
             my $encoded = encode_base64(slurpBinFile($fname), '');
             $reph->debuglog(length($encoded) . " base64 bytes @ $imgkeyname");
-            $memh->clacks_set($imgkeyname, $encoded); # real time notification via SET
-            $memh->set($imgkeyname, $encoded); # = "store" in Clacks terminology, "set" in memcached terminology...
+            $self->{clacks}->set($imgkeyname, $encoded); # real time notification via SET
+            $self->{clacks}->doNetwork();
+            $self->{clacks}->store($imgkeyname, $encoded); # store in clacks memory
+            $self->{clacks}->doNetwork();
         }
         $workCount++;
     } else {
