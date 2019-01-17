@@ -64,6 +64,8 @@
 [% END %]
 
 <script>    
+    var isUpdatingSliders = 0;
+
     function websocketmaskOnload() {
         // Day / Night / Auto
         $('#button_daynight_color').on('click', function() {
@@ -160,16 +162,21 @@
         if(msg.type === 'SETTINGS') {
             console.log('Got camera settings');
             console.log(msg);
+            isUpdatingSliders = 1;
             $('#slider_brightness').slider('value', msg.brightness);
             $('#slider_contrast').slider('value', msg.contrast);
             $('#slider_hue').slider('value', msg.hue);
             $('#slider_saturation').slider('value', msg.saturation);
             $('#slider_sharpness').slider('value', msg.sharpness);
+            isUpdatingSliders = 0;
         }
         
     }
 
     function sendCameraCommand(command) {
+        if(isUpdatingSliders == 1) {
+            return;
+        }
         var outmsg = {
             type: 'COMMAND',
             cmdstring: command
