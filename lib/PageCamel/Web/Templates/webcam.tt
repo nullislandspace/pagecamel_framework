@@ -103,13 +103,15 @@
         });
         
         // Contrast
+        // Warning: For some weird reason, the actual value needs to be set with the misspelled option "constrast"
+        // (note the additional "s" in there).
         $('#slider_contrast').slider({
             min: 0,
             max: 100,
             step: 1,
             value: 50,
             change: function(event, ui) {
-                sendCameraCommand('setContrast&contrast=' + ui.value);
+                sendCameraCommand('setContrast&constrast=' + ui.value);
             }
         });
 
