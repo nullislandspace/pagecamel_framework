@@ -27,6 +27,10 @@ sub new {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    if(!defined($self->{dontlog})) {
+        $self->{dontlog} = 0;
+    }
+
     return $self;
 }
 
@@ -47,7 +51,7 @@ sub register {
 sub crossregister {
     my ($self) = @_;
 
-    if($self->{public}) {
+    if(defined($self->{public}) && $self->{public} == 1) {
         $self->register_public_url($self->{webpath});
     }
 
@@ -85,8 +89,9 @@ sub get_download {
         module      => $self,
         funcname    => "file_get",
     );
-
-    return (status  =>  200,
+    
+    my %retstatus = (
+        status  =>  200,
         type    => 'video/MP2T',
         "content_length" => $datalength,
         expires         => '+10m',
@@ -96,6 +101,12 @@ sub get_download {
         "Last-Modified" => $lastmodifiedheader,
         data => $data,
     );
+
+    if($self->{dontlog}) {
+        $retstatus{'__do_not_log_to_accesslog'} = 1;
+    }
+
+    return %retstatus;
 }
 
 sub get_index {
@@ -128,21 +139,18 @@ rereadindex:
         goto rereadindex;
     }
 
-    my $etag = sha1_hex($data);
-    my $fstat = stat($realfilename);
-    my $lastmodified = ctime($fstat->mtime);
-    my $lastmodifiedheader = getWebdate(parseWebdate($lastmodified));
-
-    return (status  =>  200,
+    my %retstatus = (status  =>  200,
         type    => 'application/x-mpegURL',
         "content_length" => length($data),
-        expires         => '+5s',
-        cache_control   =>  'max-age=5',
         disable_compression => 1,
-        etag    => $etag,
-        "Last-Modified" => $lastmodifiedheader,
         data => $data,
     );
+
+    if($self->{dontlog}) {
+        $retstatus{'__do_not_log_to_accesslog'} = 1;
+    }
+
+    return %retstatus;
 }
 
 
