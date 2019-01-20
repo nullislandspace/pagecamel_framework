@@ -73,7 +73,7 @@ sub webPrint {
                 $shownlimitmessage = 1;
             }
             if(!$written) {
-                sleep(0.03);
+                sleep(0.01);
             }
         } elsif($brokenpipe) {
             print STDERR "webPrint write failure: SIGPIPE\n";

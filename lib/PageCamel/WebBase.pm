@@ -59,6 +59,8 @@ use PageCamel::Web::ListAndEdit::Main;
 use PageCamel::Web::Lists::BadPasswords;
 use PageCamel::Web::Lists::DNSBlocks;
 use PageCamel::Web::Lists::IPBlocks;
+use PageCamel::Web::Livestream::ServeM3U8;
+use PageCamel::Web::Livestream::ShowStream;
 use PageCamel::Web::Logging::Devices;
 use PageCamel::Web::Logging::Graphs;
 use PageCamel::Web::Logging::Report;

@@ -227,6 +227,9 @@ lib/PageCamel/Web/ListAndEdit/Templates/list.tt
 lib/PageCamel/Web/Lists/BadPasswords.pm
 lib/PageCamel/Web/Lists/DNSBlocks.pm
 lib/PageCamel/Web/Lists/IPBlocks.pm
+lib/PageCamel/Web/Livestream/ServeM3U8.pm
+lib/PageCamel/Web/Livestream/ShowStream.pm
+lib/PageCamel/Web/Livestream/Templates/showstream.tt
 lib/PageCamel/Web/Logging/Devices.pm
 lib/PageCamel/Web/Logging/Graphs.pm
 lib/PageCamel/Web/Logging/Report.pm
@@ -1449,6 +1452,8 @@ lib/PageCamel/Web/Static/fonts/orig/source-code-pro.zip
 lib/PageCamel/Web/Static/fonts/Portcullion.ttf
 lib/PageCamel/Web/Static/fonts/SourceCodePro-Medium.otf
 lib/PageCamel/Web/Static/formhelpers.js
+lib/PageCamel/Web/Static/hls.js
+lib/PageCamel/Web/Static/hls.js.map
 lib/PageCamel/Web/Static/jquery.compiled-min.js
 lib/PageCamel/Web/Static/jquery.compiled-min_blacksilk.css
 lib/PageCamel/Web/Static/jquery.compiled-min_bluegreen.css

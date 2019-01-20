@@ -1,0 +1,175 @@
+package PageCamel::Web::Livestream::ServeM3U8;
+#---AUTOPRAGMASTART---
+use 5.020;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 2;
+use Fatal qw( close );
+use Array::Contains;
+#---AUTOPRAGMAEND---
+
+use base qw(PageCamel::Web::BaseModule);
+use PageCamel::Helpers::FileSlurp qw[slurpBinFile slurpBinFilePart];
+use PageCamel::Helpers::DateStrings;
+use Digest::SHA1  qw(sha1_hex);
+use File::stat;
+use Time::localtime;
+use Time::HiRes qw[sleep];
+
+sub new {
+    my ($proto, %config) = @_;
+    my $class = ref($proto) || $proto;
+
+    my $self = $class->SUPER::new(%config); # Call parent NEW
+    bless $self, $class; # Re-bless with our class
+
+    return $self;
+}
+
+sub reload {
+    my ($self) = shift;
+    # Nothing to do
+
+    return;
+}
+
+sub register {
+    my $self = shift;
+    $self->register_webpath($self->{webpath}, "get_download", 'GET');
+    
+    return;
+}
+
+sub crossregister {
+    my ($self) = @_;
+
+    if($self->{public}) {
+        $self->register_public_url($self->{webpath});
+    }
+
+    return;
+}
+
+sub get_download {
+    my ($self, $ua) = @_;
+
+    my $filename = $ua->{url};
+    my $remove = $self->{webpath};
+    $filename =~ s/^$remove//;
+
+    if($filename eq 'index.m3u8') {
+        return $self->get_index($ua);
+    }
+
+
+    if($filename !~ /^\d{14}\.ts$/) {
+        return (
+            status => 404,
+        );
+    }
+
+    # Grab metadata
+    my $realfilename = $self->{basepath} . $filename;
+    my $data = slurpBinFile($realfilename);
+    my $fstat = stat($realfilename);
+    my $lastmodified = ctime($fstat->mtime);
+    my $lastmodifiedheader = getWebdate(parseWebdate($lastmodified));
+    my $datalength = $fstat->size;
+    my $etag = sha1_hex($filename . $datalength . $lastmodified);
+
+    my %dataGenerator = (
+        module      => $self,
+        funcname    => "file_get",
+    );
+
+    return (status  =>  200,
+        type    => 'video/MP2T',
+        "content_length" => $datalength,
+        expires         => '+10m',
+        cache_control   =>  'max-age=600',
+        disable_compression => 1,
+        etag    => $etag,
+        "Last-Modified" => $lastmodifiedheader,
+        data => $data,
+    );
+}
+
+sub get_index {
+    my ($self, $ua) = @_;
+
+    my $data = '';
+    my $filecount = 0;
+    my $loopcount = 0;
+    my $realfilename = $self->{basepath} . 'index.m3u8';
+rereadindex:
+    open(my $ifh, '<', $realfilename) or return(status => 500);
+    while((my $line = <$ifh>)) {
+        if($line =~ /XXXPATHXXX/) {
+            $filecount++;
+            $line =~ s/XXXPATHXXX/$self->{webpath}/g;
+            $line =~ s/\/\//\//g;
+        }
+        $data .= $line;
+    }
+    close $ifh;
+    if($filecount < 5) {
+        # Maythe the file is just beeing written, retry unless we exceed 3 loops already
+        $loopcount++;
+        if($loopcount > 5) {
+            return(status => 500);
+        }
+        $data = '';
+
+        sleep(0.1);
+        goto rereadindex;
+    }
+
+    my $etag = sha1_hex($data);
+    my $fstat = stat($realfilename);
+    my $lastmodified = ctime($fstat->mtime);
+    my $lastmodifiedheader = getWebdate(parseWebdate($lastmodified));
+
+    return (status  =>  200,
+        type    => 'application/x-mpegURL',
+        "content_length" => length($data),
+        expires         => '+5s',
+        cache_control   =>  'max-age=5',
+        disable_compression => 1,
+        etag    => $etag,
+        "Last-Modified" => $lastmodifiedheader,
+        data => $data,
+    );
+}
+
+
+
+1;
+__END__
+
+=head1 IMPORTANT NOTE
+
+This module is part of the PageCamel framework. Currently, only limited support
+and documentation exists outside my DarkPAN repositories. This source is
+currently only provided for your reference and usage in other projects (just
+copy&paste what you need, see license terms below).
+
+To see PageCamel in action and for news about the project,
+visit my blog at L<https://cavac.at>.
+
+=head1 AUTHOR
+
+Rene Schickbauer, E<lt>pagecamel@cavac.atE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008-2016 by Rene Schickbauer
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.10.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut
