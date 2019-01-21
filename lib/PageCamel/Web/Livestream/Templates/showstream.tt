@@ -1,4 +1,4 @@
-<p align="center"><video id="livestream"></video></p>
+<p align="center"><video id="livestream" controls playsinline></video></p>
 
 <span id="masktemplatedataset"
     data-m3u8source="[% M3U8File %]"
