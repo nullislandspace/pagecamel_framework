@@ -37,10 +37,7 @@ sub new {
     # run startup commands (init camera on first cycle)
     $self->{needInit} = 1;
 
-    $self->{nextImageTime} = 0;
-    if(!defined($self->{cycletime})) {
-        $self->{cycletime} = 10;
-    };
+    $self->{lastimagetime} = '';
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
@@ -141,16 +138,17 @@ sub work {
                 print STDERR '######: ', $clackscamconf, "\n";
                 $self->{clacks}->set($self->{camname} . '::Config', $clackscamconf);
             }
-            $self->{nextImageTime} = 0; # Trigger new image automatically
+            $self->{lastimagetime} = ''; # Trigger new image automatically
         }
 
     }
 
-    my $now = time;
-    if($now < $self->{nextImageTime}) {
+    my $now = getFileDate();
+    my $filedate = substr $now, 0, length($now) - 1; # "round down" = only exact to 10 seconds
+    if($filedate eq $self->{lastimagetime}) {
         return $workCount;
     }
-    $self->{nextImageTime} = $now + $self->{cycletime};
+    $self->{lastimagetime} = $filedate;
     $self->{clacks}->ping();
 
     $reph->debuglog("Getting image for " . $self->{modname});
@@ -167,6 +165,10 @@ sub work {
            $fname = $tmpname;
         } 
         writeBinFile($tmpname, $imagedata);
+        if(defined($self->{saverawimages})) {
+            my $rawimgname = $self->{saverawimages} . '/' . $now . '.jpg';
+            writeBinFile($rawimgname, $imagedata);
+        }
         foreach my $crop (@{$self->{crop}}) {
             my $img = Image::Imlib2->load($tmpname);
             $img->set_quality(100);
