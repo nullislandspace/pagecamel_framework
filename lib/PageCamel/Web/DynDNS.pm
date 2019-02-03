@@ -153,6 +153,9 @@ sub do_dyndns {
 
     $dbh->commit;
 
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
+    $memh->clacks_notify('iptables::needsupdate');
+
 
     my $data = "DynDNS is now updated!\n";
     if($ipv6) {

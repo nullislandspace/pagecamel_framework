@@ -133,6 +133,28 @@ sub updateIPTables {
     my @honeypotfour;
     my @honeypotsix;
 
+    if(defined($self->{dyndnsstreaming})) {
+        my $dyndnsstreamingip = '';
+        my $dyndnssth = $dbh->prepare_cached("SELECT net_public1_ipv4 FROM COMPUTERS WHERE computer_name = ?")
+            or croak($dbh->errstr);
+        if(!$dyndnssth->execute($self->{dyndnsstreaming})) {
+            $dbh->rollback;
+        } else {
+            my $line = $dyndnssth->fetchrow_hashref;
+            if(defined($line->{net_public1_ipv4})) {
+                $dyndnsstreamingip = $line->{net_public1_ipv4};
+            }
+            $dyndnssth->finish;
+            $dbh->commit;
+        }
+
+        if($dyndnsstreamingip ne '') {
+            push @four, '### Allow livestreaming from selected DynDNS address ###';
+            push @four, "-A INPUT -p tcp -s $dyndnsstreamingip/32 --dport 1934 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT";
+            push @four, '### Allow livestreaming from selected DynDNS address ###';
+        }
+    }
+
     my $dnsipsel = $dbh->prepare_cached("SELECT DISTINCT external_sender FROM nameserver_blocklist_ip")
             or croak($dbh->errstr);
 
