@@ -212,6 +212,8 @@ sub startup {
     # Listen to certain clacks commands
     $self->{clacks}->listen('pagecamel_services::set_all');
     $self->{clacks}->listen('pagecamel_services::restart::service');
+    $self->{clacks}->listen('pagecamel_services::enable::service');
+    $self->{clacks}->listen('pagecamel_services::disable::service');
 
     # Set status bit to "not started"
     foreach my $app (@{$self->{apps}}) {
@@ -323,6 +325,22 @@ sub handleClacksCommands {
                     }
                 }
                 $workCount++;
+            } elsif($command->{name} eq 'pagecamel_services::enable::service') {
+                foreach my $app (@{$self->{apps}}) {
+                    if($command->{data} eq $app->{short_name}) {
+                        $self->{sysh}->set('pagecamel_services', $app->{enable_name}, 1);
+                        last;
+                    }
+                }
+                $workCount++;
+            } elsif($command->{name} eq 'pagecamel_services::disable::service') {
+                foreach my $app (@{$self->{apps}}) {
+                    if($command->{data} eq $app->{short_name}) {
+                        $self->{sysh}->set('pagecamel_services', $app->{enable_name}, 0);
+                        last;
+                    }
+                }
+                $workCount++;
             }
         } elsif($command->{type} eq 'disconnect') {
             # Try to reconnect
@@ -331,6 +349,8 @@ sub handleClacksCommands {
             # and listen (again) to certain clacks commands
             $self->{clacks}->listen('pagecamel_services::set_all');
             $self->{clacks}->listen('pagecamel_services::restart::service');
+            $self->{clacks}->listen('pagecamel_services::enable::service');
+            $self->{clacks}->listen('pagecamel_services::disable::service');
         }
     }
 
