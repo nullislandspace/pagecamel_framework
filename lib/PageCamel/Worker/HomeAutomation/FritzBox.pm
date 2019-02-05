@@ -78,6 +78,7 @@ sub work {
 
     # Only do "real work" every 10 seconds or so, we don't want to overtax the Fritz!Box
     if($now > $self->{nextrun}) {
+        #$reph->debuglog("_");
         $self->{nextrun} = time + 10;
     } else {
         return $workCount;
@@ -134,6 +135,7 @@ sub work {
             next;
         } elsif($cmsg->{type} eq 'set') {
             # Change switch if required
+            $reph->debuglog("GOT CLACKS: " . $cmsg->{name} . "=" . $cmsg->{data});
             foreach my $key (keys %{$self->{switches}}) {
                 if($cmsg->{name} eq $self->{switches}->{$key}->{clacksname_setswitch}) {
                     if(!defined($self->{switches}->{$key}->{state})) {

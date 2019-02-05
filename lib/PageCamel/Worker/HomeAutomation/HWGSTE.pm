@@ -87,7 +87,7 @@ sub work {
         # Both SET and STORE the data
         $self->{clacks}->setAndStore($self->{clacksname_temperature}, $data->{temperature});
         $self->{clacks}->setAndStore($self->{clacksname_humidity}, $data->{humidity});
-        $reph->debuglog('HWGSTE ' . $self->{hostname} . ': ' . $data->{temperature} . '°C, ' . $data->{humidity} . '%');
+        $reph->debuglog('HWGSTE ' . $self->{hostname} . ': ' . $data->{temperature} . 'C, ' . $data->{humidity} . '%');
     } 
 
     return $workCount;
