@@ -2510,6 +2510,9 @@ lib/PageCamel/Worker/GardenSpaceProgram/GEO2Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/LocalCache.pm
 lib/PageCamel/Worker/GardenSpaceProgram/Modem.pm
 lib/PageCamel/Worker/GardenSpaceProgram/Upload.pm
+lib/PageCamel/Worker/HomeAutomation/FritzBox.pm
+lib/PageCamel/Worker/HomeAutomation/HWGSTE.pm
+lib/PageCamel/Worker/HomeAutomation/KeepRange.pm
 lib/PageCamel/Worker/Logging/PluginBase.pm
 lib/PageCamel/Worker/Logging/Plugins/DummyPlugin.pm
 lib/PageCamel/Worker/Logging/Plugins/PageCamelStats.pm

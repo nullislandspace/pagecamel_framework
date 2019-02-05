@@ -8,6 +8,7 @@ WriteMakefile(
     NAME              => 'PageCamel::Framework',
     VERSION_FROM      => 'lib/PageCamel/Framework.pm', # finds $VERSION
     PREREQ_PM         => {
+        'AHA' => 0, # AVM Home Automation (Fritz!Box)
         'Archive::Zip' => 0,
         'Array::Contains' => 2.7,
         'Carp' => 0,
@@ -72,7 +73,7 @@ WriteMakefile(
         'Minecraft::NBTReader' => 0,
         'Minecraft::RCON' => 0,
         'Module::Load' => 0,
-        'Net::Clacks::Client' => 4.5,
+        'Net::Clacks::Client' => 5.0,
         'Net::DNS' => 0,
         'Net::DNS::Packet' => 0,
         'Net::DNS::Resolver' => 0,
