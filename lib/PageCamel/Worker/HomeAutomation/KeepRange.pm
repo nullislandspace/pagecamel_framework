@@ -58,15 +58,58 @@ sub reload {
             'on=ON',
             'off=OFF',
             'auto=Automatic'
-        ]) or croak("Failed to create setting websocket_encryption!");
+        ]) or croak("Failed to create setting switch_mode!");
 
-    my ($ok, $setref) = $sysh->get($self->{modname}, 'switch_mode');
-    if(!$ok || !defined($setref->{settingvalue})) {
-        croak("Failed to read setting switch_mode");
+    $sysh->createText(modulename => $self->{modname},
+                    settingname => 'inhibit_device',
+                    settingvalue => 0,
+                    description => 'Inhibit device without changing its control mode',
+                    processinghints => [
+                        'type=switch'
+                                        ])
+        or croak("Failed to create setting inhibit_device!");
+
+    $sysh->createNumber(modulename => $self->{modname},
+                    settingname => 'min_value',
+                    settingvalue => $self->{min},
+                    description => 'Switch ON of sensor falls below this value',
+                    value_min => -999999.0,
+                    value_max =>  999999.0,
+                    processinghints => [
+                        'decimal=3',
+                    ],
+                    )
+        or croak("Failed to create setting min_value!");
+
+    $sysh->createNumber(modulename => $self->{modname},
+                    settingname => 'max_value',
+                    settingvalue => $self->{max},
+                    description => 'Switch ON of sensor falls below this value',
+                    value_min => -999999.0,
+                    value_max =>  999999.0,
+                    processinghints => [
+                        'decimal=3',
+                    ],
+                    )
+        or croak("Failed to create setting max_value!");
+
+    my %sysmap = (
+        switch_mode => 'clacksname_mode',
+        inhibit_device => 'clacksname_inhibit',
+        min_value => 'clacksname_min',
+        max_value => 'clacksname_max',
+    );
+    $self->{sysmap} = \%sysmap;
+
+    foreach my $key (keys %{$self->{sysmap}}) {
+        my ($ok, $setref) = $sysh->get($self->{modname}, $key);
+        if(!$ok || !defined($setref->{settingvalue})) {
+            croak("Failed to read setting $key");
+        }
+
+        # Store only, don't broadcast
+        $self->{clacks}->store($self->{$self->{sysmap}->{$key}}, $setref->{settingvalue});
     }
-
-    # Store only, don't broadcast
-    $self->{clacks}->store($self->{clacksname_mode}, $setref->{settingvalue});
 
     return;
 }
@@ -105,6 +148,30 @@ sub work {
                 $self->{clacks}->store($self->{clacksname_mode}, $val);
                 $sysh->set($self->{modname}, 'switch_mode', $val);
             }
+        } elsif($cmsg->{type} eq 'set' && $cmsg->{name} eq $self->{clacksname_inhibit}) {
+            my $val = $cmsg->{data};
+            if($val eq '0' || $val eq '1') {
+                # Store in clacks and systemsettings
+                $reph->debuglog($self->{modname} . ' setting inhibit mode to ' . $val);
+                $self->{clacks}->store($self->{clacksname_inhibit}, $val);
+                $sysh->set($self->{modname}, 'inhibit_device', $val);
+            }
+        } elsif($cmsg->{type} eq 'set' && $cmsg->{name} eq $self->{clacksname_min}) {
+            my $val = $cmsg->{data};
+            if($val ne '') {
+                # Store in clacks and systemsettings
+                $reph->debuglog($self->{modname} . ' setting min_value mode to ' . $val);
+                $self->{clacks}->store($self->{clacksname_min}, $val);
+                $sysh->set($self->{modname}, 'min_value', $val);
+            }
+        } elsif($cmsg->{type} eq 'set' && $cmsg->{name} eq $self->{clacksname_max}) {
+            my $val = $cmsg->{data};
+            if($val ne '') {
+                # Store in clacks and systemsettings
+                $reph->debuglog($self->{modname} . ' setting max_value mode to ' . $val);
+                $self->{clacks}->store($self->{clacksname_max}, $val);
+                $sysh->set($self->{modname}, 'max_value', $val);
+            }
         }
     }
     $self->{clacks}->doNetwork();
@@ -119,16 +186,17 @@ sub work {
 
     # Check if systemsettings is different than data in clacks. If so, override data in clacks store. (Data in clacks store is only
     # used for some display stuff. Clacks can *only* change systemsettings through SET
-    my $switchmode = $self->{clacks}->retrieve($self->{clacksname_mode});
-    {
-        my ($ok, $setref) = $sysh->get($self->{modname}, 'switch_mode');
+    foreach my $key (keys %{$self->{sysmap}}) {
+        my ($ok, $setref) = $sysh->get($self->{modname}, $key);
         if(!$ok || !defined($setref->{settingvalue})) {
-            croak("Failed to read setting switch_mode");
+            croak("Failed to read setting $key");
         }
-        my $realswitchmode = $setref->{settingvalue};
-        if($switchmode ne $realswitchmode) {
-            $self->{clacks}->setAndStore($self->{clacksname_mode}, $realswitchmode);
-            $switchmode = $realswitchmode;
+
+
+        my $clacksval = $self->{clacks}->retrieve($self->{$self->{sysmap}->{$key}});
+        if($clacksval ne $setref->{settingvalue}) {
+            # Store only, don't broadcast
+            $self->{clacks}->store($self->{$self->{sysmap}->{$key}}, $setref->{settingvalue});
         }
     }
 
@@ -144,11 +212,21 @@ sub work {
     # tropical temperatures and waste lots of power (money), but thats still cheaper than
     # bursting pipes. Of course, it the heater (for some obscure reason) doesn't have an internal
     # safety cutoff, it has no usable safe state and should be thrown into the garbage.
+    my $switchmode = $self->{clacks}->retrieve($self->{clacksname_mode});
     my $switchstate = $self->{clacks}->retrieve($self->{clacksname_switchstate});
+    my $inhibit = $self->{clacks}->retrieve($self->{clacksname_inhibit});
+    my $min = $self->{clacks}->retrieve($self->{clacksname_min});
+    my $max = $self->{clacks}->retrieve($self->{clacksname_max});
     if(!defined($switchstate) || $switchstate == -1) {
         # There is really nothing we can do if we can't reach the switch except wait
         # to see if it will "come back"
         $reph->debuglog($self->{modname} . ' invalid switch state');
+    } elsif($inhibit) {
+        if($switchstate == 1) {
+            # Mode INHIBIT, but switch is still on. So turn of the device.
+            $reph->debuglog($self->{modname} . ' INHIBIT OFF');
+            $self->{clacks}->set($self->{clacksname_switchcommand}, 0);
+        }
     } elsif($switchmode eq 'off') {
         if($switchstate == 1) {
             # Mode "manual off", but switch is still on. So turn of the device.
@@ -174,10 +252,10 @@ sub work {
                 $reph->debuglog($self->{modname} . ' sensor malfunction, force OFF (safestate)');
                 $self->{clacks}->set($self->{clacksname_switchcommand}, 0);
             }
-        } elsif($switchstate == 0 && $sensorvalue < $self->{min}) {
+        } elsif($switchstate == 0 && $sensorvalue < $min) {
             $reph->debuglog($self->{modname} . ' switching ON');
             $self->{clacks}->set($self->{clacksname_switchcommand}, 1);
-        } elsif($switchstate == 1 && $sensorvalue > $self->{max}) {
+        } elsif($switchstate == 1 && $sensorvalue > $max) {
             $reph->debuglog($self->{modname} . ' switching OFF');
             $self->{clacks}->set($self->{clacksname_switchcommand}, 0);
         }
