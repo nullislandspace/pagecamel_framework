@@ -114,6 +114,7 @@ sub work {
             $self->{switches}->{$sname}->{ain} = $switch->ain();
         }
     }
+    $self->{clacks}->doNetwork();
 
     foreach my $key (keys %{$self->{switches}}) {
         if(!defined($self->{switches}->{$key}->{state})) {
@@ -159,6 +160,7 @@ sub work {
             }
         }
     }
+    $self->{clacks}->doNetwork();
 
 
     return $workCount;

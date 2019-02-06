@@ -89,6 +89,7 @@ sub work {
         $self->{clacks}->setAndStore($self->{clacksname_humidity}, $data->{humidity});
         $reph->debuglog('HWGSTE ' . $self->{hostname} . ': ' . $data->{temperature} . 'C, ' . $data->{humidity} . '%');
     } 
+    $self->{clacks}->doNetwork();
 
     return $workCount;
 }

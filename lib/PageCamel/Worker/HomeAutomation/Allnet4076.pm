@@ -42,7 +42,6 @@ sub register {
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname}, 0);
     foreach my $key (keys %{$self->{switches}}) {
-        print "LISTEN ", $self->{switches}->{$key}->{clacksname_setswitch}, "\n";
         $self->{clacks}->listen($self->{switches}->{$key}->{clacksname_setswitch});
     }
 
@@ -143,14 +142,11 @@ sub setSwitch {
         }
     }
 
-    print "Selected $name $id\n";
-
     if(!defined($id)) {
         $reph->debuglog("Can't change Allnet4076 " . $self->{hostname} . " switch. Internal error, unknown switch");
         return;
     }
 
-    print "### ", $self->{switches}->{$name}->{clacksname_state}, "\n";
     my $statenow = $self->{clacks}->retrieve($self->{switches}->{$name}->{clacksname_state});
     if(!defined($statenow)) {
         $reph->debuglog("Can't change Allnet4076 " . $self->{hostname} . " switch $id: Undefined state");
