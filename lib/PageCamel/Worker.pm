@@ -53,6 +53,7 @@ use PageCamel::Worker::GardenSpaceProgram::GEO2Decoder;
 use PageCamel::Worker::GardenSpaceProgram::LocalCache;
 use PageCamel::Worker::GardenSpaceProgram::Modem;
 use PageCamel::Worker::GardenSpaceProgram::Upload;
+use PageCamel::Worker::HomeAutomation::Allnet4076;
 use PageCamel::Worker::HomeAutomation::FritzBox;
 use PageCamel::Worker::HomeAutomation::HWGSTE;
 use PageCamel::Worker::HomeAutomation::KeepRange;
