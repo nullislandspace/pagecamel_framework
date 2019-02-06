@@ -133,6 +133,9 @@ sub work {
     $self->{clacks}->doNetwork();
     while((my $cmsg = $self->{clacks}->getNext())) {
         $workCount++;
+        if($cmsg->{type} eq 'set') {
+            $self->{nextrun} = 0; # Make sure we react quickly to clacks input
+        }
         if($cmsg->{type} eq 'disconnect') {
             $self->debuglog("Restarting clacks connection");
             $self->{clacks}->listen($self->{clacksname_mode});

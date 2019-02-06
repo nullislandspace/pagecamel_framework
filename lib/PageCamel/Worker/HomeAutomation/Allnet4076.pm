@@ -57,6 +57,7 @@ sub work {
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    $self->{clacks}->doNetwork();
 
     my $now = time;
     if($now > $self->{nextping}) {
@@ -67,17 +68,6 @@ sub work {
 
     $self->{clacks}->doNetwork();
 
-    # Only do "real work" every 10 seconds or so, we don't want to overtax the Fritz!Box
-    if($now > $self->{nextrun}) {
-        #$reph->debuglog("_");
-        $self->{nextrun} = time + 10;
-    } else {
-        return $workCount;
-    }
-
-    $self->updateStates();
-
-    $self->{clacks}->doNetwork();
 
     while((my $cmsg = $self->{clacks}->getNext())) {
         $workCount++;
@@ -94,8 +84,21 @@ sub work {
             # Change switch if required
             $reph->debuglog("GOT CLACKS: " . $cmsg->{name} . "=" . $cmsg->{data});
             $self->setSwitch($cmsg->{name}, $cmsg->{data});
+            $self->{nextrun} = time + 5;
         }
     }
+    $self->{clacks}->doNetwork();
+
+    # Only read the states every 10 seconds (unless switch got updated)
+    if($now > $self->{nextrun}) {
+        #$reph->debuglog("_");
+        $self->{nextrun} = time + 10;
+    } else {
+        return $workCount;
+    }
+
+
+    $self->updateStates();
     $self->{clacks}->doNetwork();
 
 

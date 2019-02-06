@@ -76,7 +76,49 @@ sub work {
 
     $self->{clacks}->doNetwork();
 
-    # Only do "real work" every 10 seconds or so, we don't want to overtax the Fritz!Box
+
+    while((my $cmsg = $self->{clacks}->getNext())) {
+        $workCount++;
+        if($cmsg->{type} eq 'disconnect') {
+            $self->debuglog("Restarting clacks connection");
+            foreach my $key (keys %{$self->{switches}}) {
+                $self->{clacks}->listen($self->{switches}->{$key}->{clacksname_setswitch});
+            }
+            $self->{clacks}->ping();
+            $self->{clacks}->doNetwork();
+            $self->{nextping} = $now + 30;
+            next;
+        } elsif($cmsg->{type} eq 'set') {
+            # Change switch if required
+            $reph->debuglog("GOT CLACKS: " . $cmsg->{name} . "=" . $cmsg->{data});
+            foreach my $key (keys %{$self->{switches}}) {
+                if($cmsg->{name} eq $self->{switches}->{$key}->{clacksname_setswitch}) {
+                    if(!defined($self->{switches}->{$key}->{state})) {
+                        $reph->debuglog("Clacks: Can't set switch $key because Fritz!Box doesn't know about it!");
+                    } elsif($cmsg->{data} == $self->{switches}->{$key}->{state}) {
+                        $reph->debuglog("Clacks: Switch $key already in state " . $cmsg->{data});
+                    } elsif($self->{switches}->{$key}->{state} == -1) {
+                        $reph->debuglog("Clacks: Can't swwitch $key, currently not present at Fritz!Box");
+                    } else {
+                        if($cmsg->{data} == 1) {
+                            $reph->debuglog("Clacks: Switching $key to ON");
+                            $self->{fritz}->on($self->{switches}->{$key}->{ain});
+                            $self->{nextrun} = time + 5;
+                        } else {
+                            $reph->debuglog("Clacks: Switching $key to OFF");
+                            $self->{fritz}->off($self->{switches}->{$key}->{ain});
+                            $self->{nextrun} = time + 5;
+                        }
+                        $workCount++;
+                    }
+                    last;
+                }
+            }
+        }
+    }
+    $self->{clacks}->doNetwork();
+    
+    # Only read states from Fritz!Box every 10 seconds, unless switches have been changed via clacks
     if($now > $self->{nextrun}) {
         #$reph->debuglog("_");
         $self->{nextrun} = time + 10;
@@ -114,7 +156,6 @@ sub work {
             $self->{switches}->{$sname}->{ain} = $switch->ain();
         }
     }
-    $self->{clacks}->doNetwork();
 
     foreach my $key (keys %{$self->{switches}}) {
         if(!defined($self->{switches}->{$key}->{state})) {
@@ -122,44 +163,6 @@ sub work {
         }
     }
 
-
-    while((my $cmsg = $self->{clacks}->getNext())) {
-        $workCount++;
-        if($cmsg->{type} eq 'disconnect') {
-            $self->debuglog("Restarting clacks connection");
-            foreach my $key (keys %{$self->{switches}}) {
-                $self->{clacks}->listen($self->{switches}->{$key}->{clacksname_setswitch});
-            }
-            $self->{clacks}->ping();
-            $self->{clacks}->doNetwork();
-            $self->{nextping} = $now + 30;
-            next;
-        } elsif($cmsg->{type} eq 'set') {
-            # Change switch if required
-            $reph->debuglog("GOT CLACKS: " . $cmsg->{name} . "=" . $cmsg->{data});
-            foreach my $key (keys %{$self->{switches}}) {
-                if($cmsg->{name} eq $self->{switches}->{$key}->{clacksname_setswitch}) {
-                    if(!defined($self->{switches}->{$key}->{state})) {
-                        $reph->debuglog("Clacks: Can't set switch $key because Fritz!Box doesn't know about it!");
-                    } elsif($cmsg->{data} == $self->{switches}->{$key}->{state}) {
-                        $reph->debuglog("Clacks: Switch $key already in state " . $cmsg->{data});
-                    } elsif($self->{switches}->{$key}->{state} == -1) {
-                        $reph->debuglog("Clacks: Can't swwitch $key, currently not present at Fritz!Box");
-                    } else {
-                        if($cmsg->{data} == 1) {
-                            $reph->debuglog("Clacks: Switching $key to ON");
-                            $self->{fritz}->on($self->{switches}->{$key}->{ain});
-                        } else {
-                            $reph->debuglog("Clacks: Switching $key to OFF");
-                            $self->{fritz}->off($self->{switches}->{$key}->{ain});
-                        }
-                        $workCount++;
-                    }
-                    last;
-                }
-            }
-        }
-    }
     $self->{clacks}->doNetwork();
 
 
