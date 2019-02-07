@@ -38,6 +38,7 @@ sub register {
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname}, 0);
     $self->{clacks}->listen($self->{clacksname_mode});
+    $self->{clacks}->listen($self->{clacksname_inhibit});
     $self->{clacks}->doNetwork();
     $self->{nextping} = 0;
 
@@ -139,6 +140,7 @@ sub work {
         if($cmsg->{type} eq 'disconnect') {
             $self->debuglog("Restarting clacks connection");
             $self->{clacks}->listen($self->{clacksname_mode});
+            $self->{clacks}->listen($self->{clacksname_inhibit});
             $self->{clacks}->ping();
             $self->{clacks}->doNetwork();
             $self->{nextping} = $now + 30;
