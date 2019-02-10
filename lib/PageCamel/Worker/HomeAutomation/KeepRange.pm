@@ -227,11 +227,8 @@ sub work {
         # to see if it will "come back"
         $reph->debuglog($self->{modname} . ' invalid switch state');
     } elsif($inhibit) {
-        if($switchstate == 1) {
-            # Mode INHIBIT, but switch is still on. So turn of the device.
-            $reph->debuglog($self->{modname} . ' INHIBIT OFF');
-            $self->{clacks}->set($self->{clacksname_switchcommand}, 0);
-        }
+        # "Inhibit" means inhibit control, not shutdown the controlled devices
+        # So just do nothing
     } elsif($switchmode eq 'off') {
         if($switchstate == 1) {
             # Mode "manual off", but switch is still on. So turn of the device.
