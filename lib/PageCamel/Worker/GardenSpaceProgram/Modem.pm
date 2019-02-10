@@ -127,7 +127,7 @@ sub work {
         if($self->{line} =~ /^\<(.*)/) {
             my $frame = $1;
             my $senderid = substr $frame, 12, 2;
-            $reph->debuglog('< ' . $frame);
+            $reph->debuglog('< ' . $frame . '   Sender: ' . $senderid);
             $self->{clacks}->set('GSP::RECIEVE', $frame);
             $self->{clacks}->set('GSP::RECIEVE::' . $senderid, $frame);
             $self->{clacks}->doNetwork();
