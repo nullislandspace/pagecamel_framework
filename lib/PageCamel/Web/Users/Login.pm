@@ -1190,6 +1190,7 @@ sub get_sessionrefresh {
         # Beacon
         return (
             status => 204, # No content
+             "Cache-Control" => 'no-cache, no-store',
             "__do_not_log_to_accesslog" => 1,
         );
     }
@@ -1198,6 +1199,7 @@ sub get_sessionrefresh {
     return (status      => 200,
         type        => "text/plain",
         data         => getISODate(),
+        "Cache-Control" => 'no-cache, no-store',
         "__do_not_log_to_accesslog" => 1,
     );
 }
