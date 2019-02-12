@@ -1,0 +1,74 @@
+<div align="left">
+    <h1>DGN2 live view</h1>
+    <p>
+        This is the live data from DGN2. Depending on circumstances, this might not always update.<br/>
+        You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
+    </p>
+    <p>
+        DGN2 is the "Deep Garden Network" relais station 2 on the south side of my house. See
+        <a href="/guest/blog/view/96">this blog article</a> for more details.
+    </p>
+
+    <p>
+        <table class="data">
+            <thead>
+                <tr class="tabheader">
+                    <th colspan="2" class="statichead">STATUSFRAME</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="staticeven">
+                    <td>Last frame</td>
+                    <td><span class="livedata" id="liveview_timestamp"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Uptime (milliseconds)</td>
+                    <td align="right"><span class="livedata" id="liveview_ticks"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>Free memory (bytes)</td>
+                    <td align="right"><span class="livedata" id="liveview_memfree"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Packets in</td>
+                    <td align="right"><span class="livedata" id="liveview_packets_in"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>Packets out</td>
+                    <td align="right"><span class="livedata" id="liveview_packets_out"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </p>
+</div>
+
+<script>    
+    function websocketmaskOnload() {
+        $('.livedata').css('font-family', 'SourceCodePro');
+    }
+
+    function handleMessage(msg) {                
+        if(msg.type === "probedata") {
+            $("#liveview_" + msg.sensor).text(msg.measurement);
+            animateCell("#liveview_" + msg.sensor);
+            return;
+        }
+        
+    }
+
+    function animateCell(cellid) {
+        var highlight_color = "#fbec88";
+        var original_color = $(cellid).css("background-color");
+        $(cellid)
+                .animate({
+                        'background-color': highlight_color,
+                        'color': '#000000'
+                }, 'slow', 'swing')
+                .delay(1000)
+                .animate({
+                        'background-color': original_color
+                }, 'slow', 'swing');
+        return;
+    }
+
+</script>
