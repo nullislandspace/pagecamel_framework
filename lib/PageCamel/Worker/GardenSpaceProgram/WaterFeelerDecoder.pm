@@ -222,7 +222,6 @@ sub decodeDHTFrame {
         $decoded{internal_humidity} = $decoded{internal_humidity} / 10;
         $decoded{internal_temperature} = ($decoded{internal_temperature} / 10) - 100;
     } elsif($frame[$data + 0] == 0x01) {
-    if($frame[$data + 0] == 0x01) {
         $decoded{internal_status} = 'CHECKSUM_ERROR';
     } elsif($frame[$data + 0] == 0x02) {
         $decoded{internal_status} = 'TIMEOUT_ERROR';
@@ -243,7 +242,6 @@ sub decodeDHTFrame {
         $decoded{external_humidity} = $decoded{external_humidity} / 10;
         $decoded{external_temperature} = ($decoded{external_temperature} / 10) - 100;
     } elsif($frame[$data + 5] == 0x01) {
-    if($frame[$data + 0] == 0x01) {
         $decoded{external_status} = 'CHECKSUM_ERROR';
     } elsif($frame[$data + 5] == 0x02) {
         $decoded{external_status} = 'TIMEOUT_ERROR';
