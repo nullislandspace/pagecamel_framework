@@ -316,7 +316,7 @@ sub decodeWaterfeelerFrame {
                 $decoded{volt_1kohm},
                 $decoded{volt_10kohm},
                 $decoded{volt_100kohm},
-                $decoded{volt_1mohn},
+                $decoded{volt_1mohm},
                 $decoded{waterlevel},
         )) {
         $reph->debuglog("DB ERROR: " . $dbh->errstr);
