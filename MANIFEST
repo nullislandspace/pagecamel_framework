@@ -138,6 +138,8 @@ lib/PageCamel/Web/ForceNoSSL.pm
 lib/PageCamel/Web/ForceSSL.pm
 lib/PageCamel/Web/ForceTransportSecurity.pm
 lib/PageCamel/Web/GardenSpaceProgram/Liveview.pm
+lib/PageCamel/Web/GardenSpaceProgram/Templates/dgn1.tt
+lib/PageCamel/Web/GardenSpaceProgram/Templates/dgn2.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo1.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo1b.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo2.tt
