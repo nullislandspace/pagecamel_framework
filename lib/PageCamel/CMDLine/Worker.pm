@@ -92,12 +92,12 @@ sub run {
         my $now = time;
         if($now < $nextCycleTime) {
             my $sleeptime = $nextCycleTime - $now;
-            print "** Fast cycle ($sleeptime sec to spare), sleeping **\n";
+            #print "** Fast cycle ($sleeptime sec to spare), sleeping **\n";
             sleep($sleeptime);
             $nextCycleTime += $self->{config}->{mincycletime};
-            print "** Wake-up call **\n";
+            #print "** Wake-up call **\n";
         } else {
-            print "** Slow cycle **\n";
+            #print "** Slow cycle **\n";
             $nextCycleTime = $self->{config}->{mincycletime} + $now;
         }
     }
