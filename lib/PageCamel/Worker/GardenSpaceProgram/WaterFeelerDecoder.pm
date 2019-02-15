@@ -160,7 +160,7 @@ sub decodeFrame {
     } elsif($frame[8] == 18) {
         my %decoded;
         $decoded{statechange_timestamp} = getISODate();
-        $decoded{statechange_text} = 'Soil capacity downlink started';
+        $decoded{statechange_text} = 'Soil capacity downlink finished';
         my @parts;
         foreach my $key (sort keys %decoded) {
             push @parts, $key . '=' . $decoded{$key};
@@ -368,13 +368,26 @@ sub decodeSoilCapacityData {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
 
+    if(0) {
+        my @bla;
+        for(my $x = 0; $x < 16; $x++) {
+            push @bla, $frame[$data + $x];
+        }
+        print '### ', join(' ', @bla), "\n";
+        exit(0);
+    }
 
     my %decoded;
 
     $decoded{framecount} = $frame[9]; # P_MEMORYOFFSET
     $decoded{payloadlength} = $frame[11] / 2; # We need number of measurements, not bytes
     for(my $i = 0; $i < $decoded{payloadlength}; $i++) {
-        $decoded{'resistance_' . doFPad(($decoded{framecount} * 8) + $i + 1, 3)} = ($frame[$data + ($i * 2)] << 8) + $frame[$data + ($i * 2) + 1];
+        my $rname = 'resistance_' . doFPad(($decoded{framecount} * 8) + $i + 1, 3);
+        $decoded{$rname} = $frame[$data + ($i * 2)];
+        $decoded{$rname} = $decoded{$rname} << 8;
+        $decoded{$rname} += $frame[$data + ($i * 2) + 1];
+
+        #$decoded{$rname} = ($frame[$data + ($i * 2)] << 8) + $frame[$data + ($i * 2) + 1];
     }
 
     $decoded{soilcapacity_download_timestamp} = getISODate();
@@ -383,7 +396,9 @@ sub decodeSoilCapacityData {
         push @parts, $key . '=' . $decoded{$key};
     }
     my $clacksdata = join(',', @parts);
-    $self->{clacks}->set('GSP::WATERFEELER::SOILCAPACITY::DOWNLOAD::FRAME' . $decoded{framecount} + 1, $clacksdata);
+    my $clacksname = 'GSP::WATERFEELER::SOILCAPACITY::DOWNLOAD::FRAME' . ($decoded{framecount} + 1);
+    $reph->debuglog("Sending $clacksname");
+    $self->{clacks}->set($clacksname, $clacksdata);
     $self->{clacks}->doNetwork();
     $reph->debuglog("WATERFEELER SOIL CAPACITY frame: $clacksdata");
 
