@@ -95,3 +95,4 @@ jquery/js/three.js
 jquery/js/cavaclogo.js
 jquery/js/select2.full.js
 jquery/js/js.cookie.js
+Chart.bundle.js
