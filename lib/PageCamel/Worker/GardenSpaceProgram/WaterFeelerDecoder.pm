@@ -128,13 +128,45 @@ sub decodeFrame {
     } elsif($frame[8] == 12) {
         return $self->decodeWaterfeelerFrame(@frame);
     } elsif($frame[8] == 15) {
-        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', 'Soil capacity measurement started');
+        my %decoded;
+        $decoded{statechange_timestamp} = getISODate();
+        $decoded{statechange_text} = 'Soil capacity measurement started';
+        my @parts;
+        foreach my $key (sort keys %decoded) {
+            push @parts, $key . '=' . $decoded{$key};
+        }
+        my $clacksdata = join(',', @parts);
+        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
     } elsif($frame[8] == 16) {
-        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', 'Soil capacity measurement finished');
+        my %decoded;
+        $decoded{statechange_timestamp} = getISODate();
+        $decoded{statechange_text} = 'Soil capacity measurement finished';
+        my @parts;
+        foreach my $key (sort keys %decoded) {
+            push @parts, $key . '=' . $decoded{$key};
+        }
+        my $clacksdata = join(',', @parts);
+        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
     } elsif($frame[8] == 17) {
-        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', 'Soil capacity downlink started');
+        my %decoded;
+        $decoded{statechange_timestamp} = getISODate();
+        $decoded{statechange_text} = 'Soil capacity downlink started';
+        my @parts;
+        foreach my $key (sort keys %decoded) {
+            push @parts, $key . '=' . $decoded{$key};
+        }
+        my $clacksdata = join(',', @parts);
+        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
     } elsif($frame[8] == 18) {
-        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', 'Soil capacity downlink finished');
+        my %decoded;
+        $decoded{statechange_timestamp} = getISODate();
+        $decoded{statechange_text} = 'Soil capacity downlink started';
+        my @parts;
+        foreach my $key (sort keys %decoded) {
+            push @parts, $key . '=' . $decoded{$key};
+        }
+        my $clacksdata = join(',', @parts);
+        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
     } elsif($frame[8] == 19) {
         return $self->decodeSoilCapacityData(@frame);
     }
@@ -167,7 +199,7 @@ sub decodeStatusFrame {
     $decoded{voltage_raw} = $rawvolt;
     $decoded{voltage_calculated} = $calcvolt;
 
-    $decoded{timestamp} = getISODate();
+    $decoded{status_timestamp} = getISODate();
     my @parts;
     foreach my $key (sort keys %decoded) {
         push @parts, $key . '=' . $decoded{$key};
@@ -249,7 +281,7 @@ sub decodeDHTFrame {
         $decoded{external_status} = 'OTHER_ERROR';
     }
 
-    $decoded{timestamp} = getISODate();
+    $decoded{dht_timestamp} = getISODate();
     my @parts;
     foreach my $key (sort keys %decoded) {
         push @parts, $key . '=' . $decoded{$key};
@@ -299,7 +331,7 @@ sub decodeWaterfeelerFrame {
     $decoded{volt_1mohm} =  ($frame[$data + 10] << 8) + $frame[$data + 11];
     $decoded{waterlevel} =  ($frame[$data + 12] << 8) + $frame[$data + 13];
 
-    $decoded{timestamp} = getISODate();
+    $decoded{waterfeeler_timestamp} = getISODate();
     my @parts;
     foreach my $key (sort keys %decoded) {
         push @parts, $key . '=' . $decoded{$key};
@@ -345,13 +377,13 @@ sub decodeSoilCapacityData {
         $decoded{'resistance_' . doFPad(($decoded{framecount} * 8) + $i + 1, 3)} = ($frame[$data + ($i * 2)] << 8) + $frame[$data + ($i * 2) + 1];
     }
 
-    $decoded{timestamp} = getISODate();
+    $decoded{soilcapacity_download_timestamp} = getISODate();
     my @parts;
     foreach my $key (sort keys %decoded) {
         push @parts, $key . '=' . $decoded{$key};
     }
     my $clacksdata = join(',', @parts);
-    $self->{clacks}->set('GSP::WATERFEELER::SOILCAPACITY', $clacksdata);
+    $self->{clacks}->set('GSP::WATERFEELER::SOILCAPACITY::DOWNLOAD::FRAME' . $decoded{framecount} + 1, $clacksdata);
     $self->{clacks}->doNetwork();
     $reph->debuglog("WATERFEELER SOIL CAPACITY frame: $clacksdata");
 
