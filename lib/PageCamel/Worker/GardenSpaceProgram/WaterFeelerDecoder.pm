@@ -160,7 +160,7 @@ sub decodeFrame {
     } elsif($frame[8] == 18) {
         my %decoded;
         $decoded{statechange_timestamp} = getISODate();
-        $decoded{statechange_text} = 'Soil capacity downlink started';
+        $decoded{statechange_text} = 'Soil capacity downlink finished';
         my @parts;
         foreach my $key (sort keys %decoded) {
             push @parts, $key . '=' . $decoded{$key};
