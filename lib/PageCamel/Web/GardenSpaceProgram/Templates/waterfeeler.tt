@@ -1,0 +1,520 @@
+<div align="left">
+    <h1>WaterFeeler live view</h1>
+    <p><h1>Note: This probe is currently running pre-launch system test.</h1></p>
+    <p>
+        This is the live data from the WaterFeeler GardenSpaceProgram mission. Depending on circumstances, this might not always update.<br/>
+        You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
+    </p>
+    <p>
+        WaterFeeler is a "space probe" with the goal to detect ground water and precipitation.
+        <a href="/guest/blog/view/96">this blog article</a> for more details.
+    </p>
+
+    <p>
+        <table class="data">
+            <thead>
+                <tr class="tabheader">
+                    <th colspan="2" class="statichead">System status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="staticeven">
+                    <td>Last update</td>
+                    <td><span class="livedata" id="liveview_status_timestamp"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Uptime (milliseconds)</td>
+                    <td align="right"><span class="livedata" id="liveview_ticks"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>Free memory (bytes)</td>
+                    <td align="right"><span class="livedata" id="liveview_memfree"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Packets in</td>
+                    <td align="right"><span class="livedata" id="liveview_packets_in"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>Packets out</td>
+                    <td align="right"><span class="livedata" id="liveview_packets_out"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Battery Volt (raw value)</td>
+                    <td align="right"><span class="livedata" id="liveview_voltage_raw"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>Battery Volt (calculated)</td>
+                    <td align="right"><span class="livedata" id="liveview_voltage_calculated"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </p>
+
+    <p>
+        <table class="data">
+            <thead>
+                <tr class="tabheader">
+                    <th colspan="3" class="statichead">Probe mode</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="staticeven">
+                    <td>Last uplink command</td>
+                    <td><span class="livedata" id="liveview_uplink_timestamp"></span></td>
+                    <td><span class="livedata" id="liveview_uplink_command"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Probe system mode</td>
+                    <td align="right"><span class="livedata" id="liveview_statechange_timestamp"></span></td>
+                    <td align="right"><span class="livedata" id="liveview_statechange_text"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </p>
+
+    <p>
+        <table class="data">
+            <thead>
+                <tr class="tabheader">
+                    <th colspan="3" class="statichead">Digital Temperature and Humidity (DHT)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="staticeven">
+                    <td>Last update</td>
+                    <td colspan="2"><span class="livedata" id="liveview_status_dht_timestamp"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Internal Sensor</td>
+                    <td align="right"><span class="livedata" id="liveview_internal_temperature"></span>&#176;C</td>
+                    <td align="right"><span class="livedata" id="liveview_internal_humidity"></span>&#37;</td>
+                </tr>
+                <tr class="staticeven">
+                    <td>External Sensor</td>
+                    <td align="right"><span class="livedata" id="liveview_external_temperature"></span>&#176;C</td>
+                    <td align="right"><span class="livedata" id="liveview_external_humidity"></span>&#37;</td>
+                </tr>
+            </tbody>
+        </table>
+    </p>
+
+    <p>
+        <table class="data">
+            <thead>
+                <tr class="tabheader">
+                    <th colspan="2" class="statichead">Waterfeeler Soil sensor<br/>(resistive divider)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="staticeven">
+                    <td>Last update</td>
+                    <td><span class="livedata" id="liveview_waterfeeler_timestamp"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>no pulldown (floating)</td>
+                    <td align="right"><span class="livedata" id="liveview_volt_floating"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>470 &#x2126; pulldown</td>
+                    <td align="right"><span class="livedata" id="liveview_volt_470ohm"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>1k &#x2126; pulldown</td>
+                    <td align="right"><span class="livedata" id="liveview_volt_1kohm"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>10k &#x2126; pulldown</td>
+                    <td align="right"><span class="livedata" id="liveview_volt_10kohm"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>100k &#x2126; pulldown</td>
+                    <td align="right"><span class="livedata" id="liveview_volt_100kohm"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>1M &#x2126; pulldown</td>
+                    <td align="right"><span class="livedata" id="liveview_volt_1mohm"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </p>
+
+    <p>
+        <table class="data">
+            <thead>
+                <tr class="tabheader">
+                    <th colspan="2" class="statichead">Rain sensor<br/>(water level sensor in cup)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="staticeven">
+                    <td>Last update</td>
+                    <td><span class="livedata" id="liveview_waterfeeler_timestamp"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Waterlevel (raw)</td>
+                    <td align="right"><span class="livedata" id="liveview_waterlevel"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </p>
+
+    <p>
+        <table class="data">
+            <thead>
+                <tr class="tabheader">
+                    <th colspan="2" class="statichead">Soil capacity time series</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="staticeven">
+                    <td>Measurement commanded</td>
+                    <td><span class="livedata" id="liveview_soilcapacity_command_timestamp"></span></td>
+                </tr>
+                <tr class="staticodd">
+                    <td>Selected pulldown</td>
+                    <td><span class="livedata" id="liveview_soilcapacity_selected_pulldown"></span></td>
+                </tr>
+                <tr class="staticeven">
+                    <td>Last download frame</td>
+                    <td><span class="livedata" id="liveview_soilcapacity_download_timestamp"></span></td>
+                </tr>
+
+                <!-- Temporary data display? -->
+                    <tr class="staticodd"><td>resistance_001</td><td align="right"><span class="livedata" id="livedata_resistance_001"></span></td>
+                    <tr class="staticeven"><td>resistance_002</td><td align="right"><span class="livedata" id="livedata_resistance_002"></span></td>
+                    <tr class="staticodd"><td>resistance_003</td><td align="right"><span class="livedata" id="livedata_resistance_003"></span></td>
+                    <tr class="staticeven"><td>resistance_004</td><td align="right"><span class="livedata" id="livedata_resistance_004"></span></td>
+                    <tr class="staticodd"><td>resistance_005</td><td align="right"><span class="livedata" id="livedata_resistance_005"></span></td>
+                    <tr class="staticeven"><td>resistance_006</td><td align="right"><span class="livedata" id="livedata_resistance_006"></span></td>
+                    <tr class="staticodd"><td>resistance_007</td><td align="right"><span class="livedata" id="livedata_resistance_007"></span></td>
+                    <tr class="staticeven"><td>resistance_008</td><td align="right"><span class="livedata" id="livedata_resistance_008"></span></td>
+                    <tr class="staticodd"><td>resistance_009</td><td align="right"><span class="livedata" id="livedata_resistance_009"></span></td>
+                    <tr class="staticeven"><td>resistance_010</td><td align="right"><span class="livedata" id="livedata_resistance_010"></span></td>
+                    <tr class="staticodd"><td>resistance_011</td><td align="right"><span class="livedata" id="livedata_resistance_011"></span></td>
+                    <tr class="staticeven"><td>resistance_012</td><td align="right"><span class="livedata" id="livedata_resistance_012"></span></td>
+                    <tr class="staticodd"><td>resistance_013</td><td align="right"><span class="livedata" id="livedata_resistance_013"></span></td>
+                    <tr class="staticeven"><td>resistance_014</td><td align="right"><span class="livedata" id="livedata_resistance_014"></span></td>
+                    <tr class="staticodd"><td>resistance_015</td><td align="right"><span class="livedata" id="livedata_resistance_015"></span></td>
+                    <tr class="staticeven"><td>resistance_016</td><td align="right"><span class="livedata" id="livedata_resistance_016"></span></td>
+                    <tr class="staticodd"><td>resistance_017</td><td align="right"><span class="livedata" id="livedata_resistance_017"></span></td>
+                    <tr class="staticeven"><td>resistance_018</td><td align="right"><span class="livedata" id="livedata_resistance_018"></span></td>
+                    <tr class="staticodd"><td>resistance_019</td><td align="right"><span class="livedata" id="livedata_resistance_019"></span></td>
+                    <tr class="staticeven"><td>resistance_020</td><td align="right"><span class="livedata" id="livedata_resistance_020"></span></td>
+                    <tr class="staticodd"><td>resistance_021</td><td align="right"><span class="livedata" id="livedata_resistance_021"></span></td>
+                    <tr class="staticeven"><td>resistance_022</td><td align="right"><span class="livedata" id="livedata_resistance_022"></span></td>
+                    <tr class="staticodd"><td>resistance_023</td><td align="right"><span class="livedata" id="livedata_resistance_023"></span></td>
+                    <tr class="staticeven"><td>resistance_024</td><td align="right"><span class="livedata" id="livedata_resistance_024"></span></td>
+                    <tr class="staticodd"><td>resistance_025</td><td align="right"><span class="livedata" id="livedata_resistance_025"></span></td>
+                    <tr class="staticeven"><td>resistance_026</td><td align="right"><span class="livedata" id="livedata_resistance_026"></span></td>
+                    <tr class="staticodd"><td>resistance_027</td><td align="right"><span class="livedata" id="livedata_resistance_027"></span></td>
+                    <tr class="staticeven"><td>resistance_028</td><td align="right"><span class="livedata" id="livedata_resistance_028"></span></td>
+                    <tr class="staticodd"><td>resistance_029</td><td align="right"><span class="livedata" id="livedata_resistance_029"></span></td>
+                    <tr class="staticeven"><td>resistance_030</td><td align="right"><span class="livedata" id="livedata_resistance_030"></span></td>
+                    <tr class="staticodd"><td>resistance_031</td><td align="right"><span class="livedata" id="livedata_resistance_031"></span></td>
+                    <tr class="staticeven"><td>resistance_032</td><td align="right"><span class="livedata" id="livedata_resistance_032"></span></td>
+                    <tr class="staticodd"><td>resistance_033</td><td align="right"><span class="livedata" id="livedata_resistance_033"></span></td>
+                    <tr class="staticeven"><td>resistance_034</td><td align="right"><span class="livedata" id="livedata_resistance_034"></span></td>
+                    <tr class="staticodd"><td>resistance_035</td><td align="right"><span class="livedata" id="livedata_resistance_035"></span></td>
+                    <tr class="staticeven"><td>resistance_036</td><td align="right"><span class="livedata" id="livedata_resistance_036"></span></td>
+                    <tr class="staticodd"><td>resistance_037</td><td align="right"><span class="livedata" id="livedata_resistance_037"></span></td>
+                    <tr class="staticeven"><td>resistance_038</td><td align="right"><span class="livedata" id="livedata_resistance_038"></span></td>
+                    <tr class="staticodd"><td>resistance_039</td><td align="right"><span class="livedata" id="livedata_resistance_039"></span></td>
+                    <tr class="staticeven"><td>resistance_040</td><td align="right"><span class="livedata" id="livedata_resistance_040"></span></td>
+                    <tr class="staticodd"><td>resistance_041</td><td align="right"><span class="livedata" id="livedata_resistance_041"></span></td>
+                    <tr class="staticeven"><td>resistance_042</td><td align="right"><span class="livedata" id="livedata_resistance_042"></span></td>
+                    <tr class="staticodd"><td>resistance_043</td><td align="right"><span class="livedata" id="livedata_resistance_043"></span></td>
+                    <tr class="staticeven"><td>resistance_044</td><td align="right"><span class="livedata" id="livedata_resistance_044"></span></td>
+                    <tr class="staticodd"><td>resistance_045</td><td align="right"><span class="livedata" id="livedata_resistance_045"></span></td>
+                    <tr class="staticeven"><td>resistance_046</td><td align="right"><span class="livedata" id="livedata_resistance_046"></span></td>
+                    <tr class="staticodd"><td>resistance_047</td><td align="right"><span class="livedata" id="livedata_resistance_047"></span></td>
+                    <tr class="staticeven"><td>resistance_048</td><td align="right"><span class="livedata" id="livedata_resistance_048"></span></td>
+                    <tr class="staticodd"><td>resistance_049</td><td align="right"><span class="livedata" id="livedata_resistance_049"></span></td>
+                    <tr class="staticeven"><td>resistance_050</td><td align="right"><span class="livedata" id="livedata_resistance_050"></span></td>
+                    <tr class="staticodd"><td>resistance_051</td><td align="right"><span class="livedata" id="livedata_resistance_051"></span></td>
+                    <tr class="staticeven"><td>resistance_052</td><td align="right"><span class="livedata" id="livedata_resistance_052"></span></td>
+                    <tr class="staticodd"><td>resistance_053</td><td align="right"><span class="livedata" id="livedata_resistance_053"></span></td>
+                    <tr class="staticeven"><td>resistance_054</td><td align="right"><span class="livedata" id="livedata_resistance_054"></span></td>
+                    <tr class="staticodd"><td>resistance_055</td><td align="right"><span class="livedata" id="livedata_resistance_055"></span></td>
+                    <tr class="staticeven"><td>resistance_056</td><td align="right"><span class="livedata" id="livedata_resistance_056"></span></td>
+                    <tr class="staticodd"><td>resistance_057</td><td align="right"><span class="livedata" id="livedata_resistance_057"></span></td>
+                    <tr class="staticeven"><td>resistance_058</td><td align="right"><span class="livedata" id="livedata_resistance_058"></span></td>
+                    <tr class="staticodd"><td>resistance_059</td><td align="right"><span class="livedata" id="livedata_resistance_059"></span></td>
+                    <tr class="staticeven"><td>resistance_060</td><td align="right"><span class="livedata" id="livedata_resistance_060"></span></td>
+                    <tr class="staticodd"><td>resistance_061</td><td align="right"><span class="livedata" id="livedata_resistance_061"></span></td>
+                    <tr class="staticeven"><td>resistance_062</td><td align="right"><span class="livedata" id="livedata_resistance_062"></span></td>
+                    <tr class="staticodd"><td>resistance_063</td><td align="right"><span class="livedata" id="livedata_resistance_063"></span></td>
+                    <tr class="staticeven"><td>resistance_064</td><td align="right"><span class="livedata" id="livedata_resistance_064"></span></td>
+                    <tr class="staticodd"><td>resistance_065</td><td align="right"><span class="livedata" id="livedata_resistance_065"></span></td>
+                    <tr class="staticeven"><td>resistance_066</td><td align="right"><span class="livedata" id="livedata_resistance_066"></span></td>
+                    <tr class="staticodd"><td>resistance_067</td><td align="right"><span class="livedata" id="livedata_resistance_067"></span></td>
+                    <tr class="staticeven"><td>resistance_068</td><td align="right"><span class="livedata" id="livedata_resistance_068"></span></td>
+                    <tr class="staticodd"><td>resistance_069</td><td align="right"><span class="livedata" id="livedata_resistance_069"></span></td>
+                    <tr class="staticeven"><td>resistance_070</td><td align="right"><span class="livedata" id="livedata_resistance_070"></span></td>
+                    <tr class="staticodd"><td>resistance_071</td><td align="right"><span class="livedata" id="livedata_resistance_071"></span></td>
+                    <tr class="staticeven"><td>resistance_072</td><td align="right"><span class="livedata" id="livedata_resistance_072"></span></td>
+                    <tr class="staticodd"><td>resistance_073</td><td align="right"><span class="livedata" id="livedata_resistance_073"></span></td>
+                    <tr class="staticeven"><td>resistance_074</td><td align="right"><span class="livedata" id="livedata_resistance_074"></span></td>
+                    <tr class="staticodd"><td>resistance_075</td><td align="right"><span class="livedata" id="livedata_resistance_075"></span></td>
+                    <tr class="staticeven"><td>resistance_076</td><td align="right"><span class="livedata" id="livedata_resistance_076"></span></td>
+                    <tr class="staticodd"><td>resistance_077</td><td align="right"><span class="livedata" id="livedata_resistance_077"></span></td>
+                    <tr class="staticeven"><td>resistance_078</td><td align="right"><span class="livedata" id="livedata_resistance_078"></span></td>
+                    <tr class="staticodd"><td>resistance_079</td><td align="right"><span class="livedata" id="livedata_resistance_079"></span></td>
+                    <tr class="staticeven"><td>resistance_080</td><td align="right"><span class="livedata" id="livedata_resistance_080"></span></td>
+                    <tr class="staticodd"><td>resistance_081</td><td align="right"><span class="livedata" id="livedata_resistance_081"></span></td>
+                    <tr class="staticeven"><td>resistance_082</td><td align="right"><span class="livedata" id="livedata_resistance_082"></span></td>
+                    <tr class="staticodd"><td>resistance_083</td><td align="right"><span class="livedata" id="livedata_resistance_083"></span></td>
+                    <tr class="staticeven"><td>resistance_084</td><td align="right"><span class="livedata" id="livedata_resistance_084"></span></td>
+                    <tr class="staticodd"><td>resistance_085</td><td align="right"><span class="livedata" id="livedata_resistance_085"></span></td>
+                    <tr class="staticeven"><td>resistance_086</td><td align="right"><span class="livedata" id="livedata_resistance_086"></span></td>
+                    <tr class="staticodd"><td>resistance_087</td><td align="right"><span class="livedata" id="livedata_resistance_087"></span></td>
+                    <tr class="staticeven"><td>resistance_088</td><td align="right"><span class="livedata" id="livedata_resistance_088"></span></td>
+                    <tr class="staticodd"><td>resistance_089</td><td align="right"><span class="livedata" id="livedata_resistance_089"></span></td>
+                    <tr class="staticeven"><td>resistance_090</td><td align="right"><span class="livedata" id="livedata_resistance_090"></span></td>
+                    <tr class="staticodd"><td>resistance_091</td><td align="right"><span class="livedata" id="livedata_resistance_091"></span></td>
+                    <tr class="staticeven"><td>resistance_092</td><td align="right"><span class="livedata" id="livedata_resistance_092"></span></td>
+                    <tr class="staticodd"><td>resistance_093</td><td align="right"><span class="livedata" id="livedata_resistance_093"></span></td>
+                    <tr class="staticeven"><td>resistance_094</td><td align="right"><span class="livedata" id="livedata_resistance_094"></span></td>
+                    <tr class="staticodd"><td>resistance_095</td><td align="right"><span class="livedata" id="livedata_resistance_095"></span></td>
+                    <tr class="staticeven"><td>resistance_096</td><td align="right"><span class="livedata" id="livedata_resistance_096"></span></td>
+                    <tr class="staticodd"><td>resistance_097</td><td align="right"><span class="livedata" id="livedata_resistance_097"></span></td>
+                    <tr class="staticeven"><td>resistance_098</td><td align="right"><span class="livedata" id="livedata_resistance_098"></span></td>
+                    <tr class="staticodd"><td>resistance_099</td><td align="right"><span class="livedata" id="livedata_resistance_099"></span></td>
+                    <tr class="staticeven"><td>resistance_100</td><td align="right"><span class="livedata" id="livedata_resistance_100"></span></td>
+                    <tr class="staticodd"><td>resistance_101</td><td align="right"><span class="livedata" id="livedata_resistance_101"></span></td>
+                    <tr class="staticeven"><td>resistance_102</td><td align="right"><span class="livedata" id="livedata_resistance_102"></span></td>
+                    <tr class="staticodd"><td>resistance_103</td><td align="right"><span class="livedata" id="livedata_resistance_103"></span></td>
+                    <tr class="staticeven"><td>resistance_104</td><td align="right"><span class="livedata" id="livedata_resistance_104"></span></td>
+                    <tr class="staticodd"><td>resistance_105</td><td align="right"><span class="livedata" id="livedata_resistance_105"></span></td>
+                    <tr class="staticeven"><td>resistance_106</td><td align="right"><span class="livedata" id="livedata_resistance_106"></span></td>
+                    <tr class="staticodd"><td>resistance_107</td><td align="right"><span class="livedata" id="livedata_resistance_107"></span></td>
+                    <tr class="staticeven"><td>resistance_108</td><td align="right"><span class="livedata" id="livedata_resistance_108"></span></td>
+                    <tr class="staticodd"><td>resistance_109</td><td align="right"><span class="livedata" id="livedata_resistance_109"></span></td>
+                    <tr class="staticeven"><td>resistance_110</td><td align="right"><span class="livedata" id="livedata_resistance_110"></span></td>
+                    <tr class="staticodd"><td>resistance_111</td><td align="right"><span class="livedata" id="livedata_resistance_111"></span></td>
+                    <tr class="staticeven"><td>resistance_112</td><td align="right"><span class="livedata" id="livedata_resistance_112"></span></td>
+                    <tr class="staticodd"><td>resistance_113</td><td align="right"><span class="livedata" id="livedata_resistance_113"></span></td>
+                    <tr class="staticeven"><td>resistance_114</td><td align="right"><span class="livedata" id="livedata_resistance_114"></span></td>
+                    <tr class="staticodd"><td>resistance_115</td><td align="right"><span class="livedata" id="livedata_resistance_115"></span></td>
+                    <tr class="staticeven"><td>resistance_116</td><td align="right"><span class="livedata" id="livedata_resistance_116"></span></td>
+                    <tr class="staticodd"><td>resistance_117</td><td align="right"><span class="livedata" id="livedata_resistance_117"></span></td>
+                    <tr class="staticeven"><td>resistance_118</td><td align="right"><span class="livedata" id="livedata_resistance_118"></span></td>
+                    <tr class="staticodd"><td>resistance_119</td><td align="right"><span class="livedata" id="livedata_resistance_119"></span></td>
+                    <tr class="staticeven"><td>resistance_120</td><td align="right"><span class="livedata" id="livedata_resistance_120"></span></td>
+                    <tr class="staticodd"><td>resistance_121</td><td align="right"><span class="livedata" id="livedata_resistance_121"></span></td>
+                    <tr class="staticeven"><td>resistance_122</td><td align="right"><span class="livedata" id="livedata_resistance_122"></span></td>
+                    <tr class="staticodd"><td>resistance_123</td><td align="right"><span class="livedata" id="livedata_resistance_123"></span></td>
+                    <tr class="staticeven"><td>resistance_124</td><td align="right"><span class="livedata" id="livedata_resistance_124"></span></td>
+                    <tr class="staticodd"><td>resistance_125</td><td align="right"><span class="livedata" id="livedata_resistance_125"></span></td>
+                    <tr class="staticeven"><td>resistance_126</td><td align="right"><span class="livedata" id="livedata_resistance_126"></span></td>
+                    <tr class="staticodd"><td>resistance_127</td><td align="right"><span class="livedata" id="livedata_resistance_127"></span></td>
+                    <tr class="staticeven"><td>resistance_128</td><td align="right"><span class="livedata" id="livedata_resistance_128"></span></td>
+                    <tr class="staticodd"><td>resistance_129</td><td align="right"><span class="livedata" id="livedata_resistance_129"></span></td>
+                    <tr class="staticeven"><td>resistance_130</td><td align="right"><span class="livedata" id="livedata_resistance_130"></span></td>
+                    <tr class="staticodd"><td>resistance_131</td><td align="right"><span class="livedata" id="livedata_resistance_131"></span></td>
+                    <tr class="staticeven"><td>resistance_132</td><td align="right"><span class="livedata" id="livedata_resistance_132"></span></td>
+                    <tr class="staticodd"><td>resistance_133</td><td align="right"><span class="livedata" id="livedata_resistance_133"></span></td>
+                    <tr class="staticeven"><td>resistance_134</td><td align="right"><span class="livedata" id="livedata_resistance_134"></span></td>
+                    <tr class="staticodd"><td>resistance_135</td><td align="right"><span class="livedata" id="livedata_resistance_135"></span></td>
+                    <tr class="staticeven"><td>resistance_136</td><td align="right"><span class="livedata" id="livedata_resistance_136"></span></td>
+                    <tr class="staticodd"><td>resistance_137</td><td align="right"><span class="livedata" id="livedata_resistance_137"></span></td>
+                    <tr class="staticeven"><td>resistance_138</td><td align="right"><span class="livedata" id="livedata_resistance_138"></span></td>
+                    <tr class="staticodd"><td>resistance_139</td><td align="right"><span class="livedata" id="livedata_resistance_139"></span></td>
+                    <tr class="staticeven"><td>resistance_140</td><td align="right"><span class="livedata" id="livedata_resistance_140"></span></td>
+                    <tr class="staticodd"><td>resistance_141</td><td align="right"><span class="livedata" id="livedata_resistance_141"></span></td>
+                    <tr class="staticeven"><td>resistance_142</td><td align="right"><span class="livedata" id="livedata_resistance_142"></span></td>
+                    <tr class="staticodd"><td>resistance_143</td><td align="right"><span class="livedata" id="livedata_resistance_143"></span></td>
+                    <tr class="staticeven"><td>resistance_144</td><td align="right"><span class="livedata" id="livedata_resistance_144"></span></td>
+                    <tr class="staticodd"><td>resistance_145</td><td align="right"><span class="livedata" id="livedata_resistance_145"></span></td>
+                    <tr class="staticeven"><td>resistance_146</td><td align="right"><span class="livedata" id="livedata_resistance_146"></span></td>
+                    <tr class="staticodd"><td>resistance_147</td><td align="right"><span class="livedata" id="livedata_resistance_147"></span></td>
+                    <tr class="staticeven"><td>resistance_148</td><td align="right"><span class="livedata" id="livedata_resistance_148"></span></td>
+                    <tr class="staticodd"><td>resistance_149</td><td align="right"><span class="livedata" id="livedata_resistance_149"></span></td>
+                    <tr class="staticeven"><td>resistance_150</td><td align="right"><span class="livedata" id="livedata_resistance_150"></span></td>
+                    <tr class="staticodd"><td>resistance_151</td><td align="right"><span class="livedata" id="livedata_resistance_151"></span></td>
+                    <tr class="staticeven"><td>resistance_152</td><td align="right"><span class="livedata" id="livedata_resistance_152"></span></td>
+                    <tr class="staticodd"><td>resistance_153</td><td align="right"><span class="livedata" id="livedata_resistance_153"></span></td>
+                    <tr class="staticeven"><td>resistance_154</td><td align="right"><span class="livedata" id="livedata_resistance_154"></span></td>
+                    <tr class="staticodd"><td>resistance_155</td><td align="right"><span class="livedata" id="livedata_resistance_155"></span></td>
+                    <tr class="staticeven"><td>resistance_156</td><td align="right"><span class="livedata" id="livedata_resistance_156"></span></td>
+                    <tr class="staticodd"><td>resistance_157</td><td align="right"><span class="livedata" id="livedata_resistance_157"></span></td>
+                    <tr class="staticeven"><td>resistance_158</td><td align="right"><span class="livedata" id="livedata_resistance_158"></span></td>
+                    <tr class="staticodd"><td>resistance_159</td><td align="right"><span class="livedata" id="livedata_resistance_159"></span></td>
+                    <tr class="staticeven"><td>resistance_160</td><td align="right"><span class="livedata" id="livedata_resistance_160"></span></td>
+                    <tr class="staticodd"><td>resistance_161</td><td align="right"><span class="livedata" id="livedata_resistance_161"></span></td>
+                    <tr class="staticeven"><td>resistance_162</td><td align="right"><span class="livedata" id="livedata_resistance_162"></span></td>
+                    <tr class="staticodd"><td>resistance_163</td><td align="right"><span class="livedata" id="livedata_resistance_163"></span></td>
+                    <tr class="staticeven"><td>resistance_164</td><td align="right"><span class="livedata" id="livedata_resistance_164"></span></td>
+                    <tr class="staticodd"><td>resistance_165</td><td align="right"><span class="livedata" id="livedata_resistance_165"></span></td>
+                    <tr class="staticeven"><td>resistance_166</td><td align="right"><span class="livedata" id="livedata_resistance_166"></span></td>
+                    <tr class="staticodd"><td>resistance_167</td><td align="right"><span class="livedata" id="livedata_resistance_167"></span></td>
+                    <tr class="staticeven"><td>resistance_168</td><td align="right"><span class="livedata" id="livedata_resistance_168"></span></td>
+                    <tr class="staticodd"><td>resistance_169</td><td align="right"><span class="livedata" id="livedata_resistance_169"></span></td>
+                    <tr class="staticeven"><td>resistance_170</td><td align="right"><span class="livedata" id="livedata_resistance_170"></span></td>
+                    <tr class="staticodd"><td>resistance_171</td><td align="right"><span class="livedata" id="livedata_resistance_171"></span></td>
+                    <tr class="staticeven"><td>resistance_172</td><td align="right"><span class="livedata" id="livedata_resistance_172"></span></td>
+                    <tr class="staticodd"><td>resistance_173</td><td align="right"><span class="livedata" id="livedata_resistance_173"></span></td>
+                    <tr class="staticeven"><td>resistance_174</td><td align="right"><span class="livedata" id="livedata_resistance_174"></span></td>
+                    <tr class="staticodd"><td>resistance_175</td><td align="right"><span class="livedata" id="livedata_resistance_175"></span></td>
+                    <tr class="staticeven"><td>resistance_176</td><td align="right"><span class="livedata" id="livedata_resistance_176"></span></td>
+                    <tr class="staticodd"><td>resistance_177</td><td align="right"><span class="livedata" id="livedata_resistance_177"></span></td>
+                    <tr class="staticeven"><td>resistance_178</td><td align="right"><span class="livedata" id="livedata_resistance_178"></span></td>
+                    <tr class="staticodd"><td>resistance_179</td><td align="right"><span class="livedata" id="livedata_resistance_179"></span></td>
+                    <tr class="staticeven"><td>resistance_180</td><td align="right"><span class="livedata" id="livedata_resistance_180"></span></td>
+                    <tr class="staticodd"><td>resistance_181</td><td align="right"><span class="livedata" id="livedata_resistance_181"></span></td>
+                    <tr class="staticeven"><td>resistance_182</td><td align="right"><span class="livedata" id="livedata_resistance_182"></span></td>
+                    <tr class="staticodd"><td>resistance_183</td><td align="right"><span class="livedata" id="livedata_resistance_183"></span></td>
+                    <tr class="staticeven"><td>resistance_184</td><td align="right"><span class="livedata" id="livedata_resistance_184"></span></td>
+                    <tr class="staticodd"><td>resistance_185</td><td align="right"><span class="livedata" id="livedata_resistance_185"></span></td>
+                    <tr class="staticeven"><td>resistance_186</td><td align="right"><span class="livedata" id="livedata_resistance_186"></span></td>
+                    <tr class="staticodd"><td>resistance_187</td><td align="right"><span class="livedata" id="livedata_resistance_187"></span></td>
+                    <tr class="staticeven"><td>resistance_188</td><td align="right"><span class="livedata" id="livedata_resistance_188"></span></td>
+                    <tr class="staticodd"><td>resistance_189</td><td align="right"><span class="livedata" id="livedata_resistance_189"></span></td>
+                    <tr class="staticeven"><td>resistance_190</td><td align="right"><span class="livedata" id="livedata_resistance_190"></span></td>
+                    <tr class="staticodd"><td>resistance_191</td><td align="right"><span class="livedata" id="livedata_resistance_191"></span></td>
+                    <tr class="staticeven"><td>resistance_192</td><td align="right"><span class="livedata" id="livedata_resistance_192"></span></td>
+                    <tr class="staticodd"><td>resistance_193</td><td align="right"><span class="livedata" id="livedata_resistance_193"></span></td>
+                    <tr class="staticeven"><td>resistance_194</td><td align="right"><span class="livedata" id="livedata_resistance_194"></span></td>
+                    <tr class="staticodd"><td>resistance_195</td><td align="right"><span class="livedata" id="livedata_resistance_195"></span></td>
+                    <tr class="staticeven"><td>resistance_196</td><td align="right"><span class="livedata" id="livedata_resistance_196"></span></td>
+                    <tr class="staticodd"><td>resistance_197</td><td align="right"><span class="livedata" id="livedata_resistance_197"></span></td>
+                    <tr class="staticeven"><td>resistance_198</td><td align="right"><span class="livedata" id="livedata_resistance_198"></span></td>
+                    <tr class="staticodd"><td>resistance_199</td><td align="right"><span class="livedata" id="livedata_resistance_199"></span></td>
+                    <tr class="staticeven"><td>resistance_200</td><td align="right"><span class="livedata" id="livedata_resistance_200"></span></td>
+                    <tr class="staticodd"><td>resistance_201</td><td align="right"><span class="livedata" id="livedata_resistance_201"></span></td>
+                    <tr class="staticeven"><td>resistance_202</td><td align="right"><span class="livedata" id="livedata_resistance_202"></span></td>
+                    <tr class="staticodd"><td>resistance_203</td><td align="right"><span class="livedata" id="livedata_resistance_203"></span></td>
+                    <tr class="staticeven"><td>resistance_204</td><td align="right"><span class="livedata" id="livedata_resistance_204"></span></td>
+                    <tr class="staticodd"><td>resistance_205</td><td align="right"><span class="livedata" id="livedata_resistance_205"></span></td>
+                    <tr class="staticeven"><td>resistance_206</td><td align="right"><span class="livedata" id="livedata_resistance_206"></span></td>
+                    <tr class="staticodd"><td>resistance_207</td><td align="right"><span class="livedata" id="livedata_resistance_207"></span></td>
+                    <tr class="staticeven"><td>resistance_208</td><td align="right"><span class="livedata" id="livedata_resistance_208"></span></td>
+                    <tr class="staticodd"><td>resistance_209</td><td align="right"><span class="livedata" id="livedata_resistance_209"></span></td>
+                    <tr class="staticeven"><td>resistance_210</td><td align="right"><span class="livedata" id="livedata_resistance_210"></span></td>
+                    <tr class="staticodd"><td>resistance_211</td><td align="right"><span class="livedata" id="livedata_resistance_211"></span></td>
+                    <tr class="staticeven"><td>resistance_212</td><td align="right"><span class="livedata" id="livedata_resistance_212"></span></td>
+                    <tr class="staticodd"><td>resistance_213</td><td align="right"><span class="livedata" id="livedata_resistance_213"></span></td>
+                    <tr class="staticeven"><td>resistance_214</td><td align="right"><span class="livedata" id="livedata_resistance_214"></span></td>
+                    <tr class="staticodd"><td>resistance_215</td><td align="right"><span class="livedata" id="livedata_resistance_215"></span></td>
+                    <tr class="staticeven"><td>resistance_216</td><td align="right"><span class="livedata" id="livedata_resistance_216"></span></td>
+                    <tr class="staticodd"><td>resistance_217</td><td align="right"><span class="livedata" id="livedata_resistance_217"></span></td>
+                    <tr class="staticeven"><td>resistance_218</td><td align="right"><span class="livedata" id="livedata_resistance_218"></span></td>
+                    <tr class="staticodd"><td>resistance_219</td><td align="right"><span class="livedata" id="livedata_resistance_219"></span></td>
+                    <tr class="staticeven"><td>resistance_220</td><td align="right"><span class="livedata" id="livedata_resistance_220"></span></td>
+                    <tr class="staticodd"><td>resistance_221</td><td align="right"><span class="livedata" id="livedata_resistance_221"></span></td>
+                    <tr class="staticeven"><td>resistance_222</td><td align="right"><span class="livedata" id="livedata_resistance_222"></span></td>
+                    <tr class="staticodd"><td>resistance_223</td><td align="right"><span class="livedata" id="livedata_resistance_223"></span></td>
+                    <tr class="staticeven"><td>resistance_224</td><td align="right"><span class="livedata" id="livedata_resistance_224"></span></td>
+                    <tr class="staticodd"><td>resistance_225</td><td align="right"><span class="livedata" id="livedata_resistance_225"></span></td>
+                    <tr class="staticeven"><td>resistance_226</td><td align="right"><span class="livedata" id="livedata_resistance_226"></span></td>
+                    <tr class="staticodd"><td>resistance_227</td><td align="right"><span class="livedata" id="livedata_resistance_227"></span></td>
+                    <tr class="staticeven"><td>resistance_228</td><td align="right"><span class="livedata" id="livedata_resistance_228"></span></td>
+                    <tr class="staticodd"><td>resistance_229</td><td align="right"><span class="livedata" id="livedata_resistance_229"></span></td>
+                    <tr class="staticeven"><td>resistance_230</td><td align="right"><span class="livedata" id="livedata_resistance_230"></span></td>
+                    <tr class="staticodd"><td>resistance_231</td><td align="right"><span class="livedata" id="livedata_resistance_231"></span></td>
+                    <tr class="staticeven"><td>resistance_232</td><td align="right"><span class="livedata" id="livedata_resistance_232"></span></td>
+                    <tr class="staticodd"><td>resistance_233</td><td align="right"><span class="livedata" id="livedata_resistance_233"></span></td>
+                    <tr class="staticeven"><td>resistance_234</td><td align="right"><span class="livedata" id="livedata_resistance_234"></span></td>
+                    <tr class="staticodd"><td>resistance_235</td><td align="right"><span class="livedata" id="livedata_resistance_235"></span></td>
+                    <tr class="staticeven"><td>resistance_236</td><td align="right"><span class="livedata" id="livedata_resistance_236"></span></td>
+                    <tr class="staticodd"><td>resistance_237</td><td align="right"><span class="livedata" id="livedata_resistance_237"></span></td>
+                    <tr class="staticeven"><td>resistance_238</td><td align="right"><span class="livedata" id="livedata_resistance_238"></span></td>
+                    <tr class="staticodd"><td>resistance_239</td><td align="right"><span class="livedata" id="livedata_resistance_239"></span></td>
+                    <tr class="staticeven"><td>resistance_240</td><td align="right"><span class="livedata" id="livedata_resistance_240"></span></td>
+                    <tr class="staticodd"><td>resistance_241</td><td align="right"><span class="livedata" id="livedata_resistance_241"></span></td>
+                    <tr class="staticeven"><td>resistance_242</td><td align="right"><span class="livedata" id="livedata_resistance_242"></span></td>
+                    <tr class="staticodd"><td>resistance_243</td><td align="right"><span class="livedata" id="livedata_resistance_243"></span></td>
+                    <tr class="staticeven"><td>resistance_244</td><td align="right"><span class="livedata" id="livedata_resistance_244"></span></td>
+                    <tr class="staticodd"><td>resistance_245</td><td align="right"><span class="livedata" id="livedata_resistance_245"></span></td>
+                    <tr class="staticeven"><td>resistance_246</td><td align="right"><span class="livedata" id="livedata_resistance_246"></span></td>
+                    <tr class="staticodd"><td>resistance_247</td><td align="right"><span class="livedata" id="livedata_resistance_247"></span></td>
+                    <tr class="staticeven"><td>resistance_248</td><td align="right"><span class="livedata" id="livedata_resistance_248"></span></td>
+                    <tr class="staticodd"><td>resistance_249</td><td align="right"><span class="livedata" id="livedata_resistance_249"></span></td>
+                    <tr class="staticeven"><td>resistance_250</td><td align="right"><span class="livedata" id="livedata_resistance_250"></span></td>
+                    <tr class="staticodd"><td>resistance_251</td><td align="right"><span class="livedata" id="livedata_resistance_251"></span></td>
+                    <tr class="staticeven"><td>resistance_252</td><td align="right"><span class="livedata" id="livedata_resistance_252"></span></td>
+                    <tr class="staticodd"><td>resistance_253</td><td align="right"><span class="livedata" id="livedata_resistance_253"></span></td>
+                    <tr class="staticeven"><td>resistance_254</td><td align="right"><span class="livedata" id="livedata_resistance_254"></span></td>
+                    <tr class="staticodd"><td>resistance_255</td><td align="right"><span class="livedata" id="livedata_resistance_255"></span></td>
+                    <tr class="staticeven"><td>resistance_256</td><td align="right"><span class="livedata" id="livedata_resistance_256"></span></td>
+                    <tr class="staticodd"><td>resistance_257</td><td align="right"><span class="livedata" id="livedata_resistance_257"></span></td>
+                    <tr class="staticeven"><td>resistance_258</td><td align="right"><span class="livedata" id="livedata_resistance_258"></span></td>
+                    <tr class="staticodd"><td>resistance_259</td><td align="right"><span class="livedata" id="livedata_resistance_259"></span></td>
+                    <tr class="staticeven"><td>resistance_260</td><td align="right"><span class="livedata" id="livedata_resistance_260"></span></td>
+                    <tr class="staticodd"><td>resistance_261</td><td align="right"><span class="livedata" id="livedata_resistance_261"></span></td>
+                    <tr class="staticeven"><td>resistance_262</td><td align="right"><span class="livedata" id="livedata_resistance_262"></span></td>
+                    <tr class="staticodd"><td>resistance_263</td><td align="right"><span class="livedata" id="livedata_resistance_263"></span></td>
+                    <tr class="staticeven"><td>resistance_264</td><td align="right"><span class="livedata" id="livedata_resistance_264"></span></td>
+                    <tr class="staticodd"><td>resistance_265</td><td align="right"><span class="livedata" id="livedata_resistance_265"></span></td>
+                    <tr class="staticeven"><td>resistance_266</td><td align="right"><span class="livedata" id="livedata_resistance_266"></span></td>
+                    <tr class="staticodd"><td>resistance_267</td><td align="right"><span class="livedata" id="livedata_resistance_267"></span></td>
+                    <tr class="staticeven"><td>resistance_268</td><td align="right"><span class="livedata" id="livedata_resistance_268"></span></td>
+                    <tr class="staticodd"><td>resistance_269</td><td align="right"><span class="livedata" id="livedata_resistance_269"></span></td>
+                    <tr class="staticeven"><td>resistance_270</td><td align="right"><span class="livedata" id="livedata_resistance_270"></span></td>
+                    <tr class="staticodd"><td>resistance_271</td><td align="right"><span class="livedata" id="livedata_resistance_271"></span></td>
+                    <tr class="staticeven"><td>resistance_272</td><td align="right"><span class="livedata" id="livedata_resistance_272"></span></td>
+                    <tr class="staticodd"><td>resistance_273</td><td align="right"><span class="livedata" id="livedata_resistance_273"></span></td>
+                    <tr class="staticeven"><td>resistance_274</td><td align="right"><span class="livedata" id="livedata_resistance_274"></span></td>
+                    <tr class="staticodd"><td>resistance_275</td><td align="right"><span class="livedata" id="livedata_resistance_275"></span></td>
+                    <tr class="staticeven"><td>resistance_276</td><td align="right"><span class="livedata" id="livedata_resistance_276"></span></td>
+                    <tr class="staticodd"><td>resistance_277</td><td align="right"><span class="livedata" id="livedata_resistance_277"></span></td>
+                    <tr class="staticeven"><td>resistance_278</td><td align="right"><span class="livedata" id="livedata_resistance_278"></span></td>
+                    <tr class="staticodd"><td>resistance_279</td><td align="right"><span class="livedata" id="livedata_resistance_279"></span></td>
+                    <tr class="staticeven"><td>resistance_280</td><td align="right"><span class="livedata" id="livedata_resistance_280"></span></td>
+                    <tr class="staticodd"><td>resistance_281</td><td align="right"><span class="livedata" id="livedata_resistance_281"></span></td>
+                    <tr class="staticeven"><td>resistance_282</td><td align="right"><span class="livedata" id="livedata_resistance_282"></span></td>
+                    <tr class="staticodd"><td>resistance_283</td><td align="right"><span class="livedata" id="livedata_resistance_283"></span></td>
+                    <tr class="staticeven"><td>resistance_284</td><td align="right"><span class="livedata" id="livedata_resistance_284"></span></td>
+                    <tr class="staticodd"><td>resistance_285</td><td align="right"><span class="livedata" id="livedata_resistance_285"></span></td>
+                    <tr class="staticeven"><td>resistance_286</td><td align="right"><span class="livedata" id="livedata_resistance_286"></span></td>
+                    <tr class="staticodd"><td>resistance_287</td><td align="right"><span class="livedata" id="livedata_resistance_287"></span></td>
+                    <tr class="staticeven"><td>resistance_288</td><td align="right"><span class="livedata" id="livedata_resistance_288"></span></td>
+                    <tr class="staticodd"><td>resistance_289</td><td align="right"><span class="livedata" id="livedata_resistance_289"></span></td>
+                    <tr class="staticeven"><td>resistance_290</td><td align="right"><span class="livedata" id="livedata_resistance_290"></span></td>
+                    <tr class="staticodd"><td>resistance_291</td><td align="right"><span class="livedata" id="livedata_resistance_291"></span></td>
+                    <tr class="staticeven"><td>resistance_292</td><td align="right"><span class="livedata" id="livedata_resistance_292"></span></td>
+                    <tr class="staticodd"><td>resistance_293</td><td align="right"><span class="livedata" id="livedata_resistance_293"></span></td>
+                    <tr class="staticeven"><td>resistance_294</td><td align="right"><span class="livedata" id="livedata_resistance_294"></span></td>
+                    <tr class="staticodd"><td>resistance_295</td><td align="right"><span class="livedata" id="livedata_resistance_295"></span></td>
+                    <tr class="staticeven"><td>resistance_296</td><td align="right"><span class="livedata" id="livedata_resistance_296"></span></td>
+                    <tr class="staticodd"><td>resistance_297</td><td align="right"><span class="livedata" id="livedata_resistance_297"></span></td>
+                    <tr class="staticeven"><td>resistance_298</td><td align="right"><span class="livedata" id="livedata_resistance_298"></span></td>
+                    <tr class="staticodd"><td>resistance_299</td><td align="right"><span class="livedata" id="livedata_resistance_299"></span></td>
+                    <tr class="staticeven"><td>resistance_300</td><td align="right"><span class="livedata" id="livedata_resistance_300"></span></td>
+                <!-- Temporary data display? -->
+            </tbody>
+        </table>
+    </p>
+
+
+</div>
+
+<script>    
+    function websocketmaskOnload() {
+        $('.livedata').css('font-family', 'SourceCodePro');
+    }
+
+    function handleMessage(msg) {                
+        if(msg.type === "probedata") {
+            $("#liveview_" + msg.sensor).text(msg.measurement);
+            animateCell("#liveview_" + msg.sensor);
+            return;
+        }
+        
+    }
+
+    function animateCell(cellid) {
+        var highlight_color = "#fbec88";
+        var original_color = $(cellid).css("background-color");
+        $(cellid)
+                .animate({
+                        'background-color': highlight_color,
+                        'color': '#000000'
+                }, 'slow', 'swing')
+                .delay(1000)
+                .animate({
+                        'background-color': original_color
+                }, 'slow', 'swing');
+        return;
+    }
+
+</script>
