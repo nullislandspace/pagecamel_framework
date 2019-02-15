@@ -25,10 +25,6 @@ sub new {
 
     $self->{extrasettings} = [];
 
-    foreach my $item (@{$self->{item}}) {
-        $item->{clacksname} = 'GSP::' . $item->{framename};
-    }
-
     return $self;
 }
 
@@ -52,9 +48,10 @@ sub wshandlerstart {
     $self->{retrievecached} = 1;
 
     foreach my $item (@{$self->{item}}) {
-        $self->{clacks}->listen($item->{clacksname});
+        $self->{clacks}->listen('GSP::' . $item);
     }
     $self->{clacks}->doNetwork();
+
 
     return;
 }
@@ -74,7 +71,7 @@ sub wscyclic {
     if($self->{retrievecached}) {
         $self->{retrievecached} = 0;
         foreach my $item (@{$self->{item}}) {
-            my $gspdata = $self->{clacks}->retrieve($item->{clacksname});
+            my $gspdata = $self->{clacks}->retrieve('GSP::' . $item);
             if(defined($gspdata) && $gspdata ne '') {
                 my @parts = split/\,/, $gspdata;
                 foreach my $part (@parts) {
@@ -107,7 +104,7 @@ sub wscyclic {
 
         if($cmsg->{type} eq 'set') {
             foreach my $item (@{$self->{item}}) {
-                next unless($cmsg->{name} eq $item->{clacksname});
+                next unless($cmsg->{name} eq 'GSP::' . $item);
 
                 my @parts = split/\,/, $cmsg->{data};
                 foreach my $part (@parts) {
