@@ -102,7 +102,7 @@ sub work {
             next;
         } elsif($message->{type} eq 'set') {
             my $key = $message->{name};
-            $reph->debuglog("Sending $key");
+            #$reph->debuglog("Sending $key");
 
             $self->{remoteclacks}->set($key, $message->{data});
         }

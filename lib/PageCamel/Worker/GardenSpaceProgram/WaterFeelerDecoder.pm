@@ -167,8 +167,30 @@ sub decodeFrame {
         }
         my $clacksdata = join(',', @parts);
         $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
+    } elsif($frame[8] == 24) {
+        my %decoded;
+        $decoded{statechange_timestamp} = getISODate();
+        $decoded{statechange_text} = 'Testimage downlink started';
+        my @parts;
+        foreach my $key (sort keys %decoded) {
+            push @parts, $key . '=' . $decoded{$key};
+        }
+        my $clacksdata = join(',', @parts);
+        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
+    } elsif($frame[8] == 25) {
+        my %decoded;
+        $decoded{statechange_timestamp} = getISODate();
+        $decoded{statechange_text} = 'Testimage downlink finished';
+        my @parts;
+        foreach my $key (sort keys %decoded) {
+            push @parts, $key . '=' . $decoded{$key};
+        }
+        my $clacksdata = join(',', @parts);
+        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
     } elsif($frame[8] == 19) {
         return $self->decodeSoilCapacityData(@frame);
+    } elsif($frame[8] == 26) {
+        return $self->decodeImageData(@frame);
     }
 }
 
@@ -368,15 +390,6 @@ sub decodeSoilCapacityData {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
 
-    if(0) {
-        my @bla;
-        for(my $x = 0; $x < 16; $x++) {
-            push @bla, $frame[$data + $x];
-        }
-        print '### ', join(' ', @bla), "\n";
-        exit(0);
-    }
-
     my %decoded;
 
     $decoded{framecount} = $frame[9]; # P_MEMORYOFFSET
@@ -386,8 +399,6 @@ sub decodeSoilCapacityData {
         $decoded{$rname} = $frame[$data + ($i * 2)];
         $decoded{$rname} = $decoded{$rname} << 8;
         $decoded{$rname} += $frame[$data + ($i * 2) + 1];
-
-        #$decoded{$rname} = ($frame[$data + ($i * 2)] << 8) + $frame[$data + ($i * 2) + 1];
     }
 
     $decoded{soilcapacity_download_timestamp} = getISODate();
@@ -397,7 +408,7 @@ sub decodeSoilCapacityData {
     }
     my $clacksdata = join(',', @parts);
     my $clacksname = 'GSP::WATERFEELER::SOILCAPACITY::DOWNLOAD::FRAME' . ($decoded{framecount} + 1);
-    $reph->debuglog("Sending $clacksname");
+    #$reph->debuglog("Sending $clacksname");
     $self->{clacks}->set($clacksname, $clacksdata);
     $self->{clacks}->doNetwork();
     $reph->debuglog("WATERFEELER SOIL CAPACITY frame: $clacksdata");
@@ -426,6 +437,30 @@ sub decodeSoilCapacityData {
     }
     
     $dbh->commit;
+    return 1;
+}
+
+sub decodeImageData {
+    my ($self, @frame) =@_;
+    
+    my $data = 12;
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+
+    my $framecount = ($frame[9] << 8) + $frame[10]; # P_MEMORYOFFSET
+    my $payloadlength = $frame[11];
+    my $byteoffs = $framecount * 16;
+    for(my $i = 0; $i < $payloadlength; $i++) {
+        my $clacksdata = 'pixeldata=' . doFPad($byteoffs + $i, 6) . '-' . doFPad($frame[$data + $i], 3);
+        my $clacksname = 'GSP::WATERFEELER::SETPIXEL';
+        $self->{clacks}->set($clacksname, $clacksdata);
+        $self->{clacks}->doNetwork();
+        #$reph->debuglog($clacksname . ' ' . $clacksdata . ' ' . $framecount);
+    }
+
+    $self->{clacks}->doNetwork();
+
     return 1;
 }
 
