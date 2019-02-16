@@ -190,21 +190,22 @@
                     <canvas id="soilresistancecanvas" width="600px" height="300px"></canvas>
                 </td>
             </tr>
+            <tr>
+                <td colspan="2">
+                    Image downlink (engineering test)<br/>
+                    <canvas id="testimagecanvas" width="340px" height="340px"></canvas>
+                </td>
+            </tr>
         </table>
     </p>
-
-    </p>
-
-<p>
-
-
-</p>
 
 
 </div>
 
 <script>    
     var soilresistancechart;
+    var testcanvas;
+    var testctx;
 
     function websocketmaskOnload() {
         $('.livedata').css('font-family', 'SourceCodePro');
@@ -246,6 +247,27 @@
             data:data,
             options:option
         });
+
+        testcanvas = document.getElementById('testimagecanvas');
+        testctx = testcanvas.getContext("2d");
+
+        clearTestcanvas();
+    }
+
+    function clearTestcanvas() {
+        testctx.fillStyle = 'rgb(0, 255, 0)';
+        testctx.fillRect(0, 0, 340, 340);
+    }
+
+    function drawPixel(pixelnum, brightness) {
+        var colorstring = 'rgb(' + brightness + ',' + brightness + ',' + brightness + ')';
+        testctx.fillStyle = colorstring;
+        var x = Math.floor(pixelnum / 68);
+        var y = pixelnum - (x * 68);
+
+        x = x * 5;
+        y = y * 5;
+        testctx.fillRect(x, y, 5, 5);
     }
 
     function handleMessage(msg) {                
@@ -256,7 +278,13 @@
                 soilresistancechart.data.datasets[0].data[sensorid] = msg.measurement;
                 soilresistancechart.update();
                 return;
+            } else if(msg.sensor == 'pixeldata') {
+                var pixelid = parseInt(msg.measurement.substr(0, 6), 10);
+                var brightness = parseInt(msg.measurement.substr(7, 3), 10);
+                drawPixel(pixelid, brightness);
+                return;
             }
+
             var sensorselector = 'span[sensorname="liveview_' + msg.sensor + '"]';
             $(sensorselector).each(function() {
                 $(this).text(msg.measurement);
