@@ -1,13 +1,12 @@
 <div align="left">
     <h1>WaterFeeler live view</h1>
-    <p><div class="errortext">Note: This probe is currently running pre-launch system tests.</div></p>
     <p>
         This is the live data from the WaterFeeler GardenSpaceProgram mission. Depending on circumstances, this might not always update.<br/>
         You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
     </p>
     <p>
         WaterFeeler is a "space probe" with the goal to detect ground water and precipitation.
-        <a href="/guest/blog/view/96">this blog article</a> for more details.
+        See <a href="/guest/blog/view/97">this blog article</a> for more details.
     </p>
 
     <p>
