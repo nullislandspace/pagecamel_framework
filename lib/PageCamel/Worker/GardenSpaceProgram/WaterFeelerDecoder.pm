@@ -49,6 +49,7 @@ sub crossregister {
     $dbh->commit;
 
     $self->{clacks}->listen('GSP::RECIEVE::CB'); # Only listen for WaterFeeler frames
+    $self->{clacks}->listen('GSP::WATERFEELER::CREATESOILMEASUREMENT'); # Also do the work of creating a new soil measurement row in db
     $self->{clacks}->doNetwork();
     $self->{nextping} = 0;
 
@@ -77,12 +78,18 @@ sub work {
     while((my $message = $self->{clacks}->getNext())) {
         if($message->{type} eq 'disconnect') {
             $self->{clacks}->listen('GSP::RECIEVE::CB'); # Only listen for WaterFeeler frames
+            $self->{clacks}->listen('GSP::WATERFEELER::CREATESOILMEASUREMENT'); # Also do the work of creating a new soil measurement row in db
             $self->{clacks}->ping();
             $self->{clacks}->doNetwork();
             $self->{nextping} = $now + 30;
             next;
         }
         next unless($message->{type} eq 'set');
+
+        if($message->{name} eq 'GSP::WATERFEELER::CREATESOILMEASUREMENT') {
+            $self->createSoilRow($message->{data});
+            $workCount++;
+        }
         next unless($message->{name} eq 'GSP::RECIEVE::CB');
 
         my ($ok) = $self->decodeFrame($message->{data});
@@ -90,6 +97,30 @@ sub work {
     }
 
     return $workCount;
+}
+
+sub createSoilRow {
+    my ($self, $rawconf) =@_;
+
+    my ($resistance, $delay, $description) = split/\|/, $rawconf;
+    
+    my $data = 12;
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.waterfeeler_soilcapacity
+                                        (selectedresistance_ohm, measurementinterval_milliseconds, description)
+                                        VALUES (?, ?, ?)")
+            or croak($dbh->errstr);
+
+    if(!$insth->execute($resistance, $delay, $description)) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+
+    $dbh->commit;
+    return 1;
 }
 
 sub decodeFrame {
