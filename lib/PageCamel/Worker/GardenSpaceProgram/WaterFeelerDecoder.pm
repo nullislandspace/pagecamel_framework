@@ -306,6 +306,10 @@ sub decodeDHTFrame {
         # Convert back to original values
         $decoded{internal_humidity} = $decoded{internal_humidity} / 10;
         $decoded{internal_temperature} = ($decoded{internal_temperature} / 10) - 100;
+
+        # Round
+        $decoded{internal_humidity} = $self->roundFloat($decoded{internal_humidity}, 2);
+        $decoded{internal_temperature} = $self->roundFloat($decoded{internal_temperature}, 2);
     } elsif($frame[$data + 0] == 0x01) {
         $decoded{internal_status} = 'CHECKSUM_ERROR';
     } elsif($frame[$data + 0] == 0x02) {
@@ -326,6 +330,10 @@ sub decodeDHTFrame {
         # Convert back to original values
         $decoded{external_humidity} = $decoded{external_humidity} / 10;
         $decoded{external_temperature} = ($decoded{external_temperature} / 10) - 100;
+
+        # Round
+        $decoded{external_humidity} = $self->roundFloat($decoded{external_humidity}, 2);
+        $decoded{external_temperature} = $self->roundFloat($decoded{external_temperature}, 2);
     } elsif($frame[$data + 5] == 0x01) {
         $decoded{external_status} = 'CHECKSUM_ERROR';
     } elsif($frame[$data + 5] == 0x02) {
@@ -493,6 +501,30 @@ sub decodeImageData {
     $self->{clacks}->doNetwork();
 
     return 1;
+}
+
+sub roundFloat {
+    my ($self, $val, $digits) = @_;
+
+    my $factor = 10**$digits;
+
+    $val = int($val * $factor) / $factor;
+
+    if($val =~ /\./) {
+        my ($pre, $post) = split/\./, $val;
+        while(length($post) < $digits) {
+            $post .= '0';
+        }
+        $val = $pre . '.' . $post;
+    } else {
+        my $post = '';
+        while(length($post) < $digits) {
+            $post .= '0';
+        }
+        $val .= '.' . $post;
+    }
+
+    return $val;
 }
 
 1;
