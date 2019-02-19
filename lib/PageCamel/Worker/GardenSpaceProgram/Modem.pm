@@ -77,8 +77,8 @@ sub work {
 
     my $workCount = 0;
 
-    my $insth = $dbh->prepare_cached("INSERT INTO gsp.rawlog(mission, rawpacket, direction)
-                                        VALUES ('FASTCORE', ?, ?)")
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.rawlog(rawpacket, direction, realsender, realreciever, command, linkpath)
+                                        VALUES (?, ?, ?, ?, ?, ?)")
             or croak($dbh->errstr);
 
     my $now = time;
@@ -103,7 +103,8 @@ sub work {
         next unless($message->{name} eq 'GSP::SEND');
 
         # Log to database
-        if(!$insth->execute($message->{data}, 'UPLINK')) {
+        my ($realsender, $realreciever, $command, $linkpath) = $self->decodePacket($message->{data});
+        if(!$insth->execute($message->{data}, 'UPLINK', $realsender, $realreciever, $command, $linkpath)) {
             $reph->debuglog("DB ERROR: " . $dbh->errstr);
             $dbh->rollback;
         } else {
@@ -126,12 +127,19 @@ sub work {
 
         if($self->{line} =~ /^\<(.*)/) {
             my $frame = $1;
+            if(length($frame) != 60) {
+                $reph->debuglog("ERROR: INCORRECT FRAME LENGTH " . length($frame) . ' ' . $frame);
+                $self->{line} = '';
+                next;
+            }
             my $senderid = substr $frame, 12, 2;
             $reph->debuglog('< ' . $frame . '   Sender: ' . $senderid);
             $self->{clacks}->set('GSP::RECIEVE', $frame);
             $self->{clacks}->set('GSP::RECIEVE::' . $senderid, $frame);
             $self->{clacks}->doNetwork();
-            if(!$insth->execute($frame, 'DOWNLINK')) {
+
+            my ($realsender, $realreciever, $command, $linkpath) = $self->decodePacket($frame);
+            if(!$insth->execute($frame, 'DOWNLINK', $realsender, $realreciever, $command, $linkpath)) {
                 $reph->debuglog("DB ERROR: " . $dbh->errstr);
                 $dbh->rollback;
             } else {
@@ -149,6 +157,36 @@ sub work {
 
 
     return $workCount;
+}
+
+sub decodePacket {
+    my ($self, $rawpacket) = @_;
+
+    my @chars = split//, $rawpacket;
+    my @frame;
+
+    # Decode to bytes
+    while(@chars) {
+        my $high = shift @chars;
+        my $low = shift @chars;
+
+        my $val = ((ord($high) - 65) << 4) + (ord($low) - 65);
+        push @frame, $val;
+    }
+
+    my $realsender = $frame[6];
+    my $realreciever = $frame[7];
+    my $command = $frame[8];
+    my @linkpath = (
+        $frame[0], # LINKSENDER
+        $frame[1], # NEXTLINK1
+        $frame[2], # NEXTLINK2
+        $frame[3], # NEXTLINK3
+        $frame[4], # NEXTLINK4
+        $frame[5], # NEXTLINK5
+    );
+
+    return($realsender, $realreciever, $command, \@linkpath);
 }
 
 
