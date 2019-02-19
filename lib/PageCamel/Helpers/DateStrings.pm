@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English qw(-no_match_vars);
 use Carp;
-our $VERSION = 2;
+our $VERSION = 2.1;
 use Fatal qw( close );
 use Array::Contains;
 #---AUTOPRAGMAEND---
@@ -20,7 +20,7 @@ use Readonly;
 use Lingua::EN::Numbers::Ordinate;
 
 use base qw(Exporter);
-our @EXPORT = qw(getISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash timeToSeconds eternalseptemberize); ## no critic (Modules::ProhibitAutomaticExportation)
+our @EXPORT = qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash timeToSeconds eternalseptemberize); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
 Readonly my $YEARBASEOFFSET => 1900;
@@ -149,6 +149,20 @@ sub getISODate {
     $sec = doFPad($sec, 2);
     return "$year-$mon-$mday $hour:$min:$sec";
 }
+
+sub getUTCISODate {
+    my ($sec,$min, $hour, $mday,$mon, $year, $wday,$yday, $isdst) = gmtime(time);
+    $year += $YEARBASEOFFSET;
+    $mon += 1;
+
+    $mon = doFPad($mon, 2);
+    $mday = doFPad($mday, 2);
+    $hour = doFPad($hour, 2);
+    $min = doFPad($min, 2);
+    $sec = doFPad($sec, 2);
+    return "$year-$mon-$mday $hour:$min:$sec";
+}
+
 
 sub getISODate_nDaysOffset {
     my ($nDays) = @_;

@@ -30,7 +30,7 @@
 ################################################################
 
 package PageCamel::Net::Server::Proto::UDP;
-our $VERSION = 2;
+our $VERSION = 2.1;
 
 use strict;
 use base qw(PageCamel::Net::Server::Proto::TCP);

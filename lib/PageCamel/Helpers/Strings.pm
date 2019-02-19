@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English qw(-no_match_vars);
 use Carp;
-our $VERSION = 2;
+our $VERSION = 2.1;
 use Fatal qw( close );
 use Array::Contains;
 #---AUTOPRAGMAEND---
@@ -15,7 +15,7 @@ use Array::Contains;
 
 use base qw(Exporter);
 use PageCamel::Helpers::Padding qw(doSpacePad);
-our @EXPORT_OK = qw(tabsToTable normalizeString elemNameQuote stripString humanFilesize windowsStringsQuote splitStringWithQuotes webSafeString encodeVNCString);
+our @EXPORT_OK = qw(tabsToTable normalizeString elemNameQuote stripString humanFilesize windowsStringsQuote splitStringWithQuotes webSafeString encodeVNCString cutStrings);
 
 
 sub tabsToTable {
@@ -186,6 +186,45 @@ sub encodeVNCString {
     return $out;
 }
 
+# 'cut -c' compatible implementation
+sub cutStrings {
+    my ($definition, $seperator, @lines) = @_;
+
+    my @outlines;
+
+    my @cuts;
+    my @parts = split/\,/, $definition;
+    foreach my $part (@parts) {
+        my ($start, $finish, $len);
+
+        if($part =~ /\-/) {
+            ($start, $finish) = split/\-/, $part;
+            $len = $finish - $start + 1;
+        } else {
+            $start = $part;
+            $len = 1;
+        }
+        $start--;
+
+        my %cut = (
+            start => $start,
+            len => $len,
+        );
+        push @cuts, \%cut;
+    }
+
+    foreach my $line (@lines) {
+        chomp $line;
+        my @outparts;
+        foreach my $cut (@cuts) {
+            push @outparts, substr $line, $cut->{start}, $cut->{len};
+        }
+        push @outlines, join($seperator, @outparts);
+    }
+
+    return @outlines;
+}
+
 1;
 __END__
 
@@ -236,6 +275,10 @@ Turn a number into a more human readable filesize
 =head2 encodeVNCString
 
 Used in noVNC session recording.  Quote binary strings in a way to make them usable in a javascript file.
+
+=head2 cutStrings
+
+'cut -c' compatible implementation. Warning: Same as 'cut' is 1-indexed instead of 0-indexed
 
 =head1 IMPORTANT NOTE
 

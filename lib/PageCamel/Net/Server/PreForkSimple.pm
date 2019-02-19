@@ -27,7 +27,7 @@
 ################################################################
 
 package PageCamel::Net::Server::PreForkSimple;
-our $VERSION = 2;
+our $VERSION = 2.1;
 
 use strict;
 use base qw(PageCamel::Net::Server);

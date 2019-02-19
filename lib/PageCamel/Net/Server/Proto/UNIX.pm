@@ -27,7 +27,7 @@
 ################################################################
 
 package PageCamel::Net::Server::Proto::UNIX;
-our $VERSION = 2;
+our $VERSION = 2.1;
 
 use strict;
 use base qw(IO::Socket::UNIX);
