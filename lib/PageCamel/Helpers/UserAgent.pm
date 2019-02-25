@@ -70,7 +70,7 @@ sub simplifyUA {
         } elsif($useragentname =~ /(ZmEu|Morfeus|Comodo\ ssl\ checker)/i) {
             $simpleUserAgent = "Virus/" . lc($1);
             $denyAccess = 1;
-        } elsif($useragentname =~ /(bingbot|googlebot|pagesinventory|feedfetcher\-google|plukkie|msnbot|yandex|google\-desktop|seznambot|turnitinbot|baidu|yahoo\!\ slurp|nerdybot|orangebot|twitterbot|paperlibot|duckduckgoi|qwantify)/i) {
+        } elsif($useragentname =~ /(bingbot|googlebot|pagesinventory|feedfetcher\-google|plukkie|msnbot|yandex|google\-desktop|seznambot|turnitinbot|baidu|yahoo\!\ slurp|nerdybot|orangebot|twitterbot|paperlibot|duckduckgo|qwantify)/i) {
             $simpleUserAgent = "Webspider_good/" . lc($1);
         } elsif($useragentname =~ /(netcraft.*survey|synapse|phpcrawl|wotbox|yacybot|zend_http_client|mail.ru\_bot|spbot|crazywebcrawler|go.*package\ http)/i) {
             $simpleUserAgent = "Webspider_undecided/" . lc($1);
@@ -106,7 +106,7 @@ sub simplifyUA {
             $simpleUserAgent = "python";
         } elsif($useragentname =~ /Microsoft-WebDAV-MiniRedir/i) {
             $simpleUserAgent = "Microsoft WebDAV";
-        } elsif($useragentname =~ /facebookexternalhit/i) {
+        } elsif($useragentname =~ /facebookexternalhit/i || $useragentname =~ /facebook.*externalhit/) {
             $simpleUserAgent = "Facebook";
         } elsif($useragentname =~ /bitlybot\/(.*?)\ /) {
             $simpleUserAgent = "Bit.ly/$1";
@@ -173,9 +173,86 @@ sub simplifyUA {
         } elsif($useragentname =~ /Akregator/i) {
             # Part of KDE it seems
             $simpleUserAgent = "KDE/Akregator";
+        } elsif($useragentname =~ /CakePHP/i) {
+            # CakePHP
+            $simpleUserAgent = "CakePHP";
+        } elsif($useragentname =~ /com\.google\.android\.apps\.searchlite/i) {
+            # Google Go?
+            $simpleUserAgent = "Google Go/searchlite";
+        } elsif($useragentname =~ /mindup\.de/i) {
+            # mindup.de "Marketing using artificial intelligence"
+            $simpleUserAgent = "Marketing/mindup.de";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /facebook.*externalhit/i) {
+            # Facebook
+            $simpleUserAgent = "Facebook";
+        } elsif($useragentname =~ /di\-cloud\-parser/i) {
+            # I have NO idea what that is supposed to be. For now, let it in
+            $simpleUserAgent = "di-cloud-parser";
+        } elsif($useragentname =~ /security\.ipip\.net/i) {
+            # Chinese "Security" site that collects data on http headers and open ports. Block it
+            $simpleUserAgent = "Suspicious/security.ipip.net";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /^m$/i) {
+            # Whatever the hell this is, is highly strange. Let's just block it. As far as i can see, it's some kind of crawler
+            $simpleUserAgent = "Suspicious/M";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /mediatoolkit\.com/i) {
+            # Another of those strange "brand protection" crawlers. Go to hell
+            $simpleUserAgent = "BrandProtection/mediatoolkit.com";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /domainsono\.com/i) {
+            # Crawler, but the domain is currently "for sale". Block it
+            $simpleUserAgent = "Suspicious/domainsono.com";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /crawler\@alexa\.com/i) {
+            # Alexa crawler
+            $simpleUserAgent = "Alexa";
+        } elsif($useragentname =~ /cloudsystemnetworks\.com/i) {
+            # Crawler without good description. Or any described purpose at all. Block it
+            $simpleUserAgent = "Suspicious/cloudsystemnetworks.com";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /trendsmapresolver/i) {
+            # Strange crawler, can't find anything concrete about it. Make it go away
+            $simpleUserAgent = "Suspicious/trendsmapresolver";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /vebidoobot/i) {
+            # "person search crawler". In my opinion, this violates the EU General Data Protection Regulation, so block it
+            $simpleUserAgent = "GDPR violation/vebidoobot";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /wappalyzer/i) {
+            # Strange crawler that analyses technology used by a website. Accept it, at least for now
+            $simpleUserAgent = "Suspicious/Wappalyzer";
+        } elsif($useragentname =~ /linkfluence\.com/i) {
+            # Strange crawler that does "social data research". Block it
+            $simpleUserAgent = "Suspicious/linkfluence.com";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /pleskbot/i) {
+            # "Server DDOS protection". I don't use it, so deny access
+            $simpleUserAgent = "Suspicious/PleskBot";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /getpocket\.com/i) {
+            # Website aggregation tool. Accept it.... for now
+            $simpleUserAgent = "Aggregation/getpocket.com";
+        } elsif($useragentname =~ /sogou\.com/i) {
+            # Chinese search engine
+            $simpleUserAgent = "Search/Chinese/sogou";
+        } elsif($useragentname =~ /researchbot/i) {
+            # unknown crawler with the name "researchbot". This is too generic a name to block.
+            $simpleUserAgent = "Suspicious/ResearchBot";
+        } elsif($useragentname =~ /symfony\ browserkit/i) {
+            # Generic toolkit/library for web automation. As far as i can see, similar to www::mechanize and stuff. Accept it for now
+            $simpleUserAgent = "Suspicious/Symfony BrowserKit";
+        } elsif($useragentname =~ /thither\.direct/i) {
+            #  Not sure, seems to be marketing. Block it.
+            $simpleUserAgent = "Suspicious/Thither.Direct";
+            $denyAccess = 1;
         } elsif($useragentname =~ /MauiBot/i) {
             # Seems kind of a new bot, not much info, but according to forums at least tries to comply to robots.txt
             $simpleUserAgent = "MauiBot";
+        } elsif($useragentname =~ /datenbutler\.de/i) {
+            # Seems to sell access for searching webshops and blogs. Block it.
+            $simpleUserAgent = "Suspicious/datenbutler.de";
         } elsif($useragentname =~ /tracemyfile\.com/i) {
             # See who copied whos images. Seems kinda useful
             $simpleUserAgent = "tracemyfile.com";
