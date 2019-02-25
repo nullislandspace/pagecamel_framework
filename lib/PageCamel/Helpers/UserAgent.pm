@@ -253,6 +253,11 @@ sub simplifyUA {
         } elsif($useragentname =~ /datenbutler\.de/i) {
             # Seems to sell access for searching webshops and blogs. Block it.
             $simpleUserAgent = "Suspicious/datenbutler.de";
+            $denyAccess = 1;
+        } elsif($useragentname =~ /nlpproject\.info/i) {
+            # Crawler that doesn't provide ANY info (website down)
+            $simpleUserAgent = "Suspicious/nlpproject.info";
+            $denyAccess = 1;
         } elsif($useragentname =~ /tracemyfile\.com/i) {
             # See who copied whos images. Seems kinda useful
             $simpleUserAgent = "tracemyfile.com";
