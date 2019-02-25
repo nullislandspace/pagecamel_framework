@@ -377,7 +377,7 @@ sub decodeWaterfeelerFrame {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $insth = $dbh->prepare_cached("INSERT INTO gsp.waterfeeler_waterfeeler
-                                        (volt_floating, volt_470ohm, volt_1kohm, volt_10kohm, volt_100kohm, volt_1mohn, waterlevel)
+                                        (volt_floating, volt_470ohm, volt_1kohm, volt_10kohm, volt_100kohm, volt_1mohm, waterlevel)
                                         VALUES (?, ?, ?, ?, ?, ?, ?)")
             or croak($dbh->errstr);
 
@@ -401,7 +401,7 @@ sub decodeWaterfeelerFrame {
     $self->{clacks}->set('GSP::WATERFEELER::WATERFEELER', $clacksdata);
     $self->{clacks}->doNetwork();
     $reph->debuglog("WATERFEELER WATERFEELER frame: $clacksdata");
-    #(volt_floating, volt_470ohm, volt_1kohm, volt_10kohm, volt_100kohm, volt_1mohn, waterlevel)
+    #(volt_floating, volt_470ohm, volt_1kohm, volt_10kohm, volt_100kohm, volt_1mohm, waterlevel)
 
     if(!$insth->execute(
                 $decoded{volt_floating},
