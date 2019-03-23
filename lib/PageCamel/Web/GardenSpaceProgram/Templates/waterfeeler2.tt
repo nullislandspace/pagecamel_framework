@@ -1,0 +1,348 @@
+<div align="left">
+    <h1>WaterFeeler2 live view</h1>
+    <p><b>WaterFeeler2 is currently undergoing indoor testing. The data you see here is test data.</b></p>
+    <p>
+        This is the live data from the WaterFeeler2 GardenSpaceProgram mission. Depending on circumstances, this might not always update.<br/>
+        You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
+    </p>
+    <p>
+        WaterFeeler2 is a "space probe" with the goal to detect ground water and precipitation.
+        See <a href="/guest/blog/view/103">this blog article</a> for more details.
+    </p>
+
+    <p>
+        <table id="panelstable" border="1">
+            <tr>
+                <td>
+
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">System status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_status_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Uptime (milliseconds)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_ticks"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Free memory (bytes)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_memfree"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Packets in</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_packets_in"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Packets out</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_packets_out"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Battery Volt (raw value)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_voltage_raw"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Battery Volt (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_voltage_calculated"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Firmware version</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_firmware_version"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+
+                <td>
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Power configuration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_status2_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Keep awake flag</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_keepawake_flag"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>PanCam powered</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_pancam_powered"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>PowerSave enabled</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_enabled"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Reboot counter<br>(current)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_current"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Reboot counter<br>(powersave trigger)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_trigger"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>PowerSave sleepcycles</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_sleepcycle_count"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>PowerSave awake seconds</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_keepawake_seconds"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+
+
+
+
+            </tr>
+            <tr>
+                <td>
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Waterfeeler Soil sensor<br/>(resistive divider)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_waterfeeler_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>no pulldown (floating)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_volt_floating"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>470 &#x2126; pulldown</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_volt_470ohm"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>1k &#x2126; pulldown</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_volt_1kohm"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>10k &#x2126; pulldown</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_volt_10kohm"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td>
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="3" class="statichead">Digital Temperature and Humidity (DHT)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td colspan="2"><span class="livedata" sensorname="liveview_dht_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Internal Sensor</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_internal_temperature"></span>&#176;C</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_internal_humidity"></span>&#37;</td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>External Sensor</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_external_temperature"></span>&#176;C</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_external_humidity"></span>&#37;</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+                <td>
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Rain sensor<br/>(water level sensor in cup)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_waterfeeler_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Waterlevel (raw)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_waterlevel"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="3" class="statichead">Probe mode</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last uplink command</td>
+                                <td><span class="livedata" sensorname="liveview_uplink_timestamp"></span></td>
+                                <td><span class="livedata" sensorname="liveview_uplink_command"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Probe system mode</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_statechange_timestamp"></span></td>
+                                <td align="right"><span class="livedata" sensorname="liveview_statechange_text"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Soil capacity time series</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Measurement commanded</td>
+                                <td><span class="livedata" sensorname="liveview_soilcapacity_command_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Selected pulldown</td>
+                                <td><span class="livedata" sensorname="liveview_soilcapacity_selected_pulldown"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Last download frame</td>
+                                <td><span class="livedata" sensorname="liveview_soilcapacity_download_timestamp"></span></td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                    <br/>
+                    <canvas id="soilresistancecanvas" width="600px" height="300px"></canvas>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">RFI (radio frequency interference) time series</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Measurement commanded</td>
+                                <td><span class="livedata" sensorname="liveview_rfiseries_command_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Last download frame</td>
+                                <td><span class="livedata" sensorname="liveview_rfiseries_download_timestamp"></span></td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                    <br/>
+                    <canvas id="rfiseriescanvas" width="600px" height="300px"></canvas>
+                </td>
+            </tr>
+        </table>
+    </p>
+
+
+</div>
+
+<script>    
+    var soilresistancechart;
+    var rfiserieschart;
+
+    function websocketmaskOnload() {
+        $('.livedata').css('font-family', 'SourceCodePro');
+        //$('#panelstable').css('border', '2px ridge black');
+
+        var data = {
+            labels: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256,257,258,259,260,261,262,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,280,281,282,283,284,285,286,287,288,289,290,291,292,293,294,295,296,297,298,299,300],
+            datasets: [
+                {
+                    label: "Soil resistivity",
+                    fill: false,
+                    lineTension: 0.1,
+                    backgroundColor: "rgba(75,192,192,0.4)",
+                    borderColor: "rgba(75,192,192,1)",
+                    borderCapStyle: 'butt',
+                    borderDash: [],
+                    borderDashOffset: 0.0,
+                    borderJoinStyle: 'miter',
+                    pointBorderColor: "rgba(75,192,192,1)",
+                    pointBackgroundColor: "#fff",
+                    pointBorderWidth: 1,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: "rgba(75,192,192,1)",
+                    pointHoverBorderColor: "rgba(220,220,220,1)",
+                    pointHoverBorderWidth: 2,
+                    pointRadius: 3,
+                    pointHitRadius: 10,
+                    data: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                }
+            ]
+        };
+
+        var option = {
+            showLines: true
+        };
+
+        var soilcanvas = document.getElementById('soilresistancecanvas');
+        soilresistancechart = Chart.Line(soilcanvas,{
+            data:data,
+            options:option
+        });
+
+        var rficanvas = document.getElementById('rfiseriescanvas');
+        rfiserieschart = Chart.Line(rficanvas,{
+            data:data,
+            options:option
+        });
+
+    }
+
+    function handleMessage(msg) {                
+        if(msg.type === "probedata") {
+            if(msg.sensor.substr(0, 11) == 'resistance_') {
+                var rnum = msg.sensor.substr(11,3);
+                var sensorid = parseInt(rnum, 10) - 1;
+                soilresistancechart.data.datasets[0].data[sensorid] = msg.measurement;
+                soilresistancechart.update();
+                return;
+            if(msg.sensor.substr(0, 12) == 'measurement_') {
+                var rnum = msg.sensor.substr(12,3);
+                var sensorid = parseInt(rnum, 10) - 1;
+                rfiserieschart.data.datasets[0].data[sensorid] = msg.measurement;
+                rfiserieschart.update();
+                return;
+            }
+
+            var sensorselector = 'span[sensorname="liveview_' + msg.sensor + '"]';
+            $(sensorselector).each(function() {
+                $(this).text(msg.measurement);
+            });
+            return;
+        }
+        
+    }
+
+</script>
