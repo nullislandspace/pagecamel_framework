@@ -297,6 +297,17 @@ sub decodeFrame {
         }
         my $clacksdata = join(',', @parts);
         $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
+    } elsif($frame[8] == 36) {
+        # powersave shutdown
+        my %decoded;
+        $decoded{statechange_timestamp} = getISODate();
+        $decoded{statechange_text} = 'Shutdown for PowerSave';
+        my @parts;
+        foreach my $key (sort keys %decoded) {
+            push @parts, $key . '=' . $decoded{$key};
+        }
+        my $clacksdata = join(',', @parts);
+        $self->{clacks}->set('GSP::WATERFEELER::STATECHANGE', $clacksdata);
     } elsif($frame[8] == 19) {
         return $self->decodeSoilCapacityData(@frame);
     } elsif($frame[8] == 32) {
