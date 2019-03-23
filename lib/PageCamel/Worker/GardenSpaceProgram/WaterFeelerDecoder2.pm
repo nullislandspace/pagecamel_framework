@@ -48,7 +48,7 @@ sub crossregister {
     $dbh->{disconnectIsFatal} = 1; # Don't automatically reconnect but exit instead!
     $dbh->commit;
 
-    $self->{clacks}->listen('GSP::RECIEVE::CB'); # Only listen for WaterFeeler frames
+    $self->{clacks}->listen('GSP::RECIEVE::CC'); # Only listen for WaterFeeler frames
     $self->{clacks}->listen('GSP::WATERFEELER::CREATESOILMEASUREMENT'); # Also do the work of creating a new soil measurement row in db
     $self->{clacks}->listen('GSP::WATERFEELER::CREATERFISERIES'); # Also do the work of creating a new rfiseries row in db
     $self->{clacks}->doNetwork();
@@ -78,7 +78,7 @@ sub work {
 
     while((my $message = $self->{clacks}->getNext())) {
         if($message->{type} eq 'disconnect') {
-            $self->{clacks}->listen('GSP::RECIEVE::CB'); # Only listen for WaterFeeler frames
+            $self->{clacks}->listen('GSP::RECIEVE::CC'); # Only listen for WaterFeeler frames
             $self->{clacks}->listen('GSP::WATERFEELER::CREATESOILMEASUREMENT'); # Also do the work of creating a new soil measurement row in db
             $self->{clacks}->listen('GSP::WATERFEELER::CREATERFISERIES'); # Also do the work of creating a new rfiseries row in db
             $self->{clacks}->ping();
@@ -96,7 +96,7 @@ sub work {
             $self->createRFIRow($message->{data});
             $workCount++;
         }
-        next unless($message->{name} eq 'GSP::RECIEVE::CB');
+        next unless($message->{name} eq 'GSP::RECIEVE::CC');
 
         my ($ok) = $self->decodeFrame($message->{data});
 
