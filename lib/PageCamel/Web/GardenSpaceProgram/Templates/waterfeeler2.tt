@@ -1,6 +1,5 @@
 <div align="left">
     <h1>WaterFeeler2 live view</h1>
-    <p><b>WaterFeeler2 is currently undergoing indoor testing. The data you see here is test data.</b></p>
     <p>
         This is the live data from the WaterFeeler2 GardenSpaceProgram mission. Depending on circumstances, this might not always update.<br/>
         You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
