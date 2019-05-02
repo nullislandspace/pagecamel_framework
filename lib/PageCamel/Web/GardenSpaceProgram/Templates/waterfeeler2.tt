@@ -140,6 +140,49 @@
                 </td>
                 <td>&nbsp;</td>
             </tr>
+
+            <tr>
+                <td colspan="2">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Analog measurement low voltage<br/>compensation/calibration experiment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_vref_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Battery Volt / uncalibrated (raw value)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_raw"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Battery Volt / uncalibrated (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_calculated"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Battery Volt / calibrated (raw value)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_raw"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Battery Volt / calibrated (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_calculated"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>System Volt calc. from int. 1.1V ref (raw)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_mv"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>System Volt calc. from int. 1.1V ref (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_volts"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+
             <tr>
                 <td>
                     <table class="data">

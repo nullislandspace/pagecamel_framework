@@ -183,6 +183,8 @@ sub decodeFrame {
         return $self->decodeDHTFrame(@frame);
     } elsif($frame[8] == 12) {
         return $self->decodeWaterfeelerFrame(@frame);
+    } elsif($frame[8] == 41) {
+        return $self->decodeVrefFrame(@frame);
     } elsif($frame[8] == 15) {
         # SoilCapacity measurement started
         my %decoded;
@@ -560,6 +562,64 @@ sub decodeWaterfeelerFrame {
     $dbh->commit;
     return 1;
 }
+
+sub decodeVrefFrame {
+    my ($self, @frame) =@_;
+    
+    my $data = 12;
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.waterfeeler2_vref
+                                        (battery_voltage_uncalibrated_raw, battery_voltage_uncalibrated_calculated,
+                                         battery_voltage_calibrated_raw, battery_voltage_calibrated_calculated,
+                                         system_voltage_millivolts, system_voltage_volts)
+                                        VALUES (?, ?, ?, ?, ?, ?)")
+            or croak($dbh->errstr);
+
+
+    my %decoded;
+
+    my $rawvolt_uncal = ($frame[$data + 0] << 8) + $frame[$data + 1];
+    my $calcvolt_uncal = int(($rawvolt_uncal / 1024.0 * 20) * 100) / 100;
+    $decoded{vref_voltage_uncal_raw} = $rawvolt_uncal;
+    $decoded{vref_voltage_uncal_calculated} = $calcvolt_uncal;
+
+    my $rawvolt_cal = ($frame[$data + 2] << 8) + $frame[$data + 3];
+    my $calcvolt_cal = int(($rawvolt_cal / 1024.0 * 20) * 100) / 100;
+    $decoded{vref_voltage_cal_raw} = $rawvolt_cal;
+    $decoded{vref_voltage_cal_calculated} = $calcvolt_cal;
+
+    $decoded{vref_system_voltage_mv} = ($frame[$data + 4] << 24) + ($frame[$data + 5] << 16) + ($frame[$data + 6] << 8) + $frame[$data + 7];
+    $decoded{vref_system_voltage_volts} = int($decoded{vref_system_voltage_mv} / 10) / 100;
+
+    $decoded{vref_timestamp} = getISODate();
+    my @parts;
+    foreach my $key (sort keys %decoded) {
+        push @parts, $key . '=' . $decoded{$key};
+    }
+    my $clacksdata = join(',', @parts);
+    $self->{clacks}->set('GSP::WATERFEELER::VREF', $clacksdata);
+    $self->{clacks}->doNetwork();
+    $reph->debuglog("WATERFEELER VREF frame: $clacksdata");
+
+    if(!$insth->execute(
+                $decoded{vref_voltage_uncal_raw},
+                $decoded{vref_voltage_uncal_calculated},
+                $decoded{vref_voltage_cal_raw},
+                $decoded{vref_voltage_cal_calculated},
+                $decoded{vref_system_voltage_mv},
+                $decoded{vref_system_voltage_volts},
+        )) {
+        $reph->debuglog("DB ERROR: " . $dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+
+    $dbh->commit;
+    return 1;
+}
+
 
 sub decodeSoilCapacityData {
     my ($self, @frame) =@_;
