@@ -1,0 +1,168 @@
+<div align="left">
+    <h1>Drivewaylights live view</h1>
+    <p>
+        This is the live data from the Drivewaylights GardenSpaceProgram mission. Depending on circumstances, this might not always update.<br/>
+        You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
+    </p>
+
+    <p>
+        <table id="panelstable" border="1">
+            <tr>
+                <td>
+
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">System status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_status_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Uptime (milliseconds)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_ticks"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Free memory (bytes)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_memfree"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Packets in</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_packets_in"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Packets out</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_packets_out"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Battery Volt (raw value)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_voltage_raw"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Battery Volt (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_voltage_calculated"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Firmware version</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_firmware_version"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+
+                <td rowspan="2" valign="top">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Power configuration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_status2_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Keep awake flag</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_keepawake_flag"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>PanCam powered</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_pancam_powered"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>PowerSave enabled</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_enabled"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Reboot counter<br>(current)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_current"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Reboot counter<br>(powersave trigger)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_trigger"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>PowerSave sleepcycles</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_sleepcycle_count"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>PowerSave awake seconds</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_keepawake_seconds"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+
+            </tr>
+
+            <tr>
+                <td colspan="2">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Analog measurement low voltage<br/>compensation/calibration experiment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_vref_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Battery Volt / uncalibrated (raw value)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_raw"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Battery Volt / uncalibrated (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_calculated"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Battery Volt / calibrated (raw value)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_raw"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Battery Volt / calibrated (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_calculated"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>System Volt calc. from int. 1.1V ref (raw)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_mv"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>System Volt calc. from int. 1.1V ref (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_volts"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+
+        </table>
+    </p>
+
+
+</div>
+
+<script>    
+
+    function websocketmaskOnload() {
+        $('.livedata').css('font-family', 'SourceCodePro');
+    }
+
+
+    function handleMessage(msg) {                
+        if(msg.type === "probedata") {
+            var sensorselector = 'span[sensorname="liveview_' + msg.sensor + '"]';
+            $(sensorselector).each(function() {
+                $(this).text(msg.measurement);
+            });
+            return;
+        }
+        
+    }
+
+</script>

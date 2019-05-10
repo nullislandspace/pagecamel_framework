@@ -140,6 +140,7 @@ lib/PageCamel/Web/ForceTransportSecurity.pm
 lib/PageCamel/Web/GardenSpaceProgram/Liveview.pm
 lib/PageCamel/Web/GardenSpaceProgram/Templates/dgn1.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/dgn2.tt
+lib/PageCamel/Web/GardenSpaceProgram/Templates/drivewaylights.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo1.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo1b.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo2.tt
@@ -2511,6 +2512,7 @@ lib/PageCamel/Worker/ForceVacuumAnalyze.pm
 lib/PageCamel/Worker/Foscam/Stream.pm
 lib/PageCamel/Worker/GardenSpaceProgram/DGN1Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/DGN2Decoder.pm
+lib/PageCamel/Worker/GardenSpaceProgram/DrivewaylightsDecoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/GEO1BDecoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/GEO1Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/GEO2Decoder.pm
