@@ -8,7 +8,7 @@
     <p>
         <table id="panelstable" border="1">
             <tr>
-                <td>
+                <td valign="top">
 
                     <table class="data">
                         <thead>
@@ -38,11 +38,11 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_packets_out"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Battery Volt (raw value)</td>
+                                <td>External power / Volt (raw value)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_voltage_raw"></span></td>
                             </tr>
                             <tr class="staticeven">
-                                <td>Battery Volt (calculated)</td>
+                                <td>External power / Volt (calculated)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_voltage_calculated"></span></td>
                             </tr>
                             <tr class="staticodd">
@@ -53,7 +53,7 @@
                     </table>
                 </td>
 
-                <td rowspan="2" valign="top">
+                <td valign="top">
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
@@ -112,6 +112,7 @@
                                 <td>Last update</td>
                                 <td><span class="livedata" sensorname="liveview_vref_timestamp"></span></td>
                             </tr>
+                            <!--
                             <tr class="staticodd">
                                 <td>Battery Volt / uncalibrated (raw value)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_raw"></span></td>
@@ -128,6 +129,7 @@
                                 <td>Battery Volt / calibrated (calculated)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_calculated"></span></td>
                             </tr>
+                            -->
                             <tr class="staticodd">
                                 <td>System Volt calc. from int. 1.1V ref (raw)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_mv"></span></td>
@@ -143,7 +145,6 @@
 
         </table>
     </p>
-
 
 </div>
 
