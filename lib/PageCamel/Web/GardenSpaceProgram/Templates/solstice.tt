@@ -42,12 +42,12 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_packets_out"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Battery Volt (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_voltage_raw"></span></td>
+                                <td>System Volt (raw)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_mv"></span></td>
                             </tr>
                             <tr class="staticeven">
-                                <td>Battery Volt (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_voltage_calculated"></span></td>
+                                <td>System Volt (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_volts"></span></td>
                             </tr>
                             <tr class="staticodd">
                                 <td>Firmware version</td>
@@ -57,7 +57,7 @@
                     </table>
                 </td>
 
-                <td rowspan="2" valign="top">
+                <td valign="top">
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
@@ -74,26 +74,22 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_keepawake_flag"></span></td>
                             </tr>
                             <tr class="staticeven">
-                                <td>PanCam powered</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_pancam_powered"></span></td>
-                            </tr>
-                            <tr class="staticodd">
                                 <td>PowerSave enabled</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_powersave_enabled"></span></td>
                             </tr>
-                            <tr class="staticeven">
+                            <tr class="staticodd">
                                 <td>Reboot counter<br>(current)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_current"></span></td>
                             </tr>
-                            <tr class="staticodd">
+                            <tr class="staticeven">
                                 <td>Reboot counter<br>(powersave trigger)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_trigger"></span></td>
                             </tr>
-                            <tr class="staticeven">
+                            <tr class="staticodd">
                                 <td>PowerSave sleepcycles</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_powersave_sleepcycle_count"></span></td>
                             </tr>
-                            <tr class="staticodd">
+                            <tr class="staticeven">
                                 <td>PowerSave awake seconds</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_powersave_keepawake_seconds"></span></td>
                             </tr>
@@ -102,92 +98,6 @@
                 </td>
 
             </tr>
-
-            <tr>
-                <td colspan="2">
-                    <table class="data">
-                        <thead>
-                            <tr class="tabheader">
-                                <th colspan="2" class="statichead">Analog measurement low voltage<br/>compensation/calibration experiment (Main)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="staticeven">
-                                <td>Last update</td>
-                                <td><span class="livedata" sensorname="liveview_vref_timestamp"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Battery Volt / uncalibrated (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_raw"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Battery Volt / uncalibrated (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_calculated"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Battery Volt / calibrated (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_raw"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Battery Volt / calibrated (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_calculated"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>System Volt calc. from int. 1.1V ref (raw)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_mv"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>System Volt calc. from int. 1.1V ref (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_volts"></span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-
-            <tr>
-                <td colspan="2">
-                    <table class="data">
-                        <thead>
-                            <tr class="tabheader">
-                                <th colspan="2" class="statichead">Analog measurement low voltage<br/>compensation/calibration experiment<br/>Main controller (Arduino Pro Mini)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="staticeven">
-                                <td>Last update</td>
-                                <td><span class="livedata" sensorname="liveview_vref_timestamp"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Battery Volt / uncalibrated (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_raw"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Battery Volt / uncalibrated (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_uncal_calculated"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Battery Volt / calibrated (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_raw"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Battery Volt / calibrated (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_voltage_cal_calculated"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>System Volt calc. from int. 1.1V ref (raw)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_mv"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>System Volt calc. from int. 1.1V ref (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vref_system_voltage_volts"></span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-
-
 
             <!-- ************************ MODBUS SYSTEM STATUS ************************ -->
             <tr>
@@ -220,12 +130,12 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_modbus_packets_out"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Battery Volt (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_voltage_raw"></span></td>
+                                <td>System Volt (raw)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_system_voltage_mv"></span></td>
                             </tr>
                             <tr class="staticeven">
-                                <td>Battery Volt (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_voltage_calculated"></span></td>
+                                <td>System Volt calc. (calculated)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_system_voltage_volts"></span></td>
                             </tr>
                             <tr class="staticodd">
                                 <td>Firmware version</td>
@@ -235,11 +145,11 @@
                     </table>
                 </td>
 
-                <td rowspan="2" valign="top">
+                <td valign="top">
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th colspan="2" class="statichead">Power configuration (Main)</th>
+                                <th colspan="2" class="statichead">Power configuration (Modbus)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -252,26 +162,22 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_modbus_keepawake_flag"></span></td>
                             </tr>
                             <tr class="staticeven">
-                                <td>PanCam powered</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_pancam_powered"></span></td>
-                            </tr>
-                            <tr class="staticodd">
                                 <td>PowerSave enabled</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_modbus_powersave_enabled"></span></td>
                             </tr>
-                            <tr class="staticeven">
+                            <tr class="staticodd">
                                 <td>Reboot counter<br>(current)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_modbus_reboot_counter_current"></span></td>
                             </tr>
-                            <tr class="staticodd">
+                            <tr class="staticeven">
                                 <td>Reboot counter<br>(powersave trigger)</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_modbus_reboot_counter_trigger"></span></td>
                             </tr>
-                            <tr class="staticeven">
+                            <tr class="staticodd">
                                 <td>PowerSave sleepcycles</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_modbus_powersave_sleepcycle_count"></span></td>
                             </tr>
-                            <tr class="staticodd">
+                            <tr class="staticeven">
                                 <td>PowerSave awake seconds</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_modbus_powersave_keepawake_seconds"></span></td>
                             </tr>
@@ -282,95 +188,11 @@
             </tr>
 
             <tr>
-                <td colspan="2">
-                    <table class="data">
-                        <thead>
-                            <tr class="tabheader">
-                                <th colspan="2" class="statichead">Analog measurement low voltage<br/>compensation/calibration experiment (Modbus)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="staticeven">
-                                <td>Last update</td>
-                                <td><span class="livedata" sensorname="liveview_vref_timestamp"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Battery Volt / uncalibrated (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_voltage_uncal_raw"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Battery Volt / uncalibrated (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_voltage_uncal_calculated"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Battery Volt / calibrated (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_voltage_cal_raw"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Battery Volt / calibrated (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_voltage_cal_calculated"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>System Volt calc. from int. 1.1V ref (raw)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_system_voltage_mv"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>System Volt calc. from int. 1.1V ref (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_system_voltage_volts"></span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-
-            <tr>
-                <td colspan="2">
-                    <table class="data">
-                        <thead>
-                            <tr class="tabheader">
-                                <th colspan="2" class="statichead">Analog measurement low voltage<br/>compensation/calibration experiment (Modbus)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="staticeven">
-                                <td>Last update</td>
-                                <td><span class="livedata" sensorname="liveview_modbus_vref_timestamp"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Battery Volt / uncalibrated (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_voltage_uncal_raw"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Battery Volt / uncalibrated (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_voltage_uncal_calculated"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Battery Volt / calibrated (raw value)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_voltage_cal_raw"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Battery Volt / calibrated (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_voltage_cal_calculated"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>System Volt calc. from int. 1.1V ref (raw)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_system_voltage_mv"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>System Volt calc. from int. 1.1V ref (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_modbus_vref_system_voltage_volts"></span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-
-            <tr>
                 <td>
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th class="statichead">Solar Panel</th>
+                                <th colspan="2" class="statichead">Solar Panel</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -405,7 +227,7 @@
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th class="statichead">Load</th>
+                                <th colspan="2" class="statichead">Load</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -443,7 +265,7 @@
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th class="statichead">Battery</th>
+                                <th colspan="2" class="statichead">Battery</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -460,18 +282,14 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_battery_current"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Power (Watts)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_battery_power"></span></td>
-                            </tr>
-                            <tr class="staticeven">
                                 <td>Percent remaining</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_battery_percentage"></span></td>
                             </tr>
-                            <tr class="staticodd">
+                            <tr class="staticeven">
                                 <td>Max volt today</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_battery_max_voltage"></span></td>
                             </tr>
-                            <tr class="staticeven">
+                            <tr class="staticodd">
                                 <td>Min volt today</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_battery_min_voltage"></span></td>
                             </tr>
