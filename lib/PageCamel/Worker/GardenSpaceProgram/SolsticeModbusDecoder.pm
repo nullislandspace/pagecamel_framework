@@ -319,16 +319,21 @@ sub decodeBatteryStatus {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $insth = $dbh->prepare_cached("INSERT INTO gsp.solstice_battery
-                                         (battery_volts, battery_current, battery_power,
+                                         (battery_volts, battery_current,
                                           battery_percentage, battery_max_voltage, battery_min_voltage)
-                                        VALUES (?, ?, ?, ?, ?, ?)")
+                                        VALUES (?, ?, ?, ?, ?)")
             or croak($dbh->errstr);
 
 
     my %decoded;
 
     $decoded{battery_volts} = (($frame[$data + 0] << 8) + $frame[$data + 1]) / 100;
-    $decoded{battery_current} = (($frame[$data + 4] << 24) + ($frame[$data + 5] << 16) + ($frame[$data + 2] << 8) + $frame[$data + 3]) / 100;
+
+    # Battery current can be negative. Have to do the "Two's complement idiotic dance"
+    my @currentbytes = ($frame[$data + 4], $frame[$data + 5], $frame[$data + 2],  $frame[$data + 3]);
+    $decoded{battery_current} = unpack "N!", pack "C4", @currentbytes;
+    $decoded{battery_current} = $decoded{battery_current} / 100;
+
     $decoded{battery_percentage} = ($frame[$data + 6] << 8) + $frame[$data + 7];
     $decoded{battery_max_voltage} = (($frame[$data + 8] << 8) + $frame[$data + 9]) / 100;
     $decoded{battery_min_voltage} = (($frame[$data + 10] << 8) + $frame[$data + 11]) / 100;
@@ -347,7 +352,6 @@ sub decodeBatteryStatus {
     if(!$insth->execute(
                 $decoded{battery_volts},
                 $decoded{battery_current},
-                $decoded{battery_power},
                 $decoded{battery_percentage},
                 $decoded{battery_max_voltage},
                 $decoded{battery_min_voltage},
