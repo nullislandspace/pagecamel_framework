@@ -284,7 +284,7 @@ sub decodeVrefFrame {
     $decoded{modbus_vref_voltage_cal_calculated} = $calcvolt_cal;
 
     $decoded{modbus_vref_system_voltage_mv} = ($frame[$data + 4] << 24) + ($frame[$data + 5] << 16) + ($frame[$data + 6] << 8) + $frame[$data + 7];
-    $decoded{modbus_vref_system_voltage_volts} = int($decoded{vref_system_voltage_mv} / 10) / 100;
+    $decoded{modbus_vref_system_voltage_volts} = int($decoded{modbus_vref_system_voltage_mv} / 10) / 100;
 
     $self->{modbus_calibrated_system_volts} = $decoded{vref_system_voltage_volts};
 
