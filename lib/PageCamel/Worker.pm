@@ -55,6 +55,8 @@ use PageCamel::Worker::GardenSpaceProgram::GEO1Decoder;
 use PageCamel::Worker::GardenSpaceProgram::GEO2Decoder;
 use PageCamel::Worker::GardenSpaceProgram::LocalCache;
 use PageCamel::Worker::GardenSpaceProgram::Modem;
+use PageCamel::Worker::GardenSpaceProgram::SolsticeDecoder;
+use PageCamel::Worker::GardenSpaceProgram::SolsticeModbusDecoder;
 use PageCamel::Worker::GardenSpaceProgram::Upload;
 use PageCamel::Worker::GardenSpaceProgram::WaterFeelerDecoder;
 use PageCamel::Worker::GardenSpaceProgram::WaterFeelerDecoder2;

@@ -144,6 +144,7 @@ lib/PageCamel/Web/GardenSpaceProgram/Templates/drivewaylights.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo1.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo1b.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo2.tt
+lib/PageCamel/Web/GardenSpaceProgram/Templates/solstice.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/waterfeeler.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/waterfeeler2.tt
 lib/PageCamel/Web/HTTPCompression.pm
@@ -2518,6 +2519,8 @@ lib/PageCamel/Worker/GardenSpaceProgram/GEO1Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/GEO2Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/LocalCache.pm
 lib/PageCamel/Worker/GardenSpaceProgram/Modem.pm
+lib/PageCamel/Worker/GardenSpaceProgram/SolsticeDecoder.pm
+lib/PageCamel/Worker/GardenSpaceProgram/SolsticeModbusDecoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/Upload.pm
 lib/PageCamel/Worker/GardenSpaceProgram/WaterFeelerDecoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/WaterFeelerDecoder2.pm

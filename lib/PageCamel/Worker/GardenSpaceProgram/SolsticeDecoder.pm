@@ -1,4 +1,4 @@
-package PageCamel::Worker::GardenSpaceProgram::DrivewaylightsDecoder;
+package PageCamel::Worker::GardenSpaceProgram::SolsticeDecoder;
 #---AUTOPRAGMASTART---
 use 5.020;
 use strict;
@@ -50,7 +50,7 @@ sub crossregister {
     $dbh->{disconnectIsFatal} = 1; # Don't automatically reconnect but exit instead!
     $dbh->commit;
 
-    $self->{clacks}->listen('GSP::RECIEVE::PA'); # Only listen for Drivewaylights frames
+    $self->{clacks}->listen('GSP::RECIEVE::PB'); # Only listen for Solstice frames
     $self->{clacks}->doNetwork();
     $self->{nextping} = 0;
 
@@ -78,7 +78,7 @@ sub work {
 
     while((my $message = $self->{clacks}->getNext())) {
         if($message->{type} eq 'disconnect') {
-            $self->{clacks}->listen('GSP::RECIEVE::PA'); # Only listen for Drivewaylights frames
+            $self->{clacks}->listen('GSP::RECIEVE::PB'); # Only listen for Solstice frames
             $self->{clacks}->ping();
             $self->{clacks}->doNetwork();
             $self->{nextping} = $now + 30;
@@ -86,7 +86,7 @@ sub work {
         }
         next unless($message->{type} eq 'set');
 
-        next unless($message->{name} eq 'GSP::RECIEVE::PA');
+        next unless($message->{name} eq 'GSP::RECIEVE::PB');
 
         my ($ok) = $self->decodeFrame($message->{data});
 
@@ -112,8 +112,8 @@ sub decodeFrame {
         push @frame, $val;
     }
 
-    if($frame[6] != 0xf0) {
-        # Not originating from Drivewaylights
+    if($frame[6] != 0xf1) {
+        # Not originating from Solstice
         return 0;
     }
 
@@ -133,7 +133,7 @@ sub decodeFrame {
             push @parts, $key . '=' . $decoded{$key};
         }
         my $clacksdata = join(',', @parts);
-        $self->{clacks}->set('GSP::DRIVEWAYLIGHTS::STATECHANGE', $clacksdata);
+        $self->{clacks}->set('GSP::SOLSTICE::STATECHANGE', $clacksdata);
     } elsif($frame[8] == 36) {
         # powersave shutdown
         my %decoded;
@@ -144,7 +144,7 @@ sub decodeFrame {
             push @parts, $key . '=' . $decoded{$key};
         }
         my $clacksdata = join(',', @parts);
-        $self->{clacks}->set('GSP::DRIVEWAYLIGHTS::STATECHANGE', $clacksdata);
+        $self->{clacks}->set('GSP::SOLSTICE::STATECHANGE', $clacksdata);
     }
 }
 
@@ -156,9 +156,9 @@ sub decodeStatusFrame {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    my $insth = $dbh->prepare_cached("INSERT INTO gsp.drivewaylights_status
-                                        (ticks, memfree, packets_in, packets_out, voltage_raw, voltage_calculated, firmware_version)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)")
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.solstice_status
+                                        (ticks, memfree, packets_in, packets_out, firmware_version)
+                                        VALUES (?, ?, ?, ?, ?)")
             or croak($dbh->errstr);
 
 
@@ -170,13 +170,6 @@ sub decodeStatusFrame {
     $decoded{packets_in} = ($frame[$data + 12] << 8) + $frame[$data + 13];
     $decoded{packets_out} = ($frame[$data + 14] << 8) + $frame[$data + 15];
 
-    my $rawvolt = ($frame[$data + 8] << 8) + $frame[$data + 9];
-    my ($r1, $r2) = (470000, 47000); # Voltage divider resistors
-    my $calcvolt = (($rawvolt * $self->{calibrated_system_volts}) / 1024) / ($r2 / ($r1 + $r2));
-    $calcvolt = int($calcvolt * 100) / 100;
-    $decoded{voltage_raw} = $rawvolt;
-    $decoded{voltage_calculated} = $calcvolt;
-
     $decoded{firmware_version} = $frame[$data + 10];
 
     $decoded{status_timestamp} = getISODate();
@@ -185,17 +178,15 @@ sub decodeStatusFrame {
         push @parts, $key . '=' . $decoded{$key};
     }
     my $clacksdata = join(',', @parts);
-    $self->{clacks}->set('GSP::DRIVEWAYLIGHTS::STATUS', $clacksdata);
+    $self->{clacks}->set('GSP::SOLSTICE::STATUS', $clacksdata);
     $self->{clacks}->doNetwork();
-    $reph->debuglog("DRIVEWAYLIGHTS status frame: $clacksdata");
+    $reph->debuglog("SOLSTICE status frame: $clacksdata");
 
     if(!$insth->execute(
                 $decoded{ticks},
                 $decoded{memfree},
                 $decoded{packets_in},
                 $decoded{packets_out},
-                $decoded{voltage_raw},
-                $decoded{voltage_calculated},
                 $decoded{firmware_version},
         )) {
         $reph->debuglog("DB ERROR: " . $dbh->errstr);
@@ -214,16 +205,15 @@ sub decodeStatus2Frame {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    my $insth = $dbh->prepare_cached("INSERT INTO gsp.drivewaylights_status2
-                                        (keepawake_flag, pancam_powered, powersave_enabled, reboot_counter_current, reboot_counter_trigger,
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.solstice_status2
+                                        (keepawake_flag, powersave_enabled, reboot_counter_current, reboot_counter_trigger,
                                          powersave_sleepcycle_count, powersave_keepawake_seconds)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)")
+                                        VALUES (?, ?, ?, ?, ?, ?)")
             or croak($dbh->errstr);
 
 
     my %decoded;
     $decoded{keepawake_flag} = $frame[$data + 0];
-    $decoded{pancam_powered} = $frame[$data + 1];
     $decoded{powersave_enabled} = $frame[$data + 2];
     $decoded{reboot_counter_current} = $frame[$data + 3];
     $decoded{reboot_counter_trigger} = $frame[$data + 4];
@@ -236,13 +226,12 @@ sub decodeStatus2Frame {
         push @parts, $key . '=' . $decoded{$key};
     }
     my $clacksdata = join(',', @parts);
-    $self->{clacks}->set('GSP::DRIVEWAYLIGHTS::STATUS2', $clacksdata);
+    $self->{clacks}->set('GSP::SOLSTICE::STATUS2', $clacksdata);
     $self->{clacks}->doNetwork();
-    $reph->debuglog("DRIVEWAYLIGHTS status2 frame: $clacksdata");
+    $reph->debuglog("SOLSTICE status2 frame: $clacksdata");
 
     if(!$insth->execute(
                 $decoded{keepawake_flag},
-                $decoded{pancam_powered},
                 $decoded{powersave_enabled},
                 $decoded{reboot_counter_current},
                 $decoded{reboot_counter_trigger},
@@ -265,11 +254,9 @@ sub decodeVrefFrame {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    my $insth = $dbh->prepare_cached("INSERT INTO gsp.drivewaylights_vref
-                                        (battery_voltage_uncalibrated_raw, battery_voltage_uncalibrated_calculated,
-                                         battery_voltage_calibrated_raw, battery_voltage_calibrated_calculated,
-                                         system_voltage_millivolts, system_voltage_volts)
-                                        VALUES (?, ?, ?, ?, ?, ?)")
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.solstice_vref
+                                         (system_voltage_millivolts, system_voltage_volts)
+                                        VALUES (?, ?)")
             or croak($dbh->errstr);
 
 
@@ -296,15 +283,11 @@ sub decodeVrefFrame {
         push @parts, $key . '=' . $decoded{$key};
     }
     my $clacksdata = join(',', @parts);
-    $self->{clacks}->set('GSP::DRIVEWAYLIGHTS::VREF', $clacksdata);
+    $self->{clacks}->set('GSP::SOLSTICE::VREF', $clacksdata);
     $self->{clacks}->doNetwork();
-    $reph->debuglog("DRIVEWAYLIGHTS VREF frame: $clacksdata");
+    $reph->debuglog("SOLSTICE VREF frame: $clacksdata");
 
     if(!$insth->execute(
-                $decoded{vref_voltage_uncal_raw},
-                $decoded{vref_voltage_uncal_calculated},
-                $decoded{vref_voltage_cal_raw},
-                $decoded{vref_voltage_cal_calculated},
                 $decoded{vref_system_voltage_mv},
                 $decoded{vref_system_voltage_volts},
         )) {
@@ -314,6 +297,18 @@ sub decodeVrefFrame {
     }
 
     $dbh->commit;
+    return 1;
+}
+
+sub dumpFramePayload {
+    my ($self, @frame) =@_;
+    
+    my $data = 12;
+    print "********* FRAME TYPE ", $frame[8], "\n";
+    for(my $i = 0; $i < 16; $i++) {
+        print $frame[$data + $i], " ";
+    }
+    print "\n";
     return 1;
 }
 
