@@ -90,6 +90,7 @@ use PageCamel::Worker::Twitter::BlogTweet;
 use PageCamel::Worker::Twitter::HistoryTweet;
 use PageCamel::Worker::Twitter::TweetOutbox;
 use PageCamel::Worker::VNC::VNCCommands;
+use PageCamel::Worker::Wansview::Stream;
 #=!=END-AUTO-INCLUDES
 
 

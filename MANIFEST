@@ -2554,6 +2554,7 @@ lib/PageCamel/Worker/Twitter/BlogTweet.pm
 lib/PageCamel/Worker/Twitter/HistoryTweet.pm
 lib/PageCamel/Worker/Twitter/TweetOutbox.pm
 lib/PageCamel/Worker/VNC/VNCCommands.pm
+lib/PageCamel/Worker/Wansview/Stream.pm
 Makefile.PL
 makeppd.bat
 MANIFEST			This list of files
