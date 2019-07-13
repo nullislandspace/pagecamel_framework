@@ -154,6 +154,12 @@ sub child_init_hook {
                                       ORDER BY decode_nameserver_record_type(record_type), record_type, mxpriority")
             or croak($dbh->errstr);
 
+    $self->{axfrselsth} = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry
+                                      WHERE domain_fqdn = ?
+                                      AND record_type IN ('NS','MX','A', 'AAAA', 'TXT', 'CNAME', 'SOA', 'LOC', 'SSHFP')
+                                      ORDER BY decode_nameserver_record_type(record_type), record_type, mxpriority")
+            or croak($dbh->errstr);
+
     $self->{domainexistssth} = $dbh->prepare_cached("SELECT true FROM nameserver_domain_entry
                                       WHERE host_fqdn = ?
                                       OR domain_fqdn = ?
@@ -236,6 +242,11 @@ sub child_init_hook {
                                                     WHERE qname = ?
                                                     AND qtype = ?
                                                     ORDER BY validuntil DESC
+                                                    LIMIT 1")
+            or croak($dbh->errstr);
+
+    $self->{axfrmaster} = $dbh->prepare_cached("SELECT is_axfr_master, axfr_slave from nameserver_domain
+                                                    WHERE domain_fqdn = ?
                                                     LIMIT 1")
             or croak($dbh->errstr);
 
@@ -618,9 +629,33 @@ sub compile_reply {
     }
 
     if($qtype eq 'AXFR') {
-        # Zone transfer is "implemented" by refusing it
-        $rcode = 'REFUSED';
-        goto dnsreply;
+        if($proto ne 'TCP') {
+            # Zone transfer only allowed on TCP
+            $rcode = 'REFUSED';
+            goto dnsreply;
+        }
+
+        # Check if out peer is in the "allowed" list
+        $self->{axfrmaster}->execute($qname) or croak($dbh->errstr);
+        my $allowed = 0;
+        while((my $line = $self->{axfrmaster}->fetchrow_hashref)) {
+            next unless($line->{is_axfr_master});
+
+            $line->{axfr_slave} =~ s/\ //g;
+            next if($line->{axfr_slave} eq '');
+            my @slaveips = split/\,/, $line->{axfr_slave};
+            if(contains($peerhost, \@slaveips)) {
+                $self->debuglog("AXFR Peer Allowed!");
+                $allowed = 1;
+                last;
+            }
+        }
+        $self->{axfrmaster}->finish;
+        if(!$allowed) {
+            $self->debuglog("AXFR Peer REFUSED!");
+            $rcode = 'REFUSED';
+            goto dnsreply;
+        }
     }
 
     if($qtype eq 'PTR') {
@@ -676,6 +711,20 @@ sub compile_reply {
             push @lines, $line;
         }
         $self->{domainselsth}->finish;
+    } elsif($qtype eq 'AXFR') {
+        $self->{axfrselsth}->execute($qname) or croak($dbh->errstr);
+        while((my $line = $self->{axfrselsth}->fetchrow_hashref)) {
+            push @lines, $line;
+        }
+        $self->{axfrselsth}->finish;
+
+        # For some strange reason, we need to push the first record (SOA) again as the last record. This seems
+        # to somehow signify the end of the AXFR zone transfer....?!?!?!?
+        push @lines, $lines[0];
+
+        open(my $ofh, '>', '/home/cavac/temp/axfr.txt') or croak($!);
+        print $ofh Dumper(\@lines);
+        close $ofh;
     } elsif($qtype eq 'SOA') {
         # Need to find the SOA entry for the DOMAIN not the host
         $self->{soaselsth}->execute($qname) or croak($dbh->errstr);
@@ -744,7 +793,7 @@ sub compile_reply {
                                    $domaintimes->{ttl_time},
 
             );
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass SOA " . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass SOA " . $destination);
             push @ans, $rr;
 
         } elsif($line->{record_type} eq 'A') {
@@ -755,7 +804,7 @@ sub compile_reply {
                     $destination = $computer->{$colname} || '';
                     next if($destination eq '');
                     $destination = fixDestination($line->{domain_fqdn}, $destination);
-                    my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass A " . $destination);
+                    my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass A " . $destination);
                     push @ans, $rr;
                     $usetxtfallback = 0;
                 }
@@ -763,7 +812,7 @@ sub compile_reply {
 
             if($usetxtfallback && $line->{textrecord} ne '') {
                 $destination = fixDestination($line->{domain_fqdn}, $line->{textrecord});
-                my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass A " . $destination);
+                my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass A " . $destination);
                 push @ans, $rr;
             }
         } elsif($line->{record_type} eq 'AAAA') {
@@ -774,14 +823,14 @@ sub compile_reply {
                     $destination = $computer->{$colname} || '';
                     next if($destination eq '');
                     $destination = fixDestination($line->{domain_fqdn}, $destination);
-                    my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass AAAA " . $destination);
+                    my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass AAAA " . $destination);
                     push @ans, $rr;
                     $usetxtfallback = 0;
                 }
             }
             if($usetxtfallback && $line->{textrecord} ne '') {
                 $destination = fixDestination($line->{domain_fqdn}, $line->{textrecord});
-                my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass AAAA " . $destination);
+                my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass AAAA " . $destination);
                 push @ans, $rr;
             }
         } elsif($line->{record_type} eq 'SRV') {
@@ -800,7 +849,7 @@ sub compile_reply {
 
             $destination = $line->{mxpriority} . ' 1 ' . $destport . ' ' . $desthost;
 
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass SRV " . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass SRV " . $destination);
             push @ans, $rr;
         } elsif($line->{record_type} eq 'SPF') {
             if($line->{textrecord} eq '') {
@@ -810,7 +859,7 @@ sub compile_reply {
 
             $destination = '"' . $line->{textrecord} . '"';
 
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass SPF " . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass SPF " . $destination);
             push @ans, $rr;
         } elsif($line->{record_type} eq 'CAA') {
             if($line->{textrecord} eq '') {
@@ -819,7 +868,7 @@ sub compile_reply {
             }
             my ($caaflags, $caatype, $caatext) = split/\ /, $line->{textrecord}, 3;
 
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass CAA $caaflags $caatype $caatext");
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass CAA $caaflags $caatype $caatext");
             push @ans, $rr;
         } elsif($line->{record_type} eq 'TXT') {
             if($line->{textrecord} eq '') {
@@ -839,7 +888,7 @@ sub compile_reply {
                 $destination =~ s/$rkey/$rval/g;
             }
 
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass TXT " . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass TXT " . $destination);
             push @ans, $rr;
         } elsif($line->{record_type} eq 'CNAME') {
             if(defined($line->{computer_name})) {
@@ -852,7 +901,7 @@ sub compile_reply {
             }
 
             $destination = fixDestination($line->{domain_fqdn}, $destination);
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass CNAME " . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass CNAME " . $destination);
             push @ans, $rr;
 
             # Now we have to recursively lookup the "glue" records, e.g. A and AAAA records for the names we just
@@ -869,15 +918,19 @@ sub compile_reply {
                 if(@{$glue_ans} && $self->{isVerbose}) {
                     $self->debuglog("  Found $gluetype glue record for $destination");
                 }
-                push @ans, @{$glue_ans};
+                if($qtype ne 'AXFR') {
+                    push @ans, @{$glue_ans};
+                } else {
+                    push @add, @{$glue_ans};
+                }
             }
         } elsif($line->{record_type} eq 'LOC') {
             $destination = $line->{textrecord};
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass LOC " . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass LOC " . $destination);
             push @ans, $rr;
         } elsif($line->{record_type} eq 'SSHFP') {
             $destination = $line->{textrecord};
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass SSHFP " . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass SSHFP " . $destination);
             push @ans, $rr;
         } elsif($line->{record_type} eq 'MX') {
             if(defined($line->{computer_name})) {
@@ -890,7 +943,7 @@ sub compile_reply {
             }
 
             $destination = fixDestination($line->{domain_fqdn}, $destination);
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass MX " . $line->{mxpriority} . ' ' . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass MX " . $line->{mxpriority} . ' ' . $destination);
             push @ans, $rr;
 
             # Now we have to recursively lookup the "glue" records, e.g. A and AAAA records for the names we just
@@ -907,7 +960,11 @@ sub compile_reply {
                 if(@{$glue_ans} && $self->{isVerbose}) {
                     $self->debuglog("  Found $gluetype glue record for $destination");
                 }
-                push @ans, @{$glue_ans};
+                if($qtype ne 'AXFR') {
+                    push @ans, @{$glue_ans};
+                } else {
+                    push @add, @{$glue_ans};
+                }
             }
         } elsif($line->{record_type} eq 'NS') {
             if(defined($line->{computer_name})) {
@@ -920,7 +977,7 @@ sub compile_reply {
             }
 
             $destination = fixDestination($line->{domain_fqdn}, $destination);
-            my $rr = new Net::DNS::RR("$qname " . $line->{ttl_time} . " $qclass NS " . $destination);
+            my $rr = new Net::DNS::RR($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass NS " . $destination);
             push @ans, $rr;
 
             # Now we have to recursively lookup the "glue" records, e.g. A and AAAA records for the names we just
@@ -937,7 +994,11 @@ sub compile_reply {
                 if(@{$glue_ans} && $self->{isVerbose}) {
                     $self->debuglog("  Found $gluetype glue record for $destination");
                 }
-                push @ans, @{$glue_ans};
+                if($qtype ne 'AXFR') {
+                    push @ans, @{$glue_ans};
+                } else {
+                    push @ans, @{$glue_ans};
+                }
             }
         }
     }
@@ -1274,3 +1335,4 @@ sub fixDestination {
 
 
 1;
+
