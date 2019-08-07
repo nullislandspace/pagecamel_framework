@@ -47,6 +47,7 @@ use PageCamel::Worker::Firewall::SSH;
 use PageCamel::Worker::Firewall::SyslogForwarder;
 use PageCamel::Worker::ForceVacuumAnalyze;
 use PageCamel::Worker::Foscam::Stream;
+use PageCamel::Worker::GardenSpaceProgram::Balcony1Decoder;
 use PageCamel::Worker::GardenSpaceProgram::DGN1Decoder;
 use PageCamel::Worker::GardenSpaceProgram::DGN2Decoder;
 use PageCamel::Worker::GardenSpaceProgram::DrivewaylightsDecoder;

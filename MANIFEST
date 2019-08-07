@@ -2511,6 +2511,7 @@ lib/PageCamel/Worker/Firewall/SSH.pm
 lib/PageCamel/Worker/Firewall/SyslogForwarder.pm
 lib/PageCamel/Worker/ForceVacuumAnalyze.pm
 lib/PageCamel/Worker/Foscam/Stream.pm
+lib/PageCamel/Worker/GardenSpaceProgram/Balcony1Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/DGN1Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/DGN2Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/DrivewaylightsDecoder.pm
