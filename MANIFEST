@@ -138,6 +138,7 @@ lib/PageCamel/Web/ForceNoSSL.pm
 lib/PageCamel/Web/ForceSSL.pm
 lib/PageCamel/Web/ForceTransportSecurity.pm
 lib/PageCamel/Web/GardenSpaceProgram/Liveview.pm
+lib/PageCamel/Web/GardenSpaceProgram/Templates/balcony1.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/dgn1.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/dgn2.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/drivewaylights.tt
