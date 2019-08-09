@@ -1,15 +1,15 @@
 <div align="left">
     <h1>Balcony1</h1>
-    <p>
+    <p width="500px">
         This is the live data from the Balcony1 test probe. Other space agencies have a "Mars Yard", i have
         an "earth yard" (=my balcony) to test aspects of future missions.
     </p>
-    <p>
+    <p width="500px">
         The primary mission of Balcony1 is to test the new inductive soil moisture sensor. It tests reliability
         and durability of the sensor. It's secondary mission is to re-test solar panels of the type that failed
         to provide enough power during the WaterFeeler2 mission in a solar-only (no batteries) configuration.
     </p>
-    <p>
+    <p width="500px">
         You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
     </p>
 
