@@ -83,7 +83,7 @@
                             </tr>
                             <tr class="staticodd">
                                 <td>Humidity (calculated)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_trigger"></span>%</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_humidity_percent_calculated"></span>%</td>
                             </tr>
                         </tbody>
                     </table>
