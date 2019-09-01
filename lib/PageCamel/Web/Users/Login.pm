@@ -52,6 +52,10 @@ sub new {
         croak("No memcache defined for module " . $self->{modname});
     }
 
+    if(!defined($self->{disable_firewall})) {
+        $self->{disable_firewall} = 0;
+    }
+
     return $self;
 }
 
@@ -1207,6 +1211,10 @@ sub get_sessionrefresh {
 sub firewall_log_loginfailure() {
     my ($self, $ua) = @_;
 
+    if($self->{disable_firewall}) {
+        return;
+    }
+
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $insth = $dbh->prepare_cached("INSERT INTO firewall_loginerrors (ip_address) VALUES (?)")
@@ -1222,6 +1230,10 @@ sub firewall_log_loginfailure() {
 
 sub firewall_check_loginfailure() {
     my ($self, $ua) = @_;
+
+    if($self->{disable_firewall}) {
+        return 1;
+    }
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
