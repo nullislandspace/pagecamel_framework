@@ -23,7 +23,6 @@ use PageCamel::Worker::BaseModule;
 use PageCamel::Worker::Clacks::Bridge;
 use PageCamel::Worker::Clacks::LocalCache;
 use PageCamel::Worker::ClacksCache;
-use PageCamel::Worker::ClacksCachePg;
 use PageCamel::Worker::Commands;
 use PageCamel::Worker::DNSCache;
 use PageCamel::Worker::Debuglog2DB;

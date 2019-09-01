@@ -25,7 +25,6 @@ use PageCamel::Web::Cables::Browse;
 use PageCamel::Web::Cables::Search;
 use PageCamel::Web::Cables::View;
 use PageCamel::Web::ClacksCache;
-use PageCamel::Web::ClacksCachePg;
 use PageCamel::Web::CommandQueue;
 use PageCamel::Web::ComputerDB::Computers;
 use PageCamel::Web::ComputerDB::MapSelect;
