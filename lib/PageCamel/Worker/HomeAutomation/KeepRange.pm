@@ -39,6 +39,8 @@ sub register {
     $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname}, 0);
     $self->{clacks}->listen($self->{clacksname_mode});
     $self->{clacks}->listen($self->{clacksname_inhibit});
+    $self->{clacks}->listen($self->{clacksname_min});
+    $self->{clacks}->listen($self->{clacksname_max});
     $self->{clacks}->doNetwork();
     $self->{nextping} = 0;
 
@@ -141,6 +143,8 @@ sub work {
             $self->debuglog("Restarting clacks connection");
             $self->{clacks}->listen($self->{clacksname_mode});
             $self->{clacks}->listen($self->{clacksname_inhibit});
+            $self->{clacks}->listen($self->{clacksname_min});
+            $self->{clacks}->listen($self->{clacksname_max});
             $self->{clacks}->ping();
             $self->{clacks}->doNetwork();
             $self->{nextping} = $now + 30;
