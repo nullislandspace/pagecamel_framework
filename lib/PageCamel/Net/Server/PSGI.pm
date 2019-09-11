@@ -25,7 +25,7 @@
 ################################################################
 
 package PageCamel::Net::Server::PSGI;
-our $VERSION = 2.1;
+our $VERSION = 2.2;
 
 use strict;
 use base qw(PageCamel::Net::Server::HTTP);

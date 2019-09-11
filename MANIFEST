@@ -25,7 +25,6 @@ lib/PageCamel/Framework.pm
 lib/PageCamel/Helpers.pm
 lib/PageCamel/Helpers/AutoDialogs.pm
 lib/PageCamel/Helpers/ClacksCache.pm
-lib/PageCamel/Helpers/ClacksCachePg.pm
 lib/PageCamel/Helpers/CommandHelper.pm
 lib/PageCamel/Helpers/ConfigData.pm
 lib/PageCamel/Helpers/ConfigLoader.pm
@@ -97,7 +96,6 @@ lib/PageCamel/Web/Cables/Templates/search.tt
 lib/PageCamel/Web/Cables/Templates/view.tt
 lib/PageCamel/Web/Cables/View.pm
 lib/PageCamel/Web/ClacksCache.pm
-lib/PageCamel/Web/ClacksCachePg.pm
 lib/PageCamel/Web/CommandQueue.pm
 lib/PageCamel/Web/ComputerDB/Computers.pm
 lib/PageCamel/Web/ComputerDB/MapSelect.pm
@@ -2488,7 +2486,6 @@ lib/PageCamel/Worker/BaseModule.pm
 lib/PageCamel/Worker/Clacks/Bridge.pm
 lib/PageCamel/Worker/Clacks/LocalCache.pm
 lib/PageCamel/Worker/ClacksCache.pm
-lib/PageCamel/Worker/ClacksCachePg.pm
 lib/PageCamel/Worker/Commands.pm
 lib/PageCamel/Worker/Debuglog2DB.pm
 lib/PageCamel/Worker/DirCleaner.pm

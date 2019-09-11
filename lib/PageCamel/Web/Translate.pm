@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English qw(-no_match_vars);
 use Carp;
-our $VERSION = 2.1;
+our $VERSION = 2.2;
 use Fatal qw( close );
 use Array::Contains;
 #---AUTOPRAGMAEND---
@@ -50,11 +50,11 @@ sub reload {
 
     # Update the handles for the template plugin
     my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $realmemh = $self->{server}->{modules}->{$self->{realmemcache}};
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
     if($self->{firstReload}) {
         $self->{firstReload} = 0;
-        tr_init($dbh, $realmemh, $self->{isDebugging});
+        tr_init($dbh, $memh, $self->{isDebugging});
     }
     tr_reload();
 

@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English qw(-no_match_vars);
 use Carp;
-our $VERSION = 2.1;
+our $VERSION = 2.2;
 use Fatal qw( close );
 use Array::Contains;
 #---AUTOPRAGMAEND---
@@ -25,7 +25,6 @@ use PageCamel::Web::Cables::Browse;
 use PageCamel::Web::Cables::Search;
 use PageCamel::Web::Cables::View;
 use PageCamel::Web::ClacksCache;
-use PageCamel::Web::ClacksCachePg;
 use PageCamel::Web::CommandQueue;
 use PageCamel::Web::ComputerDB::Computers;
 use PageCamel::Web::ComputerDB::MapSelect;
