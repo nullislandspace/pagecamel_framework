@@ -58,7 +58,7 @@ sub workWebgui {
     $reph->debuglog("Logging webclicks status for " . $device->{hostname});
     $memh->refresh_lifetick;
 
-    my $realmemh = $self->{server}->{modules}->{$self->{realmemcache}};
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
     my $ok = 1;
 
@@ -94,14 +94,14 @@ sub workWebgui {
     my $loginerrors = 0;
     foreach my $key (@keys) {
         push @placeholders, '?';
-        my $val = $realmemh->get('WebStats::' . $key);
+        my $val = $memh->get('WebStats::' . $key);
         if(!defined($val)) {
             $val = 0;
             $ok = 0;
         } else {
             $val = 0 + $val;
         }
-        $realmemh->decr('WebStats::' . $key, $val);
+        $memh->decr('WebStats::' . $key, $val);
         $self->{clacks}->set('CAVACDISPLAY::' . $key, $val);
         if($key eq 'user_guest_count' || $key eq 'user_nonguest_count') {
             $callcount += $val;
