@@ -58,8 +58,6 @@ sub workWebgui {
     $reph->debuglog("Logging webclicks status for " . $device->{hostname});
     $memh->refresh_lifetick;
 
-    my $memh = $self->{server}->{modules}->{$self->{memcache}};
-
     my $ok = 1;
 
     my @keys = qw[
