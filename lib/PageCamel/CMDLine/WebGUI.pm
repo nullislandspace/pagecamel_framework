@@ -23,12 +23,13 @@ use Readonly;
 Readonly my $SSL_SESS_CACHE_OFF => 0x0000;
 
 sub new {
-    my ($class, $isDebugging, $forceForking, $forceSSL, $traceflag, $configfile) = @_;
+    my ($class, $isDebugging, $forceForking, $forceSSL, $useDebugPort, $traceflag, $configfile) = @_;
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
     $self->{forceForking} = $forceForking;
     $self->{forceSSL} = $forceSSL;
+    $self->{useDebugPort} = $useDebugPort;
     $self->{trace} = $traceflag;
     $self->{configfile} = $configfile;
     
@@ -92,8 +93,7 @@ sub init {
     
     # Debugging on port 8080 only on 127.0.0.1!
     if($self->{isDebugging}) {
-        if(!$self->{forceSSL}) {
-            # forceSSL forces to run in the original network config
+        if($self->{useDebugPort}) {
             $config->{server}->{port} = 8080;
         }
         $isForking = 0;
