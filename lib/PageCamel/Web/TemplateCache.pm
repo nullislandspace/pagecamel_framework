@@ -611,20 +611,10 @@ sub get_uninline_dynamic {
     
     my $selsth;
 
-    if(0 && !$self->{isDebugging}) {    
-        $selsth = $dbh->prepare_cached("DELETE FROM templatecache_dynamic_scripting
-                                        WHERE webpath = ?
-                                        AND valid_until >= now()
-                                        RETURNING *;")
-                or croak($dbh->errstr);
-    } else {
-        $selsth = $dbh->prepare_cached("SELECT * FROM templatecache_dynamic_scripting
-                                        WHERE webpath = ?
-                                        AND valid_until >= now()")
-                or croak($dbh->errstr);
-    }
-    
-    
+    $selsth = $dbh->prepare_cached("SELECT * FROM templatecache_dynamic_scripting
+                                    WHERE webpath = ?
+                                    AND valid_until >= now()")
+            or croak($dbh->errstr);
     
     if(!$selsth->execute($fname)) {
         $dbh->rollback;
