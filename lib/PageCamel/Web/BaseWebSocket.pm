@@ -368,7 +368,7 @@ sub sockethandler {
                 $workCount++;
             }
 
-            while (my $message = $frame->next) {
+            while (my $message = $frame->next_bytes) {
                 $workCount++;
 
                 my $realmsg;
@@ -409,7 +409,7 @@ sub sockethandler {
                 }
             }
 
-            # This is OUTSIDE the $frame->next loop, because a close event never returns a full frame
+            # This is OUTSIDE the $frame->next_bytes loop, because a close event never returns a full frame
             # from WSockFrame
             if($frame->is_close) {
                 #print STDERR "CLOSE FRAME RECIEVED!\n";

@@ -20,6 +20,9 @@ use Scalar::Util 'readonly';
 use constant MAX_RAND_INT       => 2**32;
 use constant MATH_RANDOM_SECURE => eval "require Math::Random::Secure;";
 
+our $MAX_PAYLOAD_SIZE = 500 * 1024 * 1024;
+our $MAX_FRAGMENTS_AMOUNT = 128;
+
 our %TYPES = (
     continuation => 0x00,
     text         => 0x01,
@@ -47,12 +50,12 @@ sub new {
 
     $buffer = '' unless defined $buffer;
 
-    #if (Encode::is_utf8($buffer)) {
-    #    $self->{buffer} = Encode::encode('UTF-8', $buffer);
-    #}
-    #else {
+    if (Encode::is_utf8($buffer)) {
+        $self->{buffer} = Encode::encode('UTF-8', $buffer);
+    }
+    else {
         $self->{buffer} = $buffer;
-    #}
+    }
 
     if (defined($self->{type}) && defined($TYPES{$self->{type}})) {
         $self->opcode($TYPES{$self->{type}});
@@ -62,9 +65,8 @@ sub new {
 
     $self->{fragments} = [];
 
-    $self->{max_fragments_amount} ||= 128;
-    #$self->{max_payload_size}     ||= 65536;
-    $self->{max_payload_size}     ||= 500 * 1024 * 1024;
+    $self->{max_fragments_amount} ||= $MAX_FRAGMENTS_AMOUNT unless exists $self->{max_fragments_amount};
+    $self->{max_payload_size}     ||= $MAX_PAYLOAD_SIZE unless exists $self->{max_payload_size};
 
     return $self;
 }
@@ -92,8 +94,7 @@ sub next {
     my $bytes = $self->next_bytes;
     return unless defined $bytes;
 
-    #return Encode::decode('UTF-8', $bytes);
-    return $bytes;
+    return Encode::decode('UTF-8', $bytes);
 }
 
 sub fin {
@@ -110,7 +111,8 @@ sub opcode {
       : defined($_[0]->{opcode}) ? $_[0]->{opcode}
       :                            1;
 }
-sub masked { @_ > 1 ? $_[0]->{masked} = $_[1] : $_[0]->{masked} }
+#sub masked { @_ > 1 ? $_[0]->{masked} = $_[1] : $_[0]->{masked} }
+sub masked { return 1; }
 
 sub is_ping         { $_[0]->opcode == 9 }
 sub is_pong         { $_[0]->opcode == 10 }
@@ -186,7 +188,7 @@ sub next_bytes {
             $offset += 8;
         }
 
-        if ($payload_len > $self->{max_payload_size}) {
+        if ($self->{max_payload_size} && $payload_len > $self->{max_payload_size}) {
             $self->{buffer} = '';
             die "Payload is too big. "
               . "Deny big message ($payload_len) "
@@ -237,10 +239,8 @@ sub next_bytes {
 
             push @{$self->{fragments}}, $payload;
 
-            if(@{$self->{fragments}} > $self->{max_fragments_amount}) {
-                die "Too many fragments";
-            }
-
+            die "Too many fragments"
+              if @{$self->{fragments}} > $self->{max_fragments_amount};
         }
     }
 
@@ -260,16 +260,22 @@ sub to_bytes {
         return "\x00" . $self->{buffer} . "\xff";
     }
 
-    if (length $self->{buffer} > $self->{max_payload_size}) {
+    if ($self->{max_payload_size} && length $self->{buffer} > $self->{max_payload_size}) {
         die "Payload is too big. "
           . "Send shorter messages or increase max_payload_size";
     }
 
+
+    my $rsv_set = 0;
+    if ( $self->{rsv} && ref( $self->{rsv} ) eq 'ARRAY' ) {
+        for my $i ( 0 .. @{ $self->{rsv} } - 1 ) {
+            $rsv_set += $self->{rsv}->[$i] * ( 1 << ( 6 - $i ) );
+        }
+    }
+
     my $string = '';
-
     my $opcode = $self->opcode;
-
-    $string .= pack 'C', ($opcode + ($self->fin ? 128 : 0));
+    $string .= pack 'C', ($opcode | $rsv_set | ($self->fin ? 128 : 0));
 
     my $payload_len = length($self->{buffer});
     if ($payload_len <= 125) {
@@ -326,115 +332,156 @@ sub _mask {
     return $payload;
 }
 
+sub max_payload_size {
+    my $self = shift;
+
+    return $self->{max_payload_size};
+}
+
 1;
 __END__
 
 =head1 NAME
 
-PageCamel::Helpers::WSockFrame - encode/decode Websocket frames.
+Protocol::WebSocket::Frame - WebSocket Frame
 
 =head1 SYNOPSIS
 
-  use PageCamel::Helpers::WSockFrame;
+    # Create frame
+    my $frame = Protocol::WebSocket::Frame->new('123');
+    $frame->to_bytes;
+
+    # Parse frames
+    my $frame = Protocol::WebSocket::Frame->new;
+    $frame->append(...);
+    $f->next; # get next message
+    $f->next; # get another next message
 
 =head1 DESCRIPTION
 
 This is based on the original Protocol::WebSocket module by Viacheslav Tykhanovskyi, but botched to work in PageCamel.
 
-=head2 new
+Construct or parse a WebSocket frame.
 
-Create a new instance.
+=head1 RANDOM MASK GENERATION
 
-=head2 version
+By default built-in C<rand> is used, this is not secure, so when
+L<Math::Random::Secure> is installed it is used instead.
 
-Return websocket version.
+=head1 METHODS
 
-=head2 append
+=head2 C<new>
 
-Append raw data for later decoding.
+    Protocol::WebSocket::Frame->new('data');   # same as (buffer => 'data')
+    Protocol::WebSocket::Frame->new(buffer => 'data', type => 'close');
 
-=head2 next
+Create a new L<Protocol::WebSocket::Frame> instance. Automatically detect if the
+passed data is a Perl string (UTF-8 flag) or bytes.
 
-Get the next decoded frame
+When called with more than one arguments, it takes the following named arguments
+(all of them are optional).
 
-=head2 fin
+=over
 
-Set fin flag
+=item C<buffer> => STR (default: C<"">)
 
-=head2 rsv
+The payload of the frame.
 
-Set RSV flag
+=item C<type> => TYPE_STR (default: C<"text">)
 
-=head2 opcode
+The type of the frame. Accepted values are:
 
-Get the opcode of the last decoded frame.
+    continuation
+    text
+    binary
+    ping
+    pong
+    close
 
-=head2 masked
+=item C<opcode> => INT (default: 1)
 
-Set the masked flag
+The opcode of the frame. If C<type> field is set to a valid string, this field is ignored.
 
-=head2 is_ping
+=item C<fin> => BOOL (default: 1)
 
-Check if decoded frame was a ping.
+"fin" flag of the frame. "fin" flag must be 1 in the ending frame of fragments.
 
-=head2 is_pong
+=item C<masked> => BOOL (default: 0)
 
-Check if decoded frame was a pong.
+If set to true, the frame will be masked.
 
-=head2 is_close
+=item C<version> => VERSION_STR (default: C<'draft-ietf-hybi-17'>)
 
-Check if decoded frame was a close.
+WebSocket protocol version string. See L<Protocol::WebSocket> for valid version strings.
 
-=head2 is_continuation
+=back
 
-Check if decoded frame was a continuation.
+=head2 C<is_continuation>
 
+Check if frame is of continuation type.
 
-=head2 is_text
+=head2 C<is_text>
 
-Check if decoded frame was a text.
+Check if frame is of text type.
 
-=head2 is_binary
+=head2 C<is_binary>
 
-Check if decoded frame was a binary.
+Check if frame is of binary type.
 
-=head2 next_bytes
+=head2 C<is_ping>
 
-?
+Check if frame is a ping request.
 
-=head2 to_bytes
+=head2 C<is_pong>
 
-?
+Check if frame is a pong response.
 
-=head2 to_string
+=head2 C<is_close>
 
-?
+Check if frame is of close type.
 
-=head2 _mask
+=head2 C<opcode>
 
-?
+    $opcode = $frame->opcode;
+    $frame->opcode(8);
 
-=head1 IMPORTANT NOTE
+Get/set opcode of the frame.
 
-This module is part of the PageCamel framework. Currently, only limited support
-and documentation exists outside my DarkPAN repositories. This source is
-currently only provided for your reference and usage in other projects (just
-copy&paste what you need, see license terms below).
+=head2 C<masked>
 
-To see PageCamel in action and for news about the project,
-visit my blog at L<https://cavac.at>.
+    $masked = $frame->masked;
+    $frame->masked(1);
 
-=head1 AUTHOR
+Get/set masking of the frame.
 
-Rene Schickbauer, E<lt>cavac@cpan.orgE<gt>
+=head2 C<append>
 
-=head1 COPYRIGHT AND LICENSE
+    $frame->append($chunk);
 
-Copyright (C) 2010-2014 by Viacheslav Tykhanovskyi
-Copyright (C) 2014-2016 by Rene Schickbauer
+Append a frame chunk.
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.10.0 or,
-at your option, any later version of Perl 5 you may have available.
+Beware that this method is B<destructive>.
+It makes C<$chunk> empty unless C<$chunk> is read-only.
+
+=head2 C<next>
+
+    $frame->append(...);
+
+    $frame->next; # next message
+
+Return the next message as a Perl string (UTF-8 decoded).
+
+=head2 C<next_bytes>
+
+Return the next message as is.
+
+=head2 C<to_bytes>
+
+Construct a WebSocket message.
+
+=head2 C<max_payload_size>
+
+The maximum size of the payload. You may set this to C<0> or C<undef> to disable
+checking the payload size.
 
 =cut
