@@ -111,8 +111,7 @@ sub opcode {
       : defined($_[0]->{opcode}) ? $_[0]->{opcode}
       :                            1;
 }
-#sub masked { @_ > 1 ? $_[0]->{masked} = $_[1] : $_[0]->{masked} }
-sub masked { return 1; }
+sub masked { @_ > 1 ? $_[0]->{masked} = $_[1] : $_[0]->{masked} }
 
 sub is_ping         { $_[0]->opcode == 9 }
 sub is_pong         { $_[0]->opcode == 10 }
