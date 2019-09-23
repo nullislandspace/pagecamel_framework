@@ -42,7 +42,6 @@
         ws = new WebSocket(ttvars.websocketurl, 'base64');
 
         ws.onopen = function(ev) {
-            //console.log("Connected!");
             $('#dataarea').unblock();
             sendPing();
             wsconnected = 1;
@@ -68,7 +67,6 @@
         var rawmsg = String(ev.data);
         
         var msg = JSON.parse(rawmsg);
-        //console.log("GOT " + msg.type);
         
         if(msg.type === "PING") {
             lastPing = Math.round(Date.now() / 1000);
@@ -133,12 +131,10 @@
             ctx.strokeText(buttontext, x + 8, y + (height / 2));
         } else {
             var blines = buttontext.split("\n");
-            console.log(buttontext);
             var yoffs = y + 15;
             var i;
             for(i = 0; i < blines.length; i++) {
                 blines[i].replace("\n", '');
-                console.log(blines[i]);
                 ctx.strokeText(blines[i], x + 8, yoffs);
                 yoffs = yoffs + 18;
             }
