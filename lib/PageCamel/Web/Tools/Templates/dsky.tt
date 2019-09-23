@@ -96,7 +96,7 @@
         
         addButton(ctx, 640, 650, 100, 100, "0",         '#A0A0A0', "BUTTONPRESS", "0");
         addButton(ctx, 760, 650, 100, 100, "00",        '#A0A0A0', "BUTTONPRESS", "00");
-        addButton(ctx, 880, 650, 100, 100, "DEL",       '#A0A0A0', "BUTTONPRESS", "DEL");
+        addButton(ctx, 880, 650, 100, 100, "DEL",       '#A0A0A0', "BUTTONPRESS", "BACKSPACE");
 
         ctx.fillStyle = '#FF0000';
         ctx.strokeStyle = '#FF0000';        
