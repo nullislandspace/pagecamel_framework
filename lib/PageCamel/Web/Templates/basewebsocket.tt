@@ -24,6 +24,8 @@
     var wsconnected = 0;
     var lastPing = Math.round(Date.now() / 1000);
     
+    var buttonlist = new Array();
+    
     function extraOnLoad() {
         
         if(window.websocketmaskOnload) {
@@ -113,6 +115,67 @@
         lastPing = -1;
         ws.close();
     }
+    
+    function clearButtons() {
+        buttonlist.length = 0;
+    }
+    
+    function addButton(ctx, x, y, width, height, buttontext, buttoncolor, msgtype, msgdata) {
+        var textsize = ctx.measureText(buttontext);
+        //console.log(buttontext);
+        //console.log(textsize);
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = buttoncolor;
+        
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeRect(x, y, width, height);
+        if(!buttontext.includes("\n")) {
+            ctx.strokeText(buttontext, x + 8, y + (height / 2));
+        } else {
+            var blines = buttontext.split("\n");
+            console.log(buttontext);
+            var yoffs = y + 15;
+            var i;
+            for(i = 0; i < blines.length; i++) {
+                blines[i].replace("\n", '');
+                console.log(blines[i]);
+                ctx.strokeText(blines[i], x + 8, yoffs);
+                yoffs = yoffs + 18;
+            }
+        }
+        
+        var thisbutton = {
+            startx: x,
+            starty: y,
+            endx: x+width,
+            endy: y+height,
+            type: msgtype,
+            data: msgdata,
+            displaytext: buttontext,
+        };
+        buttonlist.push(thisbutton);
+        return;
+    }
+    
+    function checkButtonBlick(x, y) {
+        for(var i = 0; i < buttonlist.length; i++) {
+            if(x >= buttonlist[i].startx &&
+               x <= buttonlist[i].endx &&
+               y >= buttonlist[i].starty &&
+               y <= buttonlist[i].endy
+               ) {
+                var clickmsg = {
+                    type: buttonlist[i].type,
+                    data: buttonlist[i].data
+                };
+                ws.send(JSON.stringify(clickmsg));
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     
     
 </script>
