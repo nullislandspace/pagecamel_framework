@@ -2422,6 +2422,7 @@ lib/PageCamel/Web/Tools/ClacksConsole.pm
 lib/PageCamel/Web/Tools/ContentSecurityPolicyViolation.pm
 lib/PageCamel/Web/Tools/Debuglog.pm
 lib/PageCamel/Web/Tools/DebugWebHangups.pm
+lib/PageCamel/Web/Tools/DSKY.pm
 lib/PageCamel/Web/Tools/HostnameRedirect.pm
 lib/PageCamel/Web/Tools/Images/blank-blueprint-paper.jpg
 lib/PageCamel/Web/Tools/Images/blueprintpaper.jpg
@@ -2436,6 +2437,7 @@ lib/PageCamel/Web/Tools/ShortURL.pm
 lib/PageCamel/Web/Tools/Sitemap.pm
 lib/PageCamel/Web/Tools/Templates/clacksconsole.tt
 lib/PageCamel/Web/Tools/Templates/debuglog.tt
+lib/PageCamel/Web/Tools/Templates/dsky.tt
 lib/PageCamel/Web/Tools/Templates/kaffeesim.tt
 lib/PageCamel/Web/Tools/Templates/pimenu.tt
 lib/PageCamel/Web/Tools/Templates/pimenu_public.tt
