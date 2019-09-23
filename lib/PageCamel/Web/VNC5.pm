@@ -693,7 +693,7 @@ sub sockethandler { ## no critic (Subroutines::ProhibitExcessComplexity)
                 }
             };
 
-            while (my $message = $frame->next) {
+            while (my $message = $frame->next_bytes) {
                 #$idle = 0;
                 if(0 && $self->{isDebugging}) {
                     print STDERR "> Opcode: ", $frame->opcode, "\n";
@@ -741,7 +741,7 @@ sub sockethandler { ## no critic (Subroutines::ProhibitExcessComplexity)
                 next;
             }
 
-            # This is OUTSIDE the $frame->next loop, because a close event never returns a full frame
+            # This is OUTSIDE the $frame->next_bytes loop, because a close event never returns a full frame
             # from WSockFrame
             if($frame->is_close) {
                 if($self->{isDebugging}) {
