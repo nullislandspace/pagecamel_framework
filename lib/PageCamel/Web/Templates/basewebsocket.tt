@@ -148,10 +148,46 @@
             type: msgtype,
             data: msgdata,
             displaytext: buttontext,
+            buttontype: 'sendmessage'
         };
         buttonlist.push(thisbutton);
         return;
     }
+
+    function addCallbackButton(ctx, x, y, width, height, buttontext, buttoncolor, callback) {
+        var textsize = ctx.measureText(buttontext);
+
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = buttoncolor;
+        
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeRect(x, y, width, height);
+        if(!buttontext.includes("\n")) {
+            ctx.strokeText(buttontext, x + 8, y + (height / 2));
+        } else {
+            var blines = buttontext.split("\n");
+            var yoffs = y + 15;
+            var i;
+            for(i = 0; i < blines.length; i++) {
+                blines[i].replace("\n", '');
+                ctx.strokeText(blines[i], x + 8, yoffs);
+                yoffs = yoffs + 18;
+            }
+        }
+        
+        var thisbutton = {
+            startx: x,
+            starty: y,
+            endx: x+width,
+            endy: y+height,
+            displaytext: buttontext,
+            buttontype: 'callback',
+            callback: callback
+        };
+        buttonlist.push(thisbutton);
+        return;
+    }
+
     
     function checkButtonBlick(x, y) {
         for(var i = 0; i < buttonlist.length; i++) {
@@ -160,11 +196,16 @@
                y >= buttonlist[i].starty &&
                y <= buttonlist[i].endy
                ) {
-                var clickmsg = {
-                    type: buttonlist[i].type,
-                    data: buttonlist[i].data
-                };
-                ws.send(JSON.stringify(clickmsg));
+                
+                if(buttonlist[i].buttontype === 'sendmessage') {
+                    var clickmsg = {
+                        type: buttonlist[i].type,
+                        data: buttonlist[i].data
+                    };
+                    ws.send(JSON.stringify(clickmsg));
+                } else if(buttonlist[i].buttontype === 'callback') {
+                    buttonlist[i].callback();
+                }
                 return true;
             }
         }
