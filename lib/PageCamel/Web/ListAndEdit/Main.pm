@@ -59,6 +59,10 @@ sub new {
     if(!defined($self->{listonly})) {
         $self->{listonly} = 0;
     }
+    
+    if(!defined($self->{listonly_customselect})) {
+        $self->{listonly_customselect} = 0;
+    }
 
     if(!defined($self->{listpageheader})) {
         $self->{listpageheader} = '';
@@ -68,28 +72,54 @@ sub new {
         $self->{editpageheader} = '';
     }
 
-    $self->{useextrascript} = 0;
-    if(defined($self->{javascript})) {
-        $self->{useextrascript} = 1;
+    $self->{useextraeditscript} = 0;
+    if(defined($self->{editjavascript})) {
+        $self->{useextraeditscript} = 1;
         my $extrajavascript = '';
-        if(defined($self->{javascript}->{functions})) {
-            $extrajavascript = $self->{javascript}->{functions} . "\n";
+        if(defined($self->{editjavascript}->{functions})) {
+            $extrajavascript = $self->{editjavascript}->{functions} . "\n";
         }
 
-        if(defined($self->{javascript}->{onload})) {
+        if(defined($self->{editjavascript}->{onload})) {
 
             $extrajavascript .= "function LaEExtraOnLoad() {\n" .
-                                 $self->{javascript}->{onload} .
+                                 $self->{editjavascript}->{onload} .
                                  "}\n";
         }
-        $self->{extrascript} = $extrajavascript;
-        $self->{extrascript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
-        $self->{extrascript_webdate} = getWebdate();
+        $self->{extraeditscript} = $extrajavascript;
+        $self->{extraeditscript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
+        $self->{extraeditscript_webdate} = getWebdate();
 
         my $gzipped;
         if(gzip(\$extrajavascript => \$gzipped)) {
             if(length($gzipped) < length($extrajavascript)) {
-                $self->{extrascript_gzip} = $gzipped;
+                $self->{extraeditscript_gzip} = $gzipped;
+            }
+        }
+    }
+
+    $self->{useextralistscript} = 0;
+    if(defined($self->{listjavascript})) {
+        $self->{useextralistscript} = 1;
+        my $extrajavascript = '';
+        if(defined($self->{listjavascript}->{functions})) {
+            $extrajavascript = $self->{listjavascript}->{functions} . "\n";
+        }
+
+        if(defined($self->{listjavascript}->{onload})) {
+
+            $extrajavascript .= "function LaEExtraOnLoad() {\n" .
+                                 $self->{listjavascript}->{onload} .
+                                 "}\n";
+        }
+        $self->{extralistscript} = $extrajavascript;
+        $self->{extralistscript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
+        $self->{extralistscript_webdate} = getWebdate();
+
+        my $gzipped;
+        if(gzip(\$extrajavascript => \$gzipped)) {
+            if(length($gzipped) < length($extrajavascript)) {
+                $self->{extralistscript_gzip} = $gzipped;
             }
         }
     }
@@ -286,7 +316,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         my @sortparts = split/\,/, $self->{orderby};
         my @sortcols;
         my $sortoffs = 0;
-        if(!$self->{listonly}) {
+        if(!$self->{listonly} || $self->{listonly_customselect}) {
             $sortoffs = 1;
         }
         foreach my $sortpart (@sortparts) {
@@ -707,11 +737,19 @@ sub get {
     my $primarykey = stripString($ua->{postparams}->{'primary_key'} || '');
 
     # Check if we can and are requested to deliver the pagescript.js
-    if($ua->{url} =~ /\/pagescript\.js/) {
-        if(!$self->{useextrascript}) {
+    if($ua->{url} =~ /\/pageeditscript\.js/) {
+        if(!$self->{useextraeditscript}) {
             return (status => 404);
         } else {
-            return $self->get_pagescript($ua);
+            return $self->get_pagescript($ua, 'edit');
+        }
+    }
+    
+    if($ua->{url} =~ /\/pagelistscript\.js/) {
+        if(!$self->{useextralistscript}) {
+            return (status => 404);
+        } else {
+            return $self->get_pagescript($ua, 'list');
         }
     }
 
@@ -882,11 +920,13 @@ sub download_csv {
 
 
 sub get_pagescript {
-    my ($self, $ua) = @_;
+    my ($self, $ua, $mode) = @_;
 
     my $lastetag = $ua->{headers}->{'If-None-Match'} || '';
+    
+    my $prefix = 'extra' . $mode . 'script';
 
-    if($self->{extrascript_etag} eq $lastetag) {
+    if($self->{$prefix . '_etag'} eq $lastetag) {
         # Resource matches the cached one in the browser, so just notify
         # we didn't modify it
         return(status   => 304);
@@ -897,16 +937,16 @@ sub get_pagescript {
     my %retpage = (
         status          =>  200,
         type            => "application/javascript",
-        etag            => $self->{extrascript_etag},
+        etag            => $self->{$prefix . '_etag'},
         expires         => "+1d",
         cache_control   =>  "max-age=84100",
-        "Last-Modified" => $self->{extrascript_webdate},
+        "Last-Modified" => $self->{$prefix . '_webdate'},
     );
 
     if($lastmodified ne "") {
         # Compare the dates
         my $lmclient = parseWebdate($lastmodified);
-        my $lmserver = parseWebdate($self->{extrascript_webdate});
+        my $lmserver = parseWebdate($self->{$prefix . '_webdate'});
         if($lmclient >= $lmserver) {
             $retpage{status} = 304;
             return %retpage;
@@ -914,12 +954,12 @@ sub get_pagescript {
     }
 
     my $supportedcompress = $ua->{headers}->{'Accept-Encoding'} || '';
-    if($supportedcompress =~ /gzip/io && defined($self->{extrascript_gzip})) {
-        $retpage{data} = $self->{extrascript_gzip};
+    if($supportedcompress =~ /gzip/io && defined($self->{$prefix . '_gzip'})) {
+        $retpage{data} = $self->{$prefix . '_gzip'};
         $retpage{"Content-Encoding"} = "gzip";
         $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
     } else {
-        $retpage{data} = $self->{extrascript};
+        $retpage{data} = $self->{$prefix};
         $retpage{disable_compression} = 1;
     }
 
@@ -951,6 +991,7 @@ sub get_list {
         UseURLID        => $self->{use_urlid},
         URLID           => $urlid,
         ListOnly        => $self->{listonly},
+        ListOnlyCustomSelect => $self->{listonly_customselect},
         UseRawHTML      => 0,
         ShowPageTitle   => $self->{showpagetitle},
         ColumnFilters   => $self->{column_filters},
@@ -1011,6 +1052,14 @@ sub get_list {
 
 
     $webdata{aaSorting} = $lastsort;
+    
+    my @headextrascripts;
+    
+    if($self->{useextralistscript}) {
+        push @headextrascripts, $self->{webpath} . '/pagelistscript.js';
+    }
+    
+    $webdata{HeadExtraScripts} = \@headextrascripts;
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/list", 1, %webdata);
     return (status  =>  404) unless $template;
@@ -1141,7 +1190,7 @@ sub get_lines {
 
     if($self->{column_filters}) {
         my $colnum = -1;
-        if(!$self->{listonly}) {
+        if(!$self->{listonly} || $self->{listonly_customselect}) {
             $colnum++;
         }
         my $colwhere = '';
@@ -1191,13 +1240,13 @@ sub get_lines {
         }
         my @sortcols;
         my $sortoffs = 0;
-        if(!$self->{listonly}) {
+        if(!$self->{listonly} || $self->{listonly_customselect}) {
             $sortoffs = 1;
         }
         for(my $i = 0; $i <= $sortcount; $i++) {
             my $sortnum = $ua->{postparams}->{'order[' . $i . '][column]'} || 0;
 
-            if(!$self->{listonly}) {
+            if(!$self->{listonly} || $self->{listonly_customselect}) {
                 if($sortnum == 0) {
                     # Selector column, ignore
                     next;
@@ -1282,7 +1331,7 @@ sub get_lines {
         my @columns;
         $fcount = $rawline->{whereclause_totalcount};
 
-        if(!$self->{listonly}) {
+        if(!$self->{listonly} || $self->{listonly_customselect}) {
             my $primval = $rawline->{primarykey};
             $primval = encode_entities($primval, "'<>&\"\n");
             $primval =~ s/ä/&auml;/g;
@@ -2036,8 +2085,8 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
     }
 
     # Insert any extra Javascript that might have been defined in XML
-    if($self->{useextrascript}) {
-        push @headextrascripts, $self->{webpath} . '/pagescript.js';
+    if($self->{useextraeditscript}) {
+        push @headextrascripts, $self->{webpath} . '/pageeditscript.js';
     }
 
     $webdata{HeadExtraScripts} = \@headextrascripts;
