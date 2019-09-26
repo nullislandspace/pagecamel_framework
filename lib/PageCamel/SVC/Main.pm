@@ -21,10 +21,12 @@ use PageCamel::SVC::Settings;
 use Time::HiRes qw[sleep];
 use Net::Clacks::Client;
 use Data::Dumper;
+use PageCamel::Helpers::Logo;
 
 sub new {
     my ($class, $isService, $basePath, $db, $clacks,
         $APPNAME, $VERSION) = @_;
+    PageCamelLogo($APPNAME, $VERSION);
     my $self = bless {}, $class;
 
     $self->{isService} = $isService;
