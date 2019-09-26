@@ -45,6 +45,8 @@ sub wshandlerstart {
     $self->{clacks}->listen('DSKY::Display2');
     $self->{clacks}->listen('DSKY::Display3');
     $self->{clacks}->listen('DSKY::Display4');
+    $self->{clacks}->listen('DSKY::Display5');
+    $self->{clacks}->listen('DSKY::Display6');
     $self->{clacks}->notify('DSKY::update_all');
 
     $self->{clacks}->doNetwork();
