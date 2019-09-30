@@ -371,11 +371,21 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
     }
 
-    foreach my $optionalattr (qw[autosave]) {
+    foreach my $optionalattr (qw[autosave cancopy]) {
         if(!defined($self->{$optionalattr})) {
             print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
         }
+    }
+    
+    if($self->{cancopy} && !$self->{useserial}) {
+        print "    Attribute cancopy is true but useserial is not. Can only copy when using serial datatype for primary key!\n";
+        $ok = 0
+    }
+    
+    if($self->{cancopy} && !$self->{cancreate}) {
+        print "    Attribute cancopy is true but cancreate is not. Can only copy when user is allowed to create new entries\n";
+        $ok = 0
     }
 
     if(!defined($self->{extrattvars})) {
@@ -1436,6 +1446,14 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mode = $ua->{postparams}->{'mode'} || 'list';
     my $primarykey = stripString($ua->{postparams}->{'primary_key'} || '');
+    
+    if($mode eq 'copy') {
+        if(!$self->{cancopy}) {
+            return (status => 403); # Forbidden!
+        }
+        $primarykey = '__NEW__';
+        $mode = 'create';
+    }
 
     my $selectedTab = $ua->{postparams}->{'selectedTab'} || '';
 
@@ -1451,6 +1469,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         webpath         =>  $self->{webpath},
         candelete       =>  $self->{candelete},
         cancreate       =>  $self->{cancreate},
+        cancopy         =>  $self->{cancopy},
         autosave        =>  $self->{autosave},
         editcolumnlist  =>  $self->{editcolumnlist},
         extrattvars     =>  $self->{extrattvars},

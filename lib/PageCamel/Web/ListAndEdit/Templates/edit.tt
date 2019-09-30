@@ -182,6 +182,9 @@
                                 <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
                             [% ELSE %]
                                 <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                                [% IF cancopy == "1" %]
+                                    <input type="submit" value="[% tr.tr("Copy") %]" onclick="return setMode('copy');">
+                                [% END %]
                                 [% IF candelete == "1" %]
                                     &nbsp;
                                     <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
@@ -201,6 +204,9 @@
                     <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
                 [% ELSE %]
                     <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                    [% IF cancopy == "1" %]
+                        <input type="submit" value="[% tr.tr("Copy") %]" onclick="return setMode('copy');">
+                    [% END %]
                     [% IF candelete == "1" %]
                         &nbsp;
                         <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
