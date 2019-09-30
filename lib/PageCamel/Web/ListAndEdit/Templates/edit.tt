@@ -182,6 +182,9 @@
                                 <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
                             [% ELSE %]
                                 <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                                [% IF cansaveandclose == "1" %]
+                                    <input type="submit" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose');">
+                                [% END %]
                                 [% IF cancopy == "1" %]
                                     <input type="submit" value="[% tr.tr("Copy") %]" onclick="return setMode('copy');">
                                 [% END %]
@@ -204,6 +207,9 @@
                     <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
                 [% ELSE %]
                     <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                    [% IF cansaveandclose == "1" %]
+                        <input type="submit" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose');">
+                    [% END %]
                     [% IF cancopy == "1" %]
                         <input type="submit" value="[% tr.tr("Copy") %]" onclick="return setMode('copy');">
                     [% END %]

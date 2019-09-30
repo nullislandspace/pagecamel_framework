@@ -371,7 +371,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
     }
 
-    foreach my $optionalattr (qw[autosave cancopy]) {
+    foreach my $optionalattr (qw[autosave cancopy cansaveandclose]) {
         if(!defined($self->{$optionalattr})) {
             print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
@@ -1454,6 +1454,12 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         $primarykey = '__NEW__';
         $mode = 'create';
     }
+    
+    my $saveandclose = 0;
+    if($mode eq 'editandclose') {
+        $mode = 'edit';
+        $saveandclose = 1;
+    }
 
     my $selectedTab = $ua->{postparams}->{'selectedTab'} || '';
 
@@ -1470,6 +1476,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         candelete       =>  $self->{candelete},
         cancreate       =>  $self->{cancreate},
         cancopy         =>  $self->{cancopy},
+        cansaveandclose =>  $self->{cansaveandclose},
         autosave        =>  $self->{autosave},
         editcolumnlist  =>  $self->{editcolumnlist},
         extrattvars     =>  $self->{extrattvars},
@@ -1765,6 +1772,10 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
             $mode = 'create';
             return (status  =>  403) unless $self->{cancreate};
         }
+    }
+    
+    if($saveandclose) {
+        return $self->get_list($ua);
     }
 
     my %colvalues;
