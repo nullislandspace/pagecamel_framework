@@ -181,6 +181,9 @@
                             [% IF mode == "create" %]
                                 <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
                             [% ELSE %]
+                                [% IF UsePrevNext == "1" && prevprimarykey != "" %]
+                                    <input type="submit" value=" &#8656;" onclick="return setMode('select_[% prevprimarykey %]');">
+                                [% END %]
                                 <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
                                 [% IF cansaveandclose == "1" %]
                                     <input type="submit" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose');">
@@ -191,6 +194,9 @@
                                 [% IF candelete == "1" %]
                                     &nbsp;
                                     <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
+                                [% END %]
+                                [% IF UsePrevNext == "1" && nextprimarykey != "" %]
+                                    <input type="submit" value=" &#8658;" onclick="return setMode('select_[% nextprimarykey %]');">
                                 [% END %]
                             [% END %]
                         </td>
@@ -206,6 +212,9 @@
                 [% IF mode == "create" %]
                     <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
                 [% ELSE %]
+                    [% IF UsePrevNext == "1" && prevprimarykey != "" %]
+                        <input type="submit" value=" &#8656;" onclick="return setMode('select_[% prevprimarykey %]');">
+                    [% END %]
                     <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
                     [% IF cansaveandclose == "1" %]
                         <input type="submit" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose');">
@@ -216,6 +225,9 @@
                     [% IF candelete == "1" %]
                         &nbsp;
                         <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
+                    [% END %]
+                    [% IF UsePrevNext == "1" && nextprimarykey != "" %]
+                        <input type="submit" value=" &#8658;" onclick="return setMode('select_[% nextprimarykey %]');">
                     [% END %]
                 [% END %]
             </p>

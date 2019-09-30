@@ -371,7 +371,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
     }
 
-    foreach my $optionalattr (qw[autosave cancopy cansaveandclose]) {
+    foreach my $optionalattr (qw[autosave cancopy cansaveandclose useprevnext]) {
         if(!defined($self->{$optionalattr})) {
             print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
@@ -1235,6 +1235,8 @@ sub get_lines {
             $where .= " $colwhere ";
         }
     }
+    
+    $sesh->set($self->{sessionname} . '::lastWhere', $where);
 
     if($where ne '') {
         $where = "WHERE $where ";
@@ -1283,6 +1285,7 @@ sub get_lines {
 
     my $orderjson = encode_json \@orderjs;
     $sesh->set($self->{sessionname} . '::lastSort', $orderjson);
+    $sesh->set($self->{sessionname} . '::lastOrderBy', $orderby);
 
 
     my $tcountsth;
@@ -1436,6 +1439,71 @@ sub get_lines {
         );
 }
 
+sub get_prevnext {
+    my ($self, $ua, $currentprimkey) = @_;
+
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $sesh = $self->{server}->{modules}->{$self->{session}};
+
+    my $webpath = $ua->{url};
+    my $urlid = '';
+    if($self->{use_urlid}) {
+        $urlid = $webpath;
+        $urlid =~ s/^.*\///;
+        $urlid = decode_uri_path($urlid);
+    }
+
+    my @pkparts;
+    foreach my $pkitem (@{$self->{primarykey}->{item}}) {
+        push @pkparts, $pkitem->{column};
+    }
+    my $primkey = join(" || '\$\$PKJ\$\$' || ", @pkparts);
+    my $where = $sesh->get($self->{sessionname} . '::lastWhere') || "";
+    if($where ne '') {
+        $where = "WHERE $where";
+    }
+    
+    my $orderby = $sesh->get($self->{sessionname} . '::lastOrderBy') || "";
+    if($orderby ne '') {
+        $orderby = "ORDER BY $orderby";
+    }
+    
+    my $selsth = $dbh->prepare_cached("SELECT $primkey AS primarykey 
+                                        FROM $self->{table}
+                                        $where
+                                        $orderby")
+            or croak($dbh->errstr);
+    
+    if(!$selsth->execute()) {
+        $dbh->rollback;
+        return ('', '');
+    }
+    my $prev = '';
+    my $cur = '';
+    my $next = '';
+    my $found = 0;
+    while((my $line = $selsth->fetchrow_hashref)) {
+        $prev = $cur;
+        $cur = $line->{primarykey};
+        if($cur eq $currentprimkey) {
+            $found = 1;
+            if((my $nextline = $selsth->fetchrow_hashref)) {
+                $next = $nextline->{primarykey}
+            }
+            last;
+        }
+    }
+    
+    $selsth->finish;
+    $dbh->commit;
+    
+    if($found) {
+        return ($prev, $next);
+    }
+    
+    return ('', '');
+}
+
 sub get_edit { ## no critic (ProhibitExcessComplexity)
     my ($self, $ua, $forcePrimaryKey, $forceFields) = @_;
 
@@ -1446,6 +1514,11 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mode = $ua->{postparams}->{'mode'} || 'list';
     my $primarykey = stripString($ua->{postparams}->{'primary_key'} || '');
+    
+    if($mode =~ /^select\_(.*)/) {
+        $primarykey = $1;
+        $mode = 'select';
+    }
     
     if($mode eq 'copy') {
         if(!$self->{cancopy}) {
@@ -2078,6 +2151,14 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
     $webdata{primary_key} = $primarykey;
     $webdata{UseTabs} = $self->{usetabs};
     $webdata{SelectedTab} = $selectedTab;
+    $webdata{UsePrevNext} = $self->{useprevnext};
+    
+    if($self->{useprevnext}) {
+        my ($prevkey, $nextkey) = $self->get_prevnext($ua, $primarykey);
+        $webdata{prevprimarykey} = $prevkey;
+        $webdata{nextprimarykey} = $nextkey;
+        print STDERR "PREV $prevkey and NEXT $nextkey found for $primarykey\n";
+    }
 
 
     $dbh->rollback;
