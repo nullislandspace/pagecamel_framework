@@ -18,6 +18,7 @@ use base qw(Exporter);
 use PageCamel::Helpers::AutoDialogs;
 use PageCamel::Helpers::CSVFilter;
 use PageCamel::Helpers::ClacksCache;
+use PageCamel::Helpers::Colors;
 use PageCamel::Helpers::CommandHelper;
 use PageCamel::Helpers::ConfigData;
 use PageCamel::Helpers::ConfigLoader;

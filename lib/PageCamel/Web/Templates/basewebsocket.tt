@@ -119,7 +119,7 @@
         buttonlist.length = 0;
     }
     
-    function addButton(ctx, x, y, width, height, buttontext, buttoncolor, msgtype, msgdata) {
+    function addButton(ctx, x, y, width, height, buttontext, textcolor, buttoncolor, msgtype, msgdata) {
         var textsize = ctx.measureText(buttontext);
 
         ctx.strokeStyle = '#000000';
@@ -127,6 +127,8 @@
         
         ctx.fillRect(x, y, width, height);
         ctx.strokeRect(x, y, width, height);
+        
+        ctx.strokeStyle = textcolor;
         if(!buttontext.includes("\n")) {
             ctx.strokeText(buttontext, x + 8, y + (height / 2));
         } else {
@@ -154,7 +156,7 @@
         return;
     }
 
-    function addCallbackButton(ctx, x, y, width, height, buttontext, buttoncolor, callback) {
+    function addCallbackButton(ctx, x, y, width, height, buttontext, textcolor, buttoncolor, callback) {
         var textsize = ctx.measureText(buttontext);
 
         ctx.strokeStyle = '#000000';
@@ -162,6 +164,8 @@
         
         ctx.fillRect(x, y, width, height);
         ctx.strokeRect(x, y, width, height);
+        
+        ctx.strokeStyle = textcolor;
         if(!buttontext.includes("\n")) {
             ctx.strokeText(buttontext, x + 8, y + (height / 2));
         } else {

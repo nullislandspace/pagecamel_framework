@@ -22,6 +22,7 @@ use JSON::XS;
 use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::URI qw[encode_uri encode_uri_path decode_uri_part decode_uri_path];
 use PageCamel::Helpers::Translator;
+use PageCamel::Helpers::Colors qw[colorHexMaxContrast];
 use MIME::Base64;
 use Digest::SHA1  qw(sha1_hex);
 use IO::Compress::Gzip qw(gzip $GzipError);
@@ -144,7 +145,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # ------------- LIST -------------
-    my @listallowedtypes = qw[text url boolean array date led html];
+    my @listallowedtypes = qw[text url boolean array date led html color];
 
     foreach my $mustattr (qw[orderby primarykey table webpath pagetitle db session]) {
         if(!defined($self->{$mustattr})) {
@@ -153,7 +154,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
     }
 
-    foreach my $mustnotattr (qw[memcache]) {
+    foreach my $mustnotattr (qw[memcache ajaxpath]) {
         if(defined($self->{$mustnotattr})) {
             print "    Attribute $mustnotattr is set but must not be!\n";
             $ok = 0;
@@ -177,13 +178,6 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         $ok = 0;
     }
 
-    foreach my $mustnotattr (qw[ajaxpath]) {
-        if(defined($self->{$mustnotattr})) {
-            print "    Attribute $mustnotattr is deprecated and must be removed!\n";
-            $ok = 0;
-        }
-
-    }
     if(!$ok) {
         goto finishreload;
     }
@@ -294,7 +288,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
             array   => [qw[array]],
             boolean => [qw[led boolean]],
             numeric => [qw[text url]],
-            text    => [qw[text url html boolean]],
+            text    => [qw[text url html boolean color]],
         );
 
         foreach my $testtype (keys %listtesttypes) {
@@ -395,7 +389,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
     my %editcolumntypes;
     my %editcolumnnullable;
     my @gotocolumns;
-    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date hidden];
+    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date hidden colorpicker];
     my @readonlytypes = qw[textarea-readonly led display codedisplay];
     $self->{needcvceditor} = 0;
     $self->{needscripteditor} = 0;
@@ -476,7 +470,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         my %testtypes = (
             array   => [qw[array]],
             boolean => [qw[led switch checkbox]],
-            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum display hidden]],
+            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum display hidden colorpicker]],
             integer => [qw[number enum subenum display slider]],
             bigint => [qw[number enum subenum display slider]],
             real => [qw[number enum subenum display]],
@@ -1425,6 +1419,9 @@ sub get_lines {
                 $value = encode_uri_path($value);
                 $temp =~ s/\%/$value/;
                 $value = '<a href="' . $temp . '">' . $value . '</a>';
+            } elsif($type eq 'color') {
+                my $contrast = colorHexMaxContrast($value);
+                $value = '<div style="background-color:' . $value . ';color:' . $contrast . ';">' . $value . '</div>';
             } else {
                 $value = encode_entities($value, "'<>&\"");
                 $value =~ s/ä/&auml;/g;
@@ -1603,7 +1600,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                 $pkparts[$i] = $clauseitem->{value};
                 if($pkparts[$i] =~ /USER/) {
                     $pkparts[$i] =~ s/USER/$webdata{userData}->{user}/g;
-                }
+                }sub get_lines
             }
         }
 
