@@ -128,9 +128,10 @@
         ctx.fillRect(x, y, width, height);
         ctx.strokeRect(x, y, width, height);
         
+        ctx.fillStyle = textcolor;
         ctx.strokeStyle = textcolor;
         if(!buttontext.includes("\n")) {
-            ctx.strokeText(buttontext, x + 8, y + (height / 2));
+            ctx.fillText(buttontext, x + 8, y + (height / 2));
         } else {
             var blines = buttontext.split("\n");
             
@@ -138,7 +139,7 @@
             var i;
             for(i = 0; i < blines.length; i++) {
                 blines[i].replace("\n", '');
-                ctx.strokeText(blines[i], x + 8, yoffs);
+                ctx.fillText(blines[i], x + 8, yoffs);
                 yoffs = yoffs + 18;
             }
         }
@@ -167,16 +168,17 @@
         ctx.fillRect(x, y, width, height);
         ctx.strokeRect(x, y, width, height);
         
+        ctx.fillStyle = textcolor;
         ctx.strokeStyle = textcolor;
         if(!buttontext.includes("\n")) {
-            ctx.strokeText(buttontext, x + 8, y + (height / 2));
+            ctx.fillText(buttontext, x + 8, y + (height / 2));
         } else {
             var blines = buttontext.split("\n");
             var yoffs = y + ((height / 2) - (9 * (blines.length - 1)));
             var i;
             for(i = 0; i < blines.length; i++) {
                 blines[i].replace("\n", '');
-                ctx.strokeText(blines[i], x + 8, yoffs);
+                ctx.fillText(blines[i], x + 8, yoffs);
                 yoffs = yoffs + 18;
             }
         }
