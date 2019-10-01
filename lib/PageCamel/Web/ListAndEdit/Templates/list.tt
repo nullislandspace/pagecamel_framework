@@ -41,7 +41,7 @@
                                     filtervalue="[% tr.quote(columnfilter.filter) %]"
                                 [% END %]
                             [% END %]
-                            >[% tr.trquote(column.header) %]</th>
+                            colname="[% column.colname %]">[% tr.trquote(column.header) %]</th>
                         [% END %]
                     </tr>
                 [% END %]
@@ -126,6 +126,7 @@
                 }
                 // ttvars.json.Columnfilterdata
                 var txtval = $(this).attr('filtervalue');
+                var colname = $(this).attr('colname');
                 if(typeof txtval === 'undefined') {
                     txtval = '';
                 } else {
@@ -133,7 +134,10 @@
                 }
                 
                 
-                $(this).html('<input type="text" ' + txtval + ' placeholder="'+title+'" class="datatablescolumnsearchinput" size="' + fieldlen + '" maxlength="100"/>');
+                $(this).html('<input type="search" ' + txtval + ' placeholder="'+title+
+                             '" class="datatablescolumnsearchinput" size="' + fieldlen +
+                             '" maxlength="100" searchcolumn="' + colname + '"/>'
+                             );
             });
 
             // Auto-Resize input
@@ -191,7 +195,7 @@
             t.api().columns().every(function() {
                 var that = this;
 
-                $('input[type=text]', this.footer()).on('keyup change', function() {
+                $('input[type=search]', this.footer()).on('keyup change search', function() {
                     if(that.search() !== this.value) {
                         that
                             .search( this.value )
@@ -200,6 +204,7 @@
                 });
             });
             
+            // Make sure we update datatables with the latest info ;-)
             $('input.datatablescolumnsearchinput').each(function() {
                 $(this).trigger("change");
             });
