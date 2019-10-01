@@ -35,7 +35,13 @@
                             <th></th>
                         [% END %]
                         [% FOREACH column IN columns %]
-                            <th class="datatablescolumnsearch" align="left">[% tr.trquote(column.header) %]</th>
+                            <th class="datatablescolumnsearch" align="left"
+                            [% FOREACH columnfilter IN rawColumnFilters %]
+                                [% IF columnfilter.column == column.colname %]
+                                    filtervalue="[% tr.quote(columnfilter.filter) %]"
+                                [% END %]
+                            [% END %]
+                            >[% tr.trquote(column.header) %]</th>
                         [% END %]
                     </tr>
                 [% END %]
@@ -118,7 +124,16 @@
                 if(fieldlen > 30) {
                     fieldlen = 30;
                 }
-                $(this).html('<input type="text" placeholder="'+title+'" class="datatablescolumnsearchinput" size="' + fieldlen + '" maxlength="100"/>');
+                // ttvars.json.Columnfilterdata
+                var txtval = $(this).attr('filtervalue');
+                if(typeof txtval === 'undefined') {
+                    txtval = '';
+                } else {
+                    txtval = 'value="' + txtval + '"';
+                }
+                
+                
+                $(this).html('<input type="text" ' + txtval + ' placeholder="'+title+'" class="datatablescolumnsearchinput" size="' + fieldlen + '" maxlength="100"/>');
             });
 
             // Auto-Resize input
@@ -183,6 +198,10 @@
                             .draw();
                     }
                 });
+            });
+            
+            $('input.datatablescolumnsearchinput').each(function() {
+                $(this).trigger("change");
             });
         }
     }

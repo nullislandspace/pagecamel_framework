@@ -351,9 +351,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         $self->{defaultlastsort} = $defaultlastsort;
 
     }
-
-
-
+    
     # ------------- EDIT -------------
     if($self->{listonly}) {
         # Check if we are in listonly mode
@@ -1039,6 +1037,7 @@ sub get_list {
     foreach my $item (@{$self->{list}->{item}}) {
         my %column = (
             header  => $item->{header},
+            colname => $item->{column},
         );
         push @columns, \%column;
         $colcount++;
@@ -1060,8 +1059,21 @@ sub get_list {
         $lastsort = $self->{defaultlastsort};
     }
 
-
     $webdata{aaSorting} = $lastsort;
+    
+    if($self->{column_filters}) {
+        my $rawfilters = $sesh->get($self->{sessionname} . '::rawColumnFilters') || "";
+        $rawfilters = dbderef($rawfilters);
+    
+        if($rawfilters eq '') {
+            # Make sorting the default sort order
+            $rawfilters = [];
+        }
+    
+        $webdata{rawColumnFilters} = $rawfilters;
+    }
+    
+    #$sesh->set($self->{sessionname} . '::rawColumnFilters', $rawjson);
     
     my @headextrascripts;
     
@@ -1204,10 +1216,19 @@ sub get_lines {
             $colnum++;
         }
         my $colwhere = '';
+        my @rawfilters;
         foreach my $col (@{$self->{wherecolumns}}) {
             $colnum++;
 
             my $colfilter = $ua->{postparams}->{'columns[' . $colnum . '][search][value]'} || '';
+            if($colfilter ne '') {
+                my %rawfilter = (
+                    column => $col,
+                    filter => $colfilter,
+                );
+                push @rawfilters, \%rawfilter;
+            }
+
             my $not = '';
             $colfilter = stripString($colfilter);
             next if($colfilter eq '');
@@ -1234,6 +1255,8 @@ sub get_lines {
             }
             $where .= " $colwhere ";
         }
+
+        $sesh->set($self->{sessionname} . '::rawColumnFilters', \@rawfilters);
     }
     
     $sesh->set($self->{sessionname} . '::lastWhere', $where);
