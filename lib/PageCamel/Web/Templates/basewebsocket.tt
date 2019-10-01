@@ -133,7 +133,8 @@
             ctx.strokeText(buttontext, x + 8, y + (height / 2));
         } else {
             var blines = buttontext.split("\n");
-            var yoffs = y + 15;
+            
+            var yoffs = y + ((height / 2) - (9 * (blines.length - 1)));
             var i;
             for(i = 0; i < blines.length; i++) {
                 blines[i].replace("\n", '');
@@ -141,6 +142,7 @@
                 yoffs = yoffs + 18;
             }
         }
+        firstdebug = 0;
         
         var thisbutton = {
             startx: x,
@@ -170,7 +172,7 @@
             ctx.strokeText(buttontext, x + 8, y + (height / 2));
         } else {
             var blines = buttontext.split("\n");
-            var yoffs = y + 15;
+            var yoffs = y + ((height / 2) - (9 * (blines.length - 1)));
             var i;
             for(i = 0; i < blines.length; i++) {
                 blines[i].replace("\n", '');
