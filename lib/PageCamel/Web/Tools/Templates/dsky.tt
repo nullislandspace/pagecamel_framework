@@ -57,33 +57,33 @@
         ctx.fillStyle = '#C0C0C0';
         ctx.strokeStyle = '#000000';
         ctx.font="30px Courier";
-        addButton(ctx, 640, 50, 100, 100,  "ACK",      '#A0A0A0', "BUTTONPRESS", "ACK");
-        addButton(ctx, 760, 50, 100, 100,  "TX",       '#A0A0A0', "BUTTONPRESS", "IR");
-        addButton(ctx, 880, 50, 100, 100,  "PWR",      '#A0A0A0', "BUTTONPRESS", "POWER");
+        addButton(ctx, 640, 50, 100, 100,  "ACK",       '#000000', '#A0A0A0', "BUTTONPRESS", "ACK");
+        addButton(ctx, 760, 50, 100, 100,  "TX",        '#000000', '#A0A0A0', "BUTTONPRESS", "IR");
+        addButton(ctx, 880, 50, 100, 100,  "PWR",       '#000000', '#A0A0A0', "BUTTONPRESS", "POWER");
         
-        addButton(ctx, 640, 210, 100, 100,  "ESC",      '#A0A0A0', "BUTTONPRESS", "ESC");
-        addButton(ctx, 760, 210, 100, 100,  "PRO",      '#A0A0A0', "BUTTONPRESS", "PRO");
-        addButton(ctx, 880, 210, 100, 100,  "FUNC",      '#A0A0A0', "BUTTONPRESS", "FUNC");
-        addButton(ctx, 1000, 210, 100, 100, "α",        '#A0A0A0', "BUTTONPRESS", "I1");
+        addButton(ctx, 640, 210, 100, 100,  "ESC",      '#000000', '#A0A0A0', "BUTTONPRESS", "ESC");
+        addButton(ctx, 760, 210, 100, 100,  "PRO",      '#000000', '#A0A0A0', "BUTTONPRESS", "PRO");
+        addButton(ctx, 880, 210, 100, 100,  "FUNC",     '#000000', '#A0A0A0', "BUTTONPRESS", "FUNC");
+        addButton(ctx, 1000, 210, 100, 100, "α",        '#000000', '#A0A0A0', "BUTTONPRESS", "I1");
         
-        addButton(ctx, 640, 320, 100, 100,  "7",        '#A0A0A0', "BUTTONPRESS", "7");
-        addButton(ctx, 760, 320, 100, 100,  "8",        '#A0A0A0', "BUTTONPRESS", "8");
-        addButton(ctx, 880, 320, 100, 100,  "9",        '#A0A0A0', "BUTTONPRESS", "9");
-        addButton(ctx, 1000, 320, 100, 100, "β",        '#A0A0A0', "BUTTONPRESS", "I2");
+        addButton(ctx, 640, 320, 100, 100,  "7",        '#000000', '#A0A0A0', "BUTTONPRESS", "7");
+        addButton(ctx, 760, 320, 100, 100,  "8",        '#000000', '#A0A0A0', "BUTTONPRESS", "8");
+        addButton(ctx, 880, 320, 100, 100,  "9",        '#000000', '#A0A0A0', "BUTTONPRESS", "9");
+        addButton(ctx, 1000, 320, 100, 100, "β",        '#000000', '#A0A0A0', "BUTTONPRESS", "I2");
         
-        addButton(ctx, 640, 430, 100, 100,  "4",        '#A0A0A0', "BUTTONPRESS", "4");
-        addButton(ctx, 760, 430, 100, 100,  "5",        '#A0A0A0', "BUTTONPRESS", "5");
-        addButton(ctx, 880, 430, 100, 100,  "6",        '#A0A0A0', "BUTTONPRESS", "6");
-        addButton(ctx, 1000, 430, 100, 100, "γ",        '#A0A0A0', "BUTTONPRESS", "I3");
+        addButton(ctx, 640, 430, 100, 100,  "4",        '#000000', '#A0A0A0', "BUTTONPRESS", "4");
+        addButton(ctx, 760, 430, 100, 100,  "5",        '#000000', '#A0A0A0', "BUTTONPRESS", "5");
+        addButton(ctx, 880, 430, 100, 100,  "6",        '#000000', '#A0A0A0', "BUTTONPRESS", "6");
+        addButton(ctx, 1000, 430, 100, 100, "γ",        '#000000', '#A0A0A0', "BUTTONPRESS", "I3");
         
-        addButton(ctx, 640, 540, 100, 100,  "1",        '#A0A0A0', "BUTTONPRESS", "1");
-        addButton(ctx, 760, 540, 100, 100,  "2",        '#A0A0A0', "BUTTONPRESS", "2");
-        addButton(ctx, 880, 540, 100, 100, "3",         '#A0A0A0', "BUTTONPRESS", "3");
-        addButton(ctx, 1000, 540, 100, 210, "⏎",        '#A0A0A0', "BUTTONPRESS", "ENTER");
+        addButton(ctx, 640, 540, 100, 100,  "1",        '#000000', '#A0A0A0', "BUTTONPRESS", "1");
+        addButton(ctx, 760, 540, 100, 100,  "2",        '#000000', '#A0A0A0', "BUTTONPRESS", "2");
+        addButton(ctx, 880, 540, 100, 100, "3",         '#000000', '#A0A0A0', "BUTTONPRESS", "3");
+        addButton(ctx, 1000, 540, 100, 210, "⏎",        '#000000', '#A0A0A0', "BUTTONPRESS", "ENTER");
         
-        addButton(ctx, 640, 650, 100, 100, "0",         '#A0A0A0', "BUTTONPRESS", "0");
-        addButton(ctx, 760, 650, 100, 100, "00",        '#A0A0A0', "BUTTONPRESS", "00");
-        addButton(ctx, 880, 650, 100, 100, "DEL",       '#A0A0A0', "BUTTONPRESS", "BACKSPACE");
+        addButton(ctx, 640, 650, 100, 100, "0",         '#000000', '#A0A0A0', "BUTTONPRESS", "0");
+        addButton(ctx, 760, 650, 100, 100, "00",        '#000000', '#A0A0A0', "BUTTONPRESS", "00");
+        addButton(ctx, 880, 650, 100, 100, "DEL",       '#000000', '#A0A0A0', "BUTTONPRESS", "BACKSPACE");
 
         ctx.fillStyle = '#FF0000';
         ctx.strokeStyle = '#FF0000';        
