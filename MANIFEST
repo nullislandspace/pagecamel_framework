@@ -23,6 +23,7 @@ lib/PageCamel/CMDLine/Worker.pm
 lib/PageCamel/DNS.pm
 lib/PageCamel/Framework.pm
 lib/PageCamel/Helpers.pm
+lib/PageCamel/Helpers/ArduinoDisplay.pm
 lib/PageCamel/Helpers/AutoDialogs.pm
 lib/PageCamel/Helpers/ClacksCache.pm
 lib/PageCamel/Helpers/Colors.pm

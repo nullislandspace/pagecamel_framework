@@ -15,6 +15,7 @@ use Array::Contains;
 use base qw(Exporter);
 
 #=!=START-AUTO-INCLUDES
+use PageCamel::Helpers::ArduinoDisplay;
 use PageCamel::Helpers::AutoDialogs;
 use PageCamel::Helpers::CSVFilter;
 use PageCamel::Helpers::ClacksCache;
