@@ -87,7 +87,7 @@
                                 [% ELSIF column.displaytype == "codedisplay" %]
                                     <pre><code>[% tr.quote(column.columnvalue) %]</code></pre>
                                 [% ELSIF column.displaytype == "number" %]
-                                    <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="18" maxlength="20" decimalcount="[% column.hasdecimal %]" min="[% column.value_min %]" max="[% column.value_max %]">
+                                    <input type="number" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="18" maxlength="20" step="[% column.step %]" min="[% column.value_min %]" max="[% column.value_max %]">
                                 [% ELSIF column.displaytype == "colorpicker" %]
                                     <input type="color" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
                                 [% ELSIF column.displaytype == "checkbox" %]

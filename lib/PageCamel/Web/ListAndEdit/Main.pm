@@ -590,6 +590,8 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
                 print '    EDIT: Column ', $item->{column}, " does not define \"hasdecimal\"!\n";
                 $ok = 0;
                 next;
+            } else {
+                $item->{step} = 1 / (10 ** $item->{hasdecimal});
             }
         }
 
@@ -1678,8 +1680,8 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                     }
                     $tmp = parseNaturalDate($tmp);
                 } elsif ($self->{editcolumntypes}->{$column} eq 'number') {
-                    # remove thousands-divider
-                    $tmp =~ s/\,//g;
+                    # make sure we always use the dot as a comma
+                    $tmp =~ s/\,/./g;
                     if($tmp eq '') {
                         $tmp = 0;
                     } else {
@@ -1796,8 +1798,8 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                     }
                     $tmp = parseNaturalDate($tmp);
                 } elsif ($self->{editcolumntypes}->{$column} eq 'number') {
-                    # remove thousands-divider
-                    $tmp =~ s/\,//g;
+                    # make sure we always use the dot as a comma
+                    $tmp =~ s/\,/./g;
                     if($tmp eq '') {
                         $tmp = 0;
                     } else {
@@ -2041,13 +2043,13 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
             }
         }
 
-        if($self->{editcolumntypes}->{$column{columnname}} eq 'number' && !$item->{hasdecimal}) {
-            if(defined($column{columnvalue})) {
-                $column{columnvalue} = int($column{columnvalue});
-            } else {
-                $column{columnvalue} = 0;
-            }
-        }
+        #if($self->{editcolumntypes}->{$column{columnname}} eq 'number' && !$item->{hasdecimal}) {
+        #    if(defined($column{columnvalue})) {
+        #        $column{columnvalue} = int($column{columnvalue});
+        #    } else {
+        #        $column{columnvalue} = 0;
+        #    }
+        #}
 
         if($primarykey eq '__NEW__' && defined($item->{createtype})) {
             $column{displaytype} = $item->{createtype};
