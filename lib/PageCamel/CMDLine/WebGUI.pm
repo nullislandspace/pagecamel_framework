@@ -152,6 +152,11 @@ sub init {
                                 my $ssl = shift;
                                 my $h = Net::SSLeay::get_servername($ssl);
 
+                                if(!defined($h)) {
+                                    print STDERR "SSL: No Hostname given during SSL setup\n";
+                                    return;
+                                }
+
                                 if(!defined($config->{server}->{ssldomains}->{$h})) {
                                     print STDERR "SSL: Hostname $h not configured\n";
                                     return;
