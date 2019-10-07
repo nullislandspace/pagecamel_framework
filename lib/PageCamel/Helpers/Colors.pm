@@ -46,12 +46,12 @@ sub colorMaxContrast {
 
     my $avg = ($r + $g + $b) / 3;
 
-    if($avg < 85) {
+    if($avg < 100) {
         # Nearly black, so make the result white
         $newr = 255;
         $newg = 255;
         $newb = 255;
-    } elsif($avg > 170) {
+    } elsif($avg > 156) {
         # Nearly white, so make the result black
         $newr = 0;
         $newg = 0;
