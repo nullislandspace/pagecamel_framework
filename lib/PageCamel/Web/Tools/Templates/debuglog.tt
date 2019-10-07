@@ -75,9 +75,10 @@
         ctx.strokeRect(0, 0, 1000, 800);
         
         // Lines
-        ctx.strokeStyle = '#FFFFFF';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#FFFFFF';
         for(i = 0; i < lines.length; i++) {
-            ctx.strokeText(lines[i], 10, 20 + (i * 14));
+            ctx.fillText(lines[i], 10, 20 + (i * 14));
         }
         
         setTimeout(paintCanvas_nogst, 40);
@@ -115,53 +116,53 @@
         ctx.fillRect(0, 0, 1000, 800);
         
         // fading text lines
-        ctx.strokeStyle = '#001000';
+        ctx.fillStyle = '#001000';
         for(i = 0; i < oldlines7.length; i++) {
-            ctx.strokeText(oldlines7[i], 10, 30 + (i * 24));
+            ctx.fillText(oldlines7[i], 10, 30 + (i * 24));
         }
         oldlines7 = oldlines6.slice();
         
-        ctx.strokeStyle = '#003000';
+        ctx.fillStyle = '#003000';
         for(i = 0; i < oldlines6.length; i++) {
-            ctx.strokeText(oldlines6[i], 10, 30 + (i * 24));
+            ctx.fillText(oldlines6[i], 10, 30 + (i * 24));
         }
         oldlines6 = oldlines5.slice();
         
-        ctx.strokeStyle = '#005000';
+        ctx.fillStyle = '#005000';
         for(i = 0; i < oldlines5.length; i++) {
-            ctx.strokeText(oldlines5[i], 10, 30 + (i * 24));
+            ctx.fillText(oldlines5[i], 10, 30 + (i * 24));
         }
         oldlines5 = oldlines4.slice();        
 
 
-        ctx.strokeStyle = '#007000';
+        ctx.fillStyle = '#007000';
         for(i = 0; i < oldlines4.length; i++) {
-            ctx.strokeText(oldlines4[i], 10, 30 + (i * 24));
+            ctx.fillText(oldlines4[i], 10, 30 + (i * 24));
         }
         oldlines4 = oldlines3.slice();        
         
-        ctx.strokeStyle = '#009000';
+        ctx.fillStyle = '#009000';
         for(i = 0; i < oldlines3.length; i++) {
-            ctx.strokeText(oldlines3[i], 10, 30 + (i * 24));
+            ctx.fillText(oldlines3[i], 10, 30 + (i * 24));
         }
         oldlines3 = oldlines2.slice();
 
-        ctx.strokeStyle = '#00b000';
+        ctx.fillStyle = '#00b000';
         for(i = 0; i < oldlines2.length; i++) {
-            ctx.strokeText(oldlines2[i], 10, 30 + (i * 24));
+            ctx.fillText(oldlines2[i], 10, 30 + (i * 24));
         }
         oldlines2 = oldlines1.slice();
 
-        ctx.strokeStyle = '#00d000';
+        ctx.fillStyle = '#00d000';
         for(i = 0; i < oldlines1.length; i++) {
-            ctx.strokeText(oldlines1[i], 10, 30 + (i * 24));
+            ctx.fillText(oldlines1[i], 10, 30 + (i * 24));
         }
         oldlines1 = lines.slice();
         
         // Text Lines
-        ctx.strokeStyle = '#A0FFA0';
+        ctx.fillStyle = '#A0FFA0';
         for(i = 0; i < lines.length; i++) {
-            ctx.strokeText(lines[i], 10, 30 + (i * 24));
+            ctx.fillText(lines[i], 10, 30 + (i * 24));
         }
         
         // CRT raster lines
@@ -185,8 +186,6 @@
     function canvasClicks_gst(e) {
         var x = Math.floor((e.pageX-$("#debuglogcanvas").offset().left));
         var y = Math.floor((e.pageY-$("#debuglogcanvas").offset().top));
-        
-        //ctx.strokeText(lines[i], 10, 20 + (i * 14));
         
         var linenum = y - 19;
         if(linenum < 0) {
