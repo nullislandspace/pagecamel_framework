@@ -2526,8 +2526,8 @@ lib/PageCamel/Worker/GardenSpaceProgram/Modem.pm
 lib/PageCamel/Worker/GardenSpaceProgram/SolsticeDecoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/SolsticeModbusDecoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/Upload.pm
+lib/PageCamel/Worker/GardenSpaceProgram/WaterFeeler2Decoder.pm
 lib/PageCamel/Worker/GardenSpaceProgram/WaterFeelerDecoder.pm
-lib/PageCamel/Worker/GardenSpaceProgram/WaterFeelerDecoder2.pm
 lib/PageCamel/Worker/HomeAutomation/Allnet4076.pm
 lib/PageCamel/Worker/HomeAutomation/FritzBox.pm
 lib/PageCamel/Worker/HomeAutomation/HWGSTE.pm

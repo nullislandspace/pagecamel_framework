@@ -390,7 +390,7 @@ sub sockethandler {
                     
                     # Generate local chunk checksums
                     if($lsize > 0) {
-                        open(my $ifh, '<', $updata{localname}) or croak($!);
+                        open(my $ifh, '<', $updata{localname}) or croak($ERRNO);
                         binmode($ifh);
                         my $chunknum = 0;
                         
@@ -448,7 +448,7 @@ sub sockethandler {
                                 croak("Internal error: New file must begin with first chunk!");
                             }
                         }
-                        open(my $ofh, $filemode, $upfiles[0]->{localname}) or croak($!);
+                        open(my $ofh, $filemode, $upfiles[0]->{localname}) or croak($ERRNO);
                         binmode $ofh;
                         
                         seek($ofh, $seekto, 0);
@@ -574,7 +574,7 @@ sub get_files {
             if(substr($part, 0, 1) ne '!') {
                 push @searchpositives, $part;
             } else {
-                substr($part, 0, 1) = '';
+                substr($part, 0, 1, '');
                 if($part ne '') {
                     push @searchnegatives, $part;
                 }
@@ -667,11 +667,11 @@ sub get_files {
     # Cut list to requested size
     my $limit = $ua->{postparams}->{'length'} || 10;
     my $first = $ua->{postparams}->{'start'} || 0;
-    my $last = $first + $limit;
+    my $final = $first + $limit;
 
-    if($last >= scalar @files) {
-        $last = (scalar @files) - 1;
-        if($first > $last) {
+    if($final >= scalar @files) {
+        $final = (scalar @files) - 1;
+        if($first > $final) {
             $first = -1;
         }
     }
@@ -682,7 +682,7 @@ sub get_files {
     if($first == -1) {
         @files = ();
     } else {
-        @files = @files[$first..$last];
+        @files = @files[$first..$final];
     }
     
     my %webdata = (

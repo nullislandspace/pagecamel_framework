@@ -704,10 +704,10 @@ sub process_request { ## no critic (Subroutines::ProhibitExcessComplexity)
 
     local $SIG{USR1} = sub {
         print STDERR "******************   SIGNAL USR1 DETECTED ****************\n";
-        eval {
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             confess();
         };
-        my $stacktrace = join("\n", $@);
+        my $stacktrace = join("\n", $EVAL_ERROR);
         #print STDERR "###########\n$stacktrace\n###########\n";
         foreach my $filtermodule (@{$self->{logstacktrace}}) {
             my $module = $filtermodule->{Module};
@@ -2154,7 +2154,8 @@ sub trace {
     return unless($self->{trace});
 
     #print STDERR "*-*-*-* " . $self->{trace} . " $status\n";
-    $0 = $self->{appname} . ' ' . $status;
+    $PROGRAM_NAME = $self->{appname} . ' ' . $status;
+    return;
 }
 
 1;

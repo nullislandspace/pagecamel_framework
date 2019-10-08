@@ -146,6 +146,8 @@ sub decodeFrame {
         my $clacksdata = join(',', @parts);
         $self->{clacks}->set('GSP::DRIVEWAYLIGHTS::STATECHANGE', $clacksdata);
     }
+
+    return;
 }
 
 
@@ -171,7 +173,7 @@ sub decodeStatusFrame {
     $decoded{packets_out} = ($frame[$data + 14] << 8) + $frame[$data + 15];
 
     my $rawvolt = ($frame[$data + 8] << 8) + $frame[$data + 9];
-    my ($r1, $r2) = (470000, 47000); # Voltage divider resistors
+    my ($r1, $r2) = (470_000, 47_000); # Voltage divider resistors
     my $calcvolt = (($rawvolt * $self->{calibrated_system_volts}) / 1024) / ($r2 / ($r1 + $r2));
     $calcvolt = int($calcvolt * 100) / 100;
     $decoded{voltage_raw} = $rawvolt;

@@ -116,7 +116,6 @@ sub wscyclic {
 
                 if(!$self->wsprint(\%msg)) {
                     return 0;
-                    last;
                 }
             }
         }
@@ -147,7 +146,6 @@ sub wscyclic {
                 }
                 if(!$self->wsprint(\%msg)) {
                     return 0;
-                    last;
                 }
 
                 next;
@@ -163,7 +161,6 @@ sub wscyclic {
 
                 if(!$self->wsprint(\%msg)) {
                     return 0;
-                    last;
                 }
             }
         }

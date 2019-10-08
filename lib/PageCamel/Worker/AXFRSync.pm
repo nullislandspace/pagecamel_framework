@@ -146,7 +146,7 @@ sub syncDomain {
             or croak($dbh->errstr);
 
 
-    my $resolver = new Net::DNS::Resolver(
+    my $resolver = Net::DNS::Resolver->new(
         nameservers => [ $domain->{axfr_master} ],
         recurse     => 0,
         debug       => 0
@@ -155,13 +155,13 @@ sub syncDomain {
 
     my $ok = 0;
     my @zone;
-    eval {
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         @zone = $resolver->axfr($domain->{domain_fqdn});
         $ok = 1;
     };
 
     if(!$ok || !@zone) {
-        $reph->debuglog("Failed to AXFR domain " . $domain->{domain_fqdn} . ": $@");
+        $reph->debuglog("Failed to AXFR domain " . $domain->{domain_fqdn} . ": $EVAL_ERROR");
         $dbh->rollback;
         return $workCount;
     }

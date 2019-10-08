@@ -88,7 +88,6 @@ sub work {
     $self->{remoteclacks}->doNetwork();
 
     my $first = 1;
-    my %sessions;
     while((my $message = $self->{localclacks}->getNext())) {
         $workCount++;
         if($message->{type} eq 'disconnect') {

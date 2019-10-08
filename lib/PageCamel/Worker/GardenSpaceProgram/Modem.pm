@@ -31,9 +31,9 @@ sub new {
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
 
-    my $modem = Device::SerialPort->new('/dev/ttyACM0') or die("Modem error $!");
+    my $modem = Device::SerialPort->new('/dev/ttyACM0') or croak("Modem error $ERRNO");
 
-    $modem->baudrate(115200);
+    $modem->baudrate(115_200);
     $modem->parity('none');
     $modem->databits(8);
     $modem->stopbits(1);

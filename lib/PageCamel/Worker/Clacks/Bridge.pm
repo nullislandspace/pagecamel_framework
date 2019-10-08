@@ -134,7 +134,6 @@ sub work {
     $self->{remoteclacks}->doNetwork();
 
     my $first = 1;
-    my %sessions;
     my %sentkeys;
     while((my $message = $self->{localclacks}->getNext())) {
         $workCount++;
@@ -147,7 +146,7 @@ sub work {
 
             # Change key prefix according to XML prefix settings
             if(substr($key, 0, length($self->{local2remote}->{removeprefix})) eq $self->{local2remote}->{removeprefix}) {
-                substr($key, 0, length($self->{local2remote}->{removeprefix})) = '';
+                substr($key, 0, length($self->{local2remote}->{removeprefix}), '');
             }
             $key = $self->{local2remote}->{addprefix} . $key;
             $reph->debuglog("Sending " . length($message->{data}) . " bytes of data for " . $key);
@@ -163,7 +162,7 @@ sub work {
             
             # Change key prefix according to XML prefix settings
             if(substr($key, 0, length($self->{local2remote}->{removeprefix})) eq $self->{local2remote}->{removeprefix}) {
-                substr($key, 0, length($self->{local2remote}->{removeprefix})) = '';
+                substr($key, 0, length($self->{local2remote}->{removeprefix}), '');
             }
             $key = $self->{local2remote}->{addprefix} . $key;
             $reph->debuglog("Sending notify for " . $key);
@@ -194,7 +193,7 @@ sub work {
 
             # Change key prefix according to XML prefix settings
             if(substr($key, 0, length($self->{remote2local}->{removeprefix})) eq $self->{remote2local}->{removeprefix}) {
-                substr($key, 0, length($self->{remote2local}->{removeprefix})) = '';
+                substr($key, 0, length($self->{remote2local}->{removeprefix}), '');
             }
             $key = $self->{remote2local}->{addprefix} . $key;
             $reph->debuglog("Receiving " . length($message->{data}) . " bytes of data for " . $key);
@@ -210,7 +209,7 @@ sub work {
             
             # Change key prefix according to XML prefix settings
             if(substr($key, 0, length($self->{remote2local}->{removeprefix})) eq $self->{remote2local}->{removeprefix}) {
-                substr($key, 0, length($self->{remote2local}->{removeprefix})) = '';
+                substr($key, 0, length($self->{remote2local}->{removeprefix}), '');
             }
             $key = $self->{remote2local}->{addprefix} . $key;
             $reph->debuglog("Receiving notify for " . $key);

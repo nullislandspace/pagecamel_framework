@@ -451,7 +451,7 @@ sub get {
                 $toccount++;
             } else {
                 $newtext .= substr($fulltext, 0, 1);
-                substr($fulltext, 0, 1) = '';
+                substr($fulltext, 0, 1, '');
             }
         }
 

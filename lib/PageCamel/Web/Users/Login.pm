@@ -430,7 +430,7 @@ sub get_switchtouser {
 
     my $remove = $self->{switchtouser}->{webpath};
     my $targetuser = $ua->{url};
-    substr($targetuser, 0, length($remove)) = '';
+    substr($targetuser, 0, length($remove), '');
 
     $targetuser = decode_uri_path($targetuser);
     $targetuser =~ s/^\///g;

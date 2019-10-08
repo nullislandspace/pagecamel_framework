@@ -76,8 +76,8 @@ sub reload {
                     settingname => 'min_value',
                     settingvalue => $self->{min},
                     description => 'Switch ON of sensor falls below this value',
-                    value_min => -999999.0,
-                    value_max =>  999999.0,
+                    value_min => -999_999.0,
+                    value_max =>  999_999.0,
                     processinghints => [
                         'decimal=3',
                     ],
@@ -88,8 +88,8 @@ sub reload {
                     settingname => 'max_value',
                     settingvalue => $self->{max},
                     description => 'Switch ON of sensor falls below this value',
-                    value_min => -999999.0,
-                    value_max =>  999999.0,
+                    value_min => -999_999.0,
+                    value_max =>  999_999.0,
                     processinghints => [
                         'decimal=3',
                     ],

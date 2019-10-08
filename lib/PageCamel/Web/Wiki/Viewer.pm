@@ -201,7 +201,7 @@ sub get {
                 my $tag = $1;
 
                 # Remove header tag from source text
-                substr($fulltext, 0, 4) = '';
+                substr($fulltext, 0, 4, '');
 
                 # Now we need to find the closing tag and the matching title text
                 my $ttext = '';
@@ -209,13 +209,13 @@ sub get {
                 while(length($fulltext)) {
                     last if($fulltext =~ /^\<\/h\d\>/);
                     $tempchar = substr($fulltext, 0, 1);
-                    substr($fulltext, 0, 1) = '';
+                    substr($fulltext, 0, 1, '');
                     #$newtext .= $tempchar;
                     $ttext .= $tempchar;
                 }
 
                 my $endtag = substr($fulltext, 0, 5);
-                substr($fulltext, 0, 5) = '';
+                substr($fulltext, 0, 5, '');
 
                 # Remove unwanted stuff
                 my $tocid = lc $ttext;
@@ -269,7 +269,7 @@ sub get {
                 $toccount++;
             } else {
                 $newtext .= substr($fulltext, 0, 1);
-                substr($fulltext, 0, 1) = '';
+                substr($fulltext, 0, 1, '');
             }
         }
 
@@ -291,20 +291,20 @@ sub get {
     my $baselink = $self->{webpath} . '/';
     while($fulltext =~ /\<a\ class\=\"cavacwiki\"/) {
         my ($pre, $rest) = split /\<a\ class\=\"cavacwiki\"\ linktitle\=\"/, $fulltext, 2;
-        my ($linktitle, $post) = split/\"/, $rest, 2;
+        my ($llinktitle, $post) = split/\"/, $rest, 2;
         $post =~ s/^(.+?)\<\/a\>//;
-        if(defined($fulltitles{$linktitle})) {
-            $fulltext = $pre . '<a href="' . $baselink . $linktitle . '">' . $fulltitles{$linktitle} . '</a>' . $post;
+        if(defined($fulltitles{$llinktitle})) {
+            $fulltext = $pre . '<a href="' . $baselink . $llinktitle . '">' . $fulltitles{$llinktitle} . '</a>' . $post;
         } else {
-            $fulltext = $pre . ' &#10068;&#10068;&#10068;' . $linktitle . '&#10068;&#10068;&#10068; ' . $post;
+            $fulltext = $pre . ' &#10068;&#10068;&#10068;' . $llinktitle . '&#10068;&#10068;&#10068; ' . $post;
         }
     }
 
     # Mark legacy links as broken
     while($fulltext =~ /\[wiki\:(.+?)]/) {
         my ($pre, $rest) = split /\[wiki\:/, $fulltext, 2;
-        my ($linktitle, $post) = split/\]/, $rest, 2;
-        $fulltext = $pre . ' &#10068;&#10068;&#10068;' . $linktitle . '&#10068;&#10068;&#10068; ' . $post;
+        my ($llinktitle, $post) = split/\]/, $rest, 2;
+        $fulltext = $pre . ' &#10068;&#10068;&#10068;' . $llinktitle . '&#10068;&#10068;&#10068; ' . $post;
     }
 
     my %webdata = (

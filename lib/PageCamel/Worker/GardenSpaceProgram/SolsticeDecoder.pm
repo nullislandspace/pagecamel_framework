@@ -146,6 +146,7 @@ sub decodeFrame {
         my $clacksdata = join(',', @parts);
         $self->{clacks}->set('GSP::SOLSTICE::STATECHANGE', $clacksdata);
     }
+    return;
 }
 
 

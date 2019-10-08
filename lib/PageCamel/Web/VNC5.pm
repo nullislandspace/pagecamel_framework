@@ -154,7 +154,7 @@ sub reload {
                     settingvalue => 1000,
                     description => 'Read block max size (bytes) for VNC TCP socket',
                     value_min => 100.0,
-                    value_max => 1000000.0,
+                    value_max => 1_000_000.0,
                     processinghints => [
                         'decimal=0',
                     ],
@@ -166,7 +166,7 @@ sub reload {
                     settingvalue => 100,
                     description => 'Read block max size (bytes) for Websocket',
                     value_min => 100.0,
-                    value_max => 1000000.0,
+                    value_max => 1_000_000.0,
                     processinghints => [
                         'decimal=0',
                     ],

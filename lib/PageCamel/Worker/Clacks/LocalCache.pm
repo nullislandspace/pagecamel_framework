@@ -86,7 +86,6 @@ sub work {
     $self->{clacks}->doNetwork();
 
     my $first = 1;
-    my %sessions;
     while((my $message = $self->{clacks}->getNext())) {
         $workCount++;
         if($message->{type} eq 'disconnect') {

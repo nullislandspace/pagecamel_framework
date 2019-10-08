@@ -50,7 +50,7 @@ sub register {
         Listen => 1,
         ReuseAddr => 1,
         Blocking => 0,
-    ) or croak($@);
+    ) or croak($EVAL_ERROR);
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname}, 0);
@@ -78,7 +78,6 @@ sub work {
     $self->{clacks}->doNetwork();
 
     my $first = 1;
-    my %sessions;
     while((my $message = $self->{clacks}->getNext())) {
         $workCount++;
         if($message->{type} eq 'disconnect') {

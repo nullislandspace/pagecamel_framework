@@ -60,7 +60,7 @@ sub work {
     my $deviceok = 1;
     for(1..5) {
         my $pingevalok = 0;
-        eval {
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             $workCount++;
             if($pinger->ping($device->{hostname}, $timeout)) {
                 $okcount++;

@@ -223,6 +223,7 @@ sub decodeFrame {
     } elsif($frame[8] == 26) {
         return $self->decodeImageData(@frame);
     }
+    return;
 }
 
 

@@ -86,7 +86,7 @@ sub work_cycle {
     my ($self) = @_;
 
     my $workCount = 0;
-    my ($ok, $sval, $mode, $cycletime) = @_;
+    my ($ok, $sval, $mode);
     my $now = time;
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -142,7 +142,6 @@ sub updateCoords {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    my %players;
     my $workCount = 0;
 
     my $json = decode_json(decode_base64($data));
@@ -487,8 +486,7 @@ sub playbackCoords {
             $self->{nextstep} = -1;
         }
     }
-
-
+    return;
 }
 
 
@@ -708,3 +706,5 @@ sub parseUserdata {
     }
     return $uname;
 }
+
+1;

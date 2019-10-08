@@ -151,7 +151,6 @@ sub wscyclic {
             if(!$self->wsprint(\%msg)) {
                 print STDERR "Write to socket failed, closing connection!\n";
                 return 0;
-                last;
             }
         }
     }

@@ -524,9 +524,9 @@ sub start_app {
     } else {
         # Child
         print "Running command ", $app->{app}, " ", $app->{conf}, "\n";
-        open STDOUT, ">",  "/dev/null" or croak("$0: open: $!");
+        open STDOUT, ">",  "/dev/null" or croak("$PROGRAM_NAME: open: $ERRNO");
         open STDERR, ">&", \*STDOUT    or exit 1;
-        eval {
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             exec($app->{app} . " " . $app->{conf});
         };
         exec('false');
