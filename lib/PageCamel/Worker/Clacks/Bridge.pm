@@ -134,7 +134,6 @@ sub work {
     $self->{remoteclacks}->doNetwork();
 
     my $first = 1;
-    my %sentkeys;
     while((my $message = $self->{localclacks}->getNext())) {
         $workCount++;
         if($message->{type} eq 'disconnect') {
@@ -151,12 +150,7 @@ sub work {
             $key = $self->{local2remote}->{addprefix} . $key;
             $reph->debuglog("Sending " . length($message->{data}) . " bytes of data for " . $key);
 
-            # Only send one message for each key in a cycle, ignore all the others.
-            # This should eliminate the lag observed during the last few days after DSL disconnects
-            if(!defined($sentkeys{$key})) {
-                $self->{remoteclacks}->set($key, $message->{data});
-                $sentkeys{$key} = 1;
-            }
+            $self->{remoteclacks}->set($key, $message->{data});
         } elsif($message->{type} eq 'notify') {
             my $key = $message->{name};
             
@@ -167,12 +161,7 @@ sub work {
             $key = $self->{local2remote}->{addprefix} . $key;
             $reph->debuglog("Sending notify for " . $key);
 
-            # Only send one message for each key in a cycle, ignore all the others.
-            # This should eliminate the lag observed during the last few days after DSL disconnects
-            if(!defined($sentkeys{$key})) {
-                $self->{remoteclacks}->notify($key);
-                $sentkeys{$key} = 1;
-            }
+            $self->{remoteclacks}->notify($key);
         }
 
     }
@@ -198,12 +187,7 @@ sub work {
             $key = $self->{remote2local}->{addprefix} . $key;
             $reph->debuglog("Receiving " . length($message->{data}) . " bytes of data for " . $key);
 
-            # Only send one message for each key in a cycle, ignore all the others.
-            # This should eliminate the lag observed during the last few days after DSL disconnects
-            if(!defined($sentkeys{$key})) {
-                $self->{localclacks}->set($key, $message->{data});
-                $sentkeys{$key} = 1;
-            }
+            $self->{localclacks}->set($key, $message->{data});
         } elsif($message->{type} eq 'notify') {
             my $key = $message->{name};
             
@@ -214,12 +198,7 @@ sub work {
             $key = $self->{remote2local}->{addprefix} . $key;
             $reph->debuglog("Receiving notify for " . $key);
 
-            # Only send one message for each key in a cycle, ignore all the others.
-            # This should eliminate the lag observed during the last few days after DSL disconnects
-            if(!defined($sentkeys{$key})) {
-                $self->{localclacks}->notify($key);
-                $sentkeys{$key} = 1;
-            }
+            $self->{localclacks}->notify($key);
         }
     }
     $self->{localclacks}->doNetwork();
