@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 package PageCamel::Net::Server::Tracker;
-our $VERSION = 2.2;
+our $VERSION = 2.3;
 # ABSTRACT: shared status file for PageCamel::Net::Server children
 
 use Carp ();

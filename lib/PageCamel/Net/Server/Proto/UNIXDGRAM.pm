@@ -28,7 +28,7 @@
 
 package PageCamel::Net::Server::Proto::UNIXDGRAM;
 use strict;
-our $VERSION = 2.2;
+our $VERSION = 2.3;
 use base qw(PageCamel::Net::Server::Proto::UNIX);
 use Socket qw(SOCK_DGRAM);
 

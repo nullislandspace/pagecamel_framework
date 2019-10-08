@@ -27,7 +27,7 @@
 ################################################################
 
 package PageCamel::Net::Server::MultiType;
-our $VERSION = 2.2;
+our $VERSION = 2.3;
 
 use strict;
 use base qw(PageCamel::Net::Server);

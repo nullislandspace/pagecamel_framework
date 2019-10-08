@@ -29,7 +29,7 @@
 package PageCamel::Net::Server::Proto::SSL;
 use strict;
 use warnings;
-our $VERSION = 2.2;
+our $VERSION = 2.3;
 
 BEGIN {
     # IO::Socket::SSL will automatically become IO::Socket::INET6 if it is available.

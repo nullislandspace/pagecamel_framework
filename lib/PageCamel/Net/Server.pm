@@ -38,7 +38,7 @@ use PageCamel::Net::Server::Proto ();
 use PageCamel::Net::Server::Daemonize qw(check_pid_file create_pid_file safe_fork
                               get_uid get_gid set_uid set_gid);
 
-our $VERSION = 2.2;
+our $VERSION = 2.3;
 
 sub new {
     my $class = shift || die "Missing class";
