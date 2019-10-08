@@ -24,7 +24,7 @@ use Data::Dumper;
 use Readonly;
 
 Readonly my $SAMPLERATE => 8000.0;
-Readonly my $CFACTOR => 2048.0 / 44100.0; # Original timing in browser (most likely) 44100 Sample/s in 2048 samples "batches"
+Readonly my $CFACTOR => 2048.0 / 44_100.0; # Original timing in browser (most likely) 44100 Sample/s in 2048 samples "batches"
 
 sub new {
     my ($class, $isDebugging, $configfile) = @_;
@@ -63,7 +63,7 @@ sub init {
     my $isForking = $config->{server}->{forking} || 0;
     my $ps_appname = lc($APPNAME);
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
-    $0 = $ps_appname;
+    $PROGRAM_NAME = $ps_appname;
         
     print Dumper($self);
     my $vserv = PageCamel::Helpers::VoiceClient->new($self->{config}->{ip}, $self->{config}->{port}, $self->{config}->{username});
@@ -79,8 +79,6 @@ sub init {
     
     return;
 }
-
-my %volumnes;
 
 sub run {
     my ($self) = @_;
@@ -108,7 +106,7 @@ sub run {
         if(!defined($ifh)) {
             my $fname = shift @filenames;
             print "Now Playing $fname\n";
-            open($ifh, '<', $fname) or croak($!);
+            open($ifh, '<', $fname) or croak($ERRNO);
             binmode $ifh;
         }
         if(scalar @buffer < ($SAMPLERATE * 5)) {

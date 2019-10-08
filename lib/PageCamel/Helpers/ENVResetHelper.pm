@@ -37,7 +37,7 @@ sub ENVReset {
         if($line =~ /^([A-Za-z0-9_]+)=(.*)/) {
             my ($key, $val) = ($1, $2);
             #print STDERR "Setting $key = $val\n";
-            $ENV{$key} = $val; ## no critic (Variables::RequireLocalizedPunctuationVars)
+            $ENV{$key} = $val;
         } else {
             print STDERR "Unparsable line $line\n";
         }

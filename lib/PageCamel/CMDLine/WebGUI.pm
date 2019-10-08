@@ -78,7 +78,7 @@ sub init {
     }
 
 
-    $0 = $ps_appname;
+    $PROGRAM_NAME = $ps_appname;
     
     # ugly hack to provide the files usually provided in @INC during run-time
     # for the basic pagecamel framework files (templates, images, javascript). In
@@ -139,13 +139,13 @@ sub init {
                             #print STDERR "******************* CREATING NEW CONTEXT ********************\n";
 
                             # Enable workarounds for broken clients
-                            Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL);
+                            Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL); ## no critic (Subroutines::ProhibitAmpersandSigils)
 
                             # Disable session resumption completely
                             Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
 
                             # Disable session tickets
-                            Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
+                            Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET); ## no critic (Subroutines::ProhibitAmpersandSigils)
 
                             # Check requested server name
                             Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {

@@ -25,8 +25,8 @@ my @modules = all_modules();
 my $tests = 0;
 my @fnames;
 foreach my $module (@modules) {
-    next if($module =~ /Cache::Memcached/);
-    next if($module =~ /PageCamel::Server/);
+    next if($module =~ /PageCamel::Net::Server/);
+    next if($module =~ /LetsEncrypt/);
     next if($module =~ /WSockFrame/);
     my $fname = 'lib/' . $module . '.pm';
     $fname =~ s/\:\:/\//go;

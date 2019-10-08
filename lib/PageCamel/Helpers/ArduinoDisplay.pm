@@ -26,9 +26,9 @@ sub new {
     my @displaybuffer = ('#');
     $self->{states}->{displaybuffer} = \@displaybuffer;
 
-    $self->{arduino} = Device::SerialPort->new($self->{port}) or croak("Modem error $!");
+    $self->{arduino} = Device::SerialPort->new($self->{port}) or croak("Modem error $ERRNO");
 
-    $self->{arduino}->baudrate(115200);
+    $self->{arduino}->baudrate(115_200);
     $self->{arduino}->parity('none');
     $self->{arduino}->databits(8);
     $self->{arduino}->stopbits(1);

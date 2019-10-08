@@ -27,10 +27,9 @@
 ################################################################
 
 package PageCamel::Net::Server::Proto::TCP;
-our $VERSION = 2.2;
-
 use strict;
 use warnings;
+our $VERSION = 2.2;
 use IO::Socket::INET;
 use PageCamel::Net::Server::Proto;
 

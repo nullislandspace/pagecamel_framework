@@ -58,10 +58,10 @@ sub wsreload {
 
     $sysh->createNumber(modulename => $self->{modname},
                     settingname => 'target_sample_rate',
-                    settingvalue => 11000,
+                    settingvalue => 11_000,
                     description => 'Output Sample rate (bytes)',
                     value_min => 100.0,
-                    value_max => 48000,
+                    value_max => 48_000,
                     processinghints => [
                         'decimal=0',
                     ],
@@ -122,7 +122,7 @@ sub wshandlemessage {
         }
         print STDERR "Recording to ", $self->{tmpdir} . '/rawaudio.dat', "\n";
         print STDERR "Got START\n";
-        open(my $ofh, '>', $self->{tmpdir} . '/rawaudio.dat') or croak($!);
+        open(my $ofh, '>', $self->{tmpdir} . '/rawaudio.dat') or croak($ERRNO); ## no critic (InputOutput::RequireBriefOpen)
         binmode $ofh;
         $self->{ofh} = $ofh;
     } elsif($message->{type} eq 'STOP') {
@@ -158,8 +158,8 @@ sub wshandlemessage {
                 my $s1 = ord(substr $realchunk, $i, 1);
                 my $s2 = ord(substr $realchunk, $i+1, 1);
                 my $sval = ($s2 << 8) + $s1;
-                if($sval > 32767) {
-                    $sval -= 65536;
+                if($sval > 32_767) {
+                    $sval -= 65_536;
                 }
                 
                 my $tval = $sval * sin($self->{audio}->{vocoder1});
@@ -179,7 +179,7 @@ sub wshandlemessage {
                 $self->{audio}->{vocoder2} += 0.13;
                 
                 if($tval < 0) {
-                    $tval += 65536;
+                    $tval += 65_536;
                 }
                 my $t1 = $tval % 256;
                 my $t2 = int($tval >> 8);
@@ -188,7 +188,7 @@ sub wshandlemessage {
                     print STDERR "****** $t1 $t2 \n";
                 }
                 
-                substr($realchunk, $i, 2) = chr($t1) . chr($t2);
+                substr($realchunk, $i, 2, chr($t1) . chr($t2));
             }
         }
         
@@ -217,7 +217,7 @@ sub wshandlemessage {
         if(!defined($self->{audio}->{playbackfh}) && @{$self->{audio}->{playbackqueue}}) {
             my $ifname = shift @{$self->{audio}->{playbackqueue}};
             print STDERR "Opening file $ifname for playback.\n";
-            open(my $ifh, "<", $ifname) or croak($ERRNO);
+            open(my $ifh, "<", $ifname) or croak($ERRNO); ## no critic (InputOutput::RequireBriefOpen)
             #local $INPUT_RECORD_SEPARATOR = undef;
             binmode($ifh);
             $self->{audio}->{playbackfh} = $ifh;
@@ -230,8 +230,8 @@ sub wshandlemessage {
                     my $s1 = ord(substr $realchunk, $i, 1);
                     my $s2 = ord(substr $realchunk, $i+1, 1);
                     my $sval = ($s2 << 8) + $s1;
-                    if($sval > 32767) {
-                        $sval -= 65536;
+                    if($sval > 32_767) {
+                        $sval -= 65_536;
                     }
                     $sval /= 2;
                     
@@ -240,14 +240,14 @@ sub wshandlemessage {
                     my $d1 = ord(shift @{$self->{audio}->{playbackbuffer}});
                     my $d2 = ord(shift @{$self->{audio}->{playbackbuffer}});
                     my $dval = ($d2 << 8) + $d1;
-                    if($dval > 32767) {
-                        $dval -= 65536;
+                    if($dval > 32_767) {
+                        $dval -= 65_536;
                     }
                     $dval /= 2;
                     
                     my $tval = $sval + $dval;
                     if($tval < 0) {
-                        $tval += 65536;
+                        $tval += 65_536;
                     }
                     my $t1 = $tval % 256;
                     my $t2 = int($tval >> 8) & 0xff;
@@ -256,8 +256,7 @@ sub wshandlemessage {
                         print STDERR "****** $t1 $t2 \n";
                     }
                     
-                    substr($realchunk, $i, 2) = chr($t1) . chr($t2);
-                    #substr($realchunk, $i, 2) = chr($x1) . chr($x2);
+                    substr($realchunk, $i, 2, chr($t1) . chr($t2));
                 }
             }
         }

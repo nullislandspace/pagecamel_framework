@@ -45,7 +45,7 @@ sub crossregister {
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     my $clacks = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
-    for(my $id = 0; $id <= 65535; $id++) {
+    for(my $id = 0; $id <= 65_535; $id++) {
         my $key = "PageCamel::WebHangups::$id";
         $clacks->remove($key);
     }

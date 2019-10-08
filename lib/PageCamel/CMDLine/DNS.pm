@@ -49,7 +49,7 @@ sub init {
         $ps_appname .= '_debug';
     }
 
-    $0 = $ps_appname;
+    $PROGRAM_NAME = $ps_appname;
 
     my @runargs;
 

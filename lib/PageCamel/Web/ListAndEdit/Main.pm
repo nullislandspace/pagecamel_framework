@@ -1093,7 +1093,7 @@ sub get_list {
             data    => $template);
 }
 
-sub get_lines {
+sub get_lines { ## no critic (Subroutines::ProhibitExcessComplexity)
     my ($self, $ua) = @_;
 
 
@@ -1230,7 +1230,7 @@ sub get_lines {
             next if($colfilter eq '');
             if(substr($colfilter, 0, 1) eq '!') {
                 $not = 'NOT';
-                substr($colfilter, 0, 1) = '';
+                substr($colfilter, 0, 1, '');
             }
             next if($colfilter eq '');
 
@@ -1602,7 +1602,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                 $pkparts[$i] = $clauseitem->{value};
                 if($pkparts[$i] =~ /USER/) {
                     $pkparts[$i] =~ s/USER/$webdata{userData}->{user}/g;
-                }sub get_lines
+                }
             }
         }
 

@@ -30,9 +30,8 @@
 ################################################################
 
 package PageCamel::Net::Server::Proto::UDP;
-our $VERSION = 2.2;
-
 use strict;
+our $VERSION = 2.2;
 use base qw(PageCamel::Net::Server::Proto::TCP);
 
 my @udp_args = qw(

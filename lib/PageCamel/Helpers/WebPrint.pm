@@ -20,11 +20,10 @@ use Encode qw[encode_utf8 decode_utf8 is_utf8];
 use Errno qw(:POSIX);
 
 sub webPrint {
+    my ($ofh, @parts) = @_;
     
     my $brokenpipe = 0;
     local $SIG{PIPE} = sub { $brokenpipe = 1;};
-    
-    my ($ofh, @parts) = @_;
 
     local $INPUT_RECORD_SEPARATOR = undef;
     binmode($ofh, ':bytes');
@@ -52,7 +51,7 @@ sub webPrint {
     }
     my $written = 0;
     my $timeout = time + $timeoutthres;
-    $! = 0;
+    $ERRNO = 0;
     my $needprintdone = 0;
     while(1) {
         eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -67,7 +66,7 @@ sub webPrint {
         }
         last if($written == length($full));
         #print STDERR "Sent $written bytes (", length($full) - $written, "remaining)\n";
-        if($!{EWOULDBLOCK} || $!{EAGAIN}) {
+        if($!{EWOULDBLOCK} || $!{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
             if(!$shownlimitmessage) {
                 print STDERR "Rate limiting output\n";
                 $shownlimitmessage = 1;
@@ -78,8 +77,8 @@ sub webPrint {
         } elsif($brokenpipe) {
             print STDERR "webPrint write failure: SIGPIPE\n";
             return 0;
-        } elsif($ofh->error || $! ne '') {
-            print STDERR "webPrint write failure: $! / ", $ofh->opened, " / ", $ofh->error, "\n";
+        } elsif($ofh->error || $ERRNO ne '') {
+            print STDERR "webPrint write failure: $ERRNO / ", $ofh->opened, " / ", $ofh->error, "\n";
             return 0;
         }
         if($written) {
@@ -90,11 +89,10 @@ sub webPrint {
         }
         
         if($timeout < time) {
-            print STDERR "***** webPrint TIMEOUT ****** $!\n";
+            print STDERR "***** webPrint TIMEOUT ****** $ERRNO\n";
             return 0;
         }
         
-        #print STDERR "Rate limiting output $! ", $!{EWOULDBLOCK}, "\n";
         sleep(0.01);
         $needprintdone = 1;
     }

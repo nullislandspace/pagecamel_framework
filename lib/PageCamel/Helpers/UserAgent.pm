@@ -17,7 +17,7 @@ our @EXPORT_OK = qw(simplifyUA);
 
 use HTTP::BrowserDetect;
 
-sub simplifyUA {
+sub simplifyUA { ## no critic (Subroutines::ProhibitExcessComplexity)
     my ($useragentname) = @_;
 
     my $simpleUserAgent = '';
@@ -29,7 +29,7 @@ sub simplifyUA {
     if(defined($browserName) && defined($majorVersion)) {
         $simpleUserAgent = $browserName . '/' . $majorVersion;
     } else {
-        if($useragentname eq '' || $useragentname eq "''") {
+        if($useragentname eq '' || $useragentname eq "''") { ## no critic (ControlStructures::ProhibitCascadingIfElse)
             $useragentname = '--unknown--';
         } elsif($useragentname =~ /CC Client\/(\d+)/) {
             $simpleUserAgent = "CC Client/$1";

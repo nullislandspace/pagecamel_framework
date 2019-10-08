@@ -156,6 +156,7 @@ sub setmike {
     } else {
         $self->{outbuffer} .= "MIKE=off\r\n";
     }
+    return;
 }
 
 sub setspeaker {
@@ -166,6 +167,7 @@ sub setspeaker {
     } else {
         $self->{outbuffer} .= "SPEAKER=off\r\n";
     }
+    return;
 }
 
 sub setmonitor {
@@ -176,12 +178,14 @@ sub setmonitor {
     } else {
         $self->{outbuffer} .= "MONITOR=off\r\n";
     }
+    return;
 }
 
 sub sendvoice {
     my ($self, $value) = @_;
 
     $self->{outbuffer} .= "DATA=" . $value . "\r\n";
+    return;
 }
 
 sub getServerinfo {

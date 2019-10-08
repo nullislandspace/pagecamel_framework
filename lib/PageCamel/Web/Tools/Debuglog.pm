@@ -85,7 +85,6 @@ sub wscyclic {
 
             if(!$self->wsprint(\%msg)) {
                 return 0;
-                last;
             }
         }
     }

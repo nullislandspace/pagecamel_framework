@@ -356,7 +356,7 @@ sub getJS {
             $self->{forms}->{js} . "\n";
 }
 
-sub tr {
+sub tr { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     my ($self, $data) = @_;
 
     return $data if($data eq '');

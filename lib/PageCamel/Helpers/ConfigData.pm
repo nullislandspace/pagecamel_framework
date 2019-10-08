@@ -22,3 +22,5 @@ sub get {
 
     return $self->{$key};
 }
+
+1;

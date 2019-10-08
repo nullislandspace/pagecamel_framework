@@ -668,7 +668,7 @@ sub makeDynamicScript {
     
     my $dynsource;
     #   %>%DYNAMICJSFILE%|%' . $jsname_dynamic . '%<%
-    if($$page =~ /\%\>\%DYNAMICJSFILE\%\|\%(.+)\%\<\%/) {
+    if(${$page} =~ /\%\>\%DYNAMICJSFILE\%\|\%(.+)\%\<\%/) {
         $dynsource = $1;
     } else {
         # Nothing to do
@@ -681,7 +681,7 @@ sub makeDynamicScript {
     }
     
     my $newname = $self->gen_dynjsname();
-    $$page =~ s/\%\>\%DYNAMICJSFILE\%\|\%(.+)\%\<\%/$newname/;
+    ${$page} =~ s/\%\>\%DYNAMICJSFILE\%\|\%(.+)\%\<\%/$newname/;
     
     my $rawjs = $self->{uninlinefiles}->{$dynsource}->{uncompresseddata} . ''; # Make sure we COPY
 

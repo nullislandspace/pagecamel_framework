@@ -89,7 +89,7 @@ sub get {
                 $ua->{method} = 'GET';
                 $result = "Long URL too long. Sorry.";
             }
-            if($longurl !~ /^http(s)?\:\/\//i || $longurl =~ /\s/) {
+            if($longurl !~ /^http(s)?\:\/\//i || $longurl =~ /\s/) { ## no critic (RegularExpressions::ProhibitUnusedCapture)
                 # FAIL!
                 $ua->{method} = 'GET';
                 $result = "URL failed to validate!";
@@ -178,8 +178,8 @@ sub get {
         if($logsth->execute('RESOLVEURL', $path, $longurl, $client_ip)) {
             $dbh->commit;
         } else {
-            croak($dbh->errstr);
             $dbh->rollback;
+            croak($dbh->errstr);
         }
         return (
             status  => 301,

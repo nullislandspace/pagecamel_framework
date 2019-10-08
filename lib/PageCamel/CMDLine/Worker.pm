@@ -34,7 +34,7 @@ sub new {
 sub init {
     my ($self) = @_;
     
-    my $worker = new PageCamel::Worker();
+    my $worker = PageCamel::Worker->new();
     
     print "Loading config file ", $self->{configfile}, "\n";
     
@@ -47,7 +47,7 @@ sub init {
     print "Changing application name to '$APPNAME'\n\n";
     my $ps_appname = lc($APPNAME);
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
-    $0 = $ps_appname;
+    $PROGRAM_NAME = $ps_appname;
     
     # set required values to default if they don't exist
     if(!defined($config->{mincycletime})) {

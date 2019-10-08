@@ -22,7 +22,7 @@ use MIME::Base64;
 use Readonly;
 
 Readonly my $SAMPLERATE => 8000.0;
-Readonly my $CFACTOR => 2048.0 / 44100.0; # Original timing in browser (most likely) 44100 Sample/s in 2048 samples "batches"
+Readonly my $CFACTOR => 2048.0 / 44_100.0; # Original timing in browser (most likely) 44100 Sample/s in 2048 samples "batches"
 Readonly my $BUFFERTARGET => int($SAMPLERATE * 0.75); # Try to hold about 3/4 of a second
 Readonly my $BIASFACTOR => $BUFFERTARGET / 0.16;
 
@@ -63,7 +63,7 @@ sub init {
     my $isForking = $config->{server}->{forking} || 0;
     my $ps_appname = lc($APPNAME);
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
-    $0 = $ps_appname;
+    $PROGRAM_NAME = $ps_appname;
         
     my @tcpsockets;
     
@@ -75,7 +75,7 @@ sub init {
             Blocking => 0,
             ReuseAddr => 1,
             Proto => 'tcp',
-        ) or croak($!);
+        ) or croak($ERRNO);
         binmode($tcp, ':bytes');
         push @tcpsockets, $tcp;
         print "Listening on $ip:" . $config->{port} . "/tcp\n";
@@ -90,9 +90,7 @@ sub init {
     return;
 }
 
-my %volumnes;
-
-sub run {
+sub run { ## no critic (Subroutines::ProhibitExcessComplexity)
     my ($self) = @_;
     
     # Let STDOUT/STDERR settle down first
@@ -194,8 +192,8 @@ sub run {
                             my $s1 = ord(shift @dec);
                             my $s2 = ord(shift @dec);
                             my $sval = ($s2 << 8) + $s1;
-                            if($sval > 32767) {
-                                $sval -= 65536;
+                            if($sval > 32_767) {
+                                $sval -= 65_536;
                             }
                             push @decarr, $sval;
                         }
@@ -278,14 +276,14 @@ sub run {
                     my $out = '';
                     for(my $i = 0; $i < $intsamplecount; $i++) {
                         my $tval = $clients{$cid}->{inworkbuffer}->[$i];
-                        if($tval > 32767) {
-                            $tval = 32767;
-                        } elsif($tval < -32769) {
-                            $tval = -32769;
+                        if($tval > 32_767) {
+                            $tval = 32_767;
+                        } elsif($tval < -32_769) {
+                            $tval = -32_769;
                         }
                         $tval = int($tval);
                         if($tval < 0) {
-                            $tval += 65536;
+                            $tval += 65_536;
                         }
                         my $t1 = $tval % 256;
                         my $t2 = int($tval >> 8) & 0xff;
@@ -310,7 +308,7 @@ sub run {
                     $tdelta = 0.08;
                 }
                 # Round
-                $tdelta = int($tdelta * 10000) / 10000;
+                $tdelta = int($tdelta * 10_000) / 10_000;
                 $clients{$cid}->{outbuffer} .= "MIKEBIAS=$tdelta|$bufsize\r\n";
                 #print STDERR "$tdelta | $bufsize\n";
             }
@@ -331,8 +329,8 @@ sub run {
                 push @toremove, $cid;
                 next;
             }
-            if(!$clients{$cid}->{socket}->opened || $clients{$cid}->{socket}->error || ($! ne '' && !$!{EWOULDBLOCK})) {
-                print STDERR "webPrint write failure: $!\n";
+            if(!$clients{$cid}->{socket}->opened || $clients{$cid}->{socket}->error || ($ERRNO ne '' && !$!{EWOULDBLOCK})) { ## no critic (Variables::ProhibitPunctuationVars)
+                print STDERR "webPrint write failure: $ERRNO\n";
                 push @toremove, $cid;
                 next;
             }

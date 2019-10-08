@@ -72,7 +72,7 @@ sub crossregister {
     return;
 }
 
-sub get_download {
+sub get_download { ## no critic (Subroutines::ProhibitExcessComplexity)
     my ($self, $ua, $isErrorMode) = @_;
 
     if(!defined($isErrorMode)) {

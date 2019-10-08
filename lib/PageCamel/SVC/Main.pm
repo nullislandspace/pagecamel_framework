@@ -25,8 +25,8 @@ use PageCamel::Helpers::Logo;
 
 sub new {
     my ($class, $isService, $basePath, $db, $clacks,
-        $APPNAME, $VERSION) = @_;
-    PageCamelLogo($APPNAME, $VERSION);
+        $APPNAME, $APPVERSION) = @_;
+    PageCamelLogo($APPNAME, $APPVERSION);
     my $self = bless {}, $class;
 
     $self->{isService} = $isService;
@@ -40,8 +40,8 @@ sub new {
                                                $self->{clacksconf}->{port},
                                                $self->{clacksconf}->{user},
                                                $self->{clacksconf}->{password},
-                                               "PageCamelSVC $VERSION");
-    $self->{clacks}->store("VERSION::" . $APPNAME, $VERSION);
+                                               "PageCamelSVC $APPVERSION");
+    $self->{clacks}->store("VERSION::" . $APPNAME, $APPVERSION);
     $self->{clacks}->remove("StopSVC");
     $self->{is_configured} = 0;
 
@@ -80,6 +80,7 @@ sub setRealPerlBinary {
 
     print "** SETTING REAL PERL BINARY TO $binary **\n";
     $self->{realperlbinary} = $binary;
+    return;
 }
 
 sub requestStop {
@@ -87,6 +88,7 @@ sub requestStop {
 
     my $tmp = 1;
     $self->{clacks}->store("StopSVC", $tmp);
+    return;
 }
 
 sub shouldStop {
@@ -105,6 +107,7 @@ sub setServerStatus {
     my ($self, $status) = @_;
 
     $self->{clacks}->store("SVCRunningStatus", $status);
+    return;
 }
 
 sub getServerStatus {
@@ -125,6 +128,7 @@ sub startconfig {
     $self->{apps} = ();
     $self->{startup_scripts} = ();
     $self->{shutdown_scripts} = ();
+    return;
 }
 
 sub configure_module {
@@ -176,6 +180,7 @@ sub configure_module {
 
 
     push @{$self->{apps}}, $module;
+    return;
 }
 
 sub configure_startup {
@@ -183,6 +188,7 @@ sub configure_startup {
 
     $command =~ s/\//\\/g;
     push @{$self->{startup_scripts}}, $command;
+    return;
 }
 
 sub configure_shutdown {
@@ -190,6 +196,7 @@ sub configure_shutdown {
 
     $command =~ s/\//\\/g;
     push @{$self->{shutdown_scripts}}, $command;
+    return;
 }
 
 
@@ -197,6 +204,7 @@ sub endconfig {
     my ($self) = @_;
     $self->{shutdown_complete} = 1;
     $self->{is_configured} = 1;
+    return;
 
 }
 
@@ -243,6 +251,7 @@ sub startup {
     }
     print "Initial apps startup complete\n";
     $self->{shutdown_complete} = 0;
+    return;
 }
 
 sub work {
@@ -359,7 +368,7 @@ sub handleClacksCommands {
     return $workCount;
 }
 
-sub shutdown {
+sub shutdownsvc {
     my ($self) = @_;
 
     if($self->{is_configured} == 1) {
@@ -384,20 +393,23 @@ sub DESTROY {
     my ($self) = @_;
 
     if(!$self->{shutdown_complete}) {
-        $self->shutdown();
+        $self->shutdownsvc();
     }
+    return;
 }
 
 sub disable_service {
     my ($self, $svcname) = @_;
 
     $self->{sysh}->set('pagecamel_services', $svcname . '_enable', 0);
+    return;
 }
 
 sub enable_service {
     my ($self, $svcname) = @_;
 
     $self->{sysh}->set('pagecamel_services', $svcname . '_enable', 1);
+    return;
 }
 
 sub check_service {
@@ -487,6 +499,7 @@ sub check_app {
 
     }
 
+    return;
 }
 
 sub start_app {
@@ -511,7 +524,7 @@ sub start_app {
     } else {
         # Child
         print "Running command ", $app->{app}, " ", $app->{conf}, "\n";
-        open STDOUT, ">",  "/dev/null" or die "$0: open: $!";
+        open STDOUT, ">",  "/dev/null" or croak("$0: open: $!");
         open STDERR, ">&", \*STDOUT    or exit 1;
         eval {
             exec($app->{app} . " " . $app->{conf});
@@ -520,6 +533,7 @@ sub start_app {
         print "Child done\n";
         exit(0);
     }
+    return;
 }
 
 sub stop_app {
@@ -557,6 +571,7 @@ sub stop_app {
     } else {
         print "App " . $app->{description} . " already killed\n";
     }
+    return;
 }
 
 sub kill_app {
@@ -589,6 +604,7 @@ sub kill_app {
         $self->{clacks}->set($app->{clacks_name}, 2); # Blue
         $self->{clacks}->doNetwork();
     }
+    return;
 }
 
 sub run_script {

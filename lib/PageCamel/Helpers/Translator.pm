@@ -42,14 +42,6 @@ BEGIN {
 sub tr_init {
     my ($dbh, $memh, $debugflag) = @_;
 
-    if($memh->isa('PageCamel::Web::MemCachePg') || $memh->isa('PageCamel::Worker::MemCachePg')) {
-        return;
-        croak("MemCache is backed by PostgreSQL but for performance reason it shouldn't be! Can't continue!");
-    }
-    if($memh->isa('PageCamel::Web::ClacksCachePg') || $memh->isa('PageCamel::Worker::ClacksCachePg')) {
-        return;
-        croak("ClacksCache is backed by PostgreSQL but for performance reason it shouldn't be! Can't continue!");
-    }
     $globalmemh = $memh;
     $globaldbh = $dbh;
     $isDebugging = $debugflag;

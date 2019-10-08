@@ -33,6 +33,7 @@ sub extraDestroys {
 
     my $tickkey = "LIFETICK::" . $PID;
     $self->delete($tickkey);
+    return;
 }
 
 

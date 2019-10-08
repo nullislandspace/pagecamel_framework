@@ -383,7 +383,7 @@ sub get {
                 my $tag = $1;
 
                 # Remove header tag from source text
-                substr($fulltext, 0, 4) = '';
+                substr($fulltext, 0, 4, '');
 
                 # Now we need to find the closing tag and the matching title text
                 my $ttext = '';
@@ -391,13 +391,13 @@ sub get {
                 while(length($fulltext)) {
                     last if($fulltext =~ /^\<\/h\d\>/);
                     $tempchar = substr($fulltext, 0, 1);
-                    substr($fulltext, 0, 1) = '';
+                    substr($fulltext, 0, 1, '');
                     #$newtext .= $tempchar;
                     $ttext .= $tempchar;
                 }
 
                 my $endtag = substr($fulltext, 0, 5);
-                substr($fulltext, 0, 5) = '';
+                substr($fulltext, 0, 5, '');
 
                 # Remove unwanted stuff
                 my $tocid = lc $ttext;

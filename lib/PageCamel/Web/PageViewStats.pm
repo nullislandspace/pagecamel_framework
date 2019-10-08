@@ -41,7 +41,7 @@ sub beaconhandler {
     
     my $beacondata;
     my $decoded = 0;
-    eval {
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         $beacondata = decode_json($ua->{postdata});
         $decoded = 1;
     };

@@ -68,6 +68,7 @@ sub crossregister {
     my ($self) = @_;
 
     $self->register_public_url($self->{webpath});
+    return;
 }
 
 
@@ -116,6 +117,7 @@ sub prerender {
     } else {
         $webdata->{PrivacyPolicyURL} = '';
     }
+    return;
 }
 
 sub sitemap {

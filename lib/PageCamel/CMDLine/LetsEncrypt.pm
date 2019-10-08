@@ -32,8 +32,8 @@ use DBI;
 use Data::Dumper;
 use Sys::Hostname;
 
-use constant PEER_CRT  => 4;
-use constant CRT_DEPTH => 5;
+#use constant PEER_CRT  => 4;
+#use constant CRT_DEPTH => 5;
 
 sub new {
     my ($proto, $configfile, $isDebugging, $isVerbose) = @_;
@@ -59,14 +59,14 @@ sub new {
     my $ps_appname = lc($APPNAME);
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
 
-    $0 = $ps_appname;
+    $PROGRAM_NAME = $ps_appname;
 
     my $hname = hostname;
     if($self->{usedb}) {
         croak("No DB config for hotname $hname") unless(defined($self->{$hname}));
         my $dbconf = $self->{$hname};
         my $dbh = DBI->connect($dbconf->{dburl}, $dbconf->{dbuser}, $dbconf->{dbpassword}, {AutoCommit => 0, RaiseError => 0})
-                    or croak("Can't connect to database: $!");
+                    or croak("Can't connect to database: $ERRNO");
         $self->{dbh} = $dbh;
     }
 
@@ -135,6 +135,7 @@ sub run {
         }
         sleep 2;
     }
+    return;
 }
 
 # -----------------------------------
@@ -150,7 +151,7 @@ sub debuglog {
     return;
 }
 
-sub work {
+sub work { ## no critic (Subroutines::ProhibitExcessComplexity)
     my ($self, $opt) = @_;
     my $rv = $self->parse_options($opt);
     return $rv if $rv;
@@ -174,10 +175,10 @@ sub work {
         return $self->_error("Could not read the certificate file.") unless $crt;
         # Take the first certificate in file, disregard the issuer's one.
         $crt=~s/^(.*?-+\s*END CERTIFICATE\s*-+).*/$1/s;
-        my $rv = $le->revoke_certificate(\$crt);
-        if ($rv == OK) {
+        my $lrv = $le->revoke_certificate(\$crt);
+        if ($lrv == OK) {
             $self->debuglog("Certificate has been revoked.");
-        } elsif ($rv == ALREADY_DONE) {
+        } elsif ($lrv == ALREADY_DONE) {
             $self->debuglog("Certificate has been ALREADY revoked.");
         } else {
             return $self->_error("Problem with revoking certificate: " . $le->error_details);
@@ -215,7 +216,7 @@ sub work {
         $le->generate_csr($opt->{'domains'}, $type, $attr) == OK or return $self->_error("Could not generate a CSR: " . $le->error_details);
         $self->debuglog("Saving a new CSR into $opt->{'csr'}");
         return "Failed to save a CSR" if $self->_write($opt->{'csr'}, $le->csr);
-        unless (-e $opt->{'csr-key'}) {
+        if(!-e $opt->{'csr-key'}) {
             $self->debuglog("Saving a new CSR key into $opt->{'csr-key'}");
             return $self->_error("Failed to save a CSR key") if $self->_write($opt->{'csr-key'}, $le->csr_key);
         }
@@ -229,7 +230,7 @@ sub work {
             $opt->{'expires'} = $le->check_expiration($opt->{'crt'});
             $self->debuglog("Problem checking existing certificate file.") unless (defined $opt->{'expires'});
         }
-        unless (defined $opt->{'expires'}) {
+        if(!defined $opt->{'expires'}) {
             $self->debuglog("Checking certificate for expiration (website connection).");
             foreach my $domain (@{$le->domains}) {
                 $self->debuglog("Checking $domain");
@@ -255,7 +256,7 @@ sub work {
 
     # We might not need to re-verify, verification holds for a while.
     my $new_crt_status = $le->request_certificate();
-    unless ($new_crt_status) {
+    if(!$new_crt_status) {
         $self->debuglog("Received domain certificate, no validation required at this time.");
     } else {
         # If it's not an auth problem, but blacklisted domains for example - stop.
@@ -274,7 +275,7 @@ sub work {
         return $self->_error($le->error_details) if $le->accept_challenge(\&process_challenge_dns, $opt->{'handle-params'}, $opt->{'handle-as'});
         return $self->_error($le->error_details) if $le->verify_challenge(\&process_verification_dns, $opt->{'handle-params'}, $opt->{'handle-as'});
     }
-    unless ($le->certificate) {
+    if(!$le->certificate) {
         $self->debuglog("Requesting domain certificate.");
         return $self->_error($le->error_details) if $le->request_certificate();
     }
@@ -284,7 +285,7 @@ sub work {
         $self->debuglog("Will be saving the domain certificate alone, not the full chain.");
         return $self->_error("Failed to save the domain certificate file") if $self->_write($opt->{'crt'}, $le->certificate);
     } else {
-        unless ($opt->{'legacy'}) {
+        if(!$opt->{'legacy'}) {
             $self->debuglog("Saving the full certificate chain to $opt->{'crt'}.");
             return $self->_error("Failed to save the domain certificate file") if $self->_write($opt->{'crt'}, $le->certificate . "\n" . $le->issuer . "\n");
         } else {
@@ -315,7 +316,7 @@ sub parse_options {
         return $self->_error("Account key file is missing and the option to generate missing files is not used.") unless $opt->{'generate-missing'};
     }
 
-    unless ($opt->{'crt'} or $opt->{'generate-only'} or $opt->{'update-contacts'}) {
+    if(!$opt->{'crt'} && !$opt->{'generate-only'} && !$opt->{'update-contacts'}) {
         return $self->_error("Please specify a file name for the certificate.");
     }
 
@@ -329,7 +330,7 @@ sub parse_options {
         } else {
             return $self->_error("CSR file is missing and the option to generate missing files is not used.") unless $opt->{'generate-missing'};
             return $self->_error("CSR file is missing and CSR-key file name is not specified.") unless $opt->{'csr-key'};
-            return $self->_error("Domain list should be provided to generate a CSR.") unless ($opt->{'domains'} and $opt->{'domains'}!~/^[\s\,]*$/);
+            return $self->_error("Domain list should be provided to generate a CSR.") unless ($opt->{'domains'} and $opt->{'domains'}!~/^[\s\,]*$/); ## no critic (ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions)
         }
 
         if ($opt->{'path'}) {

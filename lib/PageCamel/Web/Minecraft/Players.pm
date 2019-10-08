@@ -153,7 +153,7 @@ sub get_json {
     }
     $self->{dragoncount} = 0; # Re-Init counter
     while((my $line = $wselsth->fetchrow_hashref)) {
-        next if($line->{border_size} > 100000);
+        next if($line->{border_size} > 100_000);
         
         # Dragons at + coords
         push @playerpos, $self->makeDragon($line->{world_dimension}, $line->{border_center_x} - $line->{border_size}, $line->{border_center_z});
@@ -1127,6 +1127,7 @@ sub decodeEnderDragon {
         ZQB3FNjLrng8PSJBj6GZIDAiG+AYgCuL7GfOwohMgJQPJCxMTPEh4Wq8MXVhQRIIADs=
     ");
 
+    return;
 }
 
 1;

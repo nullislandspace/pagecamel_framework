@@ -390,7 +390,7 @@ sub sockethandler {
                     
                     # Generate local chunk checksums
                     if($lsize > 0) {
-                        open(my $ifh, '<', $updata{localname}) or die($!);
+                        open(my $ifh, '<', $updata{localname}) or croak($!);
                         binmode($ifh);
                         my $chunknum = 0;
                         

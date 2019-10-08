@@ -66,7 +66,7 @@ sub wsreload {
                     settingvalue => 8000,
                     description => 'Output Sample rate (bytes)',
                     value_min => 100.0,
-                    value_max => 48000,
+                    value_max => 48_000,
                     processinghints => [
                         'decimal=0',
                     ],

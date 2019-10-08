@@ -27,10 +27,10 @@
 ################################################################
 
 package PageCamel::Net::Server::Proto::SSLEAY;
-our $VERSION = 2.2;
-
 use strict;
 use warnings;
+
+our $VERSION = 2.2;
 use IO::Socket::INET;
 use Fcntl ();
 use Errno ();
