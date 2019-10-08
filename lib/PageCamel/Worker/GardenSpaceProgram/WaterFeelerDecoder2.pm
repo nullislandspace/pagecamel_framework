@@ -315,6 +315,7 @@ sub decodeFrame {
     } elsif($frame[8] == 32) {
         return $self->decodeRFISeriesData(@frame);
     }
+    return;
 }
 
 
