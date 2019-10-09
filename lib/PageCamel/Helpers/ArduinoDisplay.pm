@@ -78,56 +78,15 @@ sub getEvents {
 sub decodeSerial {
     my ($self) = @_;
 
-    my @cavacdecoded;
+    my $cavacdecoded;
 
     while(scalar @{$self->{inSerial}} > 1) {
         my $upper = shift @{$self->{inSerial}};
         my $lower = shift @{$self->{inSerial}};
-        push @cavacdecoded, (($upper - 65) << 4) + ($lower - 65);
+        $cavacdecoded .= chr((($upper - 65) << 4) + ($lower - 65));
     }
 
-    my $type = shift @cavacdecoded;
-
-    if($type == 0xfe) {
-        #print "IR Data!\n";
-
-        my @userstring;
-        while(@cavacdecoded) {
-            my $upper = shift @cavacdecoded;
-            my $lower = shift @cavacdecoded;
-            push @userstring, ($upper << 8) + $lower;
-        }
-
-        # First one is the count, remove it since we can regenerate it anyway
-        shift @userstring;
-
-        #print join('-', @userstring), "\n";
-
-        # Try to decode remote control
-        my $shortcode = '';
-        foreach my $part (@userstring) {
-            if($part > 8000) {
-                $shortcode .= '1';
-            } elsif($part > 4000) {
-                $shortcode .= '2';
-            } elsif($part > 1500) {
-                $shortcode .= '3';
-            } elsif($part > 1000) {
-                $shortcode .= '4';
-                #} elsif($part > 550) {
-                #$shortcode .= '5';
-            } else {
-                $shortcode .= '6';
-            }
-        }
-        #print "SHORT: $shortcode\n";
-        my %event = (
-            type => 'IR',
-            longcode => join('-', @userstring),
-            shortcode => $shortcode,
-        );
-        push @{$self->{decodedEvents}}, \%event;
-    }
+    push @{$self->{decodedEvents}}, $cavacdecoded;
 
     return;
 }
@@ -157,7 +116,7 @@ sub writeDisplay {
 sub writePacket {
     my ($self, $binarydata) = @_;
 
-    my $outdata = chr(0x02);
+    my $outdata = chr(0x02); # STX
 
     foreach my $part (split//, $binarydata) {
         my $upper = ((ord($part) & 0xf0) >> 4) + 65;
@@ -165,9 +124,20 @@ sub writePacket {
         $outdata .= chr($upper) . chr($lower);
     }
 
-    $outdata .= chr(0x03);
+    $outdata .= chr(0x03); # ETX
 
     $self->{arduino}->write($outdata);
+
+    sleep(0.05);
+
+    return;
+}
+
+# This is a very general call to "send your sensor data packet". The answer is very implementation dependant
+sub sendEnquiry {
+    my ($self) = @_;
+
+    $self->{arduino}->write(chr(0x05)); # ENQ
 
     sleep(0.05);
 
