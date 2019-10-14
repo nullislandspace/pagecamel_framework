@@ -941,7 +941,10 @@ sub postfilter {
 
     # Just add the cookie to the header
     if(defined($self->{cookie})) {
-        $header->{-cookie} = $self->{cookie};
+        if(!defined($header->{-cookie})) {
+            $header->{-cookie} = [];
+        }
+        push @{$header->{-cookie}}, $self->{cookie};
         $self->extend_header($result, "Vary", "Cookie");
         delete $self->{cookie}; # Don't leak cookie next time, if for some reason prefilter is never called (for example on path redirection prefiltering)
     }
