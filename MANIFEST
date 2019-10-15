@@ -1638,6 +1638,7 @@ lib/PageCamel/Web/Static/jquery/js/dropdownmenu.js
 lib/PageCamel/Web/Static/jquery/js/jquery-2.2.3.min.js
 lib/PageCamel/Web/Static/jquery/js/jquery-3.4.1.js
 lib/PageCamel/Web/Static/jquery/js/jquery-migrate-3.1.0.js
+lib/PageCamel/Web/Static/jquery/js/jquery-migrate-3.1.0.min.js
 lib/PageCamel/Web/Static/jquery/js/jquery-ui.min.js
 lib/PageCamel/Web/Static/jquery/js/jquery.blockUI.js
 lib/PageCamel/Web/Static/jquery/js/jquery.cavacnote.js
