@@ -74,9 +74,14 @@ sub auditlog {
 }
 
 sub debuglog {
-    my ($self, $line) = @_;
+    my ($self, @parts) = @_;
 
-    chomp $line;
+    my $line = '';
+    foreach my $part (@parts) {
+        chomp $part;
+        $line .= $part;
+    }
+
     $line = getISODate() . " " . $line;
     my $name = 'Debuglog::' . $self->{APPNAME} . '::new';
     $name =~ s/\ /\_/g;
@@ -91,9 +96,14 @@ sub debuglog {
 }
 
 sub debuglog_overwrite {
-    my ($self, $line) = @_;
+    my ($self, @parts) = @_;
 
-    chomp $line;
+    my $line = '';
+    foreach my $part (@parts) {
+        chomp $part;
+        $line .= $part;
+    }
+
     $line = getISODate() . " " . $line;
     my $name = 'Debuglog::' . $self->{APPNAME} . '::overwrite';
     $name =~ s/\ /\_/g;
