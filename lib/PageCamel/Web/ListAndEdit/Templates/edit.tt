@@ -301,7 +301,6 @@
         var selectelem = element.attr('selectmenuname');
         $(selectelem).find('option').remove().end();
         var searchable=$(selectelem).attr('searchable');
-        console.log("SEARCHABLE? " + searchable);
 
         for(var i = 0; i < subenumdata.length; i++) {
             if(parentvalue == subenumdata[i].parentenumvalue) {
@@ -372,7 +371,7 @@
         $("textarea[displaytype='editor']").each(function(index) {
             var editorfield = $(this).attr('name');
             var fielddata = $(this).val();
-            console.log("Found Editor for " + editorfield);
+            //console.log("Found Editor for " + editorfield);
             var extrapluginlist = 'autogrow,aspell,cavacnote,cavacimage,cavacfiles,html5video,panelbutton,colorbutton';
             var removepluginlist = 'resize,scayt,pastefromword,devtools,image,youtube';
             if(typeof ttvars.wikiarticleselect !== 'undefined') {
@@ -474,7 +473,6 @@
             $(this).attr('selectmenuname', selectmenuname);
             $(parentid).attr('subenum', subenumname);
             $(parentid).on(parentupdatetrigger, function() {
-                console.log("bla");
                 var subenumname = $(this).attr('subenum');
                 var parentvalue = $(this).val();
                 updateSubenum($(subenumname), parentvalue, '');
@@ -514,7 +512,7 @@
     }
 
     function runAutosave() {
-        console.log("Autosaving...");
+        //console.log("Autosaving...");
         setFooterStatus('Autosaving', 'yellow');
         var savedata = {
             primary_key: ttvars.primarykey,
@@ -553,7 +551,7 @@
             }
         });
 
-        console.log(savedata);
+        //console.log(savedata);
 
         $.ajax({
             type: "POST",
@@ -565,7 +563,7 @@
             },
             error: function(msg) {
                 setFooterStatus('Autosave Error', 'red');
-                console.log('Autosave ERROR');
+                //console.log('Autosave ERROR');
             }
         });
 

@@ -104,12 +104,12 @@
 
         if(ttvars.allowsendcsv == 1) {
             $('#sendcsvlink').on('click', function() {
-               console.log('Sending CSV request');
+               //console.log('Sending CSV request');
                $('#csvlinkparagraph').block({ message: ttvars.trquote.Sendingcsv });
                $.ajax({
                     url: ttvars.sendcsvajaxpath
                }).done(function() {
-                    console.log("Sent");
+                    //console.log("Sent");
                     $('#csvlinkparagraph').unblock();
                });
                return false;
@@ -212,9 +212,7 @@
     }
     
     function lateExtraOnLoad() {
-        console.log("BLA");
         if(window.LaEExtraOnLoad) {
-            
             LaEExtraOnLoad();
         }
     }
