@@ -58,7 +58,8 @@ ajaxhelpers.js
 formhelpers.js
 #pageviewstats.js
 jquery/js/jquery-3.4.1.js
-jquery/js/jquery-migrate-3.1.0.js
+#jquery/js/jquery-migrate-3.1.0.js
+jquery/js/jquery-migrate-3.1.0.min.js
 jquery/js/jquery-ui.min.js
 jquery/js/jquery.metadata.js
 jquery/js/jquery.statictable.js
