@@ -44,8 +44,10 @@ lib/PageCamel/Helpers/NeatLittleHelpers.pm
 lib/PageCamel/Helpers/Padding.pm
 lib/PageCamel/Helpers/Passwords.pm
 lib/PageCamel/Helpers/PostgresDB.pm
+lib/PageCamel/Helpers/PrintProcessor.pm
 lib/PageCamel/Helpers/Strings.pm
 lib/PageCamel/Helpers/SystemSettings.pm
+lib/PageCamel/Helpers/TestData.pm
 lib/PageCamel/Helpers/Translator.pm
 lib/PageCamel/Helpers/URI.pm
 lib/PageCamel/Helpers/UserAgent.pm
