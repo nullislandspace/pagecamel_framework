@@ -106,11 +106,19 @@ sub printAddBigTextLine {
 sub printAddImage {
     my ($self, $filename, $isbindata) = @_;
     
+    my $reph = $self->{reph};
+    
     my $pic;
     if($isbindata) {
         $pic = GD::Image->newFromPngData($filename, 0);
     } else {
         $pic = GD::Image->newFromPng($filename, 0);
+    }
+    
+    if($pic->colorsTotal != 2) {
+        $reph->debuglog("printAddImage detected an image with >2 index colors!");
+        $reph->debuglog("Switching to (slower) printAddGreyscaleImage() processing");
+        return $self->printAddGreyscaleImage($filename, $isbindata);
     }
     
     my ($w, $h) = $pic->getBounds();
