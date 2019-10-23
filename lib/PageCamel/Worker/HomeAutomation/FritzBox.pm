@@ -39,7 +39,7 @@ sub register {
     $self->register_worker("work");
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
-    $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname}, 0);
+    $self->{clacks} = $self->newClacksFromConfig($clconf);
     foreach my $key (keys %{$self->{switches}}) {
         $self->{clacks}->listen($self->{switches}->{$key}->{clacksname_setswitch});
     }

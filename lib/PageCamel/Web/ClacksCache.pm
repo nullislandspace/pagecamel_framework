@@ -20,12 +20,15 @@ sub new {
 
     # Copy clacks config from external config module *before* new() on SUPER
     my $clconf = $config{server}->{modules}->{$config{clacksconfig}};
-    $config{host} = $clconf->get('host');
-    $config{port} = $clconf->get('port');
+    $config{socketpath} = $clconf->get('socket');
+    if(!defined($config{socketpath}) && $config{socketpath} eq '') {
+        $config{host} = $clconf->get('host');
+        $config{port} = $clconf->get('port');
+    }
     $config{user} = $clconf->get('user');
     $config{password} = $clconf->get('password');
 
-    my $self = $class->SUPER::new(%config); # Call parent NEW
+    my $self = $class->SUPER::new(%config); # Call parent NEW for tcp/ip mode
     bless $self, $class; # Re-bless with our class
 
     return $self;

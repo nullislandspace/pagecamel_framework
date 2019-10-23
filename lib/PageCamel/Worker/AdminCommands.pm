@@ -114,7 +114,7 @@ sub do_svc_reset_all_services {
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
 
-    my $clacks = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname}, 0);
+    my $clacks = $self->newClacksFromConfig($clconf);
     foreach my $worker (@workers) {
         $clacks->set('pagecamel_services::restart::service', $worker);
     }

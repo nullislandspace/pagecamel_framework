@@ -44,7 +44,7 @@ sub crossregister {
     my ($self) = @_;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
-    my $clacks = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    my $clacks = $self->newClacksFromConfig($clconf);
     for(my $id = 0; $id <= 65_535; $id++) {
         my $key = "PageCamel::WebHangups::$id";
         $clacks->remove($key);
@@ -58,7 +58,7 @@ sub handle_child_start {
     my ($self) = @_;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
-    $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    $self->{clacks} = $self->newClacksFromConfig($clconf);
     $self->{clackskey} = 'PageCamel::WebHangups::' . $PID;
     $self->{clacks}->disablePing();
     $self->{clacks}->store($self->{clackskey}, 'IDLE');

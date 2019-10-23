@@ -38,7 +38,7 @@ sub wshandlerstart {
     $self->{nextping} = time + 10;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
-    $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    $self->{clacks} = $self->newClacksFromConfig($clconf);
 
     $self->{clacks}->doNetwork();
 

@@ -57,13 +57,7 @@ sub reload {
                                         ])
         or croak("Failed to create setting mode!");
 
-    my $clacks = Net::Clacks::Client->new(
-        $clconf->get('host'),
-        $clconf->get('port'),
-        $clconf->get('user'),
-        $clconf->get('password'),
-        $self->{clacks}->{clientinfo},
-    ) or croak("Fail to get clacks client");
+    my $clacks = $self->newClacksFromConfig($clconf);
     $clacks->listen($self->{clacks}->{signal});
     $clacks->ping;
     $clacks->doNetwork();

@@ -36,11 +36,18 @@ sub new {
     $self->{db} = $db;
     $self->{clacksconf} = $clacks;
 
-    $self->{clacks} = Net::Clacks::Client->new($self->{clacksconf}->{host},
-                                               $self->{clacksconf}->{port},
-                                               $self->{clacksconf}->{user},
-                                               $self->{clacksconf}->{password},
-                                               "PageCamelSVC $APPVERSION");
+    if(defined($self->{clacksconf}->{socket}) && $self->{clacksconf}->{socket} ne '') {
+        $self->{clacks} = Net::Clacks::Client->newSocket($self->{clacksconf}->{socket},
+                                                   $self->{clacksconf}->{user},
+                                                   $self->{clacksconf}->{password},
+                                                   "PageCamelSVC $APPVERSION");
+    } else {
+        $self->{clacks} = Net::Clacks::Client->new($self->{clacksconf}->{host},
+                                                   $self->{clacksconf}->{port},
+                                                   $self->{clacksconf}->{user},
+                                                   $self->{clacksconf}->{password},
+                                                   "PageCamelSVC $APPVERSION");
+    }
     $self->{clacks}->store("VERSION::" . $APPNAME, $APPVERSION);
     $self->{clacks}->remove("StopSVC");
     $self->{is_configured} = 0;

@@ -67,6 +67,20 @@ sub endconfig {
     return;
 }
 
+sub newClacksFromConfig {
+    my ($self, $clconf) = @_;
+
+    my $socket = $clconf->get('socket');
+    my $clacks;
+    if(defined($socket) && $socket ne '') {
+        $clacks = Net::Clacks::Client->newSocket($socket, $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    } else {
+        $clacks = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    }
+
+    return $clacks;
+}
+
 1;
 __END__
 

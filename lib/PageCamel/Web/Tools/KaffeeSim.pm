@@ -215,7 +215,7 @@ sub sockethandler {
         $settings{$setname} = $setref->{settingvalue};
     }
 
-    my $clacks = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    my $clacks = $self->newClacksFromConfig($clconf);
 
     my @clackssettings = (
         'Production_Enable',

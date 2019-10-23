@@ -16,8 +16,6 @@ use base qw(PageCamel::Web::BaseWebSocket);
 use PageCamel::Helpers::DateStrings;
 use Net::Clacks::Client;
 
-# play -t raw -r 11025 -e signed-integer -b 16 -c 1 rawaudio.dat
-
 sub new {
     my ($proto, %config) = @_;
     my $class = ref($proto) || $proto;
@@ -42,7 +40,7 @@ sub wshandlerstart {
     $self->{nextping} = time + 10;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
-    $self->{clacks} = Net::Clacks::Client->new($clconf->get('host'), $clconf->get('port'), $clconf->get('user'), $clconf->get('password'), $self->{PSAPPNAME} . ':' . $self->{modname});
+    $self->{clacks} = $self->newClacksFromConfig($clconf);
 
     $self->{clacks}->listen($self->{clacksname} . '::new');
     $self->{clacks}->listen($self->{clacksname} . '::overwrite');
