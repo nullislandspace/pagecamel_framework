@@ -17,6 +17,7 @@ use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep);
 use PageCamel::Helpers::Logo;
 use Data::Dumper;
+use Sys::Hostname;
 
 # For turning off SSL session cache
 use Readonly;
@@ -46,6 +47,14 @@ sub init {
                         ForceArray => [ 'module', 'redirect', 'menu', 'view', 'userlevel', 'rootfile', 'item', 'header' ],);
     
     $self->{config} = $config;
+
+    my $hname = hostname;
+    if(defined($config->{server}->{hosts}->{$hname})) {
+        print "   Host-specific configuration for '$hname'\n";
+        foreach my $keyname (keys %{$config->{server}->{hosts}->{$hname}}) {
+            $config->{server}->{$keyname} = $config->{server}->{hosts}->{$hname}->{$keyname};
+        }
+    }
     
     my $APPNAME = $config->{appname};
     PageCamelLogo($APPNAME, $VERSION);
