@@ -113,13 +113,23 @@ sub child_init_hook {
     srand();
 
     my $clacksconf = $self->{config}->{clacks};
-    my $clacks = Net::Clacks::Client->new($clacksconf->{host},
-                                          $clacksconf->{port},
-                                          $clacksconf->{user},
-                                          $clacksconf->{password},
-                                          'DNS_Server',
-                                          0 # no caching
-    );
+    my $clacks;
+    if(defined($clacksconf->{socket}) && $clacksconf->{socket} ne '') {
+        $clacks = Net::Clacks::Client->newSocket($clacksconf->{socket},
+                                           $clacksconf->{user},
+                                           $clacksconf->{password},
+                                           'DNS_Server',
+                                           0 # no caching
+        );
+    } else {
+        $clacks = Net::Clacks::Client->new($clacksconf->{host},
+                                           $clacksconf->{port},
+                                           $clacksconf->{user},
+                                           $clacksconf->{password},
+                                           'DNS_Server',
+                                           0 # no caching
+        );
+    }
     $clacks->disablePing();
     $clacks->doNetwork();
     $self->{clacks} = $clacks;
