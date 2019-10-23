@@ -25,6 +25,10 @@ sub new {
     my $self = bless $config, $class;
 
     $self->{bitmapfont} = GD::Font->load($self->{font});
+
+    if(!defined($self->{use_eog})) {
+        $self->{use_eog} = 0;
+    }
     
     return $self;
 }
@@ -59,16 +63,24 @@ sub printEndDocument {
     
     my $ofname = $self->makeFName();
 
+    if($self->{use_eog}) {
+        $ofname = '/home/cavac/src/temp/posprint.png';
+    }
+
     my $imagedata = $cropped->png;
     writeBinFile($ofname, $imagedata);
-    writeBinFile('/home/cavac/temp/bla.png', $self->{img}->png);
     
-    my $cmd = $self->{printcommand};
-    if(defined($printername) && $printername ne '') {
-        $cmd .= ' -d ' . $printername;
+    if($self->{use_eog}) {
+        my $cmd = 'eog ' . $ofname;
+        `$cmd`;
+    } else {
+        my $cmd = $self->{printcommand};
+        if(defined($printername) && $printername ne '') {
+            $cmd .= ' -d ' . $printername;
+        }
+        $cmd .= ' ' . $ofname;
+        `$cmd`;
     }
-    $cmd .= ' ' . $ofname;
-    `$cmd`;
     
     unlink $ofname;
     
