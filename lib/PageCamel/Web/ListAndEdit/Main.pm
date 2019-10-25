@@ -145,7 +145,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # ------------- LIST -------------
-    my @listallowedtypes = qw[text url boolean array date led html color];
+    my @listallowedtypes = qw[text url boolean array date led html color image];
 
     foreach my $mustattr (qw[orderby primarykey table webpath pagetitle db session]) {
         if(!defined($self->{$mustattr})) {
@@ -288,7 +288,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
             array   => [qw[array]],
             boolean => [qw[led boolean]],
             numeric => [qw[text url]],
-            text    => [qw[text url html boolean color]],
+            text    => [qw[text url html boolean color image]],
         );
 
         foreach my $testtype (keys %listtesttypes) {
@@ -389,7 +389,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
     my %editcolumntypes;
     my %editcolumnnullable;
     my @gotocolumns;
-    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date hidden colorpicker];
+    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date hidden colorpicker image];
     my @readonlytypes = qw[textarea-readonly led display codedisplay];
     $self->{needcvceditor} = 0;
     $self->{needscripteditor} = 0;
@@ -470,7 +470,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         my %testtypes = (
             array   => [qw[array]],
             boolean => [qw[led switch checkbox]],
-            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum display hidden colorpicker]],
+            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum display hidden colorpicker image]],
             integer => [qw[number enum subenum display slider]],
             bigint => [qw[number enum subenum display slider]],
             real => [qw[number enum subenum display]],
@@ -1421,9 +1421,11 @@ sub get_lines { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $value = encode_uri_path($value);
                 $temp =~ s/\%/$value/;
                 $value = '<a href="' . $temp . '">' . $value . '</a>';
-            } elsif($type eq 'color') {
-                my $contrast = colorHexMaxContrast($value);
-                $value = '<div style="background-color:' . $value . ';color:' . $contrast . ';">' . $value . '</div>';
+            
+            } elsif($type eq 'image') {
+                if($value ne '') {
+                    $value = '<img width="100px" src="data:image/png;base64,' . $value . '">';
+                }
             } else {
                 $value = encode_entities($value, "'<>&\"");
                 $value =~ s/ä/&auml;/g;
@@ -1701,6 +1703,12 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                 } elsif($self->{editcolumntypes}->{$column} eq 'editor') {
                     $tmp = $ua->{postparams}->{$column} || '';
                     $tmp =~ s/\n+$//g;
+                } elsif($self->{editcolumntypes}->{$column} eq 'image') {
+                    $tmp = $ua->{postparams}->{$column} || '';
+                    my $newfname = $ua->{postparams}->{$column . '___new'} || '';
+                    if($newfname ne '' && defined($ua->{files}->{$newfname})) {
+                        $tmp = encode_base64($ua->{files}->{$newfname}->{data});
+                    }
                 }
                 if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
                     $tmp = undef;
@@ -1814,6 +1822,12 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                 } elsif($self->{editcolumntypes}->{$column} eq 'editor') {
                     $tmp = $ua->{postparams}->{$column} || '';
                     $tmp =~ s/\n+$//g;
+                } elsif($self->{editcolumntypes}->{$column} eq 'image') {
+                    $tmp = $ua->{postparams}->{$column} || '';
+                    my $newfname = $ua->{postparams}->{$column . '___new'} || '';
+                    if($newfname ne '' && defined($ua->{files}->{$newfname})) {
+                        $tmp = encode_base64($ua->{files}->{$newfname}->{data});
+                    }
                 }
                 if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
                     $tmp = undef;
@@ -1998,7 +2012,16 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
             #$column{displaytype} = 'text';
             $column{columnvalue} =~ s/\..*//;
         }
-
+        
+        if($column{displaytype} eq 'image') {
+            #$column{displaytype} = 'text';
+            if($column{columnvalue} ne '') {
+                $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};
+            } else {
+                $column{imagedata} = '';
+            }
+        }
+        
         if($column{displaytype} eq 'editor') {
             # CVCEditor 4.x has a very fundamental bug regarding <code> tags:
             # It still parses encoded characters like '&lt;' to '<', which

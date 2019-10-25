@@ -14,7 +14,7 @@
 [% END %]
 
 <p align="center">
-    <form name="listandedit" method="post" action="[% webpath %]"  id="MainForm">
+    <form name="listandedit" method="post" action="[% webpath %]"  id="MainForm" enctype="multipart/form-data">
         <input type="hidden" name="primary_key" value="[% primary_key %]">
         <input type="hidden" name="mode" value="list" id="mode">
         [% IF UseTabs == 0 %]
@@ -90,6 +90,10 @@
                                     <input type="number" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="18" maxlength="20" step="[% column.step %]" min="[% column.value_min %]" max="[% column.value_max %]">
                                 [% ELSIF column.displaytype == "colorpicker" %]
                                     <input type="color" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                                [% ELSIF column.displaytype == "image" %]
+                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]"><br/>
+                                    [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
+                                    <input type="file" name="[% tr.quote(column.columnname) %]___new" id="[% tr.quote(column.columnname) %]___new_id">
                                 [% ELSIF column.displaytype == "checkbox" %]
                                     <input type="checkbox" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id"
                                         [% IF column.columnvalue == 1 %]

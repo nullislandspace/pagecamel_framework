@@ -99,7 +99,9 @@
                                         </tr>
                                     </table>
                                 </div>
-
+                            [% ELSIF setting.displaytype == "image" %]
+                                <input type="text" name="[% tr.quote(setting.modulename) %]::[% tr.quote(setting.settingname) %]::settingvalue" value="[% tr.quote(setting.settingvalue) %]" size="60" maxlength="200">
+                                [% IF setting.settingvalue != '' %]<img src="data:image/png;base64,[% setting.settingvalue %]">[% END %]
                             [% ELSE %]
                                 UNSUPPORTED DISPLAYTYPE [% setting.fieldtype %] / [% setting.displaytype %]
                             [% END %]
