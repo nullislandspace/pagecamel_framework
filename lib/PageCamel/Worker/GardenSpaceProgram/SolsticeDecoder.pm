@@ -19,6 +19,7 @@ use base qw(PageCamel::Worker::BaseModule);
 use Net::Clacks::Client;
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Padding qw[doFPad];
+use Data::Dumper;
 
 sub new {
     my ($proto, %config) = @_;
@@ -141,6 +142,7 @@ sub decodeFrame {
     } elsif($frame[8] == 41) {
         return $self->decodeVrefFrame(@frame);
     } elsif($frame[8] == 51) {
+        print "Got relais state change\n";
         return $self->decodeRelaisStateChange(@frame);
     } elsif($frame[8] == 33) {
         # Wake up from powersave
@@ -171,33 +173,32 @@ sub decodeFrame {
 sub decodeRelaisStateChange {
     my ($self, @frame) =@_;
     
-    my $data = 12;
+    my $data = $frame[12];
 
-    if($data % 1) {
+    if($data == 1) {
         $self->{relaisstates}->[0] = 1;
     }
-    if($data % 2) {
+    if($data == 2) {
         $self->{relaisstates}->[0] = 0;
     }
-    if($data % 4) {
+    if($data == 4) {
         $self->{relaisstates}->[1] = 1;
     }
-    if($data % 8) {
+    if($data == 8) {
         $self->{relaisstates}->[1] = 0;
     }
-    if($data % 16) {
+    if($data == 16) {
         $self->{relaisstates}->[2] = 1;
     }
-    if($data % 32) {
+    if($data == 32) {
         $self->{relaisstates}->[2] = 0;
     }
-    if($data % 64) {
+    if($data == 64) {
         $self->{relaisstates}->[3] = 1;
     }
-    if($data % 128) {
+    if($data == 128) {
         $self->{relaisstates}->[3] = 0;
     }
-
 
     $self->{nextrelaisstate} = 0;
         
