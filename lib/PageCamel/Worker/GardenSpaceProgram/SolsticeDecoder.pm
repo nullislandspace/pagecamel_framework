@@ -30,7 +30,7 @@ sub new {
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = $self->newClacksFromConfig($clconf);
 
-    my $tmpstates = $self->{clacks}->retrieve('SOLSTICE::RELAISSTATE');
+    my $tmpstates = $self->{clacks}->retrieve('GSP::SOLSTICE::RELAISSTATE');
     if(defined($tmpstates) && length($tmpstates)) {
         @{$self->{relaisstates}} = split/,/, $tmpstates;
         print "Loaded relais states back from Clacks\n";
@@ -87,8 +87,8 @@ sub work {
 
     if($now > $self->{nextrelaisstate}) {
         $self->{nextrelaisstate} = $now + 60;
-        $self->{clacks}->set('SOLSTICE::RELAISSTATE', join(',', @{$self->{relaisstates}}));
-        $self->{clacks}->store('SOLSTICE::RELAISSTATE', join(',', @{$self->{relaisstates}}));
+        $self->{clacks}->set('GSP::SOLSTICE::RELAISSTATE', join(',', @{$self->{relaisstates}}));
+        $self->{clacks}->store('GSP::SOLSTICE::RELAISSTATE', join(',', @{$self->{relaisstates}}));
     }
 
     $self->{clacks}->doNetwork();
