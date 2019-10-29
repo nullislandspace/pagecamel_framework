@@ -1421,7 +1421,9 @@ sub get_lines { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $value = encode_uri_path($value);
                 $temp =~ s/\%/$value/;
                 $value = '<a href="' . $temp . '">' . $value . '</a>';
-            
+            } elsif($type eq 'color') {
+                my $contrast = colorHexMaxContrast($value);
+                $value = '<div style="background-color:' . $value . ';color:' . $contrast . ';">' . $value . '</div>';
             } elsif($type eq 'image') {
                 if($value ne '') {
                     $value = '<img width="100px" src="data:image/png;base64,' . $value . '">';
