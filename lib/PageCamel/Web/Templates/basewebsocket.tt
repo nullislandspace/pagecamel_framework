@@ -119,14 +119,20 @@
         buttonlist.length = 0;
     }
     
-    function addButton(ctx, x, y, width, height, buttontext, textcolor, buttoncolor, msgtype, msgdata) {
-        var textsize = ctx.measureText(buttontext);
+    function addButton(ctx, x, y, width, height, buttontext, textcolor, buttoncolor, msgtype, msgdata, roundCorner) {
+        if(typeof(roundCorner) === 'undefined') {
+            roundCorner = 0;
+        }
 
         ctx.strokeStyle = '#000000';
         ctx.fillStyle = buttoncolor;
         
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeRect(x, y, width, height);
+        if(!roundCorner) {
+            ctx.fillRect(x, y, width, height);
+            ctx.strokeRect(x, y, width, height);
+        } else {
+            roundRect(ctx, x, y, width, height, roundCorner);
+        }
         
         ctx.fillStyle = textcolor;
         ctx.strokeStyle = textcolor;
@@ -159,14 +165,20 @@
         return;
     }
 
-    function addCallbackButton(ctx, x, y, width, height, buttontext, textcolor, buttoncolor, callback) {
-        var textsize = ctx.measureText(buttontext);
+    function addCallbackButton(ctx, x, y, width, height, buttontext, textcolor, buttoncolor, callback, roundCorner) {
+        if(typeof(roundCorner) === 'undefined') {
+            roundCorner = 0;
+        }
 
         ctx.strokeStyle = '#000000';
         ctx.fillStyle = buttoncolor;
         
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeRect(x, y, width, height);
+        if(!roundCorner) {
+            ctx.fillRect(x, y, width, height);
+            ctx.strokeRect(x, y, width, height);
+        } else {
+            roundRect(ctx, x, y, width, height, roundCorner);
+        }
         
         ctx.fillStyle = textcolor;
         ctx.strokeStyle = textcolor;
@@ -195,7 +207,23 @@
         buttonlist.push(thisbutton);
         return;
     }
-
+    
+    function roundRect(ctx, x, y, w, h, radius) {
+        var r = x + w;
+        var b = y + h;
+        ctx.beginPath();
+        ctx.moveTo(x+radius, y);
+        ctx.lineTo(r-radius, y);
+        ctx.quadraticCurveTo(r, y, r, y+radius);
+        ctx.lineTo(r, y+h-radius);
+        ctx.quadraticCurveTo(r, b, r-radius, b);
+        ctx.lineTo(x+radius, b);
+        ctx.quadraticCurveTo(x, b, x, b-radius);
+        ctx.lineTo(x, y+radius);
+        ctx.quadraticCurveTo(x, y, x+radius, y);
+        ctx.fill();
+        ctx.stroke();
+    }
     
     function checkButtonBlick(x, y) {
         for(var i = 0; i < buttonlist.length; i++) {
