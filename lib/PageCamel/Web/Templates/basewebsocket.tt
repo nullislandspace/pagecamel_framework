@@ -208,6 +208,123 @@
         return;
     }
     
+    function addScrollList(ctx, x, y, width, height, itemList, scrollOffset, scrollCallback, selectedItem, selectCallback) {
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = '#000000';
+        ctx.fillRect(x, y, width - 1, height - 1);
+        ctx.strokeRect(x, y, width - 1, height - 1);
+        
+        var listCount = Math.floor((height - 10) / 24);
+        if(scrollOffset == -1 || scrollOffset > (itemList.length - listCount)) {
+            scrollOffset = itemList.length - listCount;
+            if(scrollOffset < 0) {
+                scrollOffset = 0;
+            }
+            scrollCallback(scrollOffset);
+        }
+        
+        if(selectedItem != -1) {
+            var selector = selectedItem - scrollOffset;
+            if(selector => 0 && selector < listCount) {
+                ctx.fillStyle = '#F8FC03';
+                ctx.fillRect(x + 1, y + 1 + (selector * 24) , width - 25, 24);
+            }
+        }
+
+               
+        //   invoice list
+        ctx.font="20px Courier";
+        ctx.fillStyle = '#000000';
+        var maxItemCount = listCount;
+        if(itemList.length < maxItemCount) {
+            maxItemCount = itemList.length;
+        }
+        for(i = 0; i < maxItemCount; i++) {
+            ctx.fillText(itemList[i + scrollOffset], x + 5, y + 20 + (i * 24));
+            
+            var selectbutton = {
+                startx: x + 1,
+                starty: y + 1 + (i * 24),
+                endx: x + 1 + width - 24,
+                endy: y + 1 + (i * 24) + 23,
+                buttontype: 'callback',
+                callback: scrollListCallback,
+                selectItem: i + scrollOffset,
+                selectCallback: selectCallback,
+                scrollListEvent: 'select',
+            };
+            buttonlist.push(selectbutton);
+            
+            
+        }
+
+        // Scrollbar
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = '#000000';
+        ctx.font="20px Courier";
+        
+            // Note to self: available arrows: ⮜ ⮞ ⮝ ⮟
+            // Upper arrow
+        ctx.strokeRect(x + width - 23, y + 3, 20, 20);
+        ctx.fillText('⮝', x + width - 22, y + 22);
+        if(scrollOffset > 0) {
+            var upbutton = {
+                startx: x + width - 23,
+                starty: y + 3,
+                endx: x + width - 23 + 20,
+                endy: y + 3 + 20,
+                buttontype: 'callback',
+                callback: scrollListCallback,
+                scrollOffset: scrollOffset - 1,
+                scrollCallback: scrollCallback,
+                scrollListEvent: 'up',
+            };
+            buttonlist.push(upbutton);
+        }
+        
+            // Lower Arrow
+        ctx.strokeRect(x + width - 23, y + height - 23, 20, 20);
+        ctx.fillText('⮟', x + width - 22, y + height - 8);
+        if(scrollOffset < (itemList.length - listCount)) {
+            var downbutton = {
+                startx: x + width - 23,
+                starty: y + height - 23,
+                endx: x + width - 23 + 20,
+                endy: y + height - 23 + 20,
+                buttontype: 'callback',
+                callback: scrollListCallback,
+                scrollOffset: scrollOffset + 1,
+                scrollCallback: scrollCallback,
+                scrollListEvent: 'down',
+            };
+            buttonlist.push(downbutton);
+        }
+        
+        
+            // bar
+        var totallen = (y + height - 23) - (y + 23) - 4;
+        var barlen = totallen;
+        var barstart = y + 25;
+        if(itemList.length > listCount) {
+            var lenpercent = listCount / itemList.length;
+            barlen = Math.floor(barlen * lenpercent);
+            
+            var startpercent = invoicelistoffset / invoicelist.length;
+            barstart = barstart + Math.floor(totallen * startpercent);
+        }
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(x + width - 23, barstart, 20, barlen);
+    }
+    
+    function scrollListCallback(ev) {
+        if(ev.scrollListEvent === 'up' || ev.scrollListEvent === 'down') {
+            ev.scrollCallback(ev.scrollOffset);
+        } else if(ev.scrollListEvent === 'select') {
+            ev.selectCallback(ev.selectItem);
+        }
+    }
+    
     function roundRect(ctx, x, y, w, h, radius) {
         var r = x + w;
         var b = y + h;
@@ -240,7 +357,7 @@
                     };
                     ws.send(JSON.stringify(clickmsg));
                 } else if(buttonlist[i].buttontype === 'callback') {
-                    buttonlist[i].callback();
+                    buttonlist[i].callback(buttonlist[i]);
                 }
                 return true;
             }
