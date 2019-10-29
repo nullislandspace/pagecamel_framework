@@ -315,6 +315,8 @@
         }
         ctx.fillStyle = '#000000';
         ctx.fillRect(x + width - 23, barstart, 20, barlen);
+        
+        return listCount;
     }
     
     function scrollListCallback(ev) {
