@@ -119,94 +119,6 @@
         buttonlist.length = 0;
     }
     
-    function addButton(ctx, x, y, width, height, buttontext, textcolor, buttoncolor, msgtype, msgdata, roundCorner) {
-        if(typeof(roundCorner) === 'undefined') {
-            roundCorner = 0;
-        }
-
-        ctx.strokeStyle = '#000000';
-        ctx.fillStyle = buttoncolor;
-        
-        if(!roundCorner) {
-            ctx.fillRect(x, y, width, height);
-            ctx.strokeRect(x, y, width, height);
-        } else {
-            roundRect(ctx, x, y, width, height, roundCorner);
-        }
-        
-        ctx.fillStyle = textcolor;
-        ctx.strokeStyle = textcolor;
-        if(!buttontext.includes("\n")) {
-            ctx.fillText(buttontext, x + 8, y + (height / 2));
-        } else {
-            var blines = buttontext.split("\n");
-            
-            var yoffs = y + ((height / 2) - (9 * (blines.length - 1)));
-            var i;
-            for(i = 0; i < blines.length; i++) {
-                blines[i].replace("\n", '');
-                ctx.fillText(blines[i], x + 8, yoffs);
-                yoffs = yoffs + 18;
-            }
-        }
-        firstdebug = 0;
-        
-        var thisbutton = {
-            startx: x,
-            starty: y,
-            endx: x+width,
-            endy: y+height,
-            type: msgtype,
-            data: msgdata,
-            displaytext: buttontext,
-            buttontype: 'sendmessage'
-        };
-        buttonlist.push(thisbutton);
-        return;
-    }
-
-    function addCallbackButton(ctx, x, y, width, height, buttontext, textcolor, buttoncolor, callback, roundCorner) {
-        if(typeof(roundCorner) === 'undefined') {
-            roundCorner = 0;
-        }
-
-        ctx.strokeStyle = '#000000';
-        ctx.fillStyle = buttoncolor;
-        
-        if(!roundCorner) {
-            ctx.fillRect(x, y, width, height);
-            ctx.strokeRect(x, y, width, height);
-        } else {
-            roundRect(ctx, x, y, width, height, roundCorner);
-        }
-        
-        ctx.fillStyle = textcolor;
-        ctx.strokeStyle = textcolor;
-        if(!buttontext.includes("\n")) {
-            ctx.fillText(buttontext, x + 8, y + (height / 2));
-        } else {
-            var blines = buttontext.split("\n");
-            var yoffs = y + ((height / 2) - (9 * (blines.length - 1)));
-            var i;
-            for(i = 0; i < blines.length; i++) {
-                blines[i].replace("\n", '');
-                ctx.fillText(blines[i], x + 8, yoffs);
-                yoffs = yoffs + 18;
-            }
-        }
-        
-        var thisbutton = {
-            startx: x,
-            starty: y,
-            endx: x+width,
-            endy: y+height,
-            displaytext: buttontext,
-            buttontype: 'callback',
-            callback: callback
-        };
-        buttonlist.push(thisbutton);
-        return;
-    }
     
     function addScrollList(ctx, x, y, width, height, itemList, scrollOffset, scrollCallback, selectedItem, selectCallback) {
 
@@ -344,29 +256,6 @@
         ctx.stroke();
     }
     
-    function checkButtonBlick(x, y) {
-        for(var i = 0; i < buttonlist.length; i++) {
-            if(x >= buttonlist[i].startx &&
-               x <= buttonlist[i].endx &&
-               y >= buttonlist[i].starty &&
-               y <= buttonlist[i].endy
-               ) {
-                
-                if(buttonlist[i].buttontype === 'sendmessage') {
-                    var clickmsg = {
-                        type: buttonlist[i].type,
-                        data: buttonlist[i].data
-                    };
-                    ws.send(JSON.stringify(clickmsg));
-                } else if(buttonlist[i].buttontype === 'callback') {
-                    buttonlist[i].callback(buttonlist[i]);
-                }
-                return true;
-            }
-        }
-        
-        return false;
-    }
 
     // 7 segment drawing functions
     
