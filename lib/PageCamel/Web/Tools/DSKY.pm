@@ -31,6 +31,24 @@ sub new {
     return $self;
 }
 
+sub wsmaskget {
+    my ($self, $ua, $settings, $webdata) = @_;
+    
+    if(!defined($webdata->{HeadExtraScript})) {
+        $webdata->{HeadExtraScript} = [];
+    }
+    
+    if(0) {
+        push @{$webdata->{HeadExtraScripts}}, '/static/canvasjs/canvasbuttons.js';
+        push @{$webdata->{HeadExtraScripts}}, '/static/canvasjs/canvasitemlist.js';
+        push @{$webdata->{HeadExtraScripts}}, '/static/canvasjs/canvas7segment.js';
+        push @{$webdata->{HeadExtraScripts}}, '/static/canvasjs/canvashelpers.js';
+    } else {
+        push @{$webdata->{HeadExtraScripts}}, '/static/canvasjs.compiled-min.js';
+    }
+    
+    return;
+}
 
 sub wshandlerstart {
     my ($self, $ua, $settings) = @_;

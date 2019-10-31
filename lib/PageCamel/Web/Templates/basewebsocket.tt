@@ -81,7 +81,6 @@
     function isValidNumber(n) {
         return !isNaN(parseFloat(n)) && isFinite(n) && n > 0;
     }
-    
 
     function sendPing () {
         var neededPing = Math.round(Date.now() / 1000) - ttvars.client_disconnect_timeout;
@@ -111,13 +110,5 @@
         lastPing = -1;
         ws.close();
     }
-    
-    
-    
-
-    
-
-    // 7 segment drawing functions
-    
 
 </script>

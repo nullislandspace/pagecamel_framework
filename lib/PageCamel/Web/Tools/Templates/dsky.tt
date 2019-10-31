@@ -16,13 +16,16 @@
                                   '1111111111111111111111111111111111111111111111111111111111111111',
                                   '1111111111111111111111111111111111111111111111111111111111111111');
     
+    var buttonHandler;
+    var sevenHandler;
+    
     function websocketmaskOnload() {
-        // Nothing to do here
+        buttonHandler = new CanvasButtons('dskycanvas');
+        sevenHandler = new Canvas7Segment('dskycanvas');
     }
 
     function websocketmaskOnSocketOpen() {
         paintCanvas();
-        $('#dskycanvas').click(canvasClicks);
     }
 
 
@@ -57,33 +60,33 @@
         ctx.fillStyle = '#C0C0C0';
         ctx.strokeStyle = '#000000';
         ctx.font="30px Courier";
-        addButton(ctx, 640, 50, 100, 100,  "ACK",       '#000000', '#A0A0A0', "BUTTONPRESS", "ACK");
-        addButton(ctx, 760, 50, 100, 100,  "TX",        '#000000', '#A0A0A0', "BUTTONPRESS", "IR");
-        addButton(ctx, 880, 50, 100, 100,  "PWR",       '#000000', '#A0A0A0', "BUTTONPRESS", "POWER");
+        buttonHandler.addButton(640, 50, 100, 100,  "ACK",   '#000000', '#A0A0A0', "ACK", 5);
+        buttonHandler.addButton(760, 50, 100, 100,  "TX",    '#000000', '#A0A0A0', "IR", 5);
+        buttonHandler.addButton(880, 50, 100, 100,  "PWR",   '#000000', '#A0A0A0', "POWER", 5);
         
-        addButton(ctx, 640, 210, 100, 100,  "ESC",      '#000000', '#A0A0A0', "BUTTONPRESS", "ESC");
-        addButton(ctx, 760, 210, 100, 100,  "PRO",      '#000000', '#A0A0A0', "BUTTONPRESS", "PRO");
-        addButton(ctx, 880, 210, 100, 100,  "FUNC",     '#000000', '#A0A0A0', "BUTTONPRESS", "FUNC");
-        addButton(ctx, 1000, 210, 100, 100, "α",        '#000000', '#A0A0A0', "BUTTONPRESS", "I1");
+        buttonHandler.addButton(640, 210, 100, 100,  "ESC",  '#000000', '#A0A0A0', "ESC", 5);
+        buttonHandler.addButton(760, 210, 100, 100,  "PRO",  '#000000', '#A0A0A0', "PRO", 5);
+        buttonHandler.addButton(880, 210, 100, 100,  "FUNC", '#000000', '#A0A0A0', "FUNC", 5);
+        buttonHandler.addButton(1000, 210, 100, 100, "α",    '#000000', '#A0A0A0', "I1", 5);
         
-        addButton(ctx, 640, 320, 100, 100,  "7",        '#000000', '#A0A0A0', "BUTTONPRESS", "7");
-        addButton(ctx, 760, 320, 100, 100,  "8",        '#000000', '#A0A0A0', "BUTTONPRESS", "8");
-        addButton(ctx, 880, 320, 100, 100,  "9",        '#000000', '#A0A0A0', "BUTTONPRESS", "9");
-        addButton(ctx, 1000, 320, 100, 100, "β",        '#000000', '#A0A0A0', "BUTTONPRESS", "I2");
+        buttonHandler.addButton(640, 320, 100, 100,  "7",    '#000000', '#A0A0A0', "7", 5);
+        buttonHandler.addButton(760, 320, 100, 100,  "8",    '#000000', '#A0A0A0', "8", 5);
+        buttonHandler.addButton(880, 320, 100, 100,  "9",    '#000000', '#A0A0A0', "9", 5);
+        buttonHandler.addButton(1000, 320, 100, 100, "β",    '#000000', '#A0A0A0', "I2", 5);
         
-        addButton(ctx, 640, 430, 100, 100,  "4",        '#000000', '#A0A0A0', "BUTTONPRESS", "4");
-        addButton(ctx, 760, 430, 100, 100,  "5",        '#000000', '#A0A0A0', "BUTTONPRESS", "5");
-        addButton(ctx, 880, 430, 100, 100,  "6",        '#000000', '#A0A0A0', "BUTTONPRESS", "6");
-        addButton(ctx, 1000, 430, 100, 100, "γ",        '#000000', '#A0A0A0', "BUTTONPRESS", "I3");
+        buttonHandler.addButton(640, 430, 100, 100,  "4",    '#000000', '#A0A0A0', "4", 5);
+        buttonHandler.addButton(760, 430, 100, 100,  "5",    '#000000', '#A0A0A0', "5", 5);
+        buttonHandler.addButton(880, 430, 100, 100,  "6",    '#000000', '#A0A0A0', "6", 5);
+        buttonHandler.addButton(1000, 430, 100, 100, "γ",    '#000000', '#A0A0A0', "I3", 5);
         
-        addButton(ctx, 640, 540, 100, 100,  "1",        '#000000', '#A0A0A0', "BUTTONPRESS", "1");
-        addButton(ctx, 760, 540, 100, 100,  "2",        '#000000', '#A0A0A0', "BUTTONPRESS", "2");
-        addButton(ctx, 880, 540, 100, 100, "3",         '#000000', '#A0A0A0', "BUTTONPRESS", "3");
-        addButton(ctx, 1000, 540, 100, 210, "⏎",        '#000000', '#A0A0A0', "BUTTONPRESS", "ENTER");
+        buttonHandler.addButton(640, 540, 100, 100,  "1",    '#000000', '#A0A0A0', "1", 5);
+        buttonHandler.addButton(760, 540, 100, 100,  "2",    '#000000', '#A0A0A0', "2", 5);
+        buttonHandler.addButton(880, 540, 100, 100, "3",     '#000000', '#A0A0A0', "3", 5);
+        buttonHandler.addButton(1000, 540, 100, 210, "⏎",    '#000000', '#A0A0A0', "ENTER", 5);
         
-        addButton(ctx, 640, 650, 100, 100, "0",         '#000000', '#A0A0A0', "BUTTONPRESS", "0");
-        addButton(ctx, 760, 650, 100, 100, "00",        '#000000', '#A0A0A0', "BUTTONPRESS", "00");
-        addButton(ctx, 880, 650, 100, 100, "DEL",       '#000000', '#A0A0A0', "BUTTONPRESS", "BACKSPACE");
+        buttonHandler.addButton(640, 650, 100, 100, "0",     '#000000', '#A0A0A0', "0", 5);
+        buttonHandler.addButton(760, 650, 100, 100, "00",    '#000000', '#A0A0A0', "00", 5);
+        buttonHandler.addButton(880, 650, 100, 100, "DEL",   '#000000', '#A0A0A0', "BACKSPACE", 5);
 
         ctx.fillStyle = '#FF0000';
         ctx.strokeStyle = '#FF0000';        
@@ -96,15 +99,13 @@
         setTimeout(paintCanvas, 100);
     }
     
-    function canvasClicks(e) {
-        var x = Math.floor((e.pageX-$("#dskycanvas").offset().left));
-        var y = Math.floor((e.pageY-$("#dskycanvas").offset().top));
-        //console.log('Clicked X ' + x + ' Y ' + y);
-        
-        
-        if(checkButtonBlick(x, y)) {
-            return;
-        }
+    function buttonSendMessage(msg) {
+        var buttonmsg = {
+            type: "BUTTONPRESS",
+            data: msg
+        };
+        ws.send(JSON.stringify(buttonmsg));
+        return;
     }
     
     function paintMatrixDisplay(ctx, x, y, displaybits) {
@@ -156,7 +157,7 @@
                     realsegment = 7;
                 }
                 if(bit === '1' && realsegment > 0) {
-                    sevensegmentDrawSegment(ctx, realx, y, '' + realsegment, 6);
+                    sevenHandler.sevensegmentDrawSegment(realx, y, '' + realsegment, 6);
                 }
             }
         }
