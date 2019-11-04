@@ -87,10 +87,14 @@
         buttonHandler.addButton(760, 650, 100, 100, "00",    '#000000', '#A0A0A0', buttonSendMessage, "00", 5);
         buttonHandler.addButton(880, 650, 100, 100, "DEL",   '#000000', '#A0A0A0', buttonSendMessage, "BACKSPACE", 5);
 
-        ctx.fillStyle = '#FF0000';
-        ctx.strokeStyle = '#FF0000';        
+        ctx.strokeStyle = '#AF0000';        
         paintMatrixDisplay(ctx, 400, 80, sevendisplays[0]);
         for(i = 0; i < 6; i++) {
+            if(i < 2) {
+                ctx.fillStyle = '#FF4F4F';
+            } else {
+                ctx.fillStyle = '#FF0000';
+            }
             paintSevenDisplay(ctx, 80, 250 + (i * 80), sevendisplays[i + 1]);
         }
 
