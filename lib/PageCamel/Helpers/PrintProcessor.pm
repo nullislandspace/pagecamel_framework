@@ -367,14 +367,35 @@ sub printAddTestPattern_HorizontalLines {
     return
 }
 
-sub printTestMessage {
+sub printAddTestPattern_Rectangle {
     my ($self) = @_;
+    
+    for(my $i = 0; $i < $self->{width}; $i++) {
+        if($i == 0 || $i == ($self->{width} - 1)) {
+            for(my $j = 0; $j <= $self->{width}; $j++) {
+                $self->{img}->setPixel($j, $self->{imgoffs}, $self->{imgblack});
+            }
+        } else {
+            $self->{img}->setPixel(0, $self->{imgoffs}, $self->{imgblack});
+            $self->{img}->setPixel($i, $self->{imgoffs}, $self->{imgblack});
+            $self->{img}->setPixel($self->{width} - $i - 1, $self->{imgoffs}, $self->{imgblack});
+            $self->{img}->setPixel($self->{width} - 1, $self->{imgoffs}, $self->{imgblack});
+        }
+        $self->{imgoffs}++;
+    }
+    
+    return
+}
+
+
+sub printTestMessage {
+    my ($self, $printer, $tests) = @_;
     
     my @lines = PageCamel::Helpers::TestData::getTestLines();
     
     $self->printStartDocument();
     
-    if(1) {
+    if(contains('text', $tests)) {
         $self->printAddTextLine("TEST 'Text'");
         $self->printAddBigTextLine("GladOS");
         foreach my $line (@lines) {
@@ -385,7 +406,7 @@ sub printTestMessage {
         }
     }
 
-    if(1) {
+    if(contains('vlines', $tests)) {
         $self->printAddTextLine("TEST 'Vertical lines'");
         for(my $i = 20; $i > 0; $i--) {
             $self->printAddTestPattern_VerticalLines($i);
@@ -395,7 +416,7 @@ sub printTestMessage {
         }
     }
 
-    if(1) {
+    if(contains('hlines', $tests)) {
         $self->printAddTextLine("TEST 'Horizontal lines'");
         for(my $i = 20; $i > 0; $i--) {
             $self->printAddTestPattern_HorizontalLines($i);
@@ -405,20 +426,25 @@ sub printTestMessage {
         }
     }
 
-    if(1) {
+    if(contains('heatcool', $tests)) {
         
         $self->printAddTextLine("TEST 'Heat up/Cooldown'");
         $self->printAddTestPattern_HeatupCooldown();
-        
     }
     
-    if(1) {
+    if(contains('greyscale', $tests)) {
         $self->printAddTextLine("TEST 'Greyscale Images'");
         $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage1(), 1);
         $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage2(), 1);
         for(1..3) {
             $self->printAddTextLine('');
         }
+    }
+    
+    if(contains('rectangle', $tests)) {
+        
+        $self->printAddTextLine("TEST 'Rectangle'");
+        $self->printAddTestPattern_Rectangle();
     }
     
     for(1..3) {
@@ -429,7 +455,7 @@ sub printTestMessage {
         $self->printAddTextLine('');
     }
     
-    $self->printEndDocument();
+    $self->printEndDocument($printer);
     return;
 }
 
