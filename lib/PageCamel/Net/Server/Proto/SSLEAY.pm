@@ -30,7 +30,7 @@ package PageCamel::Net::Server::Proto::SSLEAY;
 use strict;
 use warnings;
 
-our $VERSION = 2.3;
+our $VERSION = 2.4;
 use IO::Socket::INET;
 use Fcntl ();
 use Errno ();

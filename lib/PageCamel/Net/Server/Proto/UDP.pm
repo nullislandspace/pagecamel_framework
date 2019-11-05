@@ -31,7 +31,7 @@
 
 package PageCamel::Net::Server::Proto::UDP;
 use strict;
-our $VERSION = 2.3;
+our $VERSION = 2.4;
 use base qw(PageCamel::Net::Server::Proto::TCP);
 
 my @udp_args = qw(
