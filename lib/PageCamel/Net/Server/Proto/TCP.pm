@@ -29,7 +29,7 @@
 package PageCamel::Net::Server::Proto::TCP;
 use strict;
 use warnings;
-our $VERSION = 2.3;
+our $VERSION = 2.4;
 use IO::Socket::INET;
 use PageCamel::Net::Server::Proto;
 

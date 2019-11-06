@@ -29,7 +29,7 @@
 package PageCamel::Net::Server::Proto::UNIX;
 use strict;
 use base qw(IO::Socket::UNIX);
-our $VERSION = 2.3;
+our $VERSION = 2.4;
 use Socket qw(SOCK_STREAM SOCK_DGRAM);
 
 sub NS_proto { 'UNIX' }

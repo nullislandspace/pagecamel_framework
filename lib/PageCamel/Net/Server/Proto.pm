@@ -27,7 +27,7 @@
 ################################################################
 
 package PageCamel::Net::Server::Proto;
-our $VERSION = 2.3;
+our $VERSION = 2.4;
 
 use strict;
 use warnings;
