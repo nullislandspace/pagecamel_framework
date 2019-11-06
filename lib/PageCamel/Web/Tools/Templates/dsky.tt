@@ -16,6 +16,36 @@
                                   '1111111111111111111111111111111111111111111111111111111111111111',
                                   '1111111111111111111111111111111111111111111111111111111111111111');
     
+    var dskybuttons = [
+        {x: 640, y: 50, w: 100, h: 100, text: "ACK", name: "ACK", active: 0},
+        {x: 760, y: 50, w: 100, h: 100, text: "TX", name: "IR", active: 0},
+        {x: 880, y: 50, w: 100, h: 100, text: "PWR", name: "POWER", active: 0},
+
+        {x: 640, y: 210, w: 100, h: 100, text: "ESC", name: "ESC", active: 0},
+        {x: 760, y: 210, w: 100, h: 100, text: "PRO", name: "PRO", active: 0},
+        {x: 880, y: 210, w: 100, h: 100, text: "FUNC", name: "FUNC", active: 0},
+        {x: 1000, y: 210, w: 100, h: 100, text: "α", name: "I1", active: 0},
+
+        {x: 640, y: 320, w: 100, h: 100, text: "7", name: "7", active: 0},
+        {x: 760, y: 320, w: 100, h: 100, text: "8", name: "8", active: 0},
+        {x: 880, y: 320, w: 100, h: 100, text: "9", name: "9", active: 0},
+        {x: 1000, y: 320, w: 100, h: 100, text: "β", name: "I2", active: 0},
+
+        {x: 640, y: 430, w: 100, h: 100, text: "4", name: "4", active: 0},
+        {x: 760, y: 430, w: 100, h: 100, text: "5", name: "5", active: 0},
+        {x: 880, y: 430, w: 100, h: 100, text: "6", name: "6", active: 0},
+        {x: 1000, y: 430, w: 100, h: 100, text: "γ", name: "I3", active: 0},
+
+        {x: 640, y: 540, w: 100, h: 100, text: "1", name: "1", active: 0},
+        {x: 760, y: 540, w: 100, h: 100, text: "2", name: "2", active: 0},
+        {x: 880, y: 540, w: 100, h: 100, text: "3", name: "3", active: 0},
+        {x: 1000, y: 540, w: 100, h: 210, text: "⏎", name: "ENTER", active: 0},
+
+        {x: 640, y: 650, w: 100, h: 100, text: "0", name: "0", active: 0},
+        {x: 760, y: 650, w: 100, h: 100, text: "00", name: "00", active: 0},
+        {x: 880, y: 650, w: 100, h: 100, text: "DEL", name: "BACKSPACE", active: 0}
+    ];
+
     var buttonHandler;
     var sevenHandler;
     
@@ -65,6 +95,28 @@
         ctx.fillStyle = '#C0C0C0';
         ctx.strokeStyle = '#000000';
         ctx.font="30px Courier";
+
+
+        for(var i = 0; i < dskybuttons.length; i++) {
+            var fgcol = '#000000';
+            var bgcol = '#A0A0A0';
+            if(dskybuttons[i].active > 0) {
+                dskybuttons[i].active--;
+                bgcol = '#505050';
+            }
+            buttonHandler.addButton(dskybuttons[i].x,
+                                    dskybuttons[i].y,
+                                    dskybuttons[i].w,
+                                    dskybuttons[i].h,
+                                    dskybuttons[i].text,
+                                    fgcol,
+                                    bgcol,
+                                    buttonSendMessage,
+                                    dskybuttons[i].name,
+                                    5);
+        }
+
+        /*
         buttonHandler.addButton(640, 50, 100, 100,  "ACK",   '#000000', '#A0A0A0', buttonSendMessage, "ACK", 5);
         buttonHandler.addButton(760, 50, 100, 100,  "TX",    '#000000', '#A0A0A0', buttonSendMessage, "IR", 5);
         buttonHandler.addButton(880, 50, 100, 100,  "PWR",   '#000000', '#A0A0A0', buttonSendMessage, "POWER", 5);
@@ -92,6 +144,7 @@
         buttonHandler.addButton(640, 650, 100, 100, "0",     '#000000', '#A0A0A0', buttonSendMessage, "0", 5);
         buttonHandler.addButton(760, 650, 100, 100, "00",    '#000000', '#A0A0A0', buttonSendMessage, "00", 5);
         buttonHandler.addButton(880, 650, 100, 100, "DEL",   '#000000', '#A0A0A0', buttonSendMessage, "BACKSPACE", 5);
+        */
 
         ctx.strokeStyle = '#AF0000';        
         paintMatrixDisplay(ctx, 400, 40, sevendisplays[0]);
@@ -114,6 +167,11 @@
             data: msg
         };
         ws.send(JSON.stringify(buttonmsg));
+        for(var i = 0; i < dskybuttons.length; i++) {
+            if(dskybuttons[i].name === msg) {
+                dskybuttons[i].active = 5;
+            }
+        }
         return;
     }
     
