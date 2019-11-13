@@ -14,7 +14,6 @@ use utf8;
 use Encode qw(is_utf8 encode_utf8 decode_utf8);
 #---AUTOPRAGMAEND---
 
-
 use Config;
 use Scalar::Util 'readonly';
 
@@ -327,6 +326,8 @@ sub _mask {
 
     $mask = $mask x (int(length($payload) / 4) + 1);
     $mask = substr($mask, 0, length($payload));
+
+    no feature 'bitwise'; # Required from Perl 5.28 up if its default features are enabled
     $payload = "$payload" ^ $mask;
 
     return $payload;
