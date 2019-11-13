@@ -13,7 +13,7 @@ use Array::Contains;
 use utf8;
 #---AUTOPRAGMAEND---
 
-# PAGECAMEL  (C) 2008-2018 Rene Schickbauer
+# PAGECAMEL  (C) 2008-2019 Rene Schickbauer
 # Developed under Artistic license
 
 #die("Program disabled! Enable program by commenting out this line!");

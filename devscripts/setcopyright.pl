@@ -34,7 +34,7 @@ foreach my $file (@files) {
 
     open(my $ofh, ">", $file) or die($ERRNO);
     foreach my $line (@lines) {
-        $line =~ s/\(C\)\ \d\d\d\d-\d\d\d\d\ Rene\ Schickbauer/\(C\) 2008-2018 Rene Schickbauer/ig;
+        $line =~ s/\(C\)\ \d\d\d\d-\d\d\d\d\ .*Rene\ Schickbauer/\(C\) 2008-2019 Rene Schickbauer/ig;
         print $ofh $line;
     }
     close $ofh;

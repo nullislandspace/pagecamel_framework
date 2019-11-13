@@ -31,7 +31,7 @@ my @arguments = (
 
 my $args = join(' ', @arguments);
 
-# PAGECAMEL  (C) 2008-2018 Rene Schickbauer
+# PAGECAMEL  (C) 2008-2019 Rene Schickbauer
 # Developed under Artistic license
 
 

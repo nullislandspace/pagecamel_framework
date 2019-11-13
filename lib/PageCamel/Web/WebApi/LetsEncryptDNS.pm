@@ -1,4 +1,4 @@
-# PAGECAMEL  (C) 2008-2018 Rene Schickbauer
+# PAGECAMEL  (C) 2008-2019 Rene Schickbauer
 # Developed under Artistic license
 package PageCamel::Web::WebApi::LetsEncryptDNS;
 #---AUTOPRAGMASTART---

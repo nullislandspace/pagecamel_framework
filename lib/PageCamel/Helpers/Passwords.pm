@@ -13,7 +13,7 @@ use Array::Contains;
 use utf8;
 #---AUTOPRAGMAEND---
 
-# PAGECAMEL  (C) 2008-2018 Rene Schickbauer
+# PAGECAMEL  (C) 2008-2019 Rene Schickbauer
 # Developed under Artistic license
 
 use Digest;
@@ -190,7 +190,7 @@ Rene Schickbauer, E<lt>cavac@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008-2016 by Rene Schickbauer
+Copyright (C) 2008-2019 Rene Schickbauer
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.10.0 or,
