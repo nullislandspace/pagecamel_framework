@@ -25,9 +25,20 @@
 ################################################################
 
 package PageCamel::Net::Server::Log::Sys::Syslog;
-
+#---AUTOPRAGMASTART---
+use 5.030;
 use strict;
 use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
+our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
+
 use Sys::Syslog qw(setlogsock openlog syslog);;
 
 our %syslog_map = (0 => 'err', 1 => 'warning', 2 => 'notice', 3 => 'info', 4 => 'debug');

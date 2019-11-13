@@ -25,15 +25,25 @@
 ################################################################
 
 package PageCamel::Net::Server::Multiplex;
-
+#---AUTOPRAGMASTART---
+use 5.030;
 use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
+our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
+
 use base qw(PageCamel::Net::Server);
 use PageCamel::Net::Server::SIG qw(register_sig check_sigs);
-use Carp qw(confess);
 eval { require IO::Multiplex; import IO::Multiplex 1.05; };
 $@ && warn "Module IO::Multiplex is required for Multiplex.";
 
-our $VERSION = $PageCamel::Net::Server::VERSION;
 
 sub net_server_type { __PACKAGE__ }
 
@@ -151,9 +161,7 @@ package PageCamel::Net::Server::Multiplex::MUX;
 # Just a dumb module to be used for the
 # Multiplex callback_object hooks
 
-use strict;
 
-our $VERSION = $PageCamel::Net::Server::Multiplex::VERSION;
 # This temporary @ISA should always be overridden
 # at runtime when init() is called.  This module should
 # really ISA whatever module ISA PageCamel::Net::Server::Multiplex.

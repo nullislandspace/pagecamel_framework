@@ -1,11 +1,20 @@
-use strict;
-use warnings;
 
 package PageCamel::Net::Server::Tracker;
+#---AUTOPRAGMASTART---
+use 5.030;
+use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
 our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
 # ABSTRACT: shared status file for PageCamel::Net::Server children
 
-use Carp ();
 use IO::File qw(O_CREAT O_EXLOCK O_NONBLOCK O_RDWR);
 use SUPER;
 

@@ -27,9 +27,19 @@
 ################################################################
 
 package PageCamel::Net::Server::Proto::SSL;
+#---AUTOPRAGMASTART---
+use 5.030;
 use strict;
 use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
 our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
 
 BEGIN {
     # IO::Socket::SSL will automatically become IO::Socket::INET6 if it is available.

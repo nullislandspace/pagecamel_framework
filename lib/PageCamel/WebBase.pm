@@ -1,15 +1,16 @@
 package PageCamel::WebBase;
 #---AUTOPRAGMASTART---
-use 5.020;
+use 5.030;
 use strict;
 use warnings;
 use diagnostics;
 use mro 'c3';
-use English qw(-no_match_vars);
+use English;
 use Carp;
 our $VERSION = 2.4;
-use Fatal qw( close );
+use autodie qw( close );
 use Array::Contains;
+use utf8;
 #---AUTOPRAGMAEND---
 
 #=!=START-AUTO-INCLUDES
@@ -138,7 +139,6 @@ use Time::HiRes qw[time sleep alarm];
 
 use Digest::MD5 qw(md5_hex);
 use PageCamel::Helpers::WebPrint;
-use Encode qw[encode_utf8 decode_utf8 is_utf8];
 
 my %httpstatuscodes = (
     100 => "Continue",

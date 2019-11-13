@@ -1,22 +1,22 @@
 package PageCamel::Helpers::WebPrint;
 #---AUTOPRAGMASTART---
-use 5.020;
+use 5.030;
 use strict;
 use warnings;
 use diagnostics;
 use mro 'c3';
-use English qw(-no_match_vars);
+use English;
 use Carp;
 our $VERSION = 2.4;
-use Fatal qw( close );
+use autodie qw( close );
 use Array::Contains;
+use utf8;
 #---AUTOPRAGMAEND---
 
 use base qw(Exporter);
 our @EXPORT = qw(webPrint); ## no critic (Modules::ProhibitAutomaticExportation)
 use File::Binary;
 use Time::HiRes qw(sleep);
-use Encode qw[encode_utf8 decode_utf8 is_utf8];
 use Errno qw(:POSIX);
 
 sub webPrint {

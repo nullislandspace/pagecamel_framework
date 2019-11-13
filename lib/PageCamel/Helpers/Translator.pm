@@ -1,15 +1,16 @@
 package PageCamel::Helpers::Translator;
 #---AUTOPRAGMASTART---
-use 5.020;
+use 5.030;
 use strict;
 use warnings;
 use diagnostics;
 use mro 'c3';
-use English qw(-no_match_vars);
+use English;
 use Carp;
 our $VERSION = 2.4;
-use Fatal qw( close );
+use autodie qw( close );
 use Array::Contains;
+use utf8;
 #---AUTOPRAGMAEND---
 
 use PageCamel::Helpers::DBSerialize;
@@ -17,7 +18,6 @@ use JSON::XS;
 use Digest::SHA1  qw(sha1_hex);
 use MIME::Base64;
 use Storable qw[freeze thaw];
-use Encode qw[encode_utf8 decode_utf8 is_utf8];
 
 # Translations and caching
 

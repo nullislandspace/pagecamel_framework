@@ -30,12 +30,23 @@
 ################################################################
 
 package PageCamel::Net::Server::Daemonize;
-
+#---AUTOPRAGMASTART---
+use 5.030;
 use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
+our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
+
 use base qw(Exporter);
 use POSIX qw(SIGINT SIG_BLOCK SIG_UNBLOCK);
 
-our $VERSION = "0.06";
 
 our @EXPORT_OK = qw(check_pid_file    create_pid_file   unlink_pid_file
                     is_root_user      get_uid get_gid   set_uid set_gid

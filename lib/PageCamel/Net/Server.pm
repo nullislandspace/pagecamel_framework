@@ -28,8 +28,20 @@
 ################################################################
 
 package PageCamel::Net::Server;
-
+#---AUTOPRAGMASTART---
+use 5.030;
 use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
+our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
+
 use Socket qw(AF_INET AF_UNIX SOCK_DGRAM SOCK_STREAM);
 use IO::Socket ();
 use IO::Select ();
@@ -38,7 +50,6 @@ use PageCamel::Net::Server::Proto ();
 use PageCamel::Net::Server::Daemonize qw(check_pid_file create_pid_file safe_fork
                               get_uid get_gid set_uid set_gid);
 
-our $VERSION = 2.4;
 
 sub new {
     my $class = shift || die "Missing class";

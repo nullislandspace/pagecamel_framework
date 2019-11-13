@@ -27,9 +27,20 @@
 ################################################################
 
 package PageCamel::Net::Server::INET;
-our $VERSION = 2.4;
-
+#---AUTOPRAGMASTART---
+use 5.030;
 use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
+our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
+
 use base qw(PageCamel::Net::Server);
 use Scalar::Util qw(blessed);
 
@@ -100,7 +111,6 @@ sub hup_server {}
 package PageCamel::Net::Server::INET::Handle;
 
 use base qw(IO::Handle);
-use strict;
 
 sub new {
     my $class = shift;

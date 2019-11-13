@@ -27,10 +27,21 @@
 ################################################################
 
 package PageCamel::Net::Server::Fork;
-
-our $VERSION = 2.4;
-
+#---AUTOPRAGMASTART---
+use 5.030;
 use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
+our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
+
+
 use base qw(PageCamel::Net::Server);
 use PageCamel::Net::Server::SIG qw(register_sig check_sigs);
 use Socket qw(SO_TYPE SOL_SOCKET SOCK_DGRAM);

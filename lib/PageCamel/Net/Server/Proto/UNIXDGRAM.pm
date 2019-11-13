@@ -27,8 +27,19 @@
 ################################################################
 
 package PageCamel::Net::Server::Proto::UNIXDGRAM;
+#---AUTOPRAGMASTART---
+use 5.030;
 use strict;
+use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp;
 our $VERSION = 2.4;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+#---AUTOPRAGMAEND---
 use base qw(PageCamel::Net::Server::Proto::UNIX);
 use Socket qw(SOCK_DGRAM);
 
