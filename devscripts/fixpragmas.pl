@@ -11,6 +11,7 @@ our $VERSION = 2.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
+use Encode qw(is_utf8 encode_utf8 decode_utf8);
 #---AUTOPRAGMAEND---
 
 # PAGECAMEL  (C) 2008-2019 Rene Schickbauer
@@ -35,7 +36,7 @@ foreach my $file (@files) {
     foreach my $line (@lines) {
         if($line =~ /^use\ +(.+)\;/) {
             my $pragma = $1;
-            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8)/ && $pragma !~ /Digest/) {
+            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode)/ && $pragma !~ /Digest/) {
                 # Remove this (old) lines
                 next;
             }
@@ -74,6 +75,7 @@ foreach my $file (@files) {
             print $ofh "use autodie qw( close );\n";
             print $ofh "use Array::Contains;\n";
             print $ofh "use utf8;\n";
+            print $ofh "use Encode qw(is_utf8 encode_utf8 decode_utf8);\n";
             print $ofh "#---AUTOPRAGMAEND---\n";
             $inserted = 1;
         }

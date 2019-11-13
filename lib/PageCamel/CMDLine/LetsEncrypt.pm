@@ -13,11 +13,11 @@ our $VERSION = 2.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
+use Encode qw(is_utf8 encode_utf8 decode_utf8);
 #---AUTOPRAGMAEND---
 use IO::File;
 use JSON::MaybeXS;
 use Module::Load;
-use Encode 'decode';
 use Digest::SHA 'sha256';
 use MIME::Base64 'encode_base64url';
 use Crypt::LE ':errors', ':keys';
