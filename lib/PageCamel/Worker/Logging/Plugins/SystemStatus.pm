@@ -88,7 +88,6 @@ sub work {
         push @spacers, '?';
     }
 
-
     my $insth = $dbh->prepare_cached("INSERT INTO logging_log_systemstatus (hostname, device_ok, device_type, " . join(',', @dbkeys) . ")
                                         VALUES(?, true, 'SYSTEMSTATUS', " . join(',', @spacers) . ")")
             or croak($dbh->errstr);
@@ -97,7 +96,7 @@ sub work {
         $workCount++;
     } else {
         $dbh->rollback;
-        $reph->deboglog("   Failed to update system status");
+        $reph->debuglog("   Failed to update system status");
     }
 
     $dbh->rollback;
@@ -117,6 +116,7 @@ sub getCPUTemp {
         if($line =~ /Core.(\d+)\:.*([+-].*)\°/) {
             my ($core, $val) = ($1, $2);
             $val =~ s/\+//g;
+            $val =~ s/[^0-9\.]//g;
             my $keyname = 'cpu_core' . $core . '_temp';
             next if(!defined($self->{dbcols}->{$keyname}));
             $sensors->{$keyname} = $val;

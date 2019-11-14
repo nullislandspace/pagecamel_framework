@@ -65,7 +65,7 @@ sub work {
         $workCount++;
     } else {
         $dbh->rollback;
-        $reph->deboglog("   Failed to update raidstatus");
+        $reph->debuglog("   Failed to update raidstatus");
     }
 
     $dbh->rollback;
