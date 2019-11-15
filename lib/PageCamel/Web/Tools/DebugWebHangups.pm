@@ -141,6 +141,7 @@ sub logstacktrace {
 
     my $key = 'DEBUG::STACKTRACE::' . $PID;
     print STDERR "############################# KEY $key\n";
+    print STDERR "############################# MESSAGE $message\n";
     $message = encode_base64($message, '');
 
     $self->{clacks}->set($key, $message);
