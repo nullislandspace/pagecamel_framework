@@ -794,6 +794,15 @@ nextrequest:
         print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{debug});
         goto cleanup;
     }
+
+    if($self->{debug}) {
+        print STDERR "**** $PID $requestline ****\n";
+        if(open(my $ofh, '>>', '/home/cavac/webhangups.log')) {
+            print $ofh "**** $PID $requestline ****\n";
+            close $ofh;
+        }
+    }
+
     if(!$self->parse_request_line($ua, $requestline)) {
         goto cleanup;
     }
@@ -1103,8 +1112,6 @@ nextrequest:
     # check if the given path allows us to handle a CORS request
     if(!$result{pagedone} && defined($ua->{headers}->{Origin})) {
         $self->trace('process_request cors');
-        #sub get_cors_config {
-        #my ($self, $path, $origin) = @_;
         my $corsconf = $self->get_cors_config($ua->{url}, $ua->{headers}->{Origin});
         if(!defined($corsconf) || !defined($corsconf->{Methods})) {
             # No CORS handling defined, handle the "classic way", e.g. do nothing special
