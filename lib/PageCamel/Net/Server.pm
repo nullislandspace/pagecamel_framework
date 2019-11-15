@@ -103,6 +103,8 @@ sub run_client_connection {
         $evalok = 1;
     };
     
+    $self->post_process_request;           # clean up client connection, etc
+    $self->post_client_connection_hook;    # one last hook
         
     if(!$evalok) {
         my $continueanyway = $self->processing_error_hook($@);
@@ -111,9 +113,6 @@ sub run_client_connection {
             kill 'INT', $ownpid;
         }
     }
-
-    $self->post_process_request;           # clean up client connection, etc
-    $self->post_client_connection_hook;    # one last hook
 }
 
 ###----------------------------------------------------------------###
