@@ -136,6 +136,7 @@ sub work {
 
             if($logtext =~ /dovecot.*\ pam\((.*?)\,(.*?)\).*(.*?)\ Authentication\ failure/i) {
                my ($ip) = ($2);
+               $ip =~ s/\,.+//g;
                if(!$self->{ipfloodinssth}->execute($ip)) {
                    $reph->debuglog($dbh->errstr);
                    $dbh->rollback;
@@ -145,6 +146,7 @@ sub work {
                $memh->incr('WebStats::dovecot_loginerror_count');
             } elsif($logtext =~ /imap\-login\:\ (Disconnected|Aborted).*no\ auth\ attempt.*\ rip\=(.*?)\,/i) {
                my ($ip) = ($2);
+               $ip =~ s/\,.+//g;
                if(!$self->{ipfloodinssth}->execute($ip)) {
                    $reph->debuglog($dbh->errstr);
                    $dbh->rollback;
@@ -155,6 +157,7 @@ sub work {
             } elsif($logtext =~ /imap\-login\:.*plaintext.*\ rip=(.*?)\,/i) {
                # None of my clients use plaintext auth and dovecot disallowes it
                 my ($ip) = ($2);
+               $ip =~ s/\,.+//g;
                 if(!$self->{ipfloodinssth}->execute($ip)) {
                     $reph->debuglog($dbh->errstr);
                     $dbh->rollback;
