@@ -4,6 +4,8 @@ devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
 devscripts/compilecss.pl
 devscripts/compilejs.pl
+devscripts/debuginject.pl
+devscripts/debugremove.pl
 devscripts/findbrokenforms.pl
 devscripts/fixpragmas.pl
 devscripts/nohss.pl
