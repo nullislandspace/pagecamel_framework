@@ -109,9 +109,9 @@ sub run_client_connection {
     };
         
     if(!$evalok) {
-        $continueanyway = 0;
+        my $continueanyway = 0;
         eval {
-            my $continueanyway = $self->processing_error_hook($@);
+            $continueanyway = $self->processing_error_hook($@);
         };
         my $ownpid = $$;
         if(!$continueanyway) {

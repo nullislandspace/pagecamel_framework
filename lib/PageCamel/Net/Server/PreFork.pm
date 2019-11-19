@@ -253,7 +253,7 @@ sub run_child {
             print $write "$$ exiting\n";
             eval {
                 $self->child_exception_hook($@);
-            }
+            };
             kill 'KILL', $PID;
         }
 
