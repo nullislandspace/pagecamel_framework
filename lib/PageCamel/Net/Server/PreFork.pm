@@ -252,6 +252,7 @@ sub run_child {
         if (! $ok) {
             print $write "$$ exiting\n";
             $self->child_exception_hook($@);
+            last;
         }
 
         last if $self->done;
