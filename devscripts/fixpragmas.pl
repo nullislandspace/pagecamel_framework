@@ -6,7 +6,7 @@ use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
-use Carp;
+use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 2.4;
 use autodie qw( close );
 use Array::Contains;
@@ -70,7 +70,7 @@ foreach my $file (@files) {
             print $ofh "use diagnostics;\n";
             print $ofh "use mro 'c3';\n";
             print $ofh "use English;\n";
-            print $ofh "use Carp;\n";
+            print $ofh "use Carp qw[carp croak confess cluck longmess shortmess];\n";
             print $ofh "our \$VERSION = 2.4;\n";
             print $ofh "use autodie qw( close );\n";
             print $ofh "use Array::Contains;\n";
