@@ -103,14 +103,19 @@ sub run_client_connection {
         $evalok = 1;
     };
     
-    $self->post_process_request;           # clean up client connection, etc
-    $self->post_client_connection_hook;    # one last hook
+    eval {
+        $self->post_process_request;           # clean up client connection, etc
+        $self->post_client_connection_hook;    # one last hook
+    };
         
     if(!$evalok) {
-        my $continueanyway = $self->processing_error_hook($@);
+        $continueanyway = 0;
+        eval {
+            my $continueanyway = $self->processing_error_hook($@);
+        };
         my $ownpid = $$;
         if(!$continueanyway) {
-            kill 'INT', $ownpid;
+            kill 'KILL', $ownpid;
         }
     }
 }

@@ -251,8 +251,10 @@ sub run_child {
         my $ok = eval { $self->run_client_connection; 1 };
         if (! $ok) {
             print $write "$$ exiting\n";
-            $self->child_exception_hook($@);
-            last;
+            eval {
+                $self->child_exception_hook($@);
+            }
+            kill 'KILL', $PID;
         }
 
         last if $self->done;
