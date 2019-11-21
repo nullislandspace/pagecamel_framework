@@ -67,7 +67,7 @@ sub work_hour {
         $lastRun = dbderef($lastRun);
     }
 
-    if(!$self->{isDebugging} && $lastRun eq $now) {
+    if($lastRun eq $now) {
         return $workCount;
     }
 
