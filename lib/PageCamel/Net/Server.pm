@@ -103,15 +103,27 @@ sub run_client_connection {
         $evalok = 1;
     };
     
+    my $errmsg;
+    if(!$evalok) {
+        $errmsg = $@;
+    }
+    
     eval {
         $self->post_process_request;           # clean up client connection, etc
         $self->post_client_connection_hook;    # one last hook
     };
-        
+    
+    if($errmsg =~ /accept_SSL\ timeout/) {
+        # NOT a fatal error
+        print STDERR "SSL accept timeout\n";
+        $evalok = 1;
+        $errmsg = '';
+    }
+       
     if(!$evalok) {
         my $continueanyway = 0;
         eval {
-            $continueanyway = $self->processing_error_hook($@);
+            $continueanyway = $self->processing_error_hook($errmsg);
         };
         my $ownpid = $$;
         if(!$continueanyway) {
