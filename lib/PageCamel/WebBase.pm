@@ -792,6 +792,9 @@ nextrequest:
     my $requestline = $self->readheader(5);
     if(!defined($requestline)) {
         print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{debug});
+        $ua->{keepalive} = 0;
+        webPrint(\*STDOUT, "HTTP/1.1 408 Request Timeout\r\n");
+
         goto cleanup;
     }
 
@@ -812,17 +815,23 @@ nextrequest:
         my $header = $self->readheader(5);
         if(!defined($header)) {
             print STDERR "HEADER LINE TIMEOUT\n" if($self->{debug});
+            $ua->{keepalive} = 0;
+            webPrint(\*STDOUT, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
         $hcount++;
         if($hcount > 500) {
             # too many headers, may be an attack
             #print STDERR "Too many headers!\n";
+            $ua->{keepalive} = 0;
+            webPrint(\*STDOUT, "HTTP/1.1 413 Request Entity Too Large\r\n");
             goto cleanup;
         }
         last if($header eq "");
         if(!$self->parse_header_line($ua, $header)) {
             #print STDERR "Error parsing header!\n";
+            $ua->{keepalive} = 0;
+            webPrint(\*STDOUT, "HTTP/1.1 400 Bad Request\r\n");
             goto cleanup;
         }
     }
@@ -832,10 +841,14 @@ nextrequest:
     #}
     if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
         if(!$self->get_request_body($ua, 5, 1024)) {
+            $ua->{keepalive} = 0;
+            webPrint(\*STDOUT, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
 
         if(!$self->parse_post_data($ua)) {
+            $ua->{keepalive} = 0;
+            webPrint(\*STDOUT, "HTTP/1.1 400 Bad Request\r\n");
             goto cleanup;
         }
     }
