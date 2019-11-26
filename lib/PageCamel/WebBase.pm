@@ -334,7 +334,7 @@ sub allow_deny_hook {
     $self->{last_accepted_client} = '0.0.0.0';
 
     if(!defined($server)) {
-        print STDERR "Undedined \$server in allow_deny_hook\n";
+        print STDERR "Undefined \$server in allow_deny_hook\n";
         return 0;
     }
 
