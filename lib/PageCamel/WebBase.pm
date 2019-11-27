@@ -1697,7 +1697,7 @@ sub endconfig {
     }
 
     print "Scanning for forbidden HTTP methods...\n";
-    my @forbidden_methods = qw[TRACE];
+    my @forbidden_methods = qw[TRACE TRACK];
     foreach my $method (@forbidden_methods) {
         if(contains($method, \@supportedmethods)) {
             croak("Method $method in use! Startup canceled due to security risks!");
