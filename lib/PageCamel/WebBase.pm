@@ -329,8 +329,6 @@ sub processing_error_hook {
 sub allow_deny_hook {
     my ($self, $server) = @_;
 
-    $self->trace('allow_deny_hook');
-
     $self->{last_accepted_client} = '0.0.0.0';
 
     if(!defined($server)) {
@@ -361,12 +359,9 @@ sub allow_deny_hook {
 sub post_process_request_hook {
     my ($self, $server) = @_;
 
-    $self->trace('post_process_request_hook');
-
     #print STDERR "Closing connection to ", $self->{last_accepted_client}, "\n";
     $self->{last_accepted_client} = '0.0.0.0';
 
-    $self->trace('DISCONNECTED');
     return;
 }
 
@@ -376,7 +371,6 @@ sub child_init_hook {
     if($self->{debug}) {
         print STDERR "******************** CHILD START *********************\n";
     }
-    $self->trace('child_init_hook');
     foreach my $modname (keys %{$self->{modules}}) {
         $self->{modules}->{$modname}->handle_child_start;   # Notify a new child that it was just forked (re-init socket handles and such)
     }
@@ -387,8 +381,6 @@ sub child_init_hook {
 
 sub child_finish_hook {
     my ($self) = @_;
-
-    $self->trace('child_finish_hook');
 
     if($self->{debug}) {
         print STDERR "******************** CHILD STOP *********************\n";
@@ -402,8 +394,6 @@ sub child_finish_hook {
 
 sub readheader {
     my ($self, $timeout) = @_;
-
-    $self->trace('readheader');
 
     my $line;
     my $ok = 0;
@@ -440,8 +430,6 @@ sub readheader {
 
 sub get_request_body {
     my ($self, $ua, $timeout, $blocksize) = @_;
-
-    $self->trace('get_request_body');
 
     # Note: Timeout is set per datablock
 
@@ -493,8 +481,6 @@ sub get_request_body {
 sub parse_request_line {
     my ($self, $ua, $header) = @_;
 
-    $self->trace('parse_request_line');
-
     if($header =~ /^([A-Z]+)\ (\S+)\ HTTP\/(.*)$/) {
         ($ua->{method}, $ua->{url}, $ua->{httpversion}) = ($1, $2, $3);
     } else {
@@ -534,8 +520,6 @@ sub parse_request_line {
 sub parse_header_line {
     my ($self, $ua, $header) = @_;
 
-    $self->trace('parse_header_line');
-
     if($header =~ /^(\S+)\:\ (.+)$/) {
         my ($name, $value) = ($1, $2);
         if(defined($httpheadersmapping{lc $name})) {
@@ -567,8 +551,6 @@ sub parse_header_line {
 
 sub parse_post_data {
     my ($self, $ua) = @_;
-
-    $self->trace('parse_post_data');
 
     my $ok = 1;
 
@@ -688,8 +670,6 @@ sub parse_post_data {
 sub process_request { ## no critic (Subroutines::ProhibitExcessComplexity)
     my ($self, $realsocket) = @_;
 
-    $self->trace('process_request');
-
 #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
 #    my $alpnversion = 'http/1.1';
 #    if(ref $realsocket eq 'PageCamel::Net::Server::Proto::SSL') {
@@ -703,8 +683,8 @@ sub process_request { ## no critic (Subroutines::ProhibitExcessComplexity)
     binmode($realsocket, ':bytes');
     $realsocket->blocking(0);
 
-    local $SIG{USR1} = sub {
-        print STDERR "******************   SIGNAL USR1 DETECTED ****************\n";
+    local $SIG{USR2} = sub {
+        print STDERR "******************   SIGNAL USR2 DETECTED ****************\n";
         eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             confess();
         };
@@ -751,7 +731,6 @@ nextrequest:
     }
 
     # Run cleanup functions in case the last cycle bailed out with croak
-    $self->trace('process_request cleanup');
     foreach my $worker (@{$self->{cleanup}}) {
         my $module = $worker->{Module};
         my $funcname = $worker->{Function} ;
@@ -766,7 +745,6 @@ nextrequest:
     # if marked as "blocked", just send an HTTP status line and minimalistic body
     # to notify the client, then close the connection
     {
-        $self->trace('process_request firewall');
         foreach my $item (@{$self->{firewall}}) {
             my $module = $item->{Module};
             my $funcname = $item->{Function};
@@ -907,7 +885,6 @@ nextrequest:
     my $head_automagic = 0;
 
     # This starts logging with basic information before ANY filtering
-    $self->trace('process_request logstart');
     foreach my $filtermodule (@{$self->{logstart}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -920,7 +897,6 @@ nextrequest:
     }
 
     # See, if we can do any short circuit fast redirecting
-    $self->trace('process_request fastredirect');
     foreach my $filtermodule (@{$self->{fastredirect}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -988,7 +964,6 @@ nextrequest:
     }
 
     if(!$result{pagedone} && $uamethod eq "OPTIONS") {
-        $self->trace('process_request options');
         if($webpath eq "*") {
             @allowedmethods = @{$self->{supportedmethods}};
 
@@ -1054,7 +1029,6 @@ nextrequest:
     # by themselfs!!
     if(!$result{pagedone}) {
         if(defined($self->{custom_methods}->{$uamethod})) {
-            $self->trace('process_request custom_method');
             my $module = $self->{custom_methods}->{$uamethod}->{Module};
             my $funcname = $self->{custom_methods}->{$uamethod}->{Function};
             my %preresult = $module->$funcname($ua);
@@ -1076,7 +1050,6 @@ nextrequest:
     if(!$result{pagedone}) {
         foreach my $dpath (keys %{$self->{webpaths}}) {
             if($webpath =~ /^$dpath/) {
-                $self->trace('process_request checkmethod ' . $webpath);
                 my $pathmodule = $self->{webpaths}->{$dpath};
                 my @pmethods = @{$pathmodule->{Methods}};
                 @allowedmethods = @pmethods;
@@ -1124,7 +1097,6 @@ nextrequest:
     # Check if we are handling a Cross Origin Resource Sharing request. If so,
     # check if the given path allows us to handle a CORS request
     if(!$result{pagedone} && defined($ua->{headers}->{Origin})) {
-        $self->trace('process_request cors');
         my $corsconf = $self->get_cors_config($ua->{url}, $ua->{headers}->{Origin});
         if(!defined($corsconf) || !defined($corsconf->{Methods})) {
             # No CORS handling defined, handle the "classic way", e.g. do nothing special
@@ -1159,7 +1131,6 @@ nextrequest:
     # re-routing ("/" -> "302 /index") and similar.
     # This is the part BEFORE auth checks
     if(!$result{pagedone}) {
-        $self->trace('process_request prefilter');
         foreach my $filtermodule (@{$self->{prefilter}}) {
             my $module = $filtermodule->{Module};
             my $funcname = $filtermodule->{Function};
@@ -1177,7 +1148,6 @@ nextrequest:
 
     # Run all authentification checks
     if(!$result{pagedone}) {
-        $self->trace('process_request authcheck');
         foreach my $filtermodule (@{$self->{authcheck}}) {
             my $module = $filtermodule->{Module};
             my $funcname = $filtermodule->{Function};
@@ -1194,7 +1164,6 @@ nextrequest:
     # AFTER authentication. This is for stuff where we need to
     # know the username, selected theme or something similar
     if(!$result{pagedone}) {
-        $self->trace('process_request postauthfilter');
         foreach my $filtermodule (@{$self->{postauthfilter}}) {
             my $module = $filtermodule->{Module};
             my $funcname = $filtermodule->{Function};
@@ -1209,7 +1178,6 @@ nextrequest:
 
     # Run the override page handling callbacks
     if(!$result{pagedone}) {
-        $self->trace('process_request overridewebpaths');
         foreach my $dpath (keys %{$self->{overridewebpaths}}) {
             if($webpath =~ /^$dpath/) {
                 my $pathmodule = $self->{overridewebpaths}->{$dpath};
@@ -1224,7 +1192,6 @@ nextrequest:
 
     # Run the normal page handling callbacks
     if(!$result{pagedone}) {
-        $self->trace('process_request webpaths');
         foreach my $dpath (keys %{$self->{webpaths}}) {
             if($webpath =~ /^$dpath/) {
                 my $pathmodule = $self->{webpaths}->{$dpath};
@@ -1239,7 +1206,6 @@ nextrequest:
 
     # run some postfilter callbacks, except for custom and internal methods
     if(!defined($self->{custom_methods}->{$uamethod}) && !contains($uamethod, $self->{internal_methods})) {
-        $self->trace('process_request postfilter');
         foreach my $filtermodule (@{$self->{postfilter}}) {
             my $module = $filtermodule->{Module};
             my $funcname = $filtermodule->{Function};
@@ -1248,7 +1214,6 @@ nextrequest:
     }
 
     # run some logging callbacks
-    $self->trace('process_request logend');
     foreach my $filtermodule (@{$self->{logend}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -1277,13 +1242,11 @@ nextrequest:
         }
     }
 
-    $self->trace('process_request printhttpstatus');
     if(!webPrint(\*STDOUT, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
-    $self->trace('process_request calcheaders');
     if(defined($result{type}) && $result{type} ne '') {
         $header{"-type"} = $result{type};
     }
@@ -1418,7 +1381,6 @@ nextrequest:
 
 
     # Print the headers
-    $self->trace('process_request printhttpheaders');
     my $dateprinted = 0;
     foreach my $header_key (keys %header) {
         my $printkey = $header_key;
@@ -1488,7 +1450,6 @@ nextrequest:
     }
 
     if(defined($result{data})) {
-        $self->trace('process_request printbody');
         # Some results do not have a body
         if(!webPrint(\*STDOUT, $result{data})) {
             $ua->{keepalive} = 0;
@@ -1498,8 +1459,6 @@ nextrequest:
 
     # handle protocol upgrades like WebSockets
     if($result{status} eq "101") {
-        $self->trace('process_request protocolupgrade');
-
         # run some logging callbacks
         foreach my $filtermodule (@{$self->{logwebsocket}}) {
             my $module = $filtermodule->{Module};
@@ -1529,7 +1488,6 @@ nextrequest:
             }
         }
     } elsif(defined($result{dataGenerator})) {
-        $self->trace('process_request datagenerator');
 
         # run some logging callbacks
         foreach my $filtermodule (@{$self->{logrequestfinished}}) {
@@ -1556,7 +1514,6 @@ nextrequest:
     }
     
     # run some logging callbacks
-    $self->trace('process_request logrequestfinished');
     foreach my $filtermodule (@{$self->{logrequestfinished}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -1589,7 +1546,6 @@ nextrequest:
         allowedmethods => join(',', @allowedmethods),
         debugmark => $debugmark,
     );
-    $self->trace('process_request remotelog');
     foreach my $filtermodule (@{$self->{remotelog}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -1599,7 +1555,6 @@ nextrequest:
 
 cleanup:
     # Run cleanup functions
-    $self->trace('process_request cleanup2');
     foreach my $worker (@{$self->{cleanup}}) {
         my $module = $worker->{Module};
         my $funcname = $worker->{Function} ;
@@ -1610,17 +1565,14 @@ cleanup:
 
     if($ua->{keepalive}) {
         #print STDERR "  keepalive, restarting protocol handler\n";
-        $self->trace('process_request keepalive');
         goto nextrequest;
     }
-
-    $self->trace('process_request done');
 
     return;
 }
 
 sub startconfig {
-    my ($self, $pagecamelconfig, $isDebug, $traceflag, $psappname) = @_;
+    my ($self, $pagecamelconfig, $isDebug, $psappname) = @_;
 
     if(!defined($isDebug)) {
         $isDebug = 0;
@@ -1629,7 +1581,6 @@ sub startconfig {
 
     $self->{pagecamel} = $pagecamelconfig;
 
-    $self->{trace} = $traceflag;
     $self->{appname} = $psappname;
 
     if(defined($self->{pagecamel}->{forking}) && $self->{pagecamel}->{forking}) {
@@ -2167,16 +2118,6 @@ BEGIN {
             };
     }
     # ... and ends here
-}
-
-sub trace {
-    my ($self, $status) = @_;
-
-    return unless($self->{trace});
-
-    #print STDERR "*-*-*-* " . $self->{trace} . " $status\n";
-    $PROGRAM_NAME = $self->{appname} . ' ' . $status;
-    return;
 }
 
 1;

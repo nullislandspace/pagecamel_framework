@@ -26,14 +26,13 @@ use Readonly;
 Readonly my $SSL_SESS_CACHE_OFF => 0x0000;
 
 sub new {
-    my ($class, $isDebugging, $forceForking, $forceSSL, $useDebugPort, $traceflag, $configfile) = @_;
+    my ($class, $isDebugging, $forceForking, $forceSSL, $useDebugPort, $configfile) = @_;
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
     $self->{forceForking} = $forceForking;
     $self->{forceSSL} = $forceSSL;
     $self->{useDebugPort} = $useDebugPort;
-    $self->{trace} = $traceflag;
     $self->{configfile} = $configfile;
     
     croak("Config file $configfile not found!") unless(-f $configfile);
@@ -226,7 +225,7 @@ sub init {
     
     #my $webserver = new PageCamel::Web($config->{server}->{port});
     my $webserver = PageCamel::Web->new($isForking);
-    $webserver->startconfig($config->{server}, $self->{isDebugging}, $self->{trace}, $ps_appname);
+    $webserver->startconfig($config->{server}, $self->{isDebugging}, $ps_appname);
     
     foreach my $module (@modlist) {
         if($self->{isDebugging}) {
