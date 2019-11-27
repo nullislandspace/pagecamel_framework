@@ -800,7 +800,7 @@ nextrequest:
 
     if($self->{debug}) {
         print STDERR "**** $PID $requestline ****\n";
-        if(open(my $ofh, '>>', '/home/cavac/webhangups.log')) {
+        if(0 && open(my $ofh, '>>', '/home/cavac/webhangups.log')) {
             print $ofh "**** $PID $requestline ****\n";
             close $ofh;
         }
