@@ -78,7 +78,7 @@ sub printEndDocument {
     } else {
         my $cmd = $self->{printcommand};
         if(defined($printername) && $printername ne '') {
-            $cmd .= ' -d ' . $printername;
+            $cmd .= ' -P ' . $printername;
         }
         $cmd .= ' ' . $ofname;
         `$cmd`;
