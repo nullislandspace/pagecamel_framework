@@ -47,6 +47,14 @@ sub new {
     $self->{isDebugging} = $isDebugging;
     $self->{isVerbose} = $isVerbose;
 
+    my $hname = hostname;
+    if(defined($self->{hosts}->{$hname})) {
+        print "   Host-specific configuration for '$hname'\n";
+        foreach my $keyname (keys %{$self->{hosts}->{$hname}}) {
+            $self->{$keyname} = $self->{hosts}->{$hname}->{$keyname};
+        }
+    }
+
     my $APPNAME = $self->{appname};
     if(!defined($self->{remotedns})) {
         $self->{usedb} = 1;
@@ -61,9 +69,8 @@ sub new {
 
     $PROGRAM_NAME = $ps_appname;
 
-    my $hname = hostname;
     if($self->{usedb}) {
-        croak("No DB config for hotname $hname") unless(defined($self->{$hname}));
+        croak("No DB config for hostname $hname") unless(defined($self->{$hname}));
         my $dbconf = $self->{$hname};
         my $dbh = DBI->connect($dbconf->{dburl}, $dbconf->{dbuser}, $dbconf->{dbpassword}, {AutoCommit => 0, RaiseError => 0})
                     or croak("Can't connect to database: $ERRNO");
