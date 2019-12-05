@@ -121,11 +121,20 @@ sub printAddBigTextLine {
 }
 
 sub printAddImage {
-    my ($self, $filename, $isbindata) = @_;
+    my ($self, $filename, $isbindata, $imagesoftness) = @_;
     
     my $reph = $self->{reph};
     
     my $pic;
+    if(!defined($isbindata)) {
+        $isbindata = 0;
+    }
+    
+    # Image softness (dithering grade) only works on greyscale image
+    if(!defined($imagesoftness)) {
+        $imagesoftness = 1;
+    }
+    
     if($isbindata) {
         $pic = GD::Image->newFromPngData($filename, 0);
     } else {
@@ -135,7 +144,7 @@ sub printAddImage {
     if($pic->colorsTotal != 2) {
         $reph->debuglog("printAddImage detected an image with >2 index colors!");
         $reph->debuglog("Switching to (slower) printAddGreyscaleImage() processing");
-        return $self->printAddGreyscaleImage($filename, $isbindata);
+        return $self->printAddGreyscaleImage($filename, $isbindata, $imagesoftness);
     }
     
     my ($w, $h) = $pic->getBounds();
