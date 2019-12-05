@@ -184,6 +184,75 @@ sub printAddGreyscaleImage {
                       $destw, $desth, # DEST W H
                       $w, $h, # SRC W H
                     );
+
+    my @pixels;
+    # Prepare for dithering
+    for(my $y = 0; $y < $desth; $y++) {
+        for(my $x = 0; $x < $destw; $x++) {
+            my $index = $pic->getPixel($x, $y);
+            my ($r,$g,$b) = $pic->rgb($index);
+            my $greypixel = int(($r+$g+$b)/3);
+            my $oldpixel = $greypixel * 1.0;
+
+            $pixels[$x]->[$y] = $oldpixel;
+        }
+    }
+
+    # Dithering
+    my @dither = (
+        [0, 0, 7],
+        [3, 5, 1],
+    );
+    for(my $y = 0; $y < $desth; $y++) {
+        for(my $x = 0; $x < $destw; $x++) {
+            my $oldpixel = $pixels[$x]->[$y];
+            
+            if($oldpixel < 0.0) {
+                $oldpixel = 0.0;
+            } elsif($oldpixel > 255.0) {
+                $oldpixel = 255.0;
+            }
+
+            # "Find closed palette/index value
+            my $newpixel = 255.0;
+            if($oldpixel < 128) {
+                $newpixel = 0.0;
+            }
+            $pixels[$x]->[$y] = $newpixel;
+
+            my $quanterror = $oldpixel - $newpixel;
+            for(my $ditherx = 0; $ditherx < 3; $ditherx++) {
+                for(my $dithery = 0; $dithery < 2; $dithery++) {
+                    my $deltax = $x + $ditherx - 1;
+                    my $deltay = $y + $dithery;
+                    my $factor = $dither[$dithery]->[$ditherx];
+                    next unless($factor);
+                    next unless($deltax >= 0 && $deltax < $destw);
+                    next unless($deltay >= 0 && $deltay < $desth);
+                    my $change = $factor * $quanterror / 16.0;
+                    if($change < -80 || $change > 80) {
+                        print $pixels[$deltax]->[$deltay], "\n";
+                    }
+                    #print "## $oldpixel $newpixel $factor $quanterror $change\n";
+                    $pixels[$deltax]->[$deltay] += $change;
+                }
+            }
+        }
+    }
+
+    for(my $y = 0; $y < $desth; $y++) {
+        for(my $x = 0; $x < $destw; $x++) {    
+            if($pixels[$x]->[$y] < 128) {
+                #print "$x $y ", $pixels[$x]->[$y], "\n";
+                $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+            }
+        }
+    }
+
+
+
+
+if(0) {
     
     my @rawgreys = (
         '0000000000000000',
@@ -228,6 +297,7 @@ sub printAddGreyscaleImage {
             }
         }
     }
+}
     
     $self->{imgoffs} += $desth;
     return;
