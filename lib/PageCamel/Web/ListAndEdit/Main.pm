@@ -1685,7 +1685,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = 'now';
                     }
                     $tmp = parseNaturalDate($tmp);
-                } elsif ($self->{editcolumntypes}->{$column} eq 'number') {
+                } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
                     if($tmp eq '') {
@@ -1809,7 +1809,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = 'now';
                     }
                     $tmp = parseNaturalDate($tmp);
-                } elsif ($self->{editcolumntypes}->{$column} eq 'number') {
+                } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
                     if($tmp eq '') {
