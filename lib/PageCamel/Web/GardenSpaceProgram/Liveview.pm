@@ -26,6 +26,7 @@ sub new {
     bless $self, $class; # Re-bless with our class
 
     $self->{extrasettings} = [];
+    $self->{sleeptime} = 1;
 
     return $self;
 }
