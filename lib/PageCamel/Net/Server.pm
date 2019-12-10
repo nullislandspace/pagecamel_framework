@@ -113,7 +113,7 @@ sub run_client_connection {
         $self->post_client_connection_hook;    # one last hook
     };
     
-    if($errmsg =~ /accept_SSL\ timeout/) {
+    if(!$evalok && defined($errmsg) && $errmsg =~ /accept_SSL\ timeout/) {
         # NOT a fatal error
         print STDERR "SSL accept timeout\n";
         $evalok = 1;
