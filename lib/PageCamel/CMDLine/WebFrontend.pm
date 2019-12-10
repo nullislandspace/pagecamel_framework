@@ -17,6 +17,7 @@ use Encode qw(is_utf8 encode_utf8 decode_utf8);
 use IO::Socket::INET;
 use IO::Socket::SSL;
 use IO::Select;
+use IO::Socket::UNIX;
 use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep);
 use PageCamel::Helpers::Logo;
@@ -95,7 +96,6 @@ sub init {
     $PROGRAM_NAME = $ps_appname;
 
 
-    print "saskdhfkjashdfkjhasdfkj\n";
     my @tcpsockets;
     foreach my $service (@{$config->{external_network}->{service}}) {
         print '** Service at port ', $service->{port}, ' does ', $service->{usessl} ? '' : 'NOT', " use SSL/TLS\n";
@@ -106,7 +106,7 @@ sub init {
                     Listen => 1,
                     ReuseAddr => 1,
                     Proto => 'tcp',
-            ) or croak("BLA!!!!!! " . $ERRNO);
+            ) or croak("Failed to bind: " . $ERRNO);
             #binmode($tcp, ':bytes');
             push @tcpsockets, $tcp;
             print "   Listening on ", $ip, ":, ", $service->{port}, "/tcp\n";
@@ -160,5 +160,85 @@ sub handleClient {
 
     print "Doing some network stuff in child PID $PID\n";
 
+    my $backend = IO::Socket::UNIX->new(
+            Peer => $self->{config}->{internal_socket},
+            Type => SOCK_STREAM,
+        ) or croak("Failed to connect to backend: $ERRNO");
+
     return;
+
+    my $select = IO::Select->new($client, $backend);
+
+    my $done = 0;
+    my $failcount = 0;
+    my $toclientbuffer = '';
+    my $tobackendbuffer = '';
+    while(!$done) {
+        my $totalread = 0;
+        my $rawbuffer;
+
+        # Wait long if we currently have nothing to send, only wait a very short time for new data if we already got
+        # something in out output buffers
+        my $waittime = 1;
+        if(length($toclientbuffer) || length($tobackendbuffer)) {
+            $waittime = 0.05;
+        }
+        while((my @connections = $select->can_read(0.1))) {
+            foreach my $connection (@connections) {
+                sysread($connection, $rawbuffer, 1_000_000); # Read at most 1 Meg at a time
+                if(!length($rawbuffer)) {
+                    $failcount++;
+                } else {
+                    $failcount = 0;
+                    if(ref $connection eq 'IO::Socket::UNIX') {
+                        # data FROM the backend
+                        $toclientbuffer .= $rawbuffer;
+                    } else {
+                        $tobackendbuffer .= $rawbuffer;
+                    }
+                }
+            }
+        }
+
+        if(length($toclientbuffer)) {
+            my $written;
+
+            my $writebuffer = substr($toclientbuffer, 0, 1_000_000); # write at most one meg at a time
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                $written = syswrite($client, $writebuffer);
+            };
+            if($EVAL_ERROR) {
+                print STDERR "Write error: $EVAL_ERROR\n";
+                exit(1);
+            }
+            $toclientbuffer = substr($toclientbuffer, $written);
+        }
+
+        if(length($tobackendbuffer)) {
+            my $written;
+
+            my $writebuffer = substr($tobackendbuffer, 0, 1_000_000); # write at most one meg at a time
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                $written = syswrite($backend, $writebuffer);
+            };
+            if($EVAL_ERROR) {
+                print STDERR "Write error: $EVAL_ERROR\n";
+                exit(1);
+            }
+            $tobackendbuffer = substr($tobackendbuffer, $written);
+        }
+
+        if($failcount >= 5) {
+            print "Possible disconnect detected!\n";
+            if(length($toclientbuffer)) {
+                print "   !!! toclientbuffer still has ", length($toclientbuffer), " bytes unsent!\n";
+            }
+            if(length($tobackendbuffer)) {
+                print "   !!! tobackendbuffer still has ", length($tobackendbuffer), " bytes unsent!\n";
+            }
+            exit(1);
+        }
+    }
+
+    exit(0);
 }
