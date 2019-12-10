@@ -95,6 +95,7 @@ sub init {
     $PROGRAM_NAME = $ps_appname;
 
 
+    print "saskdhfkjashdfkjhasdfkj\n";
     my @tcpsockets;
     foreach my $service (@{$config->{external_network}->{service}}) {
         print '** Service at port ', $service->{port}, ' does ', $service->{usessl} ? '' : 'NOT', " use SSL/TLS\n";
@@ -105,15 +106,14 @@ sub init {
                     Listen => 1,
                     ReuseAddr => 1,
                     Proto => 'tcp',
-                ) or croak($ERRNO);
-                #binmode($tcp, ':bytes');
-                push @tcpsockets, $tcp;
-                print "   Listening on $ip:", $config->{port}, "/tcp\n";
+            ) or croak("BLA!!!!!! " . $ERRNO);
+            #binmode($tcp, ':bytes');
+            push @tcpsockets, $tcp;
+            print "   Listening on ", $ip, ":, ", $service->{port}, "/tcp\n";
         }
     }
     my $select = IO::Select->new(@tcpsockets);
     $self->{select} = $select;
-        
     
     return;
 }
@@ -121,31 +121,32 @@ sub init {
 sub run {
     my ($self) = @_;
 
-    while((my @connections = $self->{select}->can_read)) {
-        foreach my $connection (@connections) {
-            my $client = $connection->accept;
+    while(1) {
+        while((my @connections = $self->{select}->can_read)) {
+            foreach my $connection (@connections) {
+                my $client = $connection->accept;
 
-            if($childcount >= $self->{config}->{max_childs}) {
-                print "Too many children already!\n";
-                $client->close;
-                next;
-            }
+                if($childcount >= $self->{config}->{max_childs}) {
+                    print "Too many children already!\n";
+                    $client->close;
+                    next;
+                }
 
-            my $childpid = fork();
-            if(!defined($childpid)) {
-                print "FORK FAILED!\n";
-                $client->close;
-                next;
-            } elsif($childpid == 0) {
-                # Child
-                print "Doing some network stuff in PID $PID\n";
-                $self->handleClient($client);
-                print "Child PID $PID is done, exiting...\n";
-                exit(0);
-            } else {
-                # Parent
-                $childcount++;
-                next;
+                my $childpid = fork();
+                if(!defined($childpid)) {
+                    print "FORK FAILED!\n";
+                    $client->close;
+                    next;
+                } elsif($childpid == 0) {
+                    # Child
+                    $self->handleClient($client);
+                    print "Child PID $PID is done, exiting...\n";
+                    exit(0);
+                } else {
+                    # Parent
+                    $childcount++;
+                    next;
+                }
             }
         }
     }
