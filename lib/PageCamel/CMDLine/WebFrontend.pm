@@ -103,7 +103,7 @@ sub init {
             my $tcp = IO::Socket::IP->new(
                     LocalHost => $ip,
                     LocalPort => $service->{port},
-                    Listen => 1,
+                    isten => 1,
                     ReuseAddr => 1,
                     Proto => 'tcp',
             ) or croak("Failed to bind: " . $ERRNO);
@@ -160,12 +160,98 @@ sub handleClient {
 
     print "Doing some network stuff in child PID $PID\n";
 
+    my $lhost = $client->sockhost();
+    my $lport = $client->sockport();
+    my $peerhost = $client->peerhost();
+    my $peerport = $client->peerport();
+
+    my $usessl = 0;
+    # Check if we need to use SSL
+    foreach my $service (@{$config->{external_network}->{service}}) {
+        # Search for the correct service
+        if($service->{port} == $lport) {
+            # Now check the IP address
+            foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
+                if($ip eq $lhost) {
+                    # Found it
+                    $usessl = $service->{usessl};
+                }
+            }
+        }
+    }
+
+    if($usessl) {
+        my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+        my $encrypted = IO::Socket::SSL->start_SSL($clientsocket,
+            SSL_server => 1,
+            SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
+            SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
+            SSL_cipher_list => $self->{config}->{sslconfig}->{sslciphers},
+            SSL_create_ctx_callback => sub {
+                my $ctx = shift;
+
+                print STDERR "******************* CREATING NEW CONTEXT ********************\n";
+
+                # Enable workarounds for broken clients
+                Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL); ## no critic (Subroutines::ProhibitAmpersandSigils)
+
+                # Disable session resumption completely
+                Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
+
+                # Disable session tickets
+                Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET); ## no critic (Subroutines::ProhibitAmpersandSigils)
+
+                # Check requested server name
+                Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
+                    my $ssl = shift;
+                    my $h = Net::SSLeay::get_servername($ssl);
+
+                    if(!defined($h)) {
+                        print STDERR "SSL: No Hostname given during SSL setup\n";
+                        return;
+                    }
+
+                    if(!defined($self->{config}->{ssldomains}->{$h})) {
+                        print STDERR "SSL: Hostname $h not configured\n";
+                        return;
+                    }
+                    if($h eq $self->{config}->{ssldefaultdomain}) {
+                        # Already the correct CTX setting, just return
+                        return;
+                    }
+
+                    #print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
+                    my $newctx;
+                    if(defined($self->{config}->{ssldomains}->{$h}->{ctx})) {
+                        $newctx = $self->{config}->{ssldomains}->{$h}->{ctx};
+                    } else {
+                        $newctx = Net::SSLeay::CTX_new or croak("Can't create new SSL CTX");
+                        Net::SSLeay::CTX_set_cipher_list($newctx, $self->{config}->{sslciphers});
+                        Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{ssldomains}->{$h}->{sslcert},
+                                                            $self->{config}->{ssldomains}->{$h}->{sslkey})
+                                or croak("Can't set cert and key file");
+                        $self->{config}->{ssldomains}->{$h}->{ctx} = $newctx;
+                    }
+                    Net::SSLeay::set_SSL_CTX($ssl, $newctx);
+                });
+
+                #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
+                ## Advertise supported HTTP versions
+                #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
+            },
+        );
+        if(!$encrypted) {
+            print "startSSL failed: ", $SSL_ERROR, "\n";
+            exit(0);
+        }
+    }
+
     my $backend = IO::Socket::UNIX->new(
             Peer => $self->{config}->{internal_socket},
             Type => SOCK_STREAM,
         ) or croak("Failed to connect to backend: $ERRNO");
 
-    return;
+    syswrite($backend, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl HTTP/1.1\r\n");
 
     my $select = IO::Select->new($client, $backend);
 
