@@ -61,7 +61,7 @@ sub get {
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $line->{title},
-        Description   =>  $line->{Description},
+        Description   =>  $line->{description},
         M3U8File => $self->{filepath} . '/' . $streamid . '/' . $self->{m3u8file},
     );
 
