@@ -239,9 +239,14 @@ lib/PageCamel/Web/ListAndEdit/Templates/list.tt
 lib/PageCamel/Web/Lists/BadPasswords.pm
 lib/PageCamel/Web/Lists/DNSBlocks.pm
 lib/PageCamel/Web/Lists/IPBlocks.pm
+lib/PageCamel/Web/Livestream/ManageStream.pm
 lib/PageCamel/Web/Livestream/ServeM3U8.pm
+lib/PageCamel/Web/Livestream/ServeM3U8Archive.pm
 lib/PageCamel/Web/Livestream/ShowStream.pm
+lib/PageCamel/Web/Livestream/ShowStreamArchive.pm
+lib/PageCamel/Web/Livestream/Templates/managestream.tt
 lib/PageCamel/Web/Livestream/Templates/showstream.tt
+lib/PageCamel/Web/Livestream/Templates/showstreamarchive.tt
 lib/PageCamel/Web/Logging/Devices.pm
 lib/PageCamel/Web/Logging/Graphs.pm
 lib/PageCamel/Web/Logging/Report.pm

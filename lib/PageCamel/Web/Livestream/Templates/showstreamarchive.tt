@@ -1,4 +1,8 @@
 <p align="center"><video id="livestream" controls playsinline></video></p>
+<p>
+    <h1>[% PageTitle %]</h1>
+    [% Description %]
+</p>
 
 <span id="masktemplatedataset"
     data-m3u8source="[% M3U8File %]"
