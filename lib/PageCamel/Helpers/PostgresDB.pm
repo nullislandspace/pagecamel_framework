@@ -87,7 +87,7 @@ sub checkDBH {
     my $dbh = DBI->connect($self->{dburl}, $self->{dbuser}, $self->{dbpassword},
                                {AutoCommit => 0, RaiseError => 0}) or croak($EVAL_ERROR);
     $self->{mdbh} = $dbh;
-    $dbh->{pg_enable_utf8} = 1;
+    #$dbh->{pg_enable_utf8} = 1;
 
     my $appname = $self->{APPNAME} . "/" . $self->{modname} . " $PID";
     if($dbh->do("SET application_name = '$appname'; ")) {
@@ -162,7 +162,7 @@ BEGIN {
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
         *{__PACKAGE__ . "::$a"} = sub { $_[0]->checkDBH(); if(0 && $_[0]->{isDebugging}) {print STDERR $_[0]->{modname}, " ", $_[1], "\n";}; return $_[0]->{mdbh}->$a($_[1]); };
     }
-
+    
     for my $a (@varSetFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
         *{__PACKAGE__ . "::$a"} = sub { $_[0]->checkDBH(); return $_[0]->{mdbh}->{$a} = $_[1]; };
