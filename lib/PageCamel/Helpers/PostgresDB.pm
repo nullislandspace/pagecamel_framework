@@ -174,7 +174,10 @@ BEGIN {
                 if(scalar @_ > 1) {
                     for(my $j = 1; $j < scalar @_; $j++) {
                         if(ref $_[$j] eq '' && !is_utf8($_[$j])) {
-                            $_[$j] = encode_utf8($_[$j]);
+                            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                                my $temp = decode_utf8($_[$j]);
+                                $_[$j] = $temp;
+                            };
                         }
                     }
                 }
