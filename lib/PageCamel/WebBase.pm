@@ -427,6 +427,10 @@ sub readheader {
         return;
     }
 
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        my $temp = decode_utf8($line);
+        $line = $temp;
+    };
     $line =~ s/[\r\n]+$//;
     return $line;
 }
@@ -665,6 +669,16 @@ sub parse_post_data {
                 $ok = 0;
                 last;
             }
+        }
+    }
+    
+    # Make sure we have utf8 decoded properly
+    foreach my $key (keys %{$ua->{postparams}}) {        
+        if(ref $ua->{postparams}->{$key} eq '' && !is_utf8($ua->{postparams}->{$key})) {
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                my $temp = decode_utf8($ua->{postparams}->{$key});
+                $ua->{postparams}->{$key} = $temp;
+            };
         }
     }
     return $ok;

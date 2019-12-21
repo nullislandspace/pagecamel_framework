@@ -87,7 +87,7 @@ sub checkDBH {
     my $dbh = DBI->connect($self->{dburl}, $self->{dbuser}, $self->{dbpassword},
                                {AutoCommit => 0, RaiseError => 0}) or croak($EVAL_ERROR);
     $self->{mdbh} = $dbh;
-    $dbh->{pg_enable_utf8} = 1;
+    #$dbh->{pg_enable_utf8} = 1;
 
     my $appname = $self->{APPNAME} . "/" . $self->{modname} . " $PID";
     if($dbh->do("SET application_name = '$appname'; ")) {
@@ -148,10 +148,12 @@ BEGIN {
     # Auto-magically generate a number of similar functions without actually
     # writing them down one-by-one. This makes changes much easier, but
     # you need perl wizardry level +10 to understand how it works...
-    my @stdFuncs = qw(prepare prepare_cached do quote pg_savepoint pg_rollback_to pg_release);
+    #my @stdFuncs = qw(prepare prepare_cached do quote pg_savepoint pg_rollback_to pg_release);
+    my @stdFuncs = qw(do quote pg_savepoint pg_rollback_to pg_release);
     my @simpleFuncs = qw(commit rollback errstr);
     my @varSetFuncs = qw(AutoCommit RaiseError);
     my @varGetFuncs = qw();
+    my @handleFuncs = qw(prepare prepare_cached);
 
     for my $a (@simpleFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
@@ -161,6 +163,28 @@ BEGIN {
     for my $a (@stdFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
         *{__PACKAGE__ . "::$a"} = sub { $_[0]->checkDBH(); if(0 && $_[0]->{isDebugging}) {print STDERR $_[0]->{modname}, " ", $_[1], "\n";}; return $_[0]->{mdbh}->$a($_[1]); };
+    }
+    
+    for my $a (@handleFuncs){
+        no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
+        *{__PACKAGE__ . "::$a"} = sub {
+            $_[0]->checkDBH();
+            my $sth = $_[0]->{mdbh}->$a($_[1]);
+            $sth->{Callbacks}->{execute} = sub {
+                if(scalar @_ > 1) {
+                    for(my $j = 1; $j < scalar @_; $j++) {
+                        if(ref $_[$j] eq '' && !is_utf8($_[$j])) {
+                            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                                my $temp = decode_utf8($_[$j]);
+                                $_[$j] = $temp;
+                            };
+                        }
+                    }
+                }
+                return;
+            };
+            return $sth;
+        };
     }
 
     for my $a (@varSetFuncs){
