@@ -214,13 +214,12 @@ sub child_init_hook {
 
 
     # Block faked IP DDOS
-    $self->{ipfloodinssth} = $dbh->prepare_cached("INSERT INTO nameserver_floodcontrol_ip (domain_fqdn, external_sender) VALUES (?, ?)")
+    $self->{ipfloodinssth} = $dbh->prepare_cached("INSERT INTO nameserver_floodcontrol_ip (external_sender) VALUES (?)")
             or croak($dbh->errstr);
 
     $self->{ipblockchecksth} = $dbh->prepare_cached("SELECT true AS isblocked
                                              FROM nameserver_blocklist_ip
-                                             WHERE domain_fqdn = ?
-                                             AND external_sender = ?
+                                             WHERE external_sender = ?
                                              LIMIT 1")
             or croak($dbh->errstr);
 
@@ -584,7 +583,7 @@ sub compile_reply { ## no critic (Subroutines::ProhibitExcessComplexity)
     # IP floodcheck (DNS DDOS to IP target), don't check for recursive lookups and whenever the client is localhost
     if($peerhost ne $RECURSIVELOOKUP && !$self->isownip($peerhost)) {
         # localhost doesn't have limitations
-        if(!$self->{ipfloodinssth}->execute($qname, $peerhost)) {
+        if(!$self->{ipfloodinssth}->execute($peerhost)) {
             $self->debuglog("Can't log $qname from $peerhost");
             #$dbh->rollback;
             return;
@@ -592,7 +591,7 @@ sub compile_reply { ## no critic (Subroutines::ProhibitExcessComplexity)
             $dbh->commit;
         }
 
-        if(!$self->{ipblockchecksth}->execute($qname, $peerhost)) {
+        if(!$self->{ipblockchecksth}->execute($peerhost)) {
             $self->debuglog("Can't execute ip block checks");
             $dbh->rollback;
         } else {

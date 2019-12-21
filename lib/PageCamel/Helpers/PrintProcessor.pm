@@ -19,6 +19,7 @@ use GD::Text;
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::TestData;
+use Crypt::Digest::SHA256 qw[sha256_hex];
 
 sub new {
     my ($proto, $config) = @_;
@@ -31,6 +32,8 @@ sub new {
     if(!defined($self->{use_eog})) {
         $self->{use_eog} = 0;
     }
+    
+    $self->{imagecache} = {};
     
     return $self;
 }
@@ -78,7 +81,7 @@ sub printEndDocument {
     } else {
         my $cmd = $self->{printcommand};
         if(defined($printername) && $printername ne '') {
-            $cmd .= ' -d ' . $printername;
+            $cmd .= ' -P ' . $printername;
         }
         $cmd .= ' ' . $ofname;
         `$cmd`;
@@ -118,11 +121,20 @@ sub printAddBigTextLine {
 }
 
 sub printAddImage {
-    my ($self, $filename, $isbindata) = @_;
+    my ($self, $filename, $isbindata, $imagesoftness) = @_;
     
     my $reph = $self->{reph};
     
     my $pic;
+    if(!defined($isbindata)) {
+        $isbindata = 0;
+    }
+    
+    # Image softness (dithering grade) only works on greyscale image
+    if(!defined($imagesoftness)) {
+        $imagesoftness = 1;
+    }
+    
     if($isbindata) {
         $pic = GD::Image->newFromPngData($filename, 0);
     } else {
@@ -132,7 +144,7 @@ sub printAddImage {
     if($pic->colorsTotal != 2) {
         $reph->debuglog("printAddImage detected an image with >2 index colors!");
         $reph->debuglog("Switching to (slower) printAddGreyscaleImage() processing");
-        return $self->printAddGreyscaleImage($filename, $isbindata);
+        return $self->printAddGreyscaleImage($filename, $isbindata, $imagesoftness);
     }
     
     my ($w, $h) = $pic->getBounds();
@@ -154,7 +166,13 @@ sub printAddImage {
 }
 
 sub printAddGreyscaleImage {
-    my ($self, $filename, $isbindata) = @_;
+    my ($self, $filename, $isbindata, $imagesoftness) = @_;
+    
+    my $reph = $self->{reph};
+    
+    if(!defined($imagesoftness)) {
+        $imagesoftness = 1;
+    }
     
     my $rawpic;
     if($isbindata) {
@@ -162,12 +180,30 @@ sub printAddGreyscaleImage {
     } else {
         $rawpic = GD::Image->newFromPng($filename, 0);
     }
-        
+            
     my ($w, $h) = $rawpic->getBounds();
     
     my $destw = $self->{width};
     my $scale = $w / $destw;
     my $desth = int($h / $scale);
+    
+    
+    # Check if we got that image already cached
+    my $cachekey = $imagesoftness . '_' . sha256_hex($rawpic->png);
+    $reph->debuglog("   KEY $cachekey");
+    if(defined($self->{imagecache}->{$cachekey})) {
+        $reph->debuglog("   using cached greyscale image conversion");
+        $self->{img}->copyResized($self->{imagecache}->{$cachekey},
+                          0, $self->{imgoffs}, # DEST X Y
+                          0, 0, # SRC X Y
+                          $destw, $desth, # DEST W H
+                          $destw, $desth, # SRC W H
+                          );
+        $self->{imgoffs} += $desth;
+        return;
+    }
+    
+    $reph->debuglog("   need to do image conversion");
     
     my $pic = GD::Image->new($destw, $desth);
     
@@ -185,48 +221,179 @@ sub printAddGreyscaleImage {
                       $w, $h, # SRC W H
                     );
     
-    my @rawgreys = (
-        '0000000000000000',
-        '0000000001000000',
-        '0000100000100000',
-        '0010000001000001',
-        '1000001000101000',
-        '1010000000010110',
-        '0001010001101010',
-        '1010110010100100',
-        '1010010101101010',
-        '1001011001011011',
-        '1001011110101101',
-        '1101101001111110',
-        '1011111001111011',
-        '1011011111101111',
-        '1111011111101111',
-        '1111111110111111',
-        '1111111111111111',
-    );
-    my $levels = scalar @rawgreys;
-    my $bitlen = length($rawgreys[0]);
-    
-    my @greys;
-    foreach my $rawgrey (@rawgreys) {
-        my @parts = split//, $rawgrey;
-        push @greys, \@parts;
-    }
-    
+    # For caching converted images
+    my $cachepic = GD::Image->new($destw, $desth);
+    my $cachewhite = $cachepic->colorAllocate(255, 255, 255);
+    my $cacheblack = $cachepic->colorAllocate(0, 0, 0);
+
+    my @pixels;
+    # Prepare for dithering
     for(my $y = 0; $y < $desth; $y++) {
-        for(my $x = 0; $x < $destw; $x++) {    
+        for(my $x = 0; $x < $destw; $x++) {
             my $index = $pic->getPixel($x, $y);
             my ($r,$g,$b) = $pic->rgb($index);
             my $greypixel = int(($r+$g+$b)/3);
-            my $level = int($greypixel / (255 / $levels));
-            
-            my $offs = int(rand($bitlen));
-            my $bit = $greys[$level]->[($x + $offs) % $bitlen];
-            
-            if(!$bit) {
-                $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+            my $oldpixel = $greypixel * 1.0;
+
+            $pixels[$x]->[$y] = $oldpixel;
+        }
+    }
+    
+    if($imagesoftness == 0) {
+        for(my $y = 0; $y < $desth; $y++) {
+            for(my $x = 0; $x < $destw; $x++) {
+                my $oldpixel = $pixels[$x]->[$y];
+    
+                # Simple monochrome conversion
+                if($oldpixel < 128) {
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $cachepic->setPixel($x, $y, $cacheblack);
+                }
             }
         }
+        $self->{imagecache}->{$cachekey} = $cachepic;
+    } elsif($imagesoftness == 2) {
+        # Floyd-Steinberg dithering
+        my @dither = (
+            [0, 0, 7],
+            [3, 5, 1],
+        );
+        for(my $y = 0; $y < $desth; $y++) {
+            for(my $x = 0; $x < $destw; $x++) {
+                my $oldpixel = $pixels[$x]->[$y];
+    
+                # "Find closed palette/index value
+                my $newpixel = 255.0;
+                if($oldpixel < 128) {
+                    $newpixel = 0.0;
+                }
+                $pixels[$x]->[$y] = $newpixel;
+    
+                my $quanterror = $oldpixel - $newpixel;
+                for(my $ditherx = 0; $ditherx < 3; $ditherx++) {
+                    for(my $dithery = 0; $dithery < 2; $dithery++) {
+                        my $deltax = $x + $ditherx - 1;
+                        my $deltay = $y + $dithery;
+                        my $factor = $dither[$dithery]->[$ditherx];
+                        next unless($factor);
+                        next unless($deltax >= 0 && $deltax < $destw);
+                        next unless($deltay >= 0 && $deltay < $desth);
+                        my $change = $factor * $quanterror / 16.0;
+    
+                        #print "## $oldpixel $newpixel $factor $quanterror $change\n";
+                        $pixels[$deltax]->[$deltay] += $change;
+                    }
+                }
+            }
+        }
+    
+        for(my $y = 0; $y < $desth; $y++) {
+            for(my $x = 0; $x < $destw; $x++) {    
+                if($pixels[$x]->[$y] < 128) {
+                    #print "$x $y ", $pixels[$x]->[$y], "\n";
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $cachepic->setPixel($x, $y, $cacheblack);
+                }
+            }
+        }
+        
+        $self->{imagecache}->{$cachekey} = $cachepic;
+    } elsif($imagesoftness == 1) {
+
+        # Dithering  https://en.wikipedia.org/wiki/Error_diffusion#minimized_average_error
+        my @dither = (
+            [0, 0, 0, 7, 5],
+            [3, 5, 7, 5, 3],
+            [1, 3, 5, 3, 1],
+        );
+        for(my $y = 0; $y < $desth; $y++) {
+            for(my $x = 0; $x < $destw; $x++) {
+                my $oldpixel = $pixels[$x]->[$y];
+    
+                # "Find closed palette/index value
+                my $newpixel = 255.0;
+                if($oldpixel < 128) {
+                    $newpixel = 0.0;
+                }
+                $pixels[$x]->[$y] = $newpixel;
+    
+                my $quanterror = $oldpixel - $newpixel;
+                for(my $ditherx = 0; $ditherx < 5; $ditherx++) {
+                    for(my $dithery = 0; $dithery < 3; $dithery++) {
+                        my $deltax = $x + $ditherx - 2;
+                        my $deltay = $y + $dithery - 1;
+                        my $factor = $dither[$dithery]->[$ditherx];
+                        next unless($factor);
+                        next unless($deltax >= 0 && $deltax < $destw);
+                        next unless($deltay >= 0 && $deltay < $desth);
+                        my $change = $factor * $quanterror / 48.0;
+    
+                        #print "## $oldpixel $newpixel $factor $quanterror $change\n";
+                        $pixels[$deltax]->[$deltay] += $change;
+                    }
+                }
+            }
+        }
+    
+        for(my $y = 0; $y < $desth; $y++) {
+            for(my $x = 0; $x < $destw; $x++) {    
+                if($pixels[$x]->[$y] < 128) {
+                    #print "$x $y ", $pixels[$x]->[$y], "\n";
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $cachepic->setPixel($x, $y, $cacheblack);
+                }
+            }
+        }
+        $self->{imagecache}->{$cachekey} = $cachepic;
+    } elsif($imagesoftness == 3) {
+    
+        my @rawgreys = (
+            '0000000000000000',
+            '0000000001000000',
+            '0000100000100000',
+            '0010000001000001',
+            '1000001000101000',
+            '1010000000010110',
+            '0001010001101010',
+            '1010110010100100',
+            '1010010101101010',
+            '1001011001011011',
+            '1001011110101101',
+            '1101101001111110',
+            '1011111001111011',
+            '1011011111101111',
+            '1111011111101111',
+            '1111111110111111',
+            '1111111111111111',
+        );
+        my $levels = scalar @rawgreys;
+        my $bitlen = length($rawgreys[0]);
+        
+        my @greys;
+        foreach my $rawgrey (@rawgreys) {
+            my @parts = split//, $rawgrey;
+            push @greys, \@parts;
+        }
+        
+        for(my $y = 0; $y < $desth; $y++) {
+            for(my $x = 0; $x < $destw; $x++) {    
+                my $index = $pic->getPixel($x, $y);
+                my ($r,$g,$b) = $pic->rgb($index);
+                my $greypixel = int(($r+$g+$b)/3);
+                my $level = int($greypixel / (255 / $levels));
+                
+                my $offs = int(rand($bitlen));
+                my $bit = $greys[$level]->[($x + $offs) % $bitlen];
+                
+                if(!$bit) {
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $cachepic->setPixel($x, $y, $cacheblack);
+                } else {
+                }
+            }
+        }
+        
+        $self->{imagecache}->{$cachekey} = $cachepic;
     }
     
     $self->{imgoffs} += $desth;
@@ -307,7 +474,7 @@ sub reprintDocument {
     
     my $cmd = $self->{printcommand};
     if(defined($printername) && $printername ne '') {
-        $cmd .= ' -d ' . $printername;
+        $cmd .= ' -P ' . $printername;
     }
     $cmd .= ' ' . $ofname;
     `$cmd`;
@@ -436,8 +603,11 @@ sub printTestMessage {
     
     if(contains('greyscale', $tests)) {
         $self->printAddTextLine("TEST 'Greyscale Images'");
-        $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage1(), 1);
-        $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage2(), 1);
+        for(my $softness = 0; $softness < 4; $softness++) {
+            $self->printAddTextLine("   Softness $softness");    
+            $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage1(), 1, $softness);
+            $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage2(), 1, $softness);
+        }
         for(1..3) {
             $self->printAddTextLine('');
         }

@@ -136,7 +136,7 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
          }
     }
     if(!$ok) {
-        croak($dbh->errstr);
+        return 0;
     }
 
     return 1;

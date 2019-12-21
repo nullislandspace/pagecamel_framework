@@ -58,15 +58,14 @@ sub crossregister {
                                            WHERE recievetime < now() - interval '" . $self->{limit}->{ip}->{ratelimitinterval} . "'")
             or croak($dbh->errstr);
 
-    $self->{ipblockinssth} = $dbh->prepare_cached("INSERT INTO nameserver_blocklist_ip (domain_fqdn, external_sender, blockedsince, blockeduntil)
-                                                SELECT domain_fqdn, external_sender, now(), now() + interval '" . $self->{limit}->{ip}->{banlimittime} ."'
+    $self->{ipblockinssth} = $dbh->prepare_cached("INSERT INTO nameserver_blocklist_ip (external_sender, blockedsince, blockeduntil)
+                                                SELECT external_sender, now(), now() + interval '" . $self->{limit}->{ip}->{banlimittime} ."'
                                                 FROM nameserver_floodcontrol_ip flo
                                                 WHERE NOT EXISTS (
                                                     SELECT 1 FROM nameserver_blocklist_ip blo
-                                                    WHERE blo.domain_fqdn = flo.domain_fqdn
-                                                    AND blo.external_sender = flo.external_sender
+                                                    WHERE blo.external_sender = flo.external_sender
                                                     )
-                                                GROUP BY flo.domain_fqdn, flo.external_sender
+                                                GROUP BY flo.external_sender
                                                 HAVING count(*) > " . $self->{limit}->{ip}->{ratelimitcount})
             or croak($dbh->errstr);
 

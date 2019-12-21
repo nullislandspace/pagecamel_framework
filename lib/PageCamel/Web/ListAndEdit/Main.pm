@@ -1685,7 +1685,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = 'now';
                     }
                     $tmp = parseNaturalDate($tmp);
-                } elsif ($self->{editcolumntypes}->{$column} eq 'number') {
+                } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
                     if($tmp eq '') {
@@ -1693,6 +1693,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                     } else {
                         $tmp = 0 + $tmp;
                     }
+                    
                 } elsif($self->{editcolumntypes}->{$column} eq 'textarea') {
                     # Re-read unstripped value so we don't remove required line breaks
                     $tmp = $ua->{postparams}->{$column} || '';
@@ -1714,10 +1715,11 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = encode_base64($ua->{files}->{$newfname}->{data});
                     }
                 }
+
                 if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
                     $tmp = undef;
                 }
-
+                
                 # Make sure we don't have empty PK fields. Ignore useserial on editing, we can NEVER have an empty PK column during EDIT!
                 if(contains($column, \@pkcols)) {
                     if(!defined($tmp) || $tmp eq '') {
@@ -1809,7 +1811,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = 'now';
                     }
                     $tmp = parseNaturalDate($tmp);
-                } elsif ($self->{editcolumntypes}->{$column} eq 'number') {
+                } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
                     if($tmp eq '') {
