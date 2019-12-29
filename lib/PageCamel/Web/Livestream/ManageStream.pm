@@ -85,7 +85,14 @@ if(1) {
         my $targetdir = $self->{archivedir} . '/' . $livestreamid;
         mkdir $targetdir;
 
-        my $cmd = 'mv ' . $self->{livedir} . '/* ' . $targetdir;
+        my $cmd = 'cp ' . $self->{livedir} . '/* ' . $targetdir;
+        `$cmd`;
+        $cmd = 'touch ' . $self->{livedir} . '/_is_archived';
+        `$cmd`;
+        $streammode = $self->getStreamMode();
+    } elsif($mode eq 'cleanup') {
+        sleep(1);
+        my $cmd = 'rm ' . $self->{livedir} . '/*';
         `$cmd`;
         $streammode = $self->getStreamMode();
     }
@@ -112,7 +119,9 @@ sub getStreamMode {
     my ($self) = @_;
 
     my $streammode = 1;
-    if(-f $self->{livedir} . '/index.m3u8') {
+    if(-f $self->{livedir} . '/_is_archived') {
+        $streammode = 4;
+    } elsif(-f $self->{livedir} . '/index.m3u8') {
         $streammode = 3;
     }
 
