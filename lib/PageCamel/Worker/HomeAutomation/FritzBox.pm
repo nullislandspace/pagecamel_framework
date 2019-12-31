@@ -80,6 +80,7 @@ sub work {
     $self->{clacks}->doNetwork();
 
 
+    my $updatenow = 0;
     while((my $cmsg = $self->{clacks}->getNext())) {
         $workCount++;
         if($cmsg->{type} eq 'disconnect') {
@@ -119,10 +120,12 @@ sub work {
                                 $reph->debuglog("Clacks: Switching $key to ON");
                                 $self->{fritz}->on($self->{switches}->{$key}->{ain});
                                 $self->{nextrun} = time + 5;
+                                $updatenow = 1;
                             }
                         } else {
                             $reph->debuglog("Clacks: Switching $key to OFF");
                             $self->{fritz}->off($self->{switches}->{$key}->{ain});
+                            $updatenow = 1;
                             $self->{nextrun} = time + 5;
                         }
                         $workCount++;
@@ -135,7 +138,7 @@ sub work {
     $self->{clacks}->doNetwork();
     
     # Only read states from Fritz!Box every 10 seconds, unless switches have been changed via clacks
-    if($now > $self->{nextrun}) {
+    if($updatenow || $now > $self->{nextrun}) {
         #$reph->debuglog("_");
         $self->{nextrun} = time + 10;
     } else {
