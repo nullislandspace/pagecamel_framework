@@ -2550,6 +2550,7 @@ lib/PageCamel/Worker/HomeAutomation/HWGSTE.pm
 lib/PageCamel/Worker/HomeAutomation/KeepRange.pm
 lib/PageCamel/Worker/HomeAutomation/PowerShare.pm
 lib/PageCamel/Worker/HomeAutomation/Tasmota.pm
+lib/PageCamel/Worker/HomeAutomation/Timer.pm
 lib/PageCamel/Worker/Logging/PluginBase.pm
 lib/PageCamel/Worker/Logging/Plugins/DummyPlugin.pm
 lib/PageCamel/Worker/Logging/Plugins/PageCamelStats.pm
