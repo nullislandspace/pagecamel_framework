@@ -85,7 +85,7 @@ sub wshandlerstart {
         $self->{server}->get_defaultwebdata(),
     );
     my $username = $webdata{userData}->{user};
-    my $vserv = PageCamel::Helpers::VoiceClient->new('127.0.0.1', '18889', $username);
+    my $vserv = PageCamel::Helpers::VoiceClient->new('127.0.0.1', '19999', $username);
     $vserv->setmike(1);
     $vserv->setspeaker(1);
     $vserv->ping();
