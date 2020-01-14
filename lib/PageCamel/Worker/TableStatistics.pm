@@ -49,12 +49,11 @@ sub work {
     my $workCount = 0;
 
     my $newtabsth = $dbh->prepare("INSERT INTO table_statistics (tablename) (
-                                    SELECT pt.tablename FROM pg_tables pt
+                                    SELECT pt.schemaname || '.' || pt.tablename as fulltablename FROM pg_tables pt
                                         WHERE pt.tableowner = '" . $self->{dbuser} . "'
-                                        AND pt.schemaname = '" . $self->{schemaname} . "'
                                         AND NOT EXISTS
                                             (SELECT 1 FROM table_statistics ts
-                                             WHERE ts.tablename = pt.tablename)
+                                             WHERE ts.tablename = pt.schemaname || '.' || pt.tablename)
                                     )") or croak($dbh->errstr);
     my $oldtabsth = $dbh->prepare("DELETE FROM table_statistics tsd
                                     WHERE tsd.tablename IN
@@ -62,8 +61,7 @@ sub work {
                                         WHERE NOT EXISTS (
                                             SELECT 1 FROM pg_tables pt
                                             WHERE pt.tableowner = '" . $self->{dbuser} . "'
-                                            AND pt.schemaname = '" . $self->{schemaname} . "'
-                                            AND pt.tablename = tss.tablename)
+                                            AND pt.schemaname || '.' || pt.tablename = tss.tablename)
                                     )") or croak($dbh->errstr);
 
     my $nextsth = $dbh->prepare("SELECT tablename FROM table_statistics
