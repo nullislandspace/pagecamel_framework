@@ -2436,6 +2436,7 @@ lib/PageCamel/Web/Testing/Templates/voicecomm.tt
 lib/PageCamel/Web/Testing/Templates/voicecomm_light.tt
 lib/PageCamel/Web/Testing/VoiceComm.pm
 lib/PageCamel/Web/Tools/AccessToDebuglog.pm
+lib/PageCamel/Web/Tools/AdConfig.pm
 lib/PageCamel/Web/Tools/ClacksConsole.pm
 lib/PageCamel/Web/Tools/ContentSecurityPolicyViolation.pm
 lib/PageCamel/Web/Tools/Debuglog.pm
@@ -2453,6 +2454,7 @@ lib/PageCamel/Web/Tools/PIMenu.pm
 lib/PageCamel/Web/Tools/RemoteLog.pm
 lib/PageCamel/Web/Tools/ShortURL.pm
 lib/PageCamel/Web/Tools/Sitemap.pm
+lib/PageCamel/Web/Tools/Templates/adconfig.tt
 lib/PageCamel/Web/Tools/Templates/clacksconsole.tt
 lib/PageCamel/Web/Tools/Templates/debuglog.tt
 lib/PageCamel/Web/Tools/Templates/dsky.tt

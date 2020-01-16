@@ -100,6 +100,7 @@ use PageCamel::Web::TemplateCache;
 use PageCamel::Web::Testing::Microphone;
 use PageCamel::Web::Testing::VoiceComm;
 use PageCamel::Web::Tools::AccessToDebuglog;
+use PageCamel::Web::Tools::AdConfig;
 use PageCamel::Web::Tools::ClacksConsole;
 use PageCamel::Web::Tools::ContentSecurityPolicyViolation;
 use PageCamel::Web::Tools::DSKY;

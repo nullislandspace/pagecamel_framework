@@ -340,13 +340,13 @@
                 return false;
             }
 
-
-
         </script>
 
         [% IF ExtraHEADElements %]
             [% ExtraHEADElements %]
         [% END %]
+
+        [% AdsHeaderCode %]
 
     </head>
     <body>

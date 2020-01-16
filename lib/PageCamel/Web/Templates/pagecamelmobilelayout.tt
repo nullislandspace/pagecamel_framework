@@ -169,6 +169,8 @@
             [% ExtraHEADElements %]
         [% END %]
 
+        [% AdsHeaderCode %]
+
     </head>
     <body>
         <!-- master template TT vars dataset -->
