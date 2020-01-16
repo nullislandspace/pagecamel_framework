@@ -72,6 +72,7 @@ sub get {
         webpath        =>  $self->{admin}->{webpath},
         subject     =>  $subject,
         mailtext   =>  $mailtext,
+        showads => $self->{showads},
     );
 
     my %recieverchecked;

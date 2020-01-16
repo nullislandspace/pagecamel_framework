@@ -85,6 +85,7 @@ sub get_request {
         PageTitle   =>  $self->{pagetitle},
         PostLink    =>  $self->{webpath},
         ExtraInfo   =>  $self->{extrainfo},
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -195,6 +196,7 @@ sub get_execute {
         PageTitle   =>  $self->{pagetitle},
         PostLink    =>  $ua->{url},
         resetkey    => $resetkey,
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';

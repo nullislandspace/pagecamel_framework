@@ -63,6 +63,7 @@ sub get {
         PageTitle   =>  $line->{title},
         Description   =>  $line->{description},
         M3U8File => $self->{filepath} . '/' . $streamid . '/' . $self->{m3u8file},
+        showads => $self->{showads},
     );
 
     my @extrascripts = ('/static/hls.js');

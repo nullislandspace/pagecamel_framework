@@ -174,6 +174,7 @@ sub get_manage {
         downwebpath     =>  $self->{download}->{webpath},
         checkfname      =>  $self->{checkfname}->{webpath},
         AvailFiles  =>  \@files,
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get("tools/pimenu", 1, %webdata);
@@ -205,6 +206,7 @@ sub get_public {
         webpath         =>  $self->{public}->{webpath},
         downwebpath     =>  $self->{download}->{webpath},
         AvailFiles  =>  \@files,
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get("tools/pimenu_public", 1, %webdata);

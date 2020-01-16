@@ -97,6 +97,7 @@ sub get {
         webpath         =>  $self->{webpath},
         AvailThemes     =>  $self->{Themes},
         FontFamilies    => \%fontfamilies,
+        showads => $self->{showads},
     );
 
     # We don't actually set the Theme into webdata here, this is done during the prerender stage.

@@ -132,6 +132,7 @@ sub get_logout {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{logout}->{pagetitle},
         BackLink    =>  $self->{login}->{webpath},
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get("users/logout", 1, %webdata);
@@ -151,6 +152,7 @@ sub get_login {
         username    =>  $ua->{postparams}->{'username'} || '',
         password    =>  $ua->{postparams}->{'password'} || '',
         PostLink    =>  $self->{login}->{webpath},
+        showads => $self->{showads},
     );
 
     # Force lowercase username

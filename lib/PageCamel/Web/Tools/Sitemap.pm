@@ -35,26 +35,6 @@ sub register {
     return;
 }
 
-sub get_frame {
-    my ($self, $ua) = @_;
-
-    my $th = $self->{server}->{modules}->{templates};
-
-    my %webdata = (
-        $self->{server}->get_defaultwebdata(),
-        imageurl    =>  $self->{webpath} . '/image.jpg',
-        Timeout     =>  $self->{timeout},
-        width       =>  $self->{width},
-        height      =>  $self->{height},
-    );
-
-    my $template = $th->get("webcam", 1, %webdata);
-    return (status  =>  404) unless $template;
-    return (status  =>  200,
-            type    => "text/html",
-            data    => $template);
-}
-
 sub get {
     my ($self, $ua) = @_;
 

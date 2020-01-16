@@ -32,6 +32,10 @@ sub new {
         }
     }
 
+    if(!defined($self->{showads})) {
+        $self->{showads} = 0;
+    }
+
     return $self;
 }
 

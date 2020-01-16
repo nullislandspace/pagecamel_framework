@@ -67,6 +67,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         PostLink        =>  $self->{webpath}
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -106,6 +107,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         PostLink        =>  $self->{webpath}
+        showads => $self->{showads},
     );
 
     my $errsth = $dbh->prepare_cached("SELECT error_id, reporttime, error_type, description " .

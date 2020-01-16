@@ -77,6 +77,7 @@ sub get {
         PageTitle       =>  $self->{pagetitle},
         webpath         =>  $self->{webpath},
         AvailMenubars     =>  $self->{Menubars},
+        showads => $self->{showads},
     );
 
     # We don't actually set the Menubar into webdata here, this is done during the prerender stage.

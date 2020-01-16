@@ -104,6 +104,7 @@ if(1) {
         PageTitle   =>  $self->{pagetitle},
         PostLink => $self->{webpath},
         StreamMode => $streammode,
+        showads => $self->{showads},
     );
 
 

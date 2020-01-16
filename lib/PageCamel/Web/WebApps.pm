@@ -103,6 +103,7 @@ sub get_settings {
         EnableEyes     =>  $sets{eyes_enable},
         EnableGST     =>  $sets{gst_enable},
         EnableMouseTrail =>  $sets{mousetrail_enable},
+        showads => $self->{showads},
     );
 
     my %settings = (

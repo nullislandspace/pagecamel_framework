@@ -174,6 +174,7 @@ sub get {
         PingTimeout     => int($settings{client_disconnect_timeout} * 1000 / 2),
         HeadExtraScripts => \@headextrascripts,
         UNCPath         => $self->{uncpath},
+        showads => $self->{showads},
     );
 
 

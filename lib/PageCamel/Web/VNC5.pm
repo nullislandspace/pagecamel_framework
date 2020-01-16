@@ -235,6 +235,7 @@ sub get_select {
         webpath         =>  $self->{webpath},
         PostLink        =>  $self->{webpath},
         UsageHint       =>  $usagehint,
+        showads => $self->{showads},
     );
 
     my @computers;
@@ -303,6 +304,7 @@ sub get_vnc {
         AjaxGetCard =>  $self->{webpath} . '/getcard',
         AjaxSetCard =>  $self->{webpath} . '/setcard',
         ClientSettings => \%clientsettings,
+        showads => $self->{showads},
     );
     if($usebase64) {
         $webdata{websocketencoding} = 'base64';

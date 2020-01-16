@@ -74,6 +74,7 @@ sub get_select {
             PageTitle   =>  $self->{dirselect}->{pagetitle},
             webpath     =>  $self->{dirselect}->{webpath},
             dirs        =>  \@dirs,
+            showads => $self->{showads},
         );
 
         my $template = $self->{server}->{modules}->{templates}->get("dirsync/dirsync_select", 1, %webdata);
@@ -112,6 +113,7 @@ sub get_edit {
         PageTitle   =>  $self->{diredit}->{pagetitle},
         webpath     =>  $self->{diredit}->{webpath},
         dir        =>  \%defaultdir,
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'new';

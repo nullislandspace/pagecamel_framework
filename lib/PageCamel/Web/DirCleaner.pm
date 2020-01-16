@@ -53,6 +53,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         PostLink        =>  $self->{webpath}
+        showads => $self->{showads},
     );
 
     my $dirstatus = $memh->get("dircleanstatus");

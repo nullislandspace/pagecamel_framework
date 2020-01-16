@@ -318,6 +318,7 @@ sub get {
         archivelink => $self->{archivelink},
         HeadExtraScripts => \@headextrascripts,
         HeadExtraCSS => \@headextracss,
+        showads => $self->{showads},
     );
 
     $dbh->rollback;
@@ -373,8 +374,9 @@ sub get_wiki_archive {
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         Articles => \@articles,
-        PageTitle   =>  'Blog Archive',
+        PageTitle   =>  'Wiki Archive',
         MobileDesktopClientMode => $clientMode,
+        showads => $self->{showads},
     );
 
     my $template = $th->get('wiki/archive_mobile', 1, %webdata);

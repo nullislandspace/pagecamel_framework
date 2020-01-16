@@ -88,6 +88,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         Data  => $line,
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get('auditlogdetail', 1, %webdata);

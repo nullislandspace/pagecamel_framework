@@ -137,6 +137,7 @@ sub getEdit {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         webpath    =>  $self->{webpath},
+        showads => $self->{showads},
     );
 
     my $stmt = "SELECT * " .

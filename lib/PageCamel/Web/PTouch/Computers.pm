@@ -61,6 +61,7 @@ sub get {
         PageTitle       =>  $self->{pagetitle},
         webpath         =>  $self->{webpath},
         computers       => \@computers,
+        showads => $self->{showads},
     );
 
     { # Printers and pagecount

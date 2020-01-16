@@ -144,6 +144,7 @@ sub get {
         PingTimeout     => int($settings{client_disconnect_timeout} * 1000 / 2),
         Readonly        => $self->{readonly},
         isDebugging     => $self->{isDebugging},
+        showads => $self->{showads},
     );
 
 

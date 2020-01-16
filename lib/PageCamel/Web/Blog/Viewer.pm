@@ -493,6 +493,7 @@ sub get {
         HeadExtraCSS => \@headextracss,
         EnableComments => $enablecomments,
         ShowDisclaimer => $showdisclaimer,
+        showads => $self->{showads},
     );
 
     if(defined($self->{rssfeed})) {

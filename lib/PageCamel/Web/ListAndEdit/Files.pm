@@ -140,6 +140,7 @@ sub get_manage {
         webpath         =>  $self->{manage}->{webpath},
         downwebpath     =>  $self->{download}->{webpath},
         checkfname      =>  $self->{checkfname}->{webpath},
+        showads => $self->{showads},
         AvailFiles  =>  \@files,
     );
 

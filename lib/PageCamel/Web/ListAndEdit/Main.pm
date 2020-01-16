@@ -1582,6 +1582,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         editcolumnlist  =>  $self->{editcolumnlist},
         extrattvars     =>  $self->{extrattvars},
         EditPageHeader => $self->{editpageheader},
+        showads => $self->{showads},
     );
 
     if($self->{autosave}) {

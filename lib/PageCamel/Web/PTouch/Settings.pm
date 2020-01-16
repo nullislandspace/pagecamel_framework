@@ -63,6 +63,7 @@ sub get {
         webpath         =>  $self->{webpath},
         AvailPrinters   => \@availprinters,
         AvailPageCounts  => \@availpagecount,
+        showads => $self->{showads},
     );
 
     # We don't actually set the Theme into webdata here, this is done during the prerender stage.

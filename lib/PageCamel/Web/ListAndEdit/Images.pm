@@ -187,6 +187,7 @@ sub get_manage {
         downwebpath     =>  $self->{download}->{webpath},
         checkfname      =>  $self->{checkfname}->{webpath},
         AvailFiles  =>  \@files,
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/images", 1, %webdata);

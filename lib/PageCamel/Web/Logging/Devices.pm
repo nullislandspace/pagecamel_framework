@@ -57,6 +57,7 @@ sub get_list {
         webpath     =>  $self->{list}->{webpath},
         PostLink    =>  $self->{edit}->{webpath},
         mode        =>  "select",
+        showads => $self->{showads},
     );
 
     my $sth = $dbh->prepare_cached("SELECT * FROM logging_devices
@@ -87,6 +88,7 @@ sub get_edit {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{edit}->{pagetitle},
         webpath    =>  $self->{edit}->{webpath},
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{"mode"} || "new";

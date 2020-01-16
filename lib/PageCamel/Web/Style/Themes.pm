@@ -78,6 +78,7 @@ sub get {
         PageTitle       =>  $self->{pagetitle},
         webpath         =>  $self->{webpath},
         AvailThemes     =>  $self->{Themes},
+        showads => $self->{showads},
     );
 
     # We don't actually set the Theme into webdata here, this is done during the prerender stage.

@@ -91,6 +91,7 @@ sub get {
         PostLink        =>  $self->{webpath},
         rawdata => $rawdata,
         results => \@results,
+        showads => $self->{showads},
     );
 
 

@@ -67,6 +67,7 @@ sub get_pwchange {
         pwnew2    =>  $ua->{postparams}->{'pwnew1'} || '',
         PostLink    =>  $self->{webpath},
         ResetLink    =>  $self->{resetpath},
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';

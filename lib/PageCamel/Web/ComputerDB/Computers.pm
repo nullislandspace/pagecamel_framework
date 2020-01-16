@@ -162,6 +162,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         databases       => \@databases,
         locations       => \@locations,
         HasDeveloperRights => 0,
+        showads => $self->{showads},
     );
     
     my $developermode = 0;

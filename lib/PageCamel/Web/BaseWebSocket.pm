@@ -141,7 +141,7 @@ sub wsreload {
 
 sub wsmaskget {
     my ($self, $ua, $settings, $webdata) = @_;
-    
+
     return;
 }
 
@@ -245,6 +245,7 @@ sub get {
         webpath         =>  $self->{webpath},
         Settings        =>  \%settings,
         WSURL           =>  $wsurl,
+        showads => $self->{showads},
     );
     
     $self->wsmaskget($ua, \%settings, \%webdata);

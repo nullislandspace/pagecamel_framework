@@ -125,6 +125,7 @@ sub get_view {
         webpath        =>  $self->{reportview}->{webpath},
         graphpath    =>  $self->{reportgraph}->{webpath},
         Starttime   => $reportstarttime,
+        showads => $self->{showads},
     );
 
     # Load available reports and check id
@@ -274,6 +275,7 @@ sub get_edit {
         SelectedReport=>    $selectedreport,
         ReportID        =>    $reportid,
         EditMode    =>    "editreport",
+        showads => $self->{showads},
     );
 
     # Handle standard POST requests
@@ -502,6 +504,7 @@ sub get_select {
         PageTitle   =>  $self->{reportedit}->{pagetitle},
         webpath        =>  $self->{reportedit}->{webpath},
         Reports        =>  \@reports,
+        showads => $self->{showads},
     );
 
     my @devtypes;
@@ -536,6 +539,7 @@ sub get_create {
         PageTitle   =>  $self->{reportcreate}->{pagetitle},
         webpath        =>  $self->{reportcreate}->{webpath},
         PostLink        =>  $self->{reportedit}->{webpath},
+        showads => $self->{showads},
     );
 
     my @devtypes;

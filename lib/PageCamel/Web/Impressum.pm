@@ -97,6 +97,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         ImpressumHTML => $sets{impressum_html},
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get('impressum', 1, %webdata);

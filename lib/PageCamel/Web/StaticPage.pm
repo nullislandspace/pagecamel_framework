@@ -67,6 +67,7 @@ sub get {
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get($self->{templatename}, $self->{usemasterlayout}, %webdata);

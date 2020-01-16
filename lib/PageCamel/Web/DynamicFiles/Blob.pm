@@ -544,6 +544,7 @@ sub getDirectory {
         $self->{server}->get_defaultwebdata(),
         PageTitle => $self->{download}->{pagetitle},
         DirTitle  =>  "Index of $filename",
+        showads => $self->{showads},
     );
 
     my @files;
@@ -668,6 +669,7 @@ sub getDirectorySearch {
         PostLink => $self->{download}->{webpath},
         ShowParent => 1,
         LastSearch => $filename,
+        showads => $self->{showads},
     );
 
     my @files;

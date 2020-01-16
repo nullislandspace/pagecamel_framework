@@ -60,6 +60,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         M3U8File => $self->{m3u8file},
+        showads => $self->{showads},
     );
 
     my @extrascripts = ('/static/hls.js');

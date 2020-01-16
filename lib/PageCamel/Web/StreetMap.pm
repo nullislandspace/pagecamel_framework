@@ -55,6 +55,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         PostLink    =>  $self->{webpath}
+        showads => $self->{showads},
     );
 
     foreach my $key (qw[tiles minZoomLevel maxZoomLevel bounds center centerzoom imagepath]) {

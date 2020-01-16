@@ -97,6 +97,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         PrivacyPolicyHTML => $sets{policy_html},
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get('privacypolicy', 1, %webdata);

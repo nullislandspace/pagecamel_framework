@@ -53,6 +53,7 @@ sub get_admin {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{admin}->{pagetitle},
         webpath    =>  $self->{admin}->{webpath},
+        showads => $self->{showads},
     );
 
     my $mustupdate = $ua->{postparams}->{"submitform"} || "0";

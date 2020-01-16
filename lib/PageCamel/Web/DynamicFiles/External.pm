@@ -562,6 +562,7 @@ sub getDirectory {
         PageTitle => $self->{download}->{pagetitle},
         DirTitle  =>  "Index of $filename",
         PostLink => $self->{download}->{webpath},
+        showads => $self->{showads},
     );
 
     my @files;
@@ -682,6 +683,7 @@ sub getDirectorySearch {
         PostLink => $self->{download}->{webpath},
         ShowParent => 1,
         LastSearch => $filename,
+        showads => $self->{showads},
     );
 
     my @files;
@@ -815,6 +817,7 @@ sub get_wastedspace {
         PageTitle => $self->{download}->{pagetitle},
         DirFileCounts => \@dirfilecount,
         DirSizes => \@dirsize,
+        showads => $self->{showads},
     );
     
     

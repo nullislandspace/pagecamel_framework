@@ -54,6 +54,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         webpath    =>  $self->{webpath},
+        showads => $self->{showads},
     );
 
     my $webpath = $ua->{url};

@@ -49,6 +49,7 @@ sub get_list {
         PageTitle   =>  $self->{list}->{pagetitle},
         webpath     =>  $self->{list}->{webpath},
         PostLink    =>  $self->{edit}->{webpath},
+        showads => $self->{showads},
     );
     
     my $extrawhere = '';
@@ -109,6 +110,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
         webpath     =>  $self->{edit}->{webpath},
         PostLink    =>  $self->{edit}->{webpath},
         CompanyLabel => "Company",
+        showads => $self->{showads},
     );
     
     if(defined($self->{usegroupsinsteadcompanies}) && $self->{usegroupsinsteadcompanies}) {
