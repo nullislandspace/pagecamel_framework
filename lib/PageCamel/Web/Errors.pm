@@ -66,7 +66,7 @@ sub get {
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
-        PostLink        =>  $self->{webpath}
+        PostLink        =>  $self->{webpath},
         showads => $self->{showads},
     );
 
@@ -106,7 +106,7 @@ sub get {
     %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
-        PostLink        =>  $self->{webpath}
+        PostLink        =>  $self->{webpath},
         showads => $self->{showads},
     );
 
