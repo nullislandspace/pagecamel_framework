@@ -52,13 +52,38 @@ sub reload {
                             "type=textfield",
                                             ])
             or croak("Failed to create setting header_code!");
+
+    $sysh->createText(modulename => $self->{modname},
+                        settingname => 'ads_txt',
+                        settingvalue => '',
+                        description => 'Content of /ads.txt',
+                        processinghints => [
+                            "type=textfield",
+                                            ])
+            or croak("Failed to create setting ads_txt!");
 }
 
 sub register {
     my $self = shift;
+    $self->register_webpath('/ads.txt', "get_adstxt");
     $self->register_webpath($self->{webpath}, "get_settings");
     $self->register_prerender("prerender");
     return;
+}
+
+sub get_adstxt {
+    my ($self, $ua) = @_;
+
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my ($ok, $data) = $sysh->get($self->{modname}, 'ads_txt');
+    if(!$ok || !defined($data) || $data eq '') {
+        return(status => 404);
+    }
+
+    return (status => 200,
+            type => 'text/plain',
+            data => $data);
 }
 
 sub get_settings {
@@ -75,6 +100,12 @@ sub get_settings {
         $code =~ s/\n{3,}/\n\n/g;
         $code =~ s/\n+$//g;
         $sysh->set($self->{modname}, 'header_code', $code);
+
+        my $adstxt = $ua->{postparams}->{ads_txt} || '';
+        $adstxt =~ s/\r//g;
+        $adstxt =~ s/\n{3,}/\n\n/g;
+        $adstxt =~ s/\n+$//g;
+        $sysh->set($self->{modname}, 'ads_txt', $adstxt);
         
         foreach my $key (qw[display_ads]) {
             my $val = $ua->{postparams}->{$key};
@@ -92,7 +123,7 @@ sub get_settings {
         webpath         =>  $self->{webpath},
         showads => $self->{showads},
     );
-    foreach my $key (qw[header_code display_ads]) {
+    foreach my $key (qw[header_code display_ads ads_txt]) {
         my ($ok, $data) = $sysh->get($self->{modname}, $key);
         if($ok) {
             $webdata{$key} = $data->{settingvalue};

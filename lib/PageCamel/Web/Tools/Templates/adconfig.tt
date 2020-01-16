@@ -19,6 +19,13 @@
                     <textarea name="header_code" rows="10" cols="40">[% tr.quote(header_code) %]</textarea>
                 </td>
             </tr>
+
+            <tr>
+                <td>[% tr.trquote("Text in ads.txt") %]</td>
+                <td>
+                    <textarea name="ads_txt" rows="10" cols="40">[% tr.quote(ads_txt) %]</textarea>
+                </td>
+            </tr>
             
             <tr>
                 <td colspan="4" align="center">
