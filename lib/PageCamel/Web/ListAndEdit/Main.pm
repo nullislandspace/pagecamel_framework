@@ -75,6 +75,21 @@ sub new {
         $self->{editpageheader} = '';
     }
 
+    if(defined($self->{list}) && !defined($self->{list}->{showads})) {
+        if(defined($self->{showads})) {
+            $self->{list}->{showads} = $self->{showads};
+        } else {
+            $self->{list}->{showads} = 0;
+        }
+    }
+    if(defined($self->{edit}) && !defined($self->{edit}->{showads})) {
+        if(defined($self->{showads})) {
+            $self->{edit}->{showads} = $self->{showads};
+        } else {
+            $self->{edit}->{showads} = 0;
+        }
+    }
+
     $self->{useextraeditscript} = 0;
     if(defined($self->{editjavascript})) {
         $self->{useextraeditscript} = 1;
@@ -1006,6 +1021,7 @@ sub get_list {
         AllowDownloadCSV        => $self->{download_csv},
         DownloadCSVAjaxPath     => '',
         ListPageHeader => $self->{listpageheader},
+        showads => $self->{list}->{showads},
     );
 
     if($self->{send_csv}) {
@@ -1582,7 +1598,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         editcolumnlist  =>  $self->{editcolumnlist},
         extrattvars     =>  $self->{extrattvars},
         EditPageHeader => $self->{editpageheader},
-        showads => $self->{showads},
+        showads => $self->{edit}->{showads},
     );
 
     if($self->{autosave}) {

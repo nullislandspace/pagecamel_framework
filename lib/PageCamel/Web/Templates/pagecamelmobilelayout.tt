@@ -169,7 +169,9 @@
             [% ExtraHEADElements %]
         [% END %]
 
+        [% IF AdsHeaderCode != '' %]<!-- For Adblock remove code below -->
         [% AdsHeaderCode %]
+        <!-- For Adblock remove code above -->[% END %]
 
     </head>
     <body>
