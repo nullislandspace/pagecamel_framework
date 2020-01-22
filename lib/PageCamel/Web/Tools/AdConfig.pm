@@ -42,7 +42,6 @@ sub reload {
                         'type=switch'
                                         ])
         or croak("Failed to create setting display_ads!");
-    return;
 
     $sysh->createText(modulename => $self->{modname},
                         settingname => 'header_code',
@@ -167,6 +166,8 @@ sub prerender {
 
     if($sets{display_ads}) {
         $webdata->{AdsHeaderCode} = $sets{header_code};
+    } else {
+        $webdata->{AdsHeaderCode} = '';
     }
 
     return;
