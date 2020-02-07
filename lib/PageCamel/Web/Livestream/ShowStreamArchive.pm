@@ -24,6 +24,10 @@ sub new {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    if(!defined($self->{show_unreleased})) {
+        $self->{show_unreleased} = 0;
+    }
+
     return $self;
 }
 
@@ -43,7 +47,8 @@ sub get {
     my $streamid = $ua->{url};
     $streamid =~ s/^.*\///g;
 
-    my $selsth = $dbh->prepare_cached("SELECT * FROM livestreamarchive_released_view WHERE livestream_id = ?")
+    my $selsth = $dbh->prepare_cached("SELECT *, CASE WHEN publish_time < now() THEN true ELSE false END AS publish_date_ok
+                                        FROM livestreams WHERE livestream_id = ?")
         or croak($dbh->errstr);
 
     if(!$selsth->execute($streamid)) {
@@ -58,10 +63,15 @@ sub get {
         return (status => 404);
     }
 
+    if(!$self->{show_unreleased} && (!$line->{is_published} || !$line->{publish_date_ok})) {
+        return (status => 404);
+    }
+
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $line->{title},
         Description   =>  $line->{description},
+        PublishDate   =>  $line->{publish_time},
         M3U8File => $self->{filepath} . '/' . $streamid . '/' . $self->{m3u8file},
         showads => $self->{showads},
     );

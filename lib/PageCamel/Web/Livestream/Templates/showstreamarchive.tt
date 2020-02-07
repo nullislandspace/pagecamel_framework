@@ -1,11 +1,21 @@
-<p>
-    <h1>[% PageTitle %]</h1>
-</p>
-<p align="center"><video id="livestream" controls playsinline></video></p>
-<p align="left">
-    [% Description %]
-</p>
-
+<table border="0" align="left">
+    <tr>
+        <td align="left">
+            <h1>[% PageTitle %]</h1>
+            [% PublishDate %]
+        </td>
+    </tr>
+    <tr>
+        <td align="left">
+            <video id="livestream" controls playsinline></video>
+        </td>
+    </tr>
+    <tr>
+        <td align="left">
+            [% Description %]
+        </td>
+    </tr>
+</table>
 <span id="masktemplatedataset"
     data-m3u8source="[% M3U8File %]"
 ></span>

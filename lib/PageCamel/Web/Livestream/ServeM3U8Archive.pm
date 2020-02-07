@@ -33,6 +33,10 @@ sub new {
         $self->{dontlog} = 0;
     }
 
+    if(!defined($self->{show_unreleased})) {
+        $self->{show_unreleased} = 0;
+    }
+
     return $self;
 }
 
@@ -74,7 +78,8 @@ sub get_download {
         return (status => 404);
     }
 
-    my $selsth = $dbh->prepare_cached("SELECT * FROM livestreamarchive_released_view WHERE livestream_id = ?")
+    my $selsth = $dbh->prepare_cached("SELECT *, CASE WHEN publish_time < now() THEN true ELSE false END AS publish_date_ok
+                                        FROM livestreams WHERE livestream_id = ?")
         or croak($dbh->errstr);
 
     if(!$selsth->execute($streamid)) {
@@ -89,12 +94,16 @@ sub get_download {
         return (status => 404);
     }
 
+    if(!$self->{show_unreleased} && (!$line->{is_published} || !$line->{publish_date_ok})) {
+        return (status => 404);
+    }
+
     if($filename eq $self->{m3u8file}) {
         return $self->get_index($ua, $streamid);
     }
 
 
-    if($filename !~ /^\d{14}\.ts$/) {
+    if($filename !~ /^\d{14}\.ts$/ && $filename !~ /^takeout\d+\.ts$/) {
         return (
             status => 404,
         );
@@ -153,17 +162,17 @@ rereadindex:
         $data .= $line;
     }
     close $ifh;
-    if($filecount < 5) {
-        # Maythe the file is just beeing written, retry unless we exceed 5 loops already
-        $loopcount++;
-        if($loopcount > 5) {
-            return(status => 500);
-        }
-        $data = '';
-
-        sleep(0.3);
-        goto rereadindex;
-    }
+    #if($filecount < 5) {
+    #    # Maythe the file is just beeing written, retry unless we exceed 5 loops already
+    #    $loopcount++;
+    #    if($loopcount > 5) {
+    #        return(status => 500);
+    #    }
+    #    $data = '';
+    #
+    #    sleep(0.3);
+    #    goto rereadindex;
+    #}
 
     my %retstatus = (status  =>  200,
         type    => 'application/x-mpegURL',
