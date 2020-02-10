@@ -415,10 +415,6 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
 
     my @tabstablenames = qw[MainDataTable HelperTable1 HelperTable2 HelperTable3 HelperTable4 HelperTable5 HelperTable6 HelperTable7];
 
-    #if($self->{modname} eq 'bugtracker') {
-    #    print "x\n";
-    #}
-
     foreach my $item (@{$self->{edit}->{item}}) {
         foreach my $required (qw[header type]) {
             if(!defined($item->{$required})) {
