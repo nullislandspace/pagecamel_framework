@@ -22,11 +22,14 @@ sub new {
     my ($proto, %config) = @_;
     my $class = ref($proto) || $proto;
 
+    if(!defined($config{sleeptime})) {
+        $config{sleeptime} = 1;
+    }
+
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
     $self->{extrasettings} = [];
-    $self->{sleeptime} = 1;
 
     return $self;
 }

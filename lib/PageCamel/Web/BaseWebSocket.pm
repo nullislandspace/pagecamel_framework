@@ -35,7 +35,7 @@ sub new {
         croak("Option 'wspath' set, but not allowed with new BaseWebSocket class");
     }
 
-    if(defined($self->{sleeptime})) {
+    if(!defined($self->{sleeptime})) {
         # Make it VERY responsive and CPU hungry by default
         $self->{sleeptime} = 0.01;
     }
