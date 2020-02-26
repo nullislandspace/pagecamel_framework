@@ -785,7 +785,7 @@ nextrequest:
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-    my $requestline = $self->readheader(5);
+    my $requestline = $self->readheader(30);
     if(!defined($requestline)) {
         print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{debug});
         $ua->{keepalive} = 0;
