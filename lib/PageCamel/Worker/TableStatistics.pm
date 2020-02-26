@@ -65,7 +65,7 @@ sub work {
                                     )") or croak($dbh->errstr);
 
     my $nextsth = $dbh->prepare("SELECT tablename FROM table_statistics
-                                    WHERE last_update < now() - interval '1 hour'
+                                    WHERE last_update < now() - interval '6 hours'
                                     ORDER BY last_update, tablename
                                     LIMIT 1") or croak($dbh->errstr);
 
@@ -82,6 +82,7 @@ sub work {
         my ($tname) = $nextsth->fetchrow_array;
         $nextsth->finish;
         if(!defined($tname) || $tname eq '') {
+            $dbh->rollback;
             return $workCount;
         }
 
