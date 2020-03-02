@@ -1,4 +1,4 @@
-# PAGECAMEL  (C) 2008-2019 Rene Schickbauer
+# PAGECAMEL  (C) 2008-2020 Rene Schickbauer
 # Developed under Artistic license
 package PageCamel::Worker::Minecraft::RCON;
 #---AUTOPRAGMASTART---

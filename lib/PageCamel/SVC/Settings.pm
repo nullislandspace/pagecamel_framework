@@ -13,7 +13,7 @@ use Array::Contains;
 use utf8;
 use Encode qw(is_utf8 encode_utf8 decode_utf8);
 #---AUTOPRAGMAEND---
-# PAGECAMEL  (C) 2008-2019 Rene Schickbauer
+# PAGECAMEL  (C) 2008-2020 Rene Schickbauer
 # Developed under Artistic license
 
 use base qw(PageCamel::Helpers::SystemSettings);

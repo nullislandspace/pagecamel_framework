@@ -75,7 +75,7 @@ Rene Schickbauer, E<lt>pagecamel@cavac.atE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008-2019 Rene Schickbauer
+Copyright (C) 2008-2020 Rene Schickbauer
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.10.0 or,
