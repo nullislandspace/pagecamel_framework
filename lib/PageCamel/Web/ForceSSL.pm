@@ -31,14 +31,15 @@ sub new {
 
 sub register {
     my $self = shift;
-    $self->register_postfilter("postfilter");
+    $self->register_prefilter("prefilter");
     return;
 }
 
-sub postfilter {
+sub prefilter {
     my ($self, $ua, $header, $result) = @_;
 
-    if($result->{status} != 404) {
+    if($ua->{frontend}->{ssl}) {
+        # Nothing to do
         return;
     }
 
@@ -46,12 +47,13 @@ sub postfilter {
 
     my $fullpath = $self->{urlprefix} . $webpath;
 
-    $result->{status}      = 301;
-    $result->{location}    = $fullpath;
-    $result->{type}        = "text/html";
-    $result->{data}        = "<html><body>If you are not automatically redirected, click " .
-                           "<a href=\"" . $fullpath . "\">here</a>.</body></html>";
-    return;
+    return (
+        status => 301,
+        location => $fullpath,
+        type => 'text/html',
+        data => "<html><body>If you are not automatically redirected, click " .
+                           "<a href=\"" . $fullpath . "\">here</a>.</body></html>",
+    );
 }
 
 1;

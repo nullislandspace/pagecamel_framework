@@ -191,7 +191,7 @@ sub handleClient {
     if($self->{webserver}->allow_deny_hook($header->{peerhost})) {
         my $ok = 0;
         eval {
-            $self->{webserver}->process_request($client);
+            $self->{webserver}->process_request($client, $header);
             $ok = 1;
         };
         if(!$ok) {
@@ -240,7 +240,7 @@ sub readFrontendheader {
         lport => $parts[2],
         peerhost => $parts[3],
         peerport => $parts[4],
-        usessl => $parts[5],
+        ssl => $parts[5],
         pid => $parts[6],
         httpversion => $parts[7],
     );

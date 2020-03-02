@@ -47,7 +47,6 @@ use PageCamel::Web::Firewall::EC2Attack;
 use PageCamel::Web::Firewall::Floodcheck;
 use PageCamel::Web::Firewall::Hostname;
 use PageCamel::Web::ForceFavicon;
-use PageCamel::Web::ForceNoSSL;
 use PageCamel::Web::ForceSSL;
 use PageCamel::Web::ForceTransportSecurity;
 use PageCamel::Web::GardenSpaceProgram::Liveview;
@@ -690,7 +689,7 @@ sub parse_post_data {
 }
 
 sub process_request { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $realsocket) = @_;
+    my ($self, $realsocket, $frontendheader) = @_;
 
 #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
 #    my $alpnversion = 'http/1.1';
@@ -741,6 +740,7 @@ nextrequest:
     $ua->{realsocket} = $realsocket;
     $ua->{remote_addr} = $self->{last_accepted_client} || '0.0.0.0';
     $ua->{extra_response_headers} = {};
+    $ua->{frontend} = $frontendheader;
 
     my $starttime = time();
 

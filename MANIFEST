@@ -116,7 +116,6 @@ lib/PageCamel/Web/Firewall/EC2Attack.pm
 lib/PageCamel/Web/Firewall/Floodcheck.pm
 lib/PageCamel/Web/Firewall/Hostname.pm
 lib/PageCamel/Web/ForceFavicon.pm
-lib/PageCamel/Web/ForceNoSSL.pm
 lib/PageCamel/Web/ForceSSL.pm
 lib/PageCamel/Web/ForceTransportSecurity.pm
 lib/PageCamel/Web/GardenSpaceProgram/Liveview.pm
