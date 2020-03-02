@@ -322,6 +322,13 @@ foreach my $header (@httpheaders) {
     $httpheadersmapping{lc $header} = $header;
 }
 
+sub new {
+    my ($class, $config) = @_;
+    my $self = bless $config, $class;
+        
+    return $self;
+}
+
 sub processing_error_hook {
     my ($self, @errors) = @_;
     print STDERR getISODate(), " Unhandled exception: \n", join("\n", @errors);
@@ -331,32 +338,27 @@ sub processing_error_hook {
 
 
 sub allow_deny_hook {
-    my ($self, $server) = @_;
+    my ($self, $peerhost) = @_;
 
     $self->{last_accepted_client} = '0.0.0.0';
 
-    if(!defined($server)) {
-        print STDERR "Undefined \$server in allow_deny_hook\n";
+    if(!defined($peerhost)) {
+        print STDERR "Undefined \$peerhost in allow_deny_hook\n";
         return 0;
     }
 
-    my $client = $server->peerhost;
-
-#    Commit: Mario
-#    $server is undefined some times when using IE or EDGE I have no idea why.......
-#    This if is only there for testing needs to fixed in an other way......
-    if (!(defined $client)) {
+    if (!(defined $peerhost)) {
         print STDERR "Couldn't get peer name!\n";
         return 0;
     }
 
-    if($client =~ /^\:\:ffff\:(\d+\.\d+\.\d+\.\d+)/) {
-        $client = $1;
+    if($peerhost =~ /^\:\:ffff\:(\d+\.\d+\.\d+\.\d+)/) {
+        $peerhost = $1;
     }
 
 
     #print STDERR "Accepting connction from $client\n";
-    $self->{last_accepted_client} = $client;
+    $self->{last_accepted_client} = $peerhost;
     return 1;
 };
 
@@ -372,7 +374,7 @@ sub post_process_request_hook {
 sub child_init_hook {
     my ($self) = @_;
 
-    if($self->{debug}) {
+    if($self->{isDebugging}) {
         print STDERR "******************** CHILD START *********************\n";
     }
     foreach my $modname (keys %{$self->{modules}}) {
@@ -386,7 +388,7 @@ sub child_init_hook {
 sub child_finish_hook {
     my ($self) = @_;
 
-    if($self->{debug}) {
+    if($self->{isDebugging}) {
         print STDERR "******************** CHILD STOP *********************\n";
     }
     foreach my $modname (keys %{$self->{modules}}) {
@@ -397,7 +399,7 @@ sub child_finish_hook {
 }
 
 sub readheader {
-    my ($self, $timeout) = @_;
+    my ($self, $timeout, $socket) = @_;
 
     my $line;
     my $ok = 0;
@@ -409,7 +411,8 @@ sub readheader {
 
         while(1) {
             $buf = undef;
-            my $bufstatus = sysread(STDIN, $buf, 1);
+            #my $bufstatus = sysread($socket, $buf, 1);
+            my $bufstatus = $socket->sysread($buf, 1);
             #if(defined($bufstatus) && !$bufstatus) {
             #    return;
             #}
@@ -424,6 +427,7 @@ sub readheader {
         alarm 0;
     };
     if(!$ok || !defined($line)) {
+        print STDERR "$@\n";
         alarm 0;
         return;
     }
@@ -437,7 +441,7 @@ sub readheader {
 }
 
 sub get_request_body {
-    my ($self, $ua, $timeout, $blocksize) = @_;
+    my ($self, $socket, $ua, $timeout, $blocksize) = @_;
 
     # Note: Timeout is set per datablock
 
@@ -456,7 +460,7 @@ sub get_request_body {
                 $thisblocksize = $unread;
             }
             $tempdata = undef;
-            my $lastread = sysread(STDIN, $tempdata, $thisblocksize);
+            my $lastread = sysread($socket, $tempdata, $thisblocksize);
             if(!defined($tempdata) || !length($tempdata)) {
                 sleep(0.01);
                 next;
@@ -770,7 +774,7 @@ nextrequest:
             if(!$ok) {
                 #print STDERR "BLOCKING CLIENT " . $ua->{remote_addr} . "!!!\n";
                 my $message = "Attack or server policy violation detected. Client " . $ua->{remote_addr} . " blocked for some time.";
-                webPrint(\*STDOUT, "HTTP/1.1 403 Policy violation\r\n" .
+                webPrint($realsocket, "HTTP/1.1 403 Policy violation\r\n" .
                                     "Content-Type: text/plain\r\n".
                                     "Content-Length: " . length($message) . "\r\n" .
                                     "Connection: close\r\n" .
@@ -785,16 +789,16 @@ nextrequest:
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-    my $requestline = $self->readheader(30);
+    my $requestline = $self->readheader(30, $realsocket);
     if(!defined($requestline)) {
-        print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{debug});
+        print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
-        webPrint(\*STDOUT, "HTTP/1.1 408 Request Timeout\r\n");
+        webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
 
         goto cleanup;
     }
 
-    if($self->{debug}) {
+    if($self->{isDebugging}) {
         print STDERR "**** $PID $requestline ****\n";
         if(0 && open(my $ofh, '>>', '/home/cavac/webhangups.log')) {
             print $ofh "**** $PID $requestline ****\n";
@@ -808,11 +812,11 @@ nextrequest:
 
     my $hcount = 0;
     while(1) {
-        my $header = $self->readheader(5);
+        my $header = $self->readheader(5, $realsocket);
         if(!defined($header)) {
-            print STDERR "HEADER LINE TIMEOUT\n" if($self->{debug});
+            print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
             $ua->{keepalive} = 0;
-            webPrint(\*STDOUT, "HTTP/1.1 408 Request Timeout\r\n");
+            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
         $hcount++;
@@ -820,14 +824,14 @@ nextrequest:
             # too many headers, may be an attack
             #print STDERR "Too many headers!\n";
             $ua->{keepalive} = 0;
-            webPrint(\*STDOUT, "HTTP/1.1 413 Request Entity Too Large\r\n");
+            webPrint($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
             goto cleanup;
         }
         last if($header eq "");
         if(!$self->parse_header_line($ua, $header)) {
             #print STDERR "Error parsing header!\n";
             $ua->{keepalive} = 0;
-            webPrint(\*STDOUT, "HTTP/1.1 400 Bad Request\r\n");
+            webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
             goto cleanup;
         }
     }
@@ -836,15 +840,15 @@ nextrequest:
     #    print STDERR "POST\n";
     #}
     if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
-        if(!$self->get_request_body($ua, 5, 1024)) {
+        if(!$self->get_request_body($realsocket, $ua, 5, 1024)) {
             $ua->{keepalive} = 0;
-            webPrint(\*STDOUT, "HTTP/1.1 408 Request Timeout\r\n");
+            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
 
         if(!$self->parse_post_data($ua)) {
             $ua->{keepalive} = 0;
-            webPrint(\*STDOUT, "HTTP/1.1 400 Bad Request\r\n");
+            webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
             goto cleanup;
         }
     }
@@ -875,7 +879,7 @@ nextrequest:
     }
     $ua->{url} = $webpath;
 
-    if($self->{debug} && $webpath eq '/crashme' && $ua->{remote_addr} eq '127.0.0.1') {
+    if($self->{isDebugging} && $webpath eq '/crashme' && $ua->{remote_addr} eq '127.0.0.1') {
         croak("/crashme triggered!");
     }
 
@@ -1260,7 +1264,7 @@ nextrequest:
         }
     }
 
-    if(!webPrint(\*STDOUT, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
+    if(!webPrint($realsocket, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
@@ -1349,13 +1353,13 @@ nextrequest:
     if(defined($header{'-cookie'})) {
         if(ref $header{'-cookie'} eq 'ARRAY') {
             foreach my $cookie (@{$header{'-cookie'}}) {
-                if(!webPrint(\*STDOUT, "Set-Cookie: ", $cookie, "\r\n")) {
+                if(!webPrint($realsocket, "Set-Cookie: ", $cookie, "\r\n")) {
                     $ua->{keepalive} = 0;
                     goto cleanup;
                 }
             }
         } else {
-            if(!webPrint(\*STDOUT, "Set-Cookie: ", $header{'-cookie'}, "\r\n")) {
+            if(!webPrint($realsocket, "Set-Cookie: ", $header{'-cookie'}, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1428,19 +1432,19 @@ nextrequest:
             } elsif($val =~ /^[\+\-]/) {
                 $val = getWebdate(undef, $val);
             }
-            if(!webPrint(\*STDOUT, $printkey, ": ", $val, "\r\n")) {
+            if(!webPrint($realsocket, $printkey, ": ", $val, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
         } elsif(ref $header{$header_key} eq 'ARRAY') {
             foreach my $headerval (@{$header{$header_key}}) {
-                if(!webPrint(\*STDOUT, $printkey, ": ", $headerval, "\r\n")) {
+                if(!webPrint($realsocket, $printkey, ": ", $headerval, "\r\n")) {
                     $ua->{keepalive} = 0;
                     goto cleanup;
                 }
             }
         } else {
-            if(!webPrint(\*STDOUT, $printkey, ": ", $header{$header_key}, "\r\n")) {
+            if(!webPrint($realsocket, $printkey, ": ", $header{$header_key}, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1450,26 +1454,26 @@ nextrequest:
 
     # Force printing current time as "Date" header
     if(!$dateprinted) {
-        if(!webPrint(\*STDOUT, "Date: " . getWebdate(). "\r\n")) {
+        if(!webPrint($realsocket, "Date: " . getWebdate(). "\r\n")) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
     }
 
     # Removing this header may break things, don't touch!
-    if(!webPrint(\*STDOUT, "X-Clacks-Overhead: GNU Terry Pratchett\r\n")) {
+    if(!webPrint($realsocket, "X-Clacks-Overhead: GNU Terry Pratchett\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
-    if(!webPrint(\*STDOUT, "\r\n")) {
+    if(!webPrint($realsocket, "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
     if(defined($result{data})) {
         # Some results do not have a body
-        if(!webPrint(\*STDOUT, $result{data})) {
+        if(!webPrint($realsocket, $result{data})) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
@@ -1522,7 +1526,7 @@ nextrequest:
             $partcount++;
             $totallength += length($dpart{data});
             #print STDERR getISODate() . "     Data part, length ", length($dpart{data}), " bytes\n";
-            if(!webPrint(\*STDOUT, $dpart{data})) {
+            if(!webPrint($realsocket, $dpart{data})) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1590,22 +1594,7 @@ cleanup:
 }
 
 sub startconfig {
-    my ($self, $pagecamelconfig, $isDebug, $psappname) = @_;
-
-    if(!defined($isDebug)) {
-        $isDebug = 0;
-    }
-    $self->{debug} = $isDebug;
-
-    $self->{pagecamel} = $pagecamelconfig;
-
-    $self->{appname} = $psappname;
-
-    if(defined($self->{pagecamel}->{forking}) && $self->{pagecamel}->{forking}) {
-        $self->{pagecamel}->{forking} = 1;
-    } else {
-        $self->{pagecamel}->{forking} = 0;
-    }
+    my ($self) = @_;
 
     # Pre-create empty lists and hashes
     foreach my $anonhash (qw[paths modules custom_methods protocolupgrade cors basic_auth]) {
@@ -1623,8 +1612,6 @@ sub startconfig {
 
 sub endconfig {
     my ($self) = @_;
-
-    # TODO: IMPLEMENT SOME SANITY CHECKS HERE
 
     print "For great justice...\n"; # We REQUIRE an all-your-base reference here!!1!
     print "Cross registering modules...\n";
@@ -1770,7 +1757,7 @@ sub configure_module {
 
     # also notify the module if it needs to take care of forking issues (database
     # modules probably will)
-    $config{forking} = $self->{pagecamel}->{forking};
+    $config{forking} = 1;
 
     if(defined($self->{modules}->{$modname})) {
         croak("Module with name '$modname' already configured!");
@@ -2158,10 +2145,6 @@ This is the base class of the webserver, the module through which each and every
 
 Backwards compatibility method, previously used with HTTP::Server::Simple to allow handling all HTTP methods.
 
-
-=head2 ssl_post_accept
-
-override SSL handling hook
 
 =head2 allow_deny_hook
 

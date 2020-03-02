@@ -21,6 +21,7 @@ use Time::HiRes qw(sleep usleep);
 use PageCamel::Helpers::Logo;
 use Data::Dumper;
 use Sys::Hostname;
+use PageCamel::WebBase;
 use POSIX ":sys_wait_h";
 
 my $childcount = 0;
@@ -88,7 +89,39 @@ sub init {
 
 
     $PROGRAM_NAME = $ps_appname;
-
+    
+    # Initialize web base
+    $config->{isDebugging} = $self->{isDebugging};
+    my $extraincpaths = $config->{extraincpaths} || "";
+    my @extrainc = split/\;/, $extraincpaths;
+    
+    my $webserver = PageCamel::WebBase->new($config);
+    
+    $webserver->startconfig($config->{server}, $self->{isDebugging}, $ps_appname);
+    
+    my @modlist = @{$config->{module}};
+    foreach my $module (@modlist) {
+        if($self->{isDebugging}) {
+            print "(Debug) Going to configure module ", $module->{modname}, "\n";
+        }
+        $module->{options}->{EXTRAINC} = \@extrainc;
+        
+        # Notify all modules if we are debugging (for example for "no compression=faster startup")
+        $module->{options}->{isDebugging} = $self->{isDebugging};
+        $module->{options}->{APPNAME} = $APPNAME;
+        $module->{options}->{PSAPPNAME} = $ps_appname;
+        
+        # Notify all modules if we are using ssl (make it a TRUE until we can patch out those checks altogether)
+        $module->{options}->{usessl} = 1;
+        
+        $webserver->configure_module($module->{modname}, $module->{pm}, %{$module->{options}});
+    }
+    
+    $webserver->endconfig();
+    
+    $self->{webserver} = $webserver;
+    
+    
 
     if(-S $config->{server}->{internal_socket}) {
         print "*** Removing old websocket\n";
@@ -111,31 +144,33 @@ sub run {
     my ($self) = @_;
 
     while(1) {
-        while((my @connections = $self->{select}->can_read)) {
-            foreach my $connection (@connections) {
-                my $client = $connection->accept;
+        my @connections = $self->{select}->can_read();
+        foreach my $connection (@connections) {
+            my $client = $connection->accept;
+            
+            #$self->handleClient($client);
+            #next;
 
-                if($childcount >= $self->{config}->{server}->{max_childs}) {
-                    print "Too many children already!\n";
-                    $client->close;
-                    next;
-                }
+            if($childcount >= $self->{config}->{server}->{max_childs}) {
+                print "Too many children already!\n";
+                $client->close;
+                next;
+            }
 
-                my $childpid = fork();
-                if(!defined($childpid)) {
-                    print "FORK FAILED!\n";
-                    $client->close;
-                    next;
-                } elsif($childpid == 0) {
-                    # Child
-                    $self->handleClient($client);
-                    print "Child PID $PID is done, exiting...\n";
-                    exit(0);
-                } else {
-                    # Parent
-                    $childcount++;
-                    next;
-                }
+            my $childpid = fork();
+            if(!defined($childpid)) {
+                print "FORK FAILED!\n";
+                $client->close;
+                next;
+            } elsif($childpid == 0) {
+                # Child
+                $self->handleClient($client);
+                print "Child PID $PID is done, exiting...\n";
+                exit(0);
+            } else {
+                # Parent
+                $childcount++;
+                next;
             }
         }
     }
@@ -152,8 +187,21 @@ sub handleClient {
     my $header = $self->readFrontendheader($client);
     print Dumper($header);
 
-    $client->syswrite("BLA!!!!!\n");
-    sleep(1);
+    $self->{webserver}->child_init_hook();
+    if($self->{webserver}->allow_deny_hook($header->{peerhost})) {
+        my $ok = 0;
+        eval {
+            $self->{webserver}->process_request($client);
+            $ok = 1;
+        };
+        if(!$ok) {
+            $self->{webserver}->processing_error_hook($EVAL_ERROR);
+        }
+    }
+    
+    
+    $self->{webserver}->post_process_request_hook();
+    $self->{webserver}->child_finish_hook();
     $client->close();
     kill 'USR1', $header->{pid}; # Notify frontend that we are done
 
