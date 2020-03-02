@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -22,11 +22,14 @@ sub new {
     my ($proto, %config) = @_;
     my $class = ref($proto) || $proto;
 
+    if(!defined($config{sleeptime})) {
+        $config{sleeptime} = 1;
+    }
+
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
     $self->{extrasettings} = [];
-    $self->{sleeptime} = 1;
 
     return $self;
 }

@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -140,6 +140,7 @@ sub get_manage {
         webpath         =>  $self->{manage}->{webpath},
         downwebpath     =>  $self->{download}->{webpath},
         checkfname      =>  $self->{checkfname}->{webpath},
+        showads => $self->{showads},
         AvailFiles  =>  \@files,
     );
 

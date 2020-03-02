@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -85,7 +85,7 @@ sub wshandlerstart {
         $self->{server}->get_defaultwebdata(),
     );
     my $username = $webdata{userData}->{user};
-    my $vserv = PageCamel::Helpers::VoiceClient->new('127.0.0.1', '18889', $username);
+    my $vserv = PageCamel::Helpers::VoiceClient->new('127.0.0.1', '19999', $username);
     $vserv->setmike(1);
     $vserv->setspeaker(1);
     $vserv->ping();

@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -60,8 +60,11 @@ use PageCamel::Web::ListAndEdit::Main;
 use PageCamel::Web::Lists::BadPasswords;
 use PageCamel::Web::Lists::DNSBlocks;
 use PageCamel::Web::Lists::IPBlocks;
+use PageCamel::Web::Livestream::ManageStream;
 use PageCamel::Web::Livestream::ServeM3U8;
+use PageCamel::Web::Livestream::ServeM3U8Archive;
 use PageCamel::Web::Livestream::ShowStream;
+use PageCamel::Web::Livestream::ShowStreamArchive;
 use PageCamel::Web::Logging::Devices;
 use PageCamel::Web::Logging::Graphs;
 use PageCamel::Web::Logging::Report;
@@ -97,6 +100,7 @@ use PageCamel::Web::TemplateCache;
 use PageCamel::Web::Testing::Microphone;
 use PageCamel::Web::Testing::VoiceComm;
 use PageCamel::Web::Tools::AccessToDebuglog;
+use PageCamel::Web::Tools::AdConfig;
 use PageCamel::Web::Tools::ClacksConsole;
 use PageCamel::Web::Tools::ContentSecurityPolicyViolation;
 use PageCamel::Web::Tools::DSKY;
@@ -424,6 +428,10 @@ sub readheader {
         return;
     }
 
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        my $temp = decode_utf8($line);
+        $line = $temp;
+    };
     $line =~ s/[\r\n]+$//;
     return $line;
 }
@@ -664,6 +672,16 @@ sub parse_post_data {
             }
         }
     }
+    
+    # Make sure we have utf8 decoded properly
+    foreach my $key (keys %{$ua->{postparams}}) {        
+        if(ref $ua->{postparams}->{$key} eq '' && !is_utf8($ua->{postparams}->{$key})) {
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                my $temp = decode_utf8($ua->{postparams}->{$key});
+                $ua->{postparams}->{$key} = $temp;
+            };
+        }
+    }
     return $ok;
 }
 
@@ -767,7 +785,7 @@ nextrequest:
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-    my $requestline = $self->readheader(5);
+    my $requestline = $self->readheader(30);
     if(!defined($requestline)) {
         print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{debug});
         $ua->{keepalive} = 0;

@@ -1,0 +1,20 @@
+<p align="left">
+    <form name="selectcomputer" method="post" action="[% PostLink %]" id="MainFilterForm">
+        [% IF StreamMode == "1" %]
+            <input type="hidden" name="mode" value="start">
+            <input type="submit" value="Start Stream">
+        [% ELSIF StreamMode == "2" %]
+            <input type="hidden" name="mode" value="stop">
+            <input type="submit" value="Stop Stream">
+        [% ELSIF StreamMode == "3" %]
+            <input type="hidden" name="mode" value="archive">
+            <input type="text" name="title" value="" size="60"><br/>
+            
+            <input type="submit" value="Archive stream">
+        [% ELSE %]
+            <input type="hidden" name="mode" value="cleanup">
+            <input type="submit" value="Cleanup last stream">
+            
+        [% END %]
+    </form>
+</p>

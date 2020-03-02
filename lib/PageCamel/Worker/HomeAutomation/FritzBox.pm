@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -44,6 +44,7 @@ sub register {
     $self->{clacks} = $self->newClacksFromConfig($clconf);
     foreach my $key (keys %{$self->{switches}}) {
         $self->{clacks}->listen($self->{switches}->{$key}->{clacksname_setswitch});
+        $self->{clacks}->listen($self->{switches}->{$key}->{clacksname_disable_switch});
     }
 
     $self->{clacks}->doNetwork();
@@ -79,12 +80,14 @@ sub work {
     $self->{clacks}->doNetwork();
 
 
+    my $updatenow = 0;
     while((my $cmsg = $self->{clacks}->getNext())) {
         $workCount++;
         if($cmsg->{type} eq 'disconnect') {
             $self->debuglog("Restarting clacks connection");
             foreach my $key (keys %{$self->{switches}}) {
                 $self->{clacks}->listen($self->{switches}->{$key}->{clacksname_setswitch});
+                $self->{clacks}->listen($self->{switches}->{$key}->{clacksname_disable_switch});
             }
             $self->{clacks}->ping();
             $self->{clacks}->doNetwork();
@@ -92,23 +95,37 @@ sub work {
             next;
         } elsif($cmsg->{type} eq 'set') {
             # Change switch if required
-            $reph->debuglog("GOT CLACKS: " . $cmsg->{name} . "=" . $cmsg->{data});
+            #$reph->debuglog("GOT CLACKS: " . $cmsg->{name} . "=" . $cmsg->{data});
             foreach my $key (keys %{$self->{switches}}) {
-                if($cmsg->{name} eq $self->{switches}->{$key}->{clacksname_setswitch}) {
+                if($cmsg->{name} eq $self->{switches}->{$key}->{clacksname_disable_switch}) {
+                    if($cmsg->{data}) {
+                        $reph->debuglog("Disabling switch $key");
+                    } else {
+                        $reph->debuglog("Enabling switch $key");
+                    }
+                    $self->{clacks}->setAndStore($self->{switches}->{$key}->{clacksname_disable_state}, $cmsg->{data});
+                } elsif($cmsg->{name} eq $self->{switches}->{$key}->{clacksname_setswitch}) {
                     if(!defined($self->{switches}->{$key}->{state})) {
                         $reph->debuglog("Clacks: Can't set switch $key because Fritz!Box doesn't know about it!");
                     } elsif($cmsg->{data} == $self->{switches}->{$key}->{state}) {
                         $reph->debuglog("Clacks: Switch $key already in state " . $cmsg->{data});
                     } elsif($self->{switches}->{$key}->{state} == -1) {
-                        $reph->debuglog("Clacks: Can't swwitch $key, currently not present at Fritz!Box");
+                        $reph->debuglog("Clacks: Can't switch $key, currently not present at Fritz!Box");
                     } else {
                         if($cmsg->{data} == 1) {
-                            $reph->debuglog("Clacks: Switching $key to ON");
-                            $self->{fritz}->on($self->{switches}->{$key}->{ain});
-                            $self->{nextrun} = time + 5;
+                            my $disablestate = $self->{clacks}->retrieve($self->{switches}->{$key}->{clacksname_disable_state}) || 0;
+                            if($disablestate) {
+                                $reph->debuglog("Switch $key is DISABLED, not allowed to switch to ON!");
+                            } else {
+                                $reph->debuglog("Clacks: Switching $key to ON");
+                                $self->{fritz}->on($self->{switches}->{$key}->{ain});
+                                $self->{nextrun} = time + 5;
+                                $updatenow = 1;
+                            }
                         } else {
                             $reph->debuglog("Clacks: Switching $key to OFF");
                             $self->{fritz}->off($self->{switches}->{$key}->{ain});
+                            $updatenow = 1;
                             $self->{nextrun} = time + 5;
                         }
                         $workCount++;
@@ -121,7 +138,7 @@ sub work {
     $self->{clacks}->doNetwork();
     
     # Only read states from Fritz!Box every 10 seconds, unless switches have been changed via clacks
-    if($now > $self->{nextrun}) {
+    if($updatenow || $now > $self->{nextrun}) {
         #$reph->debuglog("_");
         $self->{nextrun} = time + 10;
     } else {
@@ -139,6 +156,7 @@ sub work {
             $self->{switches}->{$sname}->{state} = -1;
             $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_power}, -1); # "Unknown"
             $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_energy}, -1); # "Unknown"
+            $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_temperature}, -1); # "Unknown"
 
             # "Forget" the AIN
             $self->{switches}->{$sname}->{ain} = 0;
@@ -152,7 +170,8 @@ sub work {
                 $self->{switches}->{$sname}->{state} = 0;
             }
             $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_power}, $switch->power);
-            $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_energy}, $switch->energy); # "Unknown"
+            $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_energy}, $switch->energy);
+            $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_temperature}, $switch->temperature);
 
             # Remember the AIN
             $self->{switches}->{$sname}->{ain} = $switch->ain();
@@ -162,6 +181,14 @@ sub work {
     foreach my $key (keys %{$self->{switches}}) {
         if(!defined($self->{switches}->{$key}->{state})) {
             $reph->debuglog("Switch $key not known to Fritz!Box");
+        } else {
+            my $disablestate = $self->{clacks}->retrieve($self->{switches}->{$key}->{clacksname_disable_state});
+            my $switchstate = $self->{clacks}->retrieve($self->{switches}->{$key}->{clacksname_state});
+            if(defined($disablestate) && defined($switchstate) && $disablestate == 1 && $switchstate == 1) {
+                $reph->debuglog("Forcing switch $key to OFF because it is DISABLED!");
+                $self->{fritz}->off($self->{switches}->{$key}->{ain});
+                $self->{nextrun} = time + 5;
+            }
         }
     }
 

@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -97,6 +97,7 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         PrivacyPolicyHTML => $sets{policy_html},
+        showads => $self->{showads},
     );
 
     my $template = $self->{server}->{modules}->{templates}->get('privacypolicy', 1, %webdata);

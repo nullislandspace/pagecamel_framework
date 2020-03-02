@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -73,6 +73,21 @@ sub new {
 
     if(!defined($self->{editpageheader})) {
         $self->{editpageheader} = '';
+    }
+
+    if(defined($self->{list}) && !defined($self->{list}->{showads})) {
+        if(defined($self->{showads})) {
+            $self->{list}->{showads} = $self->{showads};
+        } else {
+            $self->{list}->{showads} = 0;
+        }
+    }
+    if(defined($self->{edit}) && !defined($self->{edit}->{showads})) {
+        if(defined($self->{showads})) {
+            $self->{edit}->{showads} = $self->{showads};
+        } else {
+            $self->{edit}->{showads} = 0;
+        }
     }
 
     $self->{useextraeditscript} = 0;
@@ -399,10 +414,6 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
 
 
     my @tabstablenames = qw[MainDataTable HelperTable1 HelperTable2 HelperTable3 HelperTable4 HelperTable5 HelperTable6 HelperTable7];
-
-    #if($self->{modname} eq 'bugtracker') {
-    #    print "x\n";
-    #}
 
     foreach my $item (@{$self->{edit}->{item}}) {
         foreach my $required (qw[header type]) {
@@ -1006,6 +1017,7 @@ sub get_list {
         AllowDownloadCSV        => $self->{download_csv},
         DownloadCSVAjaxPath     => '',
         ListPageHeader => $self->{listpageheader},
+        showads => $self->{list}->{showads},
     );
 
     if($self->{send_csv}) {
@@ -1582,6 +1594,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         editcolumnlist  =>  $self->{editcolumnlist},
         extrattvars     =>  $self->{extrattvars},
         EditPageHeader => $self->{editpageheader},
+        showads => $self->{edit}->{showads},
     );
 
     if($self->{autosave}) {
@@ -1685,7 +1698,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = 'now';
                     }
                     $tmp = parseNaturalDate($tmp);
-                } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
+                } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
                     if($tmp eq '') {
@@ -1693,6 +1706,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                     } else {
                         $tmp = 0 + $tmp;
                     }
+                    
                 } elsif($self->{editcolumntypes}->{$column} eq 'textarea') {
                     # Re-read unstripped value so we don't remove required line breaks
                     $tmp = $ua->{postparams}->{$column} || '';
@@ -1714,10 +1728,11 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                         $tmp = encode_base64($ua->{files}->{$newfname}->{data});
                     }
                 }
+
                 if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
                     $tmp = undef;
                 }
-
+                
                 # Make sure we don't have empty PK fields. Ignore useserial on editing, we can NEVER have an empty PK column during EDIT!
                 if(contains($column, \@pkcols)) {
                     if(!defined($tmp) || $tmp eq '') {

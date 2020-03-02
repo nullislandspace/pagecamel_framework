@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -235,6 +235,7 @@ sub get_select {
         webpath         =>  $self->{webpath},
         PostLink        =>  $self->{webpath},
         UsageHint       =>  $usagehint,
+        showads => $self->{showads},
     );
 
     my @computers;
@@ -303,6 +304,7 @@ sub get_vnc {
         AjaxGetCard =>  $self->{webpath} . '/getcard',
         AjaxSetCard =>  $self->{webpath} . '/setcard',
         ClientSettings => \%clientsettings,
+        showads => $self->{showads},
     );
     if($usebase64) {
         $webdata{websocketencoding} = 'base64';

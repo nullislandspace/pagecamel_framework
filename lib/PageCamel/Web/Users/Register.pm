@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -193,6 +193,7 @@ sub get_request {
         PostLink    =>  $self->{webpath},
         userpath    =>  $self->{webpath} . '/checkuser',
         emailpath   =>  $self->{webpath} . '/checkemail',
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -305,6 +306,7 @@ sub get_execute {
         PageTitle   =>  $self->{pagetitle},
         PostLink    =>  $ua->{url},
         registerkey    => $registerkey,
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';

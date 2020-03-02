@@ -1,0 +1,55 @@
+<table border="0" align="left">
+    <tr>
+        <td align="left">
+            <h1>[% PageTitle %]</h1>
+            [% PublishDate %]
+        </td>
+    </tr>
+    <tr>
+        <td align="left">
+            <video id="livestream" controls playsinline></video>
+        </td>
+    </tr>
+    <tr>
+        <td align="left">
+            [% Description %]
+        </td>
+    </tr>
+</table>
+<span id="masktemplatedataset"
+    data-m3u8source="[% M3U8File %]"
+></span>
+
+<script language="javascript">
+    // Load the video as late as possible in the document rendering process for maximum compatibility
+    function lateExtraOnLoad() {
+        // We initialize the player only after a few seconds, to make sure everything else is loaded
+        setTimeout(initPlayer, 1500);
+    }
+
+    function initPlayer() {
+        var video = document.getElementById('livestream');
+        if(Hls.isSupported()) {
+            var hls = new Hls();
+            hls.loadSource(ttvars.m3u8source);
+            hls.attachMedia(video);
+            //hls.on(Hls.Events.MANIFEST_PARSED,function() {
+            //    video.play();
+            //});
+        }
+        // hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
+        // When the browser has built-in HLS support (check using `canPlayType`), we can provide an HLS manifest
+        // (i.e. .m3u8 URL) directly to the video element throught the `src` property.
+        // This is using the built-in support of the plain video element, without using hls.js.
+        // Note: it would be more normal to wait on the 'canplay' event below however on Safari
+        // (where you are most likely to find built-in HLS support) the video.src URL must be on the user-driven
+        // white-list before a 'canplay' event will be emitted; the last video event that can be reliably listened-for
+        // when the URL is not on the white-list is 'loadedmetadata'.
+        else if(video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = ttvars.m3u8source;
+            video.addEventListener('loadedmetadata',function() {
+                video.play();
+            });
+        }
+    }
+</script>

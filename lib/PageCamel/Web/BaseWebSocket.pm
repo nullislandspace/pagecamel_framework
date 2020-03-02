@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -35,7 +35,7 @@ sub new {
         croak("Option 'wspath' set, but not allowed with new BaseWebSocket class");
     }
 
-    if(defined($self->{sleeptime})) {
+    if(!defined($self->{sleeptime})) {
         # Make it VERY responsive and CPU hungry by default
         $self->{sleeptime} = 0.01;
     }
@@ -141,7 +141,7 @@ sub wsreload {
 
 sub wsmaskget {
     my ($self, $ua, $settings, $webdata) = @_;
-    
+
     return;
 }
 
@@ -245,6 +245,7 @@ sub get {
         webpath         =>  $self->{webpath},
         Settings        =>  \%settings,
         WSURL           =>  $wsurl,
+        showads => $self->{showads},
     );
     
     $self->wsmaskget($ua, \%settings, \%webdata);

@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -66,7 +66,8 @@ sub get {
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
-        PostLink        =>  $self->{webpath}
+        PostLink        =>  $self->{webpath},
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -105,7 +106,8 @@ sub get {
     %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
-        PostLink        =>  $self->{webpath}
+        PostLink        =>  $self->{webpath},
+        showads => $self->{showads},
     );
 
     my $errsth = $dbh->prepare_cached("SELECT error_id, reporttime, error_type, description " .

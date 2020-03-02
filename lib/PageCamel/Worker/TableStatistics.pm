@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -49,12 +49,11 @@ sub work {
     my $workCount = 0;
 
     my $newtabsth = $dbh->prepare("INSERT INTO table_statistics (tablename) (
-                                    SELECT pt.tablename FROM pg_tables pt
+                                    SELECT pt.schemaname || '.' || pt.tablename as fulltablename FROM pg_tables pt
                                         WHERE pt.tableowner = '" . $self->{dbuser} . "'
-                                        AND pt.schemaname = '" . $self->{schemaname} . "'
                                         AND NOT EXISTS
                                             (SELECT 1 FROM table_statistics ts
-                                             WHERE ts.tablename = pt.tablename)
+                                             WHERE ts.tablename = pt.schemaname || '.' || pt.tablename)
                                     )") or croak($dbh->errstr);
     my $oldtabsth = $dbh->prepare("DELETE FROM table_statistics tsd
                                     WHERE tsd.tablename IN
@@ -62,12 +61,11 @@ sub work {
                                         WHERE NOT EXISTS (
                                             SELECT 1 FROM pg_tables pt
                                             WHERE pt.tableowner = '" . $self->{dbuser} . "'
-                                            AND pt.schemaname = '" . $self->{schemaname} . "'
-                                            AND pt.tablename = tss.tablename)
+                                            AND pt.schemaname || '.' || pt.tablename = tss.tablename)
                                     )") or croak($dbh->errstr);
 
     my $nextsth = $dbh->prepare("SELECT tablename FROM table_statistics
-                                    WHERE last_update < now() - interval '1 hour'
+                                    WHERE last_update < now() - interval '6 hours'
                                     ORDER BY last_update, tablename
                                     LIMIT 1") or croak($dbh->errstr);
 
@@ -84,6 +82,7 @@ sub work {
         my ($tname) = $nextsth->fetchrow_array;
         $nextsth->finish;
         if(!defined($tname) || $tname eq '') {
+            $dbh->rollback;
             return $workCount;
         }
 

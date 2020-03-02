@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -57,6 +57,7 @@ sub get_list {
         webpath     =>  $self->{list}->{webpath},
         PostLink    =>  $self->{edit}->{webpath},
         mode        =>  "select",
+        showads => $self->{showads},
     );
 
     my $sth = $dbh->prepare_cached("SELECT * FROM logging_devices
@@ -87,6 +88,7 @@ sub get_edit {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{edit}->{pagetitle},
         webpath    =>  $self->{edit}->{webpath},
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{"mode"} || "new";

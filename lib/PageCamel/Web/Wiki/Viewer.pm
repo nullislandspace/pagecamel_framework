@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -318,6 +318,7 @@ sub get {
         archivelink => $self->{archivelink},
         HeadExtraScripts => \@headextrascripts,
         HeadExtraCSS => \@headextracss,
+        showads => $self->{showads},
     );
 
     $dbh->rollback;
@@ -373,8 +374,9 @@ sub get_wiki_archive {
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         Articles => \@articles,
-        PageTitle   =>  'Blog Archive',
+        PageTitle   =>  'Wiki Archive',
         MobileDesktopClientMode => $clientMode,
+        showads => $self->{showads},
     );
 
     my $template = $th->get('wiki/archive_mobile', 1, %webdata);

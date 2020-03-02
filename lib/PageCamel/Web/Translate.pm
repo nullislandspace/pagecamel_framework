@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -91,6 +91,7 @@ sub get_settings {
         $self->{server}->get_defaultwebdata(),
         PageTitle       =>  $self->{settings}->{pagetitle},
         webpath         =>  $self->{settings}->{webpath},
+        showads => $self->{showads},
     );
 
     my $whereclause = "";
@@ -140,6 +141,7 @@ sub get_languages {
         $self->{server}->get_defaultwebdata(),
         PageTitle       =>  $self->{languages}->{pagetitle},
         webpath         =>  $self->{languages}->{webpath},
+        showads => $self->{showads},
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -228,6 +230,7 @@ sub get_translations {
         PageTitle       =>  $self->{translations}->{pagetitle},
         webpath         =>  $self->{translations}->{webpath},
         AvailLanguages  =>  \@AvailLangs,
+        showads => $self->{showads},
     );
 
     my ($ok, $langname) = $seth->get($webdata{userData}->{user}, "EditLanguage");
@@ -323,6 +326,7 @@ sub get_export {
         PageTitle       =>  $self->{export}->{pagetitle},
         webpath         =>  $self->{export}->{webpath},
         AvailLanguages  =>  \@AvailLangs,
+        showads => $self->{showads},
     );
 
 

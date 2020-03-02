@@ -239,9 +239,14 @@ lib/PageCamel/Web/ListAndEdit/Templates/list.tt
 lib/PageCamel/Web/Lists/BadPasswords.pm
 lib/PageCamel/Web/Lists/DNSBlocks.pm
 lib/PageCamel/Web/Lists/IPBlocks.pm
+lib/PageCamel/Web/Livestream/ManageStream.pm
 lib/PageCamel/Web/Livestream/ServeM3U8.pm
+lib/PageCamel/Web/Livestream/ServeM3U8Archive.pm
 lib/PageCamel/Web/Livestream/ShowStream.pm
+lib/PageCamel/Web/Livestream/ShowStreamArchive.pm
+lib/PageCamel/Web/Livestream/Templates/managestream.tt
 lib/PageCamel/Web/Livestream/Templates/showstream.tt
+lib/PageCamel/Web/Livestream/Templates/showstreamarchive.tt
 lib/PageCamel/Web/Logging/Devices.pm
 lib/PageCamel/Web/Logging/Graphs.pm
 lib/PageCamel/Web/Logging/Report.pm
@@ -2431,6 +2436,7 @@ lib/PageCamel/Web/Testing/Templates/voicecomm.tt
 lib/PageCamel/Web/Testing/Templates/voicecomm_light.tt
 lib/PageCamel/Web/Testing/VoiceComm.pm
 lib/PageCamel/Web/Tools/AccessToDebuglog.pm
+lib/PageCamel/Web/Tools/AdConfig.pm
 lib/PageCamel/Web/Tools/ClacksConsole.pm
 lib/PageCamel/Web/Tools/ContentSecurityPolicyViolation.pm
 lib/PageCamel/Web/Tools/Debuglog.pm
@@ -2448,6 +2454,7 @@ lib/PageCamel/Web/Tools/PIMenu.pm
 lib/PageCamel/Web/Tools/RemoteLog.pm
 lib/PageCamel/Web/Tools/ShortURL.pm
 lib/PageCamel/Web/Tools/Sitemap.pm
+lib/PageCamel/Web/Tools/Templates/adconfig.tt
 lib/PageCamel/Web/Tools/Templates/clacksconsole.tt
 lib/PageCamel/Web/Tools/Templates/debuglog.tt
 lib/PageCamel/Web/Tools/Templates/dsky.tt
@@ -2543,6 +2550,9 @@ lib/PageCamel/Worker/HomeAutomation/Allnet4076.pm
 lib/PageCamel/Worker/HomeAutomation/FritzBox.pm
 lib/PageCamel/Worker/HomeAutomation/HWGSTE.pm
 lib/PageCamel/Worker/HomeAutomation/KeepRange.pm
+lib/PageCamel/Worker/HomeAutomation/PowerShare.pm
+lib/PageCamel/Worker/HomeAutomation/Tasmota.pm
+lib/PageCamel/Worker/HomeAutomation/Timer.pm
 lib/PageCamel/Worker/Logging/PluginBase.pm
 lib/PageCamel/Worker/Logging/Plugins/DummyPlugin.pm
 lib/PageCamel/Worker/Logging/Plugins/PageCamelStats.pm

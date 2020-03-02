@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -63,6 +63,7 @@ sub get {
         webpath         =>  $self->{webpath},
         AvailPrinters   => \@availprinters,
         AvailPageCounts  => \@availpagecount,
+        showads => $self->{showads},
     );
 
     # We don't actually set the Theme into webdata here, this is done during the prerender stage.

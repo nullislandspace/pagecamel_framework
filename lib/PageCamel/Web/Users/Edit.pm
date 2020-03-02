@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 2.4;
+our $VERSION = 2.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -49,6 +49,7 @@ sub get_list {
         PageTitle   =>  $self->{list}->{pagetitle},
         webpath     =>  $self->{list}->{webpath},
         PostLink    =>  $self->{edit}->{webpath},
+        showads => $self->{showads},
     );
     
     my $extrawhere = '';
@@ -109,6 +110,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
         webpath     =>  $self->{edit}->{webpath},
         PostLink    =>  $self->{edit}->{webpath},
         CompanyLabel => "Company",
+        showads => $self->{showads},
     );
     
     if(defined($self->{usegroupsinsteadcompanies}) && $self->{usegroupsinsteadcompanies}) {
