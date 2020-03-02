@@ -40,6 +40,7 @@ sub REAPER {
     $SIG{CHLD} = \&REAPER; # install *after* calling waitpid
 }
 
+
 sub new {
     my ($class, $isDebugging, $configfile) = @_;
     my $self = bless {}, $class;
@@ -103,7 +104,7 @@ sub init {
             my $tcp = IO::Socket::IP->new(
                     LocalHost => $ip,
                     LocalPort => $service->{port},
-                    isten => 1,
+                    Listen => 1,
                     ReuseAddr => 1,
                     Proto => 'tcp',
             ) or croak("Failed to bind: " . $ERRNO);
@@ -157,6 +158,18 @@ sub run {
 
 sub handleClient {
     my ($self, $client) = @_;
+    
+    my $finishcountdown = 0;
+    $SIG{USR1} = sub {
+        if(!$finishcountdown) {
+            $finishcountdown = time + 10;
+            print "Backend finished, 10 second countdown before closing socket\n";
+        } else {
+            print "Backend finished, countdown already started\n";
+        }
+        return;
+    };
+    
 
     print "Doing some network stuff in child PID $PID\n";
 
@@ -167,7 +180,7 @@ sub handleClient {
 
     my $usessl = 0;
     # Check if we need to use SSL
-    foreach my $service (@{$config->{external_network}->{service}}) {
+    foreach my $service (@{$self->{config}->{external_network}->{service}}) {
         # Search for the correct service
         if($service->{port} == $lport) {
             # Now check the IP address
@@ -182,7 +195,7 @@ sub handleClient {
 
     if($usessl) {
         my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-        my $encrypted = IO::Socket::SSL->start_SSL($clientsocket,
+        my $encrypted = IO::Socket::SSL->start_SSL($client,
             SSL_server => 1,
             SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
             SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
@@ -251,7 +264,7 @@ sub handleClient {
             Type => SOCK_STREAM,
         ) or croak("Failed to connect to backend: $ERRNO");
 
-    syswrite($backend, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl HTTP/1.1\r\n");
+    syswrite($backend, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n");
 
     my $select = IO::Select->new($client, $backend);
 
@@ -265,23 +278,23 @@ sub handleClient {
 
         # Wait long if we currently have nothing to send, only wait a very short time for new data if we already got
         # something in out output buffers
-        my $waittime = 1;
+        my $waittime = 0.3;
         if(length($toclientbuffer) || length($tobackendbuffer)) {
             $waittime = 0.05;
         }
-        while((my @connections = $select->can_read(0.1))) {
-            foreach my $connection (@connections) {
-                sysread($connection, $rawbuffer, 1_000_000); # Read at most 1 Meg at a time
-                if(!length($rawbuffer)) {
-                    $failcount++;
+        
+        my @connections = $select->can_read($waittime);
+        foreach my $connection (@connections) {
+            sysread($connection, $rawbuffer, 1_000_000); # Read at most 1 Meg at a time
+            if(!length($rawbuffer)) {
+                $failcount++;
+            } else {
+                $failcount = 0;
+                if(ref $connection eq 'IO::Socket::UNIX') {
+                    # data FROM the backend
+                    $toclientbuffer .= $rawbuffer;
                 } else {
-                    $failcount = 0;
-                    if(ref $connection eq 'IO::Socket::UNIX') {
-                        # data FROM the backend
-                        $toclientbuffer .= $rawbuffer;
-                    } else {
-                        $tobackendbuffer .= $rawbuffer;
-                    }
+                    $tobackendbuffer .= $rawbuffer;
                 }
             }
         }
@@ -295,7 +308,7 @@ sub handleClient {
             };
             if($EVAL_ERROR) {
                 print STDERR "Write error: $EVAL_ERROR\n";
-                exit(1);
+                $failcount++;
             }
             $toclientbuffer = substr($toclientbuffer, $written);
         }
@@ -309,7 +322,7 @@ sub handleClient {
             };
             if($EVAL_ERROR) {
                 print STDERR "Write error: $EVAL_ERROR\n";
-                exit(1);
+                $failcount++;
             }
             $tobackendbuffer = substr($tobackendbuffer, $written);
         }
@@ -322,9 +335,32 @@ sub handleClient {
             if(length($tobackendbuffer)) {
                 print "   !!! tobackendbuffer still has ", length($tobackendbuffer), " bytes unsent!\n";
             }
-            exit(1);
+            if(length($toclientbuffer) || length($toclientbuffer)) {
+                if(!$finishcountdown) {
+                    print "Still trying to send buffer data, starting 10 second countdown\n";
+                    $finishcountdown = time + 10;
+                }
+            } else {
+                print "Errors but outgoing buffers are empty, shutting down right now\n";
+                $done = 1;
+            }
         }
+        
+        if($finishcountdown > 0) {
+            if($finishcountdown > time) {
+                print "Time to shutdown: ", $finishcountdown - time, "\n";
+            } else {
+                print "Finally done!\n";
+                $done = 1;
+            }
+        }
+        
     }
+    
+    print "Shutting down child PID $PID\n";
+    
+    close $backend;
+    close $client;
 
     exit(0);
 }
