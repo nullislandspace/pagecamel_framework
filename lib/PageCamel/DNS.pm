@@ -31,17 +31,17 @@ use MIME::Base64;
 
 Readonly my $RECURSIVELOOKUP => '999.999.999.999';
 
-use PageCamel::Net::Server::PreFork;
-use PageCamel::Net::Server::Single;
+use Net::Server::PreFork;
+use Net::Server::Single;
 
 our @ISA; ## no critic (ClassHierarchies::ProhibitExplicitISA)
 sub setThreadingMode {
     my($isDebugging) = @_;
 
     if(0 && $isDebugging) {
-        push @ISA, 'PageCamel::Net::Server::Single'; ## no critic (ClassHierarchies::ProhibitExplicitISA)
+        push @ISA, 'Net::Server::Single'; ## no critic (ClassHierarchies::ProhibitExplicitISA)
     } else {
-        push @ISA, 'PageCamel::Net::Server::PreFork'; ## no critic (ClassHierarchies::ProhibitExplicitISA)
+        push @ISA, 'Net::Server::PreFork'; ## no critic (ClassHierarchies::ProhibitExplicitISA)
     }
 
     return;

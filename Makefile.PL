@@ -82,6 +82,7 @@ WriteMakefile(
         'Net::LibIDN' => 0,
         'Net::Ping' => 0,
         'Net::Ping::External' => 0,
+        'Net::Server' => 0,
         'Net::SNMP' => 0,
         'Net::Syslogd' => 0,
         'Net::Twitter' => 0,
