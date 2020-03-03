@@ -44,7 +44,7 @@ sub webPrint {
 
     my $shownlimitmessage = 0;
 
-    my $timeoutthres = 10; # Need to be able to send at least one byte per 10 seconds
+    my $timeoutthres = 20; # Need to be able to send at least one byte per 20 seconds
 
     # Output bandwidth-limited stuff, in as big chunks as possible
     if(!defined($full) || $full eq '') {
