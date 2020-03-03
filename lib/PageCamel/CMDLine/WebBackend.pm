@@ -197,7 +197,8 @@ sub handleClient {
         };
         if(!$ok) {
             print STDERR "**** CRASH DETECTED *****\n";
-            $self->{webserver}->processing_error_hook($EVAL_ERROR);
+            #$self->{webserver}->processing_error_hook($EVAL_ERROR);
+            kill 9, $PID;
             POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
         }
     }
