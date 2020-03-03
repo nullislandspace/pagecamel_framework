@@ -224,26 +224,27 @@ sub handleClient {
                         return;
                     }
 
-                    if(!defined($self->{config}->{ssldomains}->{$h})) {
+                    if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$h})) {
                         print STDERR "SSL: Hostname $h not configured\n";
+                        print STDERR Dumper($self->{config}->{sslconfig}->{ssldomains});
                         return;
                     }
-                    if($h eq $self->{config}->{ssldefaultdomain}) {
+                    if($h eq $self->{config}->{sslconfig}->{ssldefaultdomain}) {
                         # Already the correct CTX setting, just return
                         return;
                     }
 
                     #print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
                     my $newctx;
-                    if(defined($self->{config}->{ssldomains}->{$h}->{ctx})) {
-                        $newctx = $self->{config}->{ssldomains}->{$h}->{ctx};
+                    if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx})) {
+                        $newctx = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx};
                     } else {
                         $newctx = Net::SSLeay::CTX_new or croak("Can't create new SSL CTX");
-                        Net::SSLeay::CTX_set_cipher_list($newctx, $self->{config}->{sslciphers});
-                        Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{ssldomains}->{$h}->{sslcert},
-                                                            $self->{config}->{ssldomains}->{$h}->{sslkey})
+                        Net::SSLeay::CTX_set_cipher_list($newctx, $self->{config}->{sslconfig}->{sslciphers});
+                        Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert},
+                                                            $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
                                 or croak("Can't set cert and key file");
-                        $self->{config}->{ssldomains}->{$h}->{ctx} = $newctx;
+                        $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
                     }
                     Net::SSLeay::set_SSL_CTX($ssl, $newctx);
                 });
