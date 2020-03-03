@@ -22,7 +22,8 @@ use PageCamel::Helpers::Logo;
 use Data::Dumper;
 use Sys::Hostname;
 use PageCamel::WebBase;
-use POSIX ":sys_wait_h";
+#use POSIX ":sys_wait_h";
+use POSIX;
 
 my $childcount = 0;
 $SIG{CHLD} = \&REAPER;
@@ -195,7 +196,9 @@ sub handleClient {
             $ok = 1;
         };
         if(!$ok) {
+            print STDERR "**** CRASH DETECTED *****\n";
             $self->{webserver}->processing_error_hook($EVAL_ERROR);
+            POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
         }
     }
     

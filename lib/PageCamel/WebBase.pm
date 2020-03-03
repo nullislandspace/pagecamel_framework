@@ -423,11 +423,10 @@ sub readheader {
             last if($buf eq "\n");
         }
         $ok = 1;
-        alarm 0;
     };
+    alarm 0;
     if(!$ok || !defined($line)) {
-        print STDERR "$@\n";
-        alarm 0;
+        print STDERR "!!!!!! X1 $@\n";
         return;
     }
 
@@ -780,6 +779,7 @@ nextrequest:
                                     "Connection: close\r\n" .
                                     "\r\n" .
                                     $message);
+                $ua->{keepalive} = 0;
                 goto cleanup;
             }
         }
@@ -793,7 +793,7 @@ nextrequest:
     if(!defined($requestline)) {
         print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
-        webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+        #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
 
         goto cleanup;
     }
@@ -807,6 +807,7 @@ nextrequest:
     }
 
     if(!$self->parse_request_line($ua, $requestline)) {
+        $ua->{keepalive} = 0;
         goto cleanup;
     }
 
@@ -816,7 +817,7 @@ nextrequest:
         if(!defined($header)) {
             print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+            #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
         $hcount++;
