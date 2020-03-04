@@ -88,8 +88,8 @@ sub init {
 
     # FIXME Add exclusive locked open for $weblockname
 
-
-    $PROGRAM_NAME = $ps_appname;
+    $self->{ps_appname} = $ps_appname;
+    $PROGRAM_NAME = $ps_appname . '_master';
     
     # Initialize web base
     $config->{isDebugging} = $self->{isDebugging};
@@ -165,6 +165,7 @@ sub run {
                 next;
             } elsif($childpid == 0) {
                 # Child
+                $PROGRAM_NAME = $self->{ps_appname};
                 $self->handleClient($client);
                 print "Child PID $PID is done, exiting...\n";
                 exit(0);
@@ -183,38 +184,107 @@ sub run {
 sub handleClient {
     my ($self, $client) = @_;
 
-    print "Doing some network stuff in child PID $PID\n";
+    my $ok = 0;
+
+    $self->xdebuglogstart();
+    $self->xdebuglog("Doing some network stuff in child PID $PID");
 
     my $header = $self->readFrontendheader($client);
-    print Dumper($header);
+    $self->xdebuglog(Dumper($header));
 
-    $self->{webserver}->child_init_hook();
-    if($self->{webserver}->allow_deny_hook($header->{peerhost})) {
-        my $ok = 0;
+    $self->xdebuglog("child_init_hook()");
+    $ok = 0;
+    eval {
+        $self->{webserver}->child_init_hook();
+        $ok = 1;
+    };
+    if(!$ok) {
+        $self->xdebuglog("!!!!! FAILED child_init_hook $@");
+        kill 'USR1', $header->{pid}; # Notify frontend that we are done
+        kill 9, $PID;
+        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    }
+
+    my $allowclient;
+    $ok = 0;
+    eval {
+        $allowclient = $self->{webserver}->allow_deny_hook($header->{peerhost});
+        $ok = 1;
+    };
+    if(!$ok) {
+        $self->xdebuglog("!!!!! FAILED allow_deny_hook $@");
+        kill 'USR1', $header->{pid}; # Notify frontend that we are done
+        kill 9, $PID;
+        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    }
+
+    if(!$allowclient) {
+        $self->xdebuglog("Access denied by allow_deny_hook");
+    } else {
+        $self->xdebuglog("process_request()");
+        $ok = 0;
         eval {
             $self->{webserver}->process_request($client, $header);
             $ok = 1;
         };
         if(!$ok) {
-            print STDERR "**** CRASH DETECTED *****\n";
+            $self->xdebuglog("!!!!! FAILED process_request $@");
             #$self->{webserver}->processing_error_hook($EVAL_ERROR);
             kill 9, $PID;
             POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
         }
     }
     
-            kill 'USR1', $header->{pid}; # Notify frontend that we are done
-            kill 9, $PID;
-            POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    $ok = 0;
+    eval {
+        $self->xdebuglog("Running post_process_request_hook()");
+        $self->{webserver}->post_process_request_hook();
+        $ok = 1;
+    };
+
+    if(!$ok) {
+        $self->xdebuglog("!!!!! FAILED post_process_request_hook $@");
+        kill 'USR1', $header->{pid}; # Notify frontend that we are done
+        kill 9, $PID;
+        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    }
     
-    $self->{webserver}->post_process_request_hook();
-    $self->{webserver}->child_finish_hook();
-    $client->close();
+    $ok = 0;
+    eval {
+        $self->xdebuglog("Running child_finish_hook()");
+        $self->{webserver}->child_finish_hook();
+        $ok = 1;
+    };
+    if(!$ok) {
+        $self->xdebuglog("!!!!! FAILED child_finish_hook $@");
+        kill 'USR1', $header->{pid}; # Notify frontend that we are done
+        kill 9, $PID;
+        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    }
+
+
+    $ok = 0;
+    eval {
+        $self->xdebuglog("Stopping process...");
+        $client->close();
+        kill 'USR1', $header->{pid}; # Notify frontend that we are done
+
+        print "Done with client PID $PID\n";
+        $ok = 1;
+    };
+
+    if(!$ok) {
+        $self->xdebuglog("!!!!! FAILED stopping process $@");
+        kill 'USR1', $header->{pid}; # Notify frontend that we are done
+        kill 9, $PID;
+        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    }
+
+
+    $self->xdebuglog("exit(0)");
     kill 'USR1', $header->{pid}; # Notify frontend that we are done
-
-    print "Done with client PID $PID\n";
-
-
+        kill 9, $PID;
+        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
     exit(0);
 }
 
@@ -253,4 +323,26 @@ sub readFrontendheader {
     );
 
     return \%header;
+}
+
+sub xdebuglogstart {
+    my ($self) = @_;
+
+    my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
+    open(my $debugfh, '>', $ofhname) or croak($!);
+    print $debugfh "Start new log\n";
+    close $debugfh;
+    return;
+}
+
+sub xdebuglog {
+    my ($self, @args) = @_;
+
+    my $debugline = join(' ', @args) . "\n";
+
+    my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
+    open(my $debugfh, '>>', $ofhname) or croak($!);
+    print $debugfh $debugline;
+    close $debugfh;
+    return;
 }

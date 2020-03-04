@@ -93,8 +93,8 @@ sub init {
 
     # FIXME Add exclusive locked open for $weblockname
 
-
-    $PROGRAM_NAME = $ps_appname;
+    $self->{ps_appname} = $ps_appname;
+    $PROGRAM_NAME = $ps_appname . '_master';
 
 
     my @tcpsockets;
@@ -140,6 +140,7 @@ sub run {
                     next;
                 } elsif($childpid == 0) {
                     # Child
+                    $PROGRAM_NAME = $self->{ps_appname};
                     $self->handleClient($client);
                     print "Child PID $PID is done, exiting...\n";
                     exit(0);
