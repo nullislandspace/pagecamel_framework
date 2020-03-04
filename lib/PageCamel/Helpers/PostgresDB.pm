@@ -85,7 +85,11 @@ sub checkDBH {
     $self->{firstConnect} = 0;
 
     my $dbh = DBI->connect($self->{dburl}, $self->{dbuser}, $self->{dbpassword},
-                               {AutoCommit => 0, RaiseError => 0}) or croak($EVAL_ERROR);
+                               {
+                                   AutoCommit => 0,
+                                   RaiseError => 0,
+                                   AutoInactiveDestroy => 1,
+                               }) or croak($EVAL_ERROR);
     $self->{mdbh} = $dbh;
     #$dbh->{pg_enable_utf8} = 1;
 
@@ -94,19 +98,6 @@ sub checkDBH {
         $dbh->commit;
     }
 
-    return;
-}
-
-sub DESTROY {
-    my ($self) = @_;
-
-    if(!defined($self->{mdbh})) {
-        return;
-    }
-
-    $self->{mdbh}->rollback;
-    $self->{mdbh}->disconnect;
-    delete $self->{mdbh};
     return;
 }
 
