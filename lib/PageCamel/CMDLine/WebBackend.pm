@@ -283,9 +283,9 @@ sub handleClient {
 
 
     $self->xdebuglog("exit(0)");
-    kill 'USR1', $header->{pid}; # Notify frontend that we are done
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    #kill 'USR1', $header->{pid}; # Notify frontend that we are done
+    #    kill 9, $PID;
+    #    POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
     exit(0);
 }
 
