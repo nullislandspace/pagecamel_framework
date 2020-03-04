@@ -405,8 +405,7 @@ sub readheader {
     my $buf;
 
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-        local $SIG{ALRM} = sub { die "timeout\n" };
-        alarm $timeout;
+        my $endtime = time + $timeout;
 
         while(1) {
             $buf = undef;
@@ -416,24 +415,33 @@ sub readheader {
             #    return;
             #}
             if(!defined($buf) || !length($buf)) {
+                if(time > $endtime) {
+                    last;
+                }
                 sleep(0.01);
                 next;
             }
             $line .= $buf;
             last if($buf eq "\n");
         }
-        $ok = 1;
+        if(time <= $endtime) {
+            $ok = 1;
+        }
     };
-    alarm 0;
     if(!$ok || !defined($line)) {
         print STDERR "!!!!!! X1 $@\n";
         return;
     }
 
+    $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $temp = decode_utf8($line);
         $line = $temp;
+        $ok = 1;
     };
+    if(!$ok) {
+        return;
+    }
     $line =~ s/[\r\n]+$//;
     return $line;
 }
@@ -450,9 +458,8 @@ sub get_request_body {
     my $unread = $ua->{headers}->{'Content-Length'};
     my $tempdata;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        my $endtime = time + $timeout;
         while($unread) {
-            local $SIG{ALRM} = sub { die "timeout\n" };
-            alarm $timeout * 3;
             my $thisblocksize = $blocksize;
             if($unread < $thisblocksize) {
                 $thisblocksize = $unread;
@@ -460,19 +467,26 @@ sub get_request_body {
             $tempdata = undef;
             my $lastread = sysread($socket, $tempdata, $thisblocksize);
             if(!defined($tempdata) || !length($tempdata)) {
+                if(time > $endtime) {
+                    last;
+                }
                 sleep(0.01);
                 next;
             }
+
+            # Got data, move timeout window
+            $endtime = time + $timeout;
+           
             $unread -= $lastread;
             $datalen += $lastread;
             $postdata .= $tempdata;
 
-            alarm 0;
         }
-        $ok = 1;
-    };
 
-    alarm 0;
+        unless($unread) {
+            $ok = 1;
+        }
+    };
 
     if(!$ok) {
         print STDERR "POST data recieve timeout\n";
@@ -744,7 +758,11 @@ nextrequest:
     # XXDEBUG
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
     open(my $debugfh, '>', $ofhname) or croak($!);
+    print $debugfh "Dumper start\n";
     print $debugfh Dumper($ua), "\n";
+    print $debugfh "Dumper end\n";
+    close $debugfh;
+    open($debugfh, '>>', $ofhname) or croak($!);
 
     my $starttime = time();
 
@@ -757,6 +775,8 @@ nextrequest:
     }
 
     print $debugfh "Cleanup\n";
+    close $debugfh;
+    open($debugfh, '>>', $ofhname) or croak($!);
 
     # Run cleanup functions in case the last cycle bailed out with croak
     foreach my $worker (@{$self->{cleanup}}) {
@@ -774,6 +794,8 @@ nextrequest:
     # to notify the client, then close the connection
     {
         print $debugfh "Firewall\n";
+    close $debugfh;
+    open($debugfh, '>>', $ofhname) or croak($!);
         foreach my $item (@{$self->{firewall}}) {
             my $module = $item->{Module};
             my $funcname = $item->{Function};
@@ -793,8 +815,11 @@ nextrequest:
         }
     }
 
-
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    print $debugfh "Reading request line\n";
+    close $debugfh;
+    open($debugfh, '>>', $ofhname) or croak($!);
 
 
     my $requestline = $self->readheader(30, $realsocket);
@@ -803,11 +828,15 @@ nextrequest:
         $ua->{keepalive} = 0;
         #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
         print $debugfh "Request line timeout\n";
+        close $debugfh;
+        open($debugfh, '>>', $ofhname) or croak($!);
 
         goto cleanup;
     }
 
     print $debugfh $requestline;
+    close $debugfh;
+    open($debugfh, '>>', $ofhname) or croak($!);
 
     if(!$self->parse_request_line($ua, $requestline)) {
         $ua->{keepalive} = 0;
@@ -815,6 +844,10 @@ nextrequest:
     }
 
     my $hcount = 0;
+
+    print $debugfh "Read headers\n";
+    close $debugfh;
+    open($debugfh, '>>', $ofhname) or croak($!);
     while(1) {
         my $header = $self->readheader(5, $realsocket);
         if(!defined($header)) {
@@ -843,6 +876,8 @@ nextrequest:
             goto cleanup;
         }
     }
+    close $debugfh;
+    open($debugfh, '>>', $ofhname) or croak($!);
 
     if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
         print $debugfh "Handling request body...\n";
@@ -1630,6 +1665,7 @@ cleanup:
         #$workCount += $module->$funcname();
         $module->$funcname();
     }
+    print $debugfh "Cleanup done\n";
 
     close($debugfh);
 
