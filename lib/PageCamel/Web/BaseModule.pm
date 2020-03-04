@@ -65,19 +65,8 @@ sub handle_child_start {
 
 sub handle_child_stop {
     my ($self) = @_;
-    # Handle PageCamel::Net::Server::PreFork's child_finish_hook() in preforking mode
-    # This is optional but really usefull in stuff like database connections
-    #
-    # Note: DESTROY() does not seem to be called reliably in preforking mode, so
-    # handle_stopchild defaults to calling $self->DESTROY()
 
-    # THIS FUNCTION DOES *NOT* GET CALLED IN SINGLE THREAD MODE
-
-    # By calling DESTROY by default, this should nicely "simulate" single
-    # thread handling. WARNING, in some cases, DESTROY might get called twice, so
-    # proper coding (e.g. checking for already freed handles and such) is mandatory.
-
-    return $self->DESTROY;
+    return;
 }
 
 sub create_cookie {
@@ -129,10 +118,6 @@ sub create_cookie {
 
     return $cookie;
 
-}
-
-sub DESTROY {
-    return;
 }
 
 sub finalcheck {
