@@ -203,6 +203,9 @@ sub handleClient {
         }
     }
     
+            kill 'USR1', $header->{pid}; # Notify frontend that we are done
+            kill 9, $PID;
+            POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
     
     $self->{webserver}->post_process_request_hook();
     $self->{webserver}->child_finish_hook();
