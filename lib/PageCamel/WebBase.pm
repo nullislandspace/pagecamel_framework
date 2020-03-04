@@ -330,7 +330,8 @@ sub new {
 
 sub processing_error_hook {
     my ($self, @errors) = @_;
-    print STDERR getISODate(), " Unhandled exception: \n", join("\n", @errors);
+    $self->xdebuglog("Unhandled exception: \n", join("\n", @errors));
+    print STDERR "Unhandled exception: \n", join("\n", @errors);
     print STDERR "Suiciding (SIGINT)  / PID $PID\n";
     return 0;
 }
@@ -2151,7 +2152,7 @@ sub xdebuglog {
 
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
     open(my $debugfh, '>>', $ofhname) or croak($!);
-    print $debugfh $debugline;
+    print $debugfh getISODate(), ' ', $debugline;
     close $debugfh;
     return;
 }

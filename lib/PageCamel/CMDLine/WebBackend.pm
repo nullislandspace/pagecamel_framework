@@ -19,6 +19,7 @@ use IO::Socket::UNIX;
 use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep);
 use PageCamel::Helpers::Logo;
+use PageCamel::Helpers::DateStrings;
 use Data::Dumper;
 use Sys::Hostname;
 use PageCamel::WebBase;
@@ -330,7 +331,7 @@ sub xdebuglogstart {
 
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
     open(my $debugfh, '>', $ofhname) or croak($!);
-    print $debugfh "Start new log\n";
+    print $debugfh getISODate(), " Start new log\n";
     close $debugfh;
     return;
 }
@@ -342,7 +343,7 @@ sub xdebuglog {
 
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
     open(my $debugfh, '>>', $ofhname) or croak($!);
-    print $debugfh $debugline;
+    print $debugfh getISODate(), ' ', $debugline;
     close $debugfh;
     return;
 }
