@@ -23,7 +23,8 @@ use Time::HiRes qw(sleep usleep);
 use PageCamel::Helpers::Logo;
 use Data::Dumper;
 use Sys::Hostname;
-use POSIX ":sys_wait_h";
+#use POSIX ":sys_wait_h";
+use Protocol::HTTP2::Server;
 
 # For turning off SSL session cache
 use Readonly;
@@ -51,6 +52,10 @@ sub new {
     croak("Config file $configfile not found!") unless(-f $configfile);
 
     $self->init();
+    
+    if(!defined($self->{config}->{enable_http2})) {
+        $self->{config}->{enable_http2} = 0;
+    }
     
     return $self;
 }
@@ -160,18 +165,14 @@ sub run {
 sub handleClient {
     my ($self, $client) = @_;
     
-    my $finishcountdown = 0;
-    $SIG{USR1} = sub {
-        if(!$finishcountdown) {
-            $finishcountdown = time + 10;
-            print "Backend finished, 10 second countdown before closing socket\n";
-        } else {
-            print "Backend finished, countdown already started\n";
-        }
-        return;
-    };
+    my $enablehttp2 = $self->{config}->{enable_http2};
+    my $httpversion = 1;
     
-
+    if($enablehttp2 && !IO::Socket::SSL->can_alpn()) {
+        print STDERR "enable_http2 active but IO::Socket::SSL does not support it!\n";
+        $enablehttp2 = 0;
+    }
+    
     print "Doing some network stuff in child PID $PID\n";
 
     my $lhost = $client->sockhost();
@@ -196,7 +197,7 @@ sub handleClient {
 
     if($usessl) {
         my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-        my $encrypted = IO::Socket::SSL->start_SSL($client,
+        my %ssloptions = (
             SSL_server => 1,
             SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
             SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
@@ -250,23 +251,66 @@ sub handleClient {
                     Net::SSLeay::set_SSL_CTX($ssl, $newctx);
                 });
 
-                #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
-                ## Advertise supported HTTP versions
-                #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
             },
         );
+        
+        if($enablehttp2) {
+            $ssloptions{SSL_alpn_protocols} = ['http/1.1', 'h2'];
+        }
+        
+        my $encrypted = IO::Socket::SSL->start_SSL($client, %ssloptions);
+        
         if(!$encrypted) {
             print "startSSL failed: ", $SSL_ERROR, "\n";
             exit(0);
         }
+        
+        if($enablehttp2) {
+            #my $selected = Net::SSLeay::P_alpn_selected($realssl);
+            my $selected = $client->alpn_selected();
+            if(!defined($selected)) {
+                print STDERR "No ALPN selected\n";
+            } else {
+                print STDERR "Selected ALPN: ", $selected, "\n";
+                if($selected eq 'h2') {
+                    $httpversion = 2;
+                }
+            }
+        }
     }
 
-    my $backend = IO::Socket::UNIX->new(
-            Peer => $self->{config}->{internal_socket},
-            Type => SOCK_STREAM,
-        ) or croak("Failed to connect to backend: $ERRNO");
+    if($httpversion == 1) {
+        $self->handleHTTP1($client, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1");
+    } else {
+        $self->handleHTTP2($client, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1");
+    }
+    
+    print "Shutting down child PID $PID\n";
+    close $client;
 
-    syswrite($backend, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n");
+    exit(0);
+}
+
+sub handleHTTP1 {
+    my ($self, $client, $frontendheader) = @_;
+    
+    my $finishcountdown = 0;
+    $SIG{USR1} = sub {
+        if(!$finishcountdown) {
+            $finishcountdown = time + 10;
+            print "Backend finished, 10 second countdown before closing socket\n";
+        } else {
+            print "Backend finished, countdown already started\n";
+        }
+        return;
+    };
+    
+    my $backend = IO::Socket::UNIX->new(
+        Peer => $self->{config}->{internal_socket},
+        Type => SOCK_STREAM,
+    ) or croak("Failed to connect to backend: $ERRNO");
+
+    syswrite($backend, $frontendheader . "\r\n");
 
     my $select = IO::Select->new($client, $backend);
 
@@ -356,13 +400,143 @@ sub handleClient {
                 $done = 1;
             }
         }
-        
     }
     
-    print "Shutting down child PID $PID\n";
-    
     close $backend;
-    close $client;
+    
+    return;
+}
 
-    exit(0);
+sub handleHTTP2 {
+    my ($self, $client, $frontendheader) = @_;
+    
+    $self->{streams} = {};
+    
+    my $finishcountdown = 0;
+    $SIG{USR1} = sub {
+        if(!$finishcountdown) {
+            #$finishcountdown = time + 10;
+            print "Backend finished, 10 second countdown before closing socket\n";
+        } else {
+            print "Backend finished, countdown already started\n";
+        }
+        return;
+    };
+    
+    my $server;
+    $server = Protocol::HTTP2::Server->new(
+        on_request => sub {
+            my ( $stream_id, $headers, $data ) = @_;
+            $self->create_http2stream($stream_id, $headers, $data, $frontendheader);
+        },
+    );
+    
+    while ( my $frame = $server->next_frame ) {
+        syswrite($client, $frame);
+    }
+    
+    my $select = IO::Select->new($client);
+    while(1) {    
+        my @connections = $select->can_read(0.05);
+        foreach my $connection (@connections) {
+            my $rawbuffer;
+            sysread($connection, $rawbuffer, 1_000_000); # Read at most 1 Meg at a time
+            if(length($rawbuffer)) {
+                $server->feed($rawbuffer);
+            }
+        }
+        while ( my $frame = $server->next_frame ) {
+            syswrite($client, $frame);
+        }
+        
+        foreach my $stream_id (keys %{$self->{streams}}) {
+            $self->handle_http2stream($server, $stream_id);
+        }
+        
+        last if($server->shutdown);
+    }
+    
+    return;
+}
+
+sub create_http2stream {
+    my ($self, $stream_id, $clientheaders_array, $data, $frontendheader) = @_;
+    
+    my %clientheaders = @{$clientheaders_array};
+    
+    my %stream = (
+        stream_id => $stream_id,
+        clientheaders => \%clientheaders,
+        requestdata => $data,
+        headers_done => 0,
+        headerlines => [],
+        currentheaderline => '',
+    );
+    print STDERR Dumper(\%stream), "\n";
+    
+    my $backend = IO::Socket::UNIX->new(
+        Peer => $self->{config}->{internal_socket},
+        Type => SOCK_STREAM,
+    ) or croak("Failed to connect to backend: $ERRNO");
+    $stream{backend} = $backend;
+    
+    syswrite($backend, $frontendheader . "\r\n");
+    
+    my $requestheader = $clientheaders{':method'} . ' ' .
+                        $clientheaders{':path'} . ' ' .
+                        'HTTP/1.1';
+    my $hostheader = 'Host: ' . $clientheaders{':authority'};
+    syswrite($backend, $requestheader . "\r\n");
+    syswrite($backend, $hostheader . "\r\n");
+    foreach my $key (keys %clientheaders) {
+        next if($key =~ /^\:/);
+        my $realkey = $key . '';
+        $realkey = ucfirst lc $realkey;
+        my $clheader = $realkey . ': ' . $clientheaders{$key};
+        syswrite($backend, $clheader . "\r\n");
+        syswrite($backend, "\r\n");
+    }
+    
+    $self->{streams}->{$stream_id} = \%stream;
+    
+    return;
+}
+
+sub handle_http2stream {
+    my ($self, $server, $stream_id) = @_;
+    
+    my $select = IO::Select->new($self->{streams}->{$stream_id}->{backend});
+    
+    my @connections = $select->can_read(0.05);
+    foreach my $connection (@connections) {
+        if(!$self->{streams}->{$stream_id}->{headers_done}) {
+            while(1) {
+                my $rawbuffer;
+                sysread($connection, $rawbuffer, 1);
+                last if(!defined($rawbuffer) || !length($rawbuffer));
+                next if($rawbuffer eq "\r");
+                if($rawbuffer eq "\n") {
+                    if($self->{streams}->{$stream_id}->{currentheaderline} eq '') {
+                        # End of headers
+                        $self->{streams}->{$stream_id}->{headers_done} = 1;
+                        
+                        ### MAKE STREAM
+                        print STDERR "Response headers:\n", Dumper($self->{streams}->{$stream_id}->{headerlines}), "\n";
+                        last;
+                    } else {
+                        # Add header to array
+                        my $tmp = '' . $self->{streams}->{$stream_id}->{currentheaderline};
+                        push @{$self->{streams}->{$stream_id}->{headerlines}}, $tmp;
+                        $self->{streams}->{$stream_id}->{currentheaderline} = '';
+                    }
+                    next;
+                }
+                $self->{streams}->{$stream_id}->{currentheaderline} .= $rawbuffer;
+            }
+        } else {
+            
+        }
+    }
+    
+    return;
 }
