@@ -126,6 +126,7 @@ sub run {
         while((my @connections = $self->{select}->can_read)) {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
+                print "New incoming connection...\n";
 
                 if($childcount >= $self->{config}->{max_childs}) {
                     print "Too many children already!\n";
@@ -141,6 +142,7 @@ sub run {
                 } elsif($childpid == 0) {
                     # Child
                     $PROGRAM_NAME = $self->{ps_appname};
+                    print "Child PID $PID is Starting...\n";
                     $self->handleClient($client);
                     print "Child PID $PID is done, exiting...\n";
                     exit(0);
