@@ -522,6 +522,9 @@ sub handle_http2stream {
                         
                         ### MAKE STREAM
                         print STDERR "Response headers:\n", Dumper($self->{streams}->{$stream_id}->{headerlines}), "\n";
+                        
+                        my $responseheader = shift @{$self->{streams}->{$stream_id}->{headerlines}};
+                        
                         last;
                     } else {
                         # Add header to array
