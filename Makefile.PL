@@ -93,7 +93,6 @@ WriteMakefile(
         'PDF::Report' => 0,
         'Perl::Tidy' => 0,
         'Pg::hstore' => 0,
-        'Protocol::HTTP2::Server' => 0,
         'POSIX' => 0,
         'RADIUS::Dictionary' => 0,
         'RADIUS::Packet' => 0,
