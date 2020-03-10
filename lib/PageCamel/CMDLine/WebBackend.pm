@@ -329,6 +329,8 @@ sub readFrontendheader {
 sub xdebuglogstart {
     my ($self) = @_;
 
+    return unless($self->{isDebugging});
+
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
     open(my $debugfh, '>', $ofhname) or croak($!);
     print $debugfh getISODate(), " Start new log\n";
@@ -338,6 +340,8 @@ sub xdebuglogstart {
 
 sub xdebuglog {
     my ($self, @args) = @_;
+
+    return unless($self->{isDebugging});
 
     my $debugline = join(' ', @args) . "\n";
 

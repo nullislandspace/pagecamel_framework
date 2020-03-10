@@ -2148,6 +2148,8 @@ sub get_cors_config {
 sub xdebuglog {
     my ($self, @args) = @_;
 
+    return unless($self->{isDebugging});
+
     my $debugline = join(' ', @args) . "\n";
 
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
