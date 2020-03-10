@@ -147,7 +147,6 @@ sub prerender {
 
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
     # Get system settings
     my %sets;
