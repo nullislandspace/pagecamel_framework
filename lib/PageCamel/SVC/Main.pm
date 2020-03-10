@@ -401,9 +401,12 @@ sub shutdownsvc {
 sub DESTROY {
     my ($self) = @_;
 
-    if(!$self->{shutdown_complete}) {
-        $self->shutdownsvc();
-    }
+    # This might error out during DESTROY, so catch any errors
+    eval {
+        if(!$self->{shutdown_complete}) {
+            $self->shutdownsvc();
+        }
+    };
     return;
 }
 

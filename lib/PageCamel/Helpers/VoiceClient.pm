@@ -237,12 +237,15 @@ sub DESTROY {
     my ($self) = @_;
 
     # Notify server we are leaving and make sure we send everything in our outgoing buffer
-    $self->{outbuffer} .= "QUIT\r\n";
-    while(length($self->{outbuffer})) {
-        $self->doNetwork();
-    }
+    # Socket might already be DESTROYed, so catch any errors
+    eval {
+        $self->{outbuffer} .= "QUIT\r\n";
+        while(length($self->{outbuffer})) {
+            $self->doNetwork();
+        }
 
-    delete $self->{socket};
+        delete $self->{socket};
+    };
 
     return;
 }

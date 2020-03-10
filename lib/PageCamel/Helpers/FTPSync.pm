@@ -201,7 +201,10 @@ sub quit {
 sub DESTROY {
     my ($self) = @_;
 
-    $self->quit;
+    # Try to run quit(), might error out though.
+    eval {
+        $self->quit;
+    };
 
     return;
 }

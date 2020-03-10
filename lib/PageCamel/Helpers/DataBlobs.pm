@@ -131,7 +131,10 @@ sub blobClose {
 sub DESTROY {
     my ($self) = @_;
 
-    $self->blobClose();
+    # Try to close BLOB during DESTROY, might error out though
+    eval {
+        $self->blobClose();
+    };
     return;
 }
 
