@@ -255,10 +255,12 @@ sub startup {
         }
 
         $self->{clacks}->doNetwork();
-        $self->check_app($app);
-        $self->handleClacksCommands();
+
+        # Do NOT start all apps during startup, let them be handled by normal "work" callback
+        #$self->check_app($app);
+        #$self->handleClacksCommands();
     }
-    print "Initial apps startup complete\n";
+    print "Initial startup complete\n";
     $self->{shutdown_complete} = 0;
     return;
 }
@@ -271,14 +273,33 @@ sub work {
     $self->{clacks}->ping();
 
     foreach my $app (@{$self->{apps}}) {
-        if(!$self->check_app($app)) {
-            print "*** App " . $app->{description} . " FAILED! ***\n"
-        }
+        my $didwork = $self->check_app($app);
         $self->{clacks}->doNetwork();
 
         $workCount++;
 
         $workCount += $self->handleClacksCommands();
+
+        if($didwork) {
+            # Update ALL app states
+            foreach my $app (@{$self->{apps}}) {
+                my $running = defined($app->{handle});
+                my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
+                if($running) {
+                    $self->{clacks}->set($app->{clacks_name}, 1);
+                } elsif($ok && $refshouldrun->{settingvalue}) {
+                    $self->{clacks}->set($app->{clacks_name}, 2);
+                } else {
+                    $self->{clacks}->set($app->{clacks_name}, 0);
+                }
+                $self->{clacks}->set($app->{clacks_name}, defined($app->{handle}));
+            }
+            $self->{clacks}->ping();
+            $self->{clacks}->doNetwork();
+
+            # Only handle ONE app startup/shutdown per cycle
+            last;
+        }
     }
 
     return $workCount;
@@ -452,7 +473,8 @@ sub check_app {
 
         $self->{clacks}->set($app->{clacks_name}, 2); # Blue
         $self->{clacks}->doNetwork();
-        return $self->start_app($app);
+        $self->start_app($app);
+        return 1;
     }
 
     if(!$shouldrun && defined($app->{handle})) {
@@ -460,8 +482,8 @@ sub check_app {
     }
 
     if(!$shouldrun) {
-        # App not running and it shouldn't run anyway, just return
-        return 1;
+        # App not running and it shouldn't run anyway, just return with "did nothing"
+        return 0;
     }
 
     my $checker = Unix::PID->new();
@@ -473,13 +495,14 @@ sub check_app {
         $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
         $self->{clacks}->doNetwork();
         print "Process exit detected: " . $app->{description} . "!\n";
-        return $self->start_app($app);
+        $self->start_app($app);
+        return 1;
     }
 
     if(!defined($app->{lifetick}) || $app->{lifetick} == 0) {
         #$self->{clacks}->set($app->{clacks_name}, 1);
         $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
-        return 1;
+        return 0;
     } else {
         # Process itself is still running, so check its lifetick
         # to see if it hangs
@@ -489,12 +512,12 @@ sub check_app {
             #print "Apptick not set for " . $app->{description} . "!\n";
             $self->{clacks}->set($app->{clacks_name}, 1);
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
-            return 1;
+            return 0;
         } elsif($apptick == 0) {
             # Client requested a temporary suspension of lifetick handling
             $self->{clacks}->set($app->{clacks_name}, 1);
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
-            return 1;
+            return 0;
         }
         my $tickage = time - $apptick;
         if($tickage > $app->{lifetick}) {
@@ -504,14 +527,15 @@ sub check_app {
             $self->stop_app($app);
             $self->{clacks}->set($app->{clacks_name}, 3); # Purple ("lifetick error")
             $self->{clacks}->doNetwork();
-            return $self->start_app($app);
-        } else {
+            $self->start_app($app);
             return 1;
+        } else {
+            return 0;
         }
 
     }
 
-    return;
+    return 0;
 }
 
 sub start_app {
