@@ -236,6 +236,12 @@ sub work_day {
         }
     }
 
+    if(!defined($self->{workday_run_since_startup})) {
+        # Don't run the stuff below unless we have already had a real date change
+        $self->{workday_run_since_startup} = 1;
+        return $workCount;
+    }
+
     { # Schedule SVC Service Reset
         my ($ndate, $ntime) = getDateAndTime();
 
