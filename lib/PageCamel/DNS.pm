@@ -296,6 +296,15 @@ sub isownip {
         }
     }
 
+
+    foreach my $ownip (@{$self->{config}->{server}->{safe_adresses}->{item}}) {
+        $ownip =~ s/\[//;
+        $ownip =~ s/\]//;
+        if($ip eq $ownip) {
+            return 1;
+        }
+    }
+
     return 0;
 }
 
