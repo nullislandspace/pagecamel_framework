@@ -94,6 +94,7 @@ jquery/js/jquery.insertatcaret.js
 jquery/js/jquery.xeyes-2.0.js
 jquery/js/jquery.transit.min.0.9.12.js
 jquery/js/jquery.cursortrails.js
+jquery/js/jquery.timepicker.js
 jquery/js/three.js
 jquery/js/cavaclogo.js
 jquery/js/select2.full.js

@@ -68,7 +68,11 @@
                                 [% IF column.displaytype == "text" %]
                                     <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
                                 [% ELSIF column.displaytype == "date" %]
-                                    <input type="text" displaytype="dateandtime" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
+                                    <input type="text" displaytype="dateandtime" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="19" maxlength="19">
+                                [% ELSIF column.displaytype == "dateonly" %]
+                                    <input type="text" displaytype="dateonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="10" maxlength="10">
+                                [% ELSIF column.displaytype == "timeonly" %]
+                                    <input type="text" displaytype="timeonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="5" maxlength="5">
                                 [% ELSIF column.displaytype == "textarea" %]
                                     [% IF column.charcount > 0 %]
                                         <div displaytype="charcount" charcount="[% column.charcount %]">

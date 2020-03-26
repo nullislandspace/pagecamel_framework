@@ -406,7 +406,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
     my %editcolumntypes;
     my %editcolumnnullable;
     my @gotocolumns;
-    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date hidden colorpicker image];
+    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image];
     my @readonlytypes = qw[textarea-readonly led display codedisplay];
     $self->{needcvceditor} = 0;
     $self->{needscripteditor} = 0;
@@ -487,6 +487,9 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
             integer => [qw[number enum subenum display slider]],
             bigint => [qw[number enum subenum display slider]],
             real => [qw[number enum subenum display]],
+            timestamp => [qw[date display]],
+            date => [qw[dateonly display]],
+            time => [qw[timeonly display]],
         );
 
         foreach my $testtype (keys %testtypes) {
@@ -2030,6 +2033,13 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         if($column{displaytype} eq 'date') {
             #$column{displaytype} = 'text';
             $column{columnvalue} =~ s/\..*//;
+        }
+
+        if($column{displaytype} eq 'timeonly') {
+            if($column{columnvalue} =~ /\:\d\d\:/) {
+                # Has seconds, remove them
+                $column{columnvalue} =~ s/\:\d\d$//;
+            }
         }
         
         if($column{displaytype} eq 'image') {

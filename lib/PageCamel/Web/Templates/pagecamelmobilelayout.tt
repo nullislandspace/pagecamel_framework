@@ -77,23 +77,34 @@
                     $(this).select2();
                 });
 
-                $( "input[type=checkbox]").checkify({
+                $("input[type=checkbox]").checkify({
                     image_checked:'/pics/checkbox_classic_ON.png',
                     image_unchecked:'/pics/checkbox_classic_OFF.png',
                     image_checked_delete:'/pics/checkbox_classic_DELETE.png'
                 });
 
-                $( "input[displaytype=dateandtime]").datetimepicker({
+                $("input[displaytype=dateandtime]").datetimepicker({
                     format: 'Y-m-d H:i:s',
                     mask:true,
                 });
 
-                $( "input[displaytype=dateonly]").datepicker({
+                $("input[displaytype=dateonly]").datepicker({
                     dateFormat: 'yy-mm-dd',
                     showOn: 'button',
                     buttonImage: '/pics/calendar.gif',
                     buttonImageOnly: true,
                     buttonText: ttvars.trquote.Calendarbutton
+                });
+
+                $("input[displaytype=timeonly]").timepicker({
+                    timeFormat: 'HH:mm',
+                    interval: 30,
+                    minTime: '00:00',
+                    maxTime: '23:30',
+                    startTime: '10:00',
+                    dynamic: false,
+                    dropdown: true,
+                    scrollbar: true
                 });
 
                 $("button, input:submit, input:reset, input:button").button();

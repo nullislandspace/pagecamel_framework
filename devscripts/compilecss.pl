@@ -76,6 +76,7 @@ jquery/css/themes/XXUIThemeNameXX/select2.css
 pagecameldefaultlayout.css
 jquery/css/datatables.css
 jquery/css/jquery.datetimepicker.css
+jquery/css/jquery.timepicker.css
 jquery/css/pwprogressbar.css
 jquery/css/cursortrails.css
 jquery/css/themes/XXUIThemeNameXX/pagecamelcustom.css
