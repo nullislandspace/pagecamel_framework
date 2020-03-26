@@ -1464,6 +1464,7 @@ lib/PageCamel/Web/Static/jquery.compiled-min_recycled.css
 lib/PageCamel/Web/Static/jquery/css/cursortrails.css
 lib/PageCamel/Web/Static/jquery/css/datatables.css
 lib/PageCamel/Web/Static/jquery/css/jquery.datetimepicker.css
+lib/PageCamel/Web/Static/jquery/css/jquery.timepicker.css
 lib/PageCamel/Web/Static/jquery/css/pbar-ani.gif
 lib/PageCamel/Web/Static/jquery/css/pwprogressbar.css
 lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/dropdownmenu_side.css
@@ -1655,6 +1656,7 @@ lib/PageCamel/Web/Static/jquery/js/jquery.sha1.js
 lib/PageCamel/Web/Static/jquery/js/jquery.sparkline.js
 lib/PageCamel/Web/Static/jquery/js/jquery.spritely-0.6.8.js
 lib/PageCamel/Web/Static/jquery/js/jquery.statictable.js
+lib/PageCamel/Web/Static/jquery/js/jquery.timepicker.js
 lib/PageCamel/Web/Static/jquery/js/jquery.tmpl.js
 lib/PageCamel/Web/Static/jquery/js/jquery.transit.min.0.9.12.js
 lib/PageCamel/Web/Static/jquery/js/jquery.websocket-pagecamel.js
