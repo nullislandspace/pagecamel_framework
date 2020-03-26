@@ -380,7 +380,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
     }
 
-    foreach my $optionalattr (qw[autosave cancopy cansaveandclose useprevnext]) {
+    foreach my $optionalattr (qw[autosave cancopy cansaveandclose useprevnext generateauditlog]) {
         if(!defined($self->{$optionalattr})) {
             print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
@@ -1656,6 +1656,9 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
             $mode = 'edit';
         } else {
             $dbh->commit;
+            if($self->{generateauditlog}) {
+                $self->write_auditlog($webdata{userData}->{user}, 'delete', @pkparts);
+            }
             return $self->get_list($ua);
         }
     } elsif($mode eq 'edit') {
@@ -1767,6 +1770,9 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                 $errstr = $dbh->errstr;
                 $dbh->rollback;
             }
+        }
+        if($self->{generateauditlog}) {
+            $self->write_auditlog($webdata{userData}->{user}, 'edit', @upargs, @pkparts);
         }
     } elsif($mode eq 'create') {
         return (status  =>  403) unless $self->{cancreate};
@@ -1893,6 +1899,9 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                 $errstr = $dbh->errstr;
                 $dbh->rollback;
             }
+        }
+        if($self->{generateauditlog}) {
+            $self->write_auditlog($webdata{userData}->{user}, 'create', @inargs);
         }
     } elsif($mode eq 'select') {
         if($primarykey ne '__NEW__') {
@@ -2302,7 +2311,23 @@ sub get_autosave {
 
 }
 
+sub write_auditlog {
+    my ($self, $username, $mode, @data) = @_;
 
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my $insth = $dbh->prepare_cached("INSERT INTO auditlog (worker_name, module_name, username, logtext, extrainfo)
+                                        VALUES ('webgui', ?, ?, ?, ?)")
+            or croak($dbh->errstr);
+    if(!$insth->execute($self->{modname}, $username, $mode . " in " . $self->{table}, \@data)) {
+        print STDERR 'Auditlog failed: ', $dbh->errstr, "\n";
+        $dbh->rollback;
+    } else {
+        $dbh->commit;
+    }
+
+    return;
+}
 
 1;
 __END__
