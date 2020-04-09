@@ -41,13 +41,17 @@ sub finalcheck {
     my %levelpaths;
     my %levelcount;
     foreach my $level (@{$self->{userlevels}->{userlevel}}) {
-        if(!defined($level->{path})) {
-            croak("Userlevels: undefined PATH for " . $level->{display});
-        }
         if(!defined($level->{db})) {
             croak("Userlevels: undefined DB for " . $level->{display});
         }
-        $levelpaths{$level->{path}} = $level->{db};
+        if(defined($level->{internal}) && $level->{internal} == 1) {
+            # internal user permission does not need a path
+        } else {
+            if(!defined($level->{path})) {
+                croak("Userlevels: undefined PATH for " . $level->{display});
+            }
+            $levelpaths{$level->{path}} = $level->{db};
+        }
         $levelcount{$level->{db}} = 0;
         
         if(defined($level->{restrict})) {
