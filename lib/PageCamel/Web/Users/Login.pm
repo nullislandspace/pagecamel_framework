@@ -228,7 +228,7 @@ sub get_login {
         my $sth = $dbh->prepare_cached("SELECT username, email_addr,
                                        first_name, last_name,
                                        (next_password_change < now() AND password_can_expire = true) as require_password_change,
-                                       company_name
+                                       company_name, user_id
                                        FROM users
                                 WHERE username = ?")
                     or croak($dbh->errstr);
@@ -243,6 +243,7 @@ sub get_login {
             $user{first_name} = $line->{first_name};
             $user{last_name} = $line->{last_name};
             $user{company} = $line->{company_name};
+            $user{user_id} = $line->{user_id};
             $user{require_password_change} = $line->{require_password_change};
             last;
         }
@@ -366,7 +367,7 @@ sub getAutologin {
 
     my $sth = $dbh->prepare_cached("SELECT username, email_addr,
                                    first_name, last_name,
-                                   company_name
+                                   company_name, user_id
                                    FROM users
                             WHERE username = ?")
                 or croak($dbh->errstr);
@@ -381,6 +382,7 @@ sub getAutologin {
         $user{first_name} = $line->{first_name};
         $user{last_name} = $line->{last_name};
         $user{company} = $line->{company_name};
+        $user{user_id} = $line->{user_id};
         #$user{require_password_change} = 0; # NEVER force password change
         last;
     }
@@ -505,6 +507,7 @@ sub adminSwitchToUser {
         last_name => $user->{last_name},
         email_addr => $user->{email_addr},
         company => $user->{company},
+        user_id => $user->{user_id},
         rights => \@realrights,
     );
 
@@ -513,7 +516,7 @@ sub adminSwitchToUser {
 
     my $sth = $dbh->prepare_cached("SELECT username, email_addr,
                                    first_name, last_name,
-                                   company_name
+                                   company_name, user_id
                                    FROM users
                             WHERE username = ?")
                 or croak($dbh->errstr);
@@ -527,6 +530,7 @@ sub adminSwitchToUser {
         $user->{first_name} = $line->{first_name};
         $user->{last_name} = $line->{last_name};
         $user->{company} = $line->{company_name};
+        $user->{user_id} = $line->{user_id};
         $user->{require_password_change} = 0; # NEVER force password change
         last;
     }
@@ -609,6 +613,7 @@ sub adminSwitchFromUser {
     $user->{last_name} = $user->{realuser}->{last_name};
     $user->{email_addr} = $user->{realuser}->{email_addr};
     $user->{company} = $user->{realuser}->{company};
+    $user->{user_id} = $user->{realuser}->{user_id};
     $user->{rights} = \@realrights;
 
     delete $user->{realuser};
@@ -736,6 +741,7 @@ sub prefilter {
                                first_name    =>    $user->{first_name},
                                last_name    =>    $user->{last_name},
                                company      =>  $user->{company},
+                               user_id      =>  $user->{user_id},
                                html5        => $user->{html5},
                                rights       => $user->{rights},
                                activeurl    => $webpath,

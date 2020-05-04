@@ -4,6 +4,7 @@
             <thead>
                 <tr class="tabheader">
                     <th></th>
+                    <th>[% tr.trquote("User ID") %]</th>
                     <th>[% tr.trquote("Username") %]</th>
                     <th>[% tr.trquote("Name") %]</th>
                     <th>[% tr.trquote("Email") %]</th>
@@ -17,6 +18,9 @@
                     <tr>
                         <td>
                             <input type="radio" name="username" value="[% tr.quote(user.username) %]">
+                        </td>
+                        <td>
+                            [% tr.quote(user.user_id) %]
                         </td>
                         <td>
                             [% tr.quote(user.username) %]

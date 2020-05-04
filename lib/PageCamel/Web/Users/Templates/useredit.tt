@@ -21,6 +21,10 @@
             </thead>
             <tbody>
                 <tr>
+                    <td align="right">[% tr.trquote("ID") %]</td>
+                    <td align="left">[% tr.trquote(user_id) %]</td>
+                </tr>
+                <tr>
                     <td align="right">[% tr.trquote("Username") %]</td>
                     <td align="left">
                         <input type="hidden" name="oldusername" value="[% tr.quote(oldusername) %]">
