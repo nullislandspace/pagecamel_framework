@@ -171,6 +171,17 @@ sub work {
             }
             $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_power}, $switch->power);
             $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_energy}, $switch->energy);
+            my $temperature = 0;
+            my $temperaturesupported = 0;
+            eval {
+                $temperature = $switch->temperature;
+                $temperaturesupported = 1;
+            };
+            if(!$temperaturesupported) {
+                print STDERR "****** 'TEMPERATURE' NOT SUPPORTED BY THIS VERSION OF AHA.pm\n";
+                print STDERR "****** WE NEED 0.56 OR HIGHER FROM CPAN USER *CAVAC*\n";
+                `kill -9 $PID`;
+            }
             $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_temperature}, $switch->temperature);
 
             # Remember the AIN
