@@ -59,3 +59,4 @@ canvasjs/canvashelpers.js
 canvasjs/canvasbuttons.js
 canvasjs/canvas7segment.js
 canvasjs/canvasitemlist.js
+canvasjs/canvastouchitemlist.js
