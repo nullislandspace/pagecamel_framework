@@ -182,7 +182,7 @@ sub work {
                 print STDERR "****** WE NEED 0.56 OR HIGHER FROM CPAN USER *CAVAC*\n";
                 `kill -9 $PID`;
             }
-            $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_temperature}, $switch->temperature);
+            $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_temperature}, $temperature);
 
             # Remember the AIN
             $self->{switches}->{$sname}->{ain} = $switch->ain();
