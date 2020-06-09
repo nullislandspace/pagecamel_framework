@@ -183,6 +183,7 @@ sub get {
             $dbh->rollback;
             croak($dbh->errstr);
         }
+        $longurl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
         return (
             status  => 301,
             location => $longurl,
