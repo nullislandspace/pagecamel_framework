@@ -297,8 +297,8 @@ sub work {
             $self->{clacks}->ping();
             $self->{clacks}->doNetwork();
 
-            # Only handle ONE app startup/shutdown per cycle
-            last;
+            ## Only handle ONE app startup/shutdown per cycle
+            #last;
         }
     }
 
@@ -520,7 +520,7 @@ sub check_app {
             return 0;
         }
         my $tickage = time - $apptick;
-        if($tickage > $app->{lifetick}) {
+        if(0 && $tickage > $app->{lifetick}) {
             # Stale lifetick
             print "Stale Lifetick detected: " . $app->{description} . "!\n";
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
