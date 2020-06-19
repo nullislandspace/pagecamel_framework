@@ -7,11 +7,12 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 3.1;
+our $VERSION = 3.2;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Encode qw(is_utf8 encode_utf8 decode_utf8);
+use Data::Dumper;
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -29,7 +30,6 @@ use MIME::Base64;
 use Digest::SHA1  qw(sha1_hex);
 use IO::Compress::Gzip qw(gzip $GzipError);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
-use Data::Dumper;
 
 
 sub new {
@@ -987,7 +987,15 @@ sub get_pagescript {
 }
 
 sub get_list {
-    my ($self, $ua) = @_;
+    my ($self, $ua, $usemasterlayout) = @_;
+    
+    my $listlength = 500;
+    if(!defined($usemasterlayout)) {
+        $usemasterlayout = 1;
+    }
+    if(!$usemasterlayout) {
+        $listlength = 300;
+    }
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
@@ -1020,6 +1028,7 @@ sub get_list {
         AllowDownloadCSV        => $self->{download_csv},
         DownloadCSVAjaxPath     => '',
         ListPageHeader => $self->{listpageheader},
+        ListLength     => $listlength,
         showads => $self->{list}->{showads},
     );
 
@@ -1096,7 +1105,7 @@ sub get_list {
     
     $webdata{HeadExtraScripts} = \@headextrascripts;
 
-    my $template = $self->{server}->{modules}->{templates}->get("listandedit/list", 1, %webdata);
+    my $template = $self->{server}->{modules}->{templates}->get("listandedit/list", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
     if($self->{support_mobile}) {
         return (status  =>  200,

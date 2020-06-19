@@ -187,6 +187,11 @@ lib/PageCamel/Web/Images/led_SHOULDRUN_LIFETICK.png
 lib/PageCamel/Web/Images/led_SHOULDRUN_RESET.png
 lib/PageCamel/Web/Images/led_UNKNOWN.png
 lib/PageCamel/Web/Images/led_WARNING.png
+lib/PageCamel/Web/Images/loading.gif
+lib/PageCamel/Web/Images/loading_bar.gif
+lib/PageCamel/Web/Images/loading_bar_large.gif
+lib/PageCamel/Web/Images/loading_doublerings.gif
+lib/PageCamel/Web/Images/loading_threeballs.gif
 lib/PageCamel/Web/Images/map_dragons.png
 lib/PageCamel/Web/Images/mapbackground.png
 lib/PageCamel/Web/Images/mapbackground.xcf
@@ -197,6 +202,7 @@ lib/PageCamel/Web/Images/movemouse.gif
 lib/PageCamel/Web/Images/PageCamelFramework.png
 lib/PageCamel/Web/Images/PageCamelLogo.bmp
 lib/PageCamel/Web/Images/rufzeichen.png
+lib/PageCamel/Web/Images/snow.gif
 lib/PageCamel/Web/Images/switch_OFF.png
 lib/PageCamel/Web/Images/switch_ON.png
 lib/PageCamel/Web/Images/xeyes.gif
@@ -1883,11 +1889,6 @@ lib/PageCamel/Web/Static/jquery_mobile/jquery.mobile.structure-1.4.5.css
 lib/PageCamel/Web/Static/jquery_mobile/jquery.mobile.structure-1.4.5.min.css
 lib/PageCamel/Web/Static/jquery_mobile/jquery.mobile.theme-1.4.5.css
 lib/PageCamel/Web/Static/jquery_mobile/jquery.mobile.theme-1.4.5.min.css
-lib/PageCamel/Web/Static/loading.gif
-lib/PageCamel/Web/Static/loading_bar.gif
-lib/PageCamel/Web/Static/loading_bar_large.gif
-lib/PageCamel/Web/Static/loading_doublerings.gif
-lib/PageCamel/Web/Static/loading_threeballs.gif
 lib/PageCamel/Web/Static/mapcrafter_markers/default-marker-icon.png
 lib/PageCamel/Web/Static/mapcrafter_markers/expedition.png
 lib/PageCamel/Web/Static/mapcrafter_markers/house.png
@@ -2326,7 +2327,6 @@ lib/PageCamel/Web/Static/OpenLayers/VERSION.txt
 lib/PageCamel/Web/Static/pagecameldefaultlayout.css
 lib/PageCamel/Web/Static/pageviewstats.js
 lib/PageCamel/Web/Static/sha256.js
-lib/PageCamel/Web/Static/snow.gif
 lib/PageCamel/Web/Static/snow.js
 lib/PageCamel/Web/Static/vnc_html5/base.css
 lib/PageCamel/Web/Static/vnc_html5/base64.js

@@ -7,11 +7,12 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 3.1;
+our $VERSION = 3.2;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Encode qw(is_utf8 encode_utf8 decode_utf8);
+use Data::Dumper;
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -20,7 +21,6 @@ use MIME::Base64;
 use PageCamel::Helpers::WSockFrame;
 use JSON::XS;
 use Time::HiRes qw[sleep alarm time];
-use Data::Dumper;
 use PageCamel::Helpers::WebPrint;
 use Digest::SHA1  qw(sha1 sha1_hex);
 

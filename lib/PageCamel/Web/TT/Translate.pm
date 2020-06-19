@@ -7,18 +7,18 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 3.1;
+our $VERSION = 3.2;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Encode qw(is_utf8 encode_utf8 decode_utf8);
+use Data::Dumper;
 #---AUTOPRAGMAEND---
 
 # WARNING: Template-Toolkit seems to have a special problem with Perl::Critic,
 # disable this one check for this file
 ## no critic (BuiltinHomonyms)
 
-use Data::Dumper;
 use PageCamel::Helpers::Translator;
 use HTML::Entities;
 use PageCamel::Helpers::DateStrings;

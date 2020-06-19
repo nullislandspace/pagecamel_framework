@@ -98,8 +98,8 @@
                 "infoFiltered": ttvars.trquote.Maxrecords,
                 "first": ttvars.trquote.First,
                 "last": ttvars.trquote.Last,
-               "processing": '<img src="/static/loading_bar.gif' + ttvars.urlreloadpostfix + '">',
-               "loadingRecords": '<img src="/static/loading_doublerings.gif">'
+               "processing": '<img src="/pics/loading_bar.gif' + ttvars.urlreloadpostfix + '">',
+               "loadingRecords": '<img src="/pics/loading_doublerings.gif">'
                
             },
         });

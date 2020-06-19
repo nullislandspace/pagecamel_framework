@@ -150,7 +150,7 @@
                                     "previous": "<span class='ui-icon ui-icon-circle-arrow-w'>"
                                 },
                                 "search": ttvars.trquote.Filterresults,
-                                "processing": '<img src="/static/loading_bar.gif' + ttvars.urlreloadpostfix + '">'
+                                "processing": '<img src="/pics/loading_bar.gif' + ttvars.urlreloadpostfix + '">'
                             },
                             "ordering": [],
                             "jQueryUI": true,
@@ -463,14 +463,14 @@
     <div id="pagecamelLoadingContent" class="elem_display_block">
         <p align="center">
             <div class="infotext">[% tr.trquote("Please wait...") %]</div><br>
-            <div align="center"><img src="/static/loading_doublerings.gif[% URLReloadPostfix %]"></div>
+            <div align="center"><img src="/pics/loading_doublerings.gif[% URLReloadPostfix %]"></div>
         </p>
     </div>
 
     <div id="pagecamelSendingContent" class="elem_display_none">
         <p align="center">
             <div class="infotext">[% tr.trquote("Please wait...") %]</div><br>
-            <div align="center"><img src="/static/loading_bar_large.gif[% URLReloadPostfix %]"></div>
+            <div align="center"><img src="/pics/loading_bar_large.gif[% URLReloadPostfix %]"></div>
         </p>
     </div>
 

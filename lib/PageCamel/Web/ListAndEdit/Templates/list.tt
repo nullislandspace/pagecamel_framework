@@ -91,11 +91,13 @@
         data-columnfilters="[% ColumnFilters %]"
         data-allowsendcsv="[% AllowSendCSV %]"
         data-sendcsvajaxpath="[% SendCSVAjaxPath %]"
+        data-listlength="[% ListLength %]"
         data-trquote-sendingcsv="[% tr.trquote("Sending CSV mail!") %]"
 ></span>
-<!-- master template TT vars dataset -->
+<!-- mask template TT vars dataset -->
 
 <script>
+    var letable;
     function extraOnLoad() {
         var ajaxwebpath = ttvars.ajaxwebpath;
         if(ttvars.useurlid == 1) {
@@ -154,7 +156,7 @@
             });
         }
 
-        var t = $('#ListAndEditTable').dataTable( {
+        letable = $('#ListAndEditTable').dataTable( {
             "fnDrawCallback": function( oSettings ) {
                 $('pre code').each(function(i, block) {
                     if(ttvars.userawhtml == 1) {
@@ -168,7 +170,7 @@
             searching: true,
             ajax: ajaxwebpath,
             serverMethod: "POST",
-            scrollY: 500,
+            scrollY: ttvars.listlength,
             scroller: {
                 loadingIndicator: true
             },
@@ -182,7 +184,7 @@
                "first": ttvars.trquote.First,
                "last": ttvars.trquote.Last,
                "search": ttvars.trquote.Filterresults,
-               "processing": '<img src="/static/loading_bar.gif">'
+               "processing": '<img src="/pics/loading_bar.gif">'
             },
         });
 
@@ -192,7 +194,7 @@
 
         if(ttvars.columnfilters == 1) {
             // Apply column filters
-            t.api().columns().every(function() {
+            letable.api().columns().every(function() {
                 var that = this;
 
                 $('input[type=search]', this.footer()).on('keyup change search', function() {
@@ -215,5 +217,10 @@
         if(window.LaEExtraOnLoad) {
             LaEExtraOnLoad();
         }
+    }
+    
+    function reloadLETable() {
+        console.log(letable.ajax);
+        letable.api().ajax.reload(null, false);
     }
 </script>

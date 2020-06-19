@@ -13,7 +13,7 @@
                 <td>
                     [% tr.trquote("Upload as") %]:
                     <input type="text" size="30" maxLength="50" name="upfname" id="upfname" onchange="return ajaxValidateManualFName();" onkeyup="return ajaxValidateManualFName();">
-                    <img src="/static/loading.gif" id="ajaxwait">
+                    <img src="/pics/loading.gif" id="ajaxwait">
                     <div id="upfnamestatus"></div>
                 </td>
             </tr>
@@ -27,7 +27,7 @@
                 <td align="center">
                     <input type="hidden" name="mode" value="upload">
                     <input type="submit" value="[% tr.trquote("Upload") %]" id="upbutton" onclick="return startUpload();">
-                    <img src="/static/loading.gif" id="uploadwait">
+                    <img src="/pics/loading.gif" id="uploadwait">
                 </td>
             </tr>                
         </table>
