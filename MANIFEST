@@ -127,6 +127,7 @@ lib/PageCamel/Web/GardenSpaceProgram/Templates/geo1.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo1b.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/geo2.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/solstice.tt
+lib/PageCamel/Web/GardenSpaceProgram/Templates/solstice2.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/waterfeeler.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/waterfeeler2.tt
 lib/PageCamel/Web/HTTPCompression.pm
