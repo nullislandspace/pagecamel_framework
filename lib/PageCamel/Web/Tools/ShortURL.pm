@@ -54,6 +54,14 @@ sub register {
 
 sub get {
     my ($self, $ua) = @_;
+    
+        my $rickroll = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        return (
+            status  => 301,
+            location => $rickroll,
+            type    => 'text/plain',
+            data    => 'Redirecting to real URL...',
+        );
 
     my $path = $ua->{url};
     $path =~ s/^.*\///g;
@@ -184,7 +192,7 @@ sub get {
             $dbh->rollback;
             croak($dbh->errstr);
         }
-        $longurl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        #$longurl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
         return (
             status  => 301,
             location => $longurl,
