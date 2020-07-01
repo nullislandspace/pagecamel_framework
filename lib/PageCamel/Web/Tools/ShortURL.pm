@@ -55,6 +55,7 @@ sub register {
 sub get {
     my ($self, $ua) = @_;
     
+    if(0) {
         my $rickroll = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
         return (
             status  => 301,
@@ -62,6 +63,7 @@ sub get {
             type    => 'text/plain',
             data    => 'Redirecting to real URL...',
         );
+    }
 
     my $path = $ua->{url};
     $path =~ s/^.*\///g;
