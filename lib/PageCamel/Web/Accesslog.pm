@@ -157,13 +157,16 @@ sub logend {
         $requestdata{pagecamel_debug_info} = $result->{pagecamel_debug_info};
     }
 
-    my $stmt = "INSERT INTO accesslog (url, processid, method, parameters, remotehost, username, returncode, doctype, useragent,
+    $requestdata{url_host} = $ua->{headers}->{Host};
+
+    my $stmt = "INSERT INTO accesslog (url, url_host, processid, method, parameters, remotehost, username, returncode, doctype, useragent,
                                         compression, referer, useragent_simplified, protocol, headers, rangeheader, httpversion,
                                         geoip_countrycode, pagecamel_debug_info)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     my $logsth = $dbh->prepare_cached($stmt) or croak($dbh->errstr);
 
     if($logsth->execute($requestdata{url},
+                  $requestdata{url_host},
                   $PID,
                   $requestdata{method},
                   $requestdata{parameters},
