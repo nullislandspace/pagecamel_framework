@@ -38,6 +38,10 @@ sub new {
         $self->{faviconheader} = '';
     }
 
+    if(!defined($self->{adsenseheader})) {
+        $self->{adsenseheader} = '';
+    }
+
     return $self;
 }
 
@@ -233,7 +237,8 @@ sub getInputForm {
         $result = '';
     }
     
-    my $form = '<html><head><title>' . $self->{pagetitle} . '</title>' . $self->{faviconheader} . '</head>' .
+    my $form = '<html><head><title>' . $self->{pagetitle} . '</title>' . $self->{faviconheader} . 
+                $self->{adsenseheader} . '</head>' .
                 '<body>' . $self->{longpagetitle} . '<br/>' .
                 $self->{logo} .
                 '<form action="/" method="post">' .
