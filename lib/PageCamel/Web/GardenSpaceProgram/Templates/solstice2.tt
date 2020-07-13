@@ -229,9 +229,25 @@
             $(sensorselector).each(function() {
                 $(this).text(msg.measurement);
             });
+            animateCell("#liveview_" + msg.sensor);
             return;
         }
         
+    }
+
+    function animateCell(cellid) {
+        var highlight_color = "#fbec88";
+        var original_color = $(cellid).css("background-color");
+        $(cellid)
+                .animate({
+                        'background-color': highlight_color,
+                        'color': '#000000'
+                }, 'slow', 'swing')
+                .delay(1000)
+                .animate({
+                        'background-color': original_color
+                }, 'slow', 'swing');
+        return;
     }
 
 </script>
