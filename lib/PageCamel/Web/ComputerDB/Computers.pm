@@ -74,13 +74,6 @@ sub register {
     $self->register_webpath($self->{computeredit}->{webpath}, "get_edit");
     $self->register_webpath($self->{computerselect}->{webpath}, "get_select");
     $self->register_webpath($self->{computervnc}->{webpath}, "get_vncedit");
-    $self->register_loginitem("on_login");
-    return;
-}
-
-sub on_login {
-    my ($self, $username, $sessionid) = @_;
-
     return;
 }
 
