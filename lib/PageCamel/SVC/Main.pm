@@ -512,11 +512,13 @@ sub check_app {
             #print "Apptick not set for " . $app->{description} . "!\n";
             $self->{clacks}->set($app->{clacks_name}, 1);
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
+            $self->{clacks}->doNetwork();
             return 0;
         } elsif($apptick == 0) {
             # Client requested a temporary suspension of lifetick handling
             $self->{clacks}->set($app->{clacks_name}, 1);
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
+            $self->{clacks}->doNetwork();
             return 0;
         }
         my $tickage = time - $apptick;
