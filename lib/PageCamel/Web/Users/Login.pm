@@ -1019,13 +1019,20 @@ sub createSession {
 sub deleteSession {
     my ($self, $session) = @_;
 
+    # CALL ON_LOGOUT
+    # We need to temporarily force the session ID for the logout callbacks. This is so that
+    # session settings handlers can work on the logged out session, not the current one. This
+    # is so because we may be working with a stale session, instead of the actual session we are
+    # handling now
+    $self->{forcedSessionID} = $session;
     $self->{server}->user_logout($session);
+    delete $self->{forcedSessionID};
+
     #$self->{server}->{modules}->{$self->{memcache}}->delete($session);
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
-    # CALL ON_LOGOUT
 
     my $sth = $dbh->prepare_cached("DELETE FROM sessions
                                    WHERE sid = ?")
@@ -1038,17 +1045,6 @@ sub deleteSession {
     }
 
     $memh->delete($session);
-
-    # Delete sessionsettings for this session
-    my @keys = $memh->clacks_keylist();
-    #my $searchkey = 'SessionSettings::' . $session . '::';
-    my $searchkey = 'SessionSettings::' . $session;
-    foreach my $key (@keys) {
-        if($key =~ /^$searchkey/) {
-            $memh->delete($key);
-        }
-    }
-
 
     return;
 }
@@ -1196,6 +1192,10 @@ sub refreshSession {
 
 sub get_sessionid {
     my ($self) = @_;
+
+    if(defined($self->{forcedSessionID})) {
+        return $self->{forcedSessionID};
+    }
 
     return $self->{currentSessionID};
 }

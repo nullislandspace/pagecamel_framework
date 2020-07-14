@@ -70,6 +70,7 @@ sub register {
     }
 
     $self->register_loginitem("on_login");
+    $self->register_logoutitem("on_logout");
 
     return;
 }
@@ -82,6 +83,17 @@ sub on_login {
     # Select Reportreader as default
     $sesh->set("SelectedReport", "ReportReader");
     $sesh->set("ReportStarttime", "");
+    return;
+}
+
+sub on_logout {
+    my ($self, $sessionid) = @_;
+
+    my $sesh = $self->{server}->{modules}->{$self->{session}};
+
+    # delete our items
+    $sesh->delete("SelectedReport");
+    $sesh->delete("ReportStarttime");
     return;
 }
 
