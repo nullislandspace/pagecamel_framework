@@ -71,8 +71,9 @@ sub refresh_lifetick {
         # only refresh every 10 seconds or so to keep
         # resource usage low - otherwise we'd be setting
         # the lifetick 1000 times a second or so
-        my $tickkey = "LIFETICK::" . $PID;
-        $self->set($tickkey, $ticktime);
+        my $tickkey = "pagecamel_services::LIFETICK";
+        my $tickval = $PID . ' ' . $ticktime;
+        $self->clacks_set($tickkey, $tickval);
         $self->{oldtime} = $ticktime;
 
         #$self->{clacks}->ping();
@@ -90,8 +91,9 @@ sub disable_lifetick {
     my ($self) = @_;
 
     my $ticktime = 0;
-    my $tickkey = "LIFETICK::" . $PID;
-    $self->set($tickkey, $ticktime);
+    my $tickkey = "pagecamel_services::LIFETICK";
+    my $tickval = $PID . ' -1';
+    $self->clacks_set($tickkey, $tickval);
     $self->{oldtime} = $ticktime;
 
     return 1;

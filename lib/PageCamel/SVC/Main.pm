@@ -233,6 +233,7 @@ sub startup {
     $self->{clacks}->listen('pagecamel_services::restart::service');
     $self->{clacks}->listen('pagecamel_services::enable::service');
     $self->{clacks}->listen('pagecamel_services::disable::service');
+    $self->{clacks}->listen('pagecamel_services::LIFETICK');
 
     # Set status bit to "not started"
     foreach my $app (@{$self->{apps}}) {
@@ -382,6 +383,16 @@ sub handleClacksCommands {
                     }
                 }
                 $workCount++;
+            } elsif($command->{name} eq 'pagecamel_services::LIFETICK') {
+                my ($processid, $apptick) = split/\ /, $command->{data};
+                foreach my $app (@{$self->{apps}}) {
+                    next unless(defined($app->{handle}));
+                    next unless(defined($app->{apptick}));
+                    if($processid == $app->{handle}) {
+                        $app->{apptick} = $apptick;
+                    }
+                }
+                $workCount++;
             }
         } elsif($command->{type} eq 'disconnect') {
             # Try to reconnect
@@ -392,6 +403,9 @@ sub handleClacksCommands {
             $self->{clacks}->listen('pagecamel_services::restart::service');
             $self->{clacks}->listen('pagecamel_services::enable::service');
             $self->{clacks}->listen('pagecamel_services::disable::service');
+            $self->{clacks}->listen('pagecamel_services::LIFETICK');
+
+            $self->{clacks}->doNetwork();
         }
     }
 
@@ -507,22 +521,16 @@ sub check_app {
         # Process itself is still running, so check its lifetick
         # to see if it hangs
         my $pid = $app->{handle};
-        my $apptick = $self->{clacks}->retrieve("LIFETICK::" . $pid);
-        if(!defined($apptick)) {
-            #print "Apptick not set for " . $app->{description} . "!\n";
-            $self->{clacks}->set($app->{clacks_name}, 1);
-            $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
-            $self->{clacks}->doNetwork();
-            return 0;
-        } elsif($apptick == 0) {
-            # Client requested a temporary suspension of lifetick handling
+        my $apptick = $app->{apptick};
+        if($apptick == -1) {
+            # Client requested a temporary suspension of lifetick handling or has not sent a livetick yet
             $self->{clacks}->set($app->{clacks_name}, 1);
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
             $self->{clacks}->doNetwork();
             return 0;
         }
         my $tickage = time - $apptick;
-        if(0 && $tickage > $app->{lifetick}) {
+        if($tickage > $app->{lifetick}) {
             # Stale lifetick
             print "Stale Lifetick detected: " . $app->{description} . "!\n";
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
@@ -549,8 +557,8 @@ sub start_app {
         #parent
         print "Forked " . $app->{app} . " has PID $pid\n";
         $app->{handle} = $pid;
+        $app->{apptick} = -1;
         my $stime = time;
-        $self->{clacks}->store("LIFETICK::" . $pid, $stime);
         for(1..3) {
             sleep(1); # Sleep a few seconds to allow the application to start up without
                       # too much conflicts with PageCamelSVC and other services to be started
