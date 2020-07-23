@@ -17,7 +17,7 @@ use Data::Dumper;
 
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(doFPad doSpacePad trim doLeftSpacePad);
+our @EXPORT_OK = qw(doFPad doSpacePad trim doLeftSpacePad forceByteLength);
 
 
 sub doFPad {
@@ -47,13 +47,27 @@ sub doLeftSpacePad {
     return $val;
 }
 
-sub trim
-{
+sub trim {
     my $string = shift;
     $string =~ s/^\s+//;
     $string =~ s/\s+$//;
     return $string;
 }
+
+sub forceByteLength {
+    my ($string, $len) = @_;
+    
+    if(length($string) > $len) {
+        $string = substr $string, 0, $len;
+    } else {
+        while(length($string) < $len) {
+          $string .= chr(0);
+        }
+    }
+    
+    return $string;
+}
+
 
 1;
 __END__
