@@ -122,7 +122,7 @@ sub printAddBigTextLine {
 }
 
 sub printAddImage {
-    my ($self, $filename, $isbindata, $imagesoftness) = @_;
+    my ($self, $filename, $isbindata, $imagesoftness, $doscale) = @_;
     
     my $reph = $self->{reph};
     
@@ -134,6 +134,9 @@ sub printAddImage {
     # Image softness (dithering grade) only works on greyscale image
     if(!defined($imagesoftness)) {
         $imagesoftness = 1;
+    }
+    if(!defined($doscale)) {
+        $doscale = 1;
     }
     
     if($isbindata) {
@@ -153,6 +156,11 @@ sub printAddImage {
     my $destw = $self->{width};
     my $scale = $w / $destw;
     my $desth = int($h / $scale);
+
+    if(!$doscale) {
+        $destw = $w;
+        $desth = $h;
+    }
     
     $self->{img}->copyResized($pic,
                               0, $self->{imgoffs}, # DEST X Y
