@@ -77,7 +77,7 @@ sub printEndDocument {
     writeBinFile($ofname, $imagedata);
     
     if($self->{use_eog}) {
-        my $cmd = 'eog ' . $ofname;
+        my $cmd = 'gimp ' . $ofname;
         `$cmd`;
     } else {
         my $cmd = $self->{printcommand};
@@ -109,6 +109,18 @@ sub printAddTextLine {
     return;
 }
 
+sub printAddSmallTextLine {
+    my ($self, $line) = @_;
+    
+    chomp $line;
+    
+    $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 8, 0, 10, $self->{imgoffs} + 8, $line);
+    
+    $self->{imgoffs} += 9;
+    
+    return;
+}
+
 sub printAddBigTextLine {
     my ($self, $line) = @_;
     
@@ -122,7 +134,7 @@ sub printAddBigTextLine {
 }
 
 sub printAddImage {
-    my ($self, $filename, $isbindata, $imagesoftness, $doscale) = @_;
+    my ($self, $filename, $isbindata, $imagesoftness, $doscale, $center) = @_;
     
     my $reph = $self->{reph};
     
@@ -137,6 +149,9 @@ sub printAddImage {
     }
     if(!defined($doscale)) {
         $doscale = 1;
+    }
+    if(!defined($center)) {
+        $center = 0;
     }
     
     if($isbindata) {
@@ -161,9 +176,15 @@ sub printAddImage {
         $destw = $w;
         $desth = $h;
     }
+
+    my $centeroffs = 0;
+    if($center) {
+        $centeroffs = int(($self->{width} - $destw) / 2);
+    }
+
     
     $self->{img}->copyResized($pic,
-                              0, $self->{imgoffs}, # DEST X Y
+                              $centeroffs, $self->{imgoffs}, # DEST X Y
                               0, 0, # SRC X Y
                               $destw, $desth, # DEST W H
                               $w, $h, # SRC W H
