@@ -40,6 +40,7 @@
 # Avoid temp and backup files.
 ~$
 \.old$
+\.swp$
 \#$
 \b\.#
 \.bak$
