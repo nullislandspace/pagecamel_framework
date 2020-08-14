@@ -30,6 +30,8 @@ sub new {
     $self->{extcommand} = \%extcommand;
     $self->{commandlist} = '';
 
+    $self->{firstrun} = 1;
+
     return $self;
 }
 
@@ -83,7 +85,10 @@ sub work {
     # Check if there are actually any registered ext_commands. If not, just write a debug message
     # and finish cycle
     if($self->{commandlist} eq '') {
-        $reph->debuglog("No commands registered, disabling commandqueue handling for this cycle");
+        if($self->{firstrun}) {
+            $reph->debuglog("No commands registered, disabling commandqueue handling");
+            $self->{firstrun} = 0;
+        }
         return 0;
     }
 
