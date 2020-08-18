@@ -87,8 +87,12 @@ sub work {
     if(defined($data)) {
         $workCount++;
         # Both SET and STORE the data
-        $self->{clacks}->setAndStore($self->{clacksname_temperature}, $data->{temperature});
-        $self->{clacks}->setAndStore($self->{clacksname_humidity}, $data->{humidity});
+        if(defined($data->{temperature})) {
+            $self->{clacks}->setAndStore($self->{clacksname_temperature}, $data->{temperature});
+        }
+        if(defined($data->{humidity})) {
+            $self->{clacks}->setAndStore($self->{clacksname_humidity}, $data->{humidity});
+        }
         $reph->debuglog('HWGSTE ' . $self->{hostname} . ': ' . $data->{temperature} . 'C, ' . $data->{humidity} . '%');
     } 
     $self->{clacks}->doNetwork();
@@ -123,20 +127,12 @@ sub getClimate {
     }
 
     my $doc = $result->content;
-    my $xml = XMLin($doc);
+    my $xml = XMLin($doc, ForceArray => ['Entry']);
 
     foreach my $sensor (@{$xml->{SenSet}->{Entry}}) {
         my $value = $sensor->{Value};
-        if($sensor->{Name} eq 'Temperature') {
-            $pos{temperature} = $value;
-        } elsif($sensor->{Name} eq 'Humidity') {
-            $pos{humidity} = $value;
-        }
-    }
-
-    if($pos{temperature} == 999 || $pos{humidity} == 999) {
-        $reph->debuglog("Invalid data from HWGSTE sensor at " . $self->{hostname});
-        return;
+        my $name = lc $sensor->{Name};
+        $pos{$name} = $value;
     }
 
     return \%pos;
