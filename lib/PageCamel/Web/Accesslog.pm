@@ -78,9 +78,13 @@ sub logstart {
     my $headerlist = join("\n", @headers);
 
     my $geoip_country = '';
+    my $geoip_city = '';
+    my $geoip_lat = 0.0;
+    my $geoip_lon = 0.0;
+    my $geoip_radius = 0.0;
 
     if($self->{usegeoip}) {
-        my $geosth = $dbh->prepare("SELECT country_code FROM geoip WHERE ? << netblock LIMIT 1")
+        my $geosth = $dbh->prepare("SELECT country_code, city_name, latitude, longitude, radius FROM geoip WHERE ? << netblock LIMIT 1")
                 or croak($dbh->errstr);
         if(!$geosth->execute($host)) {
             $dbh->rollback; # Not a big problem, GEOIP is just for information anyway
@@ -88,8 +92,10 @@ sub logstart {
             my $line = $geosth->fetchrow_hashref;
             if(defined($line->{country_code})) {
                 $geoip_country = $line->{country_code};
-            } else {
-                $geoip_country = '??';
+                $geoip_city = $line->{city_name};
+                $geoip_lat = $line->{latitude};
+                $geoip_lon = $line->{longitude};
+                $geoip_radius = $line->{radius};
             }
             $dbh->rollback;
         }
@@ -108,6 +114,10 @@ sub logstart {
         range   => $range,
         httpversion => $httpversion,
         geoip_country => $geoip_country,
+        geoip_city => $geoip_city,
+        geoip_lat => $geoip_lat,
+        geoip_lon => $geoip_lon,
+        geoip_radius => $geoip_radius,
     );
 
     $self->{requestdata} = \%requestdata;
@@ -161,8 +171,9 @@ sub logend {
 
     my $stmt = "INSERT INTO accesslog (url, url_host, processid, method, parameters, remotehost, username, returncode, doctype, useragent,
                                         compression, referer, useragent_simplified, protocol, headers, rangeheader, httpversion,
-                                        geoip_countrycode, pagecamel_debug_info)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                                        geoip_countrycode, geoip_city, geoip_latitude, geoip_longitude, geoip_radius,
+                                        pagecamel_debug_info)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     my $logsth = $dbh->prepare_cached($stmt) or croak($dbh->errstr);
 
     if($logsth->execute($requestdata{url},
@@ -183,6 +194,10 @@ sub logend {
                   $requestdata{range},
                   $requestdata{httpversion},
                   $requestdata{geoip_country},
+                  $requestdata{geoip_city},
+                  $requestdata{geoip_lat},
+                  $requestdata{geoip_lon},
+                  $requestdata{geoip_radius},
                   $requestdata{pagecamel_debug_info},
                   )) {
         $dbh->commit;

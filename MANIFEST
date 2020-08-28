@@ -2386,8 +2386,6 @@ lib/PageCamel/Web/Wiki/Templates/archive_mobile.tt
 lib/PageCamel/Web/Wiki/Templates/viewer.tt
 lib/PageCamel/Web/Wiki/Viewer.pm
 lib/PageCamel/WebBase.pm
-lib/PageCamel/WebPreFork.pm
-lib/PageCamel/WebSingle.pm
 lib/PageCamel/Worker.pm
 lib/PageCamel/Worker/Accesslog.pm
 lib/PageCamel/Worker/AdminCommands.pm

@@ -34,9 +34,18 @@ sub crossregister {
 
     $self->register_webpath($self->{webpath}, 'beaconhandler', 'POST');
     $self->register_public_url($self->{webpath});
+    $self->register_defaultwebdata("get_defaultwebdata");
 
     return;
 }
+
+sub get_defaultwebdata {
+    my ($self, $webdata) = @_;
+
+    $webdata->{EnablePageViewStats} = 1;
+    return;
+}
+
 
 sub beaconhandler {
     my ($self, $ua) = @_;
@@ -61,9 +70,13 @@ sub beaconhandler {
     
     my $host = $ua->{remote_addr};
     my $geoip_country = '';
+    my $geoip_city = '';
+    my $geoip_lat = 0.0;
+    my $geoip_lon = 0.0;
+    my $geoip_radius = 0.0;
 
     if($self->{usegeoip}) {
-        my $geosth = $dbh->prepare("SELECT country_code FROM geoip WHERE ? << netblock LIMIT 1")
+        my $geosth = $dbh->prepare("SELECT country_code, city_name, latitude, longitude, radius FROM geoip WHERE ? << netblock LIMIT 1")
                 or croak($dbh->errstr);
         if(!$geosth->execute($host)) {
             $dbh->rollback; # Not a big problem, GEOIP is just for information anyway
@@ -71,15 +84,18 @@ sub beaconhandler {
             my $line = $geosth->fetchrow_hashref;
             if(defined($line->{country_code})) {
                 $geoip_country = $line->{country_code};
-            } else {
-                $geoip_country = '??';
+                $geoip_city = $line->{city_name};
+                $geoip_lat = $line->{latitude};
+                $geoip_lon = $line->{longitude};
+                $geoip_radius = $line->{radius};
             }
             $dbh->rollback;
         }
     }
     
-    my $insth = $dbh->prepare_cached("INSERT INTO pageviewstats (uri, showcount, visibletime, hidecallback, remotehost, geoip_countrycode)
-                                      VALUES (?, ?, ?, ?, ?, ?)")
+    my $insth = $dbh->prepare_cached("INSERT INTO pageviewstats (uri, showcount, visibletime, hidecallback, remotehost, 
+                                        geoip_countrycode, geoip_city, geoip_latitude, geoip_longitude, geoip_radius)
+                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             or croak($dbh->errstr);
 
     if($insth->execute($beacondata->{uri},
@@ -88,6 +104,10 @@ sub beaconhandler {
                      $beacondata->{type},
                      $host,
                      $geoip_country,
+                     $geoip_city,
+                     $geoip_lat,
+                     $geoip_lon,
+                     $geoip_radius,
                      )) {
         $dbh->commit;
         return(status => 204,

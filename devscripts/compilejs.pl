@@ -59,7 +59,7 @@ foreach my $file (@files) {
 __DATA__
 ajaxhelpers.js
 formhelpers.js
-#pageviewstats.js
+pageviewstats.js
 jquery/js/jquery-3.4.1.js
 #jquery/js/jquery-migrate-3.1.0.js
 jquery/js/jquery-migrate-3.1.0.min.js

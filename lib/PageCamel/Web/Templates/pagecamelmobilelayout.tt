@@ -59,7 +59,9 @@
                     console.log("Bound the desktop link");
                 });
 
-                //_init_pagecamel_pageviewstats();
+                if(ttvars.enablepageviewstats == 1) {
+                    _init_pagecamel_pageviewstats();
+                }
 
                 // register all "pagecamelnavdestination onclick events
                 $('[pagecamelnavdestination]').each(function() {
@@ -108,6 +110,7 @@
                 });
 
                 $("button, input:submit, input:reset, input:button").button();
+                $("input.gotobutton[type=button]").gotobutton();
 
                 $("span.cavacnote").cavacnote_mobile();
 
@@ -207,7 +210,9 @@
             data-trquote-cancel="[% tr.trquote("Cancel") %]"
             data-trquote-close="[% tr.trquote("Close") %]"
             data-trquote-calendarbutton="[% tr.trquote("Select Date") %]"
+            data-enablepageviewstats="[% EnablePageViewStats %]"
         ></span>
+        <!-- master template TT vars dataset -->
 
 
         [% IF header_info %]
