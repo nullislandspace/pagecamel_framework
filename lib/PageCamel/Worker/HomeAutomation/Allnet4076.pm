@@ -86,7 +86,7 @@ sub work {
             # Change switch if required
             $reph->debuglog("GOT CLACKS: " . $cmsg->{name} . "=" . $cmsg->{data});
             $self->setSwitch($cmsg->{name}, $cmsg->{data});
-            $self->{nextrun} = time + 5;
+            $self->{nextrun} = time + 2;
         }
     }
     $self->{clacks}->doNetwork();
