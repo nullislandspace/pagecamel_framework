@@ -25,7 +25,7 @@ my $BASE = "./lib/PageCamel/Web/Static/";
 my @files = <DATA>;
 
 #my @themes = qw[classic blacksilk bluegreen corporateugliness orange recycled];
-my @themes = qw[blacksilk bluegreen classic corporateugliness orange recycled darkknight];
+my @themes = qw[blacksilk bluegreen classic corporateugliness orange recycled darkknight space];
 
 foreach my $theme (@themes) {
     unlink($BASE . "jquery.compiled_" . $theme . ".css");
