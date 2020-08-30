@@ -135,6 +135,16 @@ sub prerender {
         }
     }
 
+    if(defined($webdata->{override_theme})) {
+        # Check if theme is still available
+        my $override = $webdata->{override_theme};
+        foreach my $temp (@{$self->{Themes}}) {
+            if($override eq $temp->{theme}) {
+                $userTheme = $override;
+                last;
+            }
+        }
+    }
 
     $webdata->{UIThemeName} = $userTheme;
 
