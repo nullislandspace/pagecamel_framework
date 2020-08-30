@@ -90,7 +90,7 @@ sub crossregister {
 
     $sysh->createBool(modulename => $self->{modname},
                         settingname => "enable_blog_comments",
-                        settingvalue => "1",
+                        settingvalue => "0",
                         description => 'Enable Blog Comments',
                         processinghints => [
                             'type=switch',
@@ -125,7 +125,7 @@ sub hookrootpath {
         $whereclause = "WHERE releasedate <= now() AND is_released = true"
     }
 
-    my $lsth = $dbh->prepare_cached("SELECT * FROM blog
+    my $lsth = $dbh->prepare_cached("SELECT * FROM " . $self->{tablename} . "
                                     $whereclause
                                     ORDER BY releasedate DESC
                                     LIMIT 1")
@@ -217,7 +217,7 @@ sub get {
         if($self->{releasedrestrictions}) {
             $whereclause = "WHERE releasedate <= now() AND is_released = true"
         }
-        my $lsth = $dbh->prepare_cached("SELECT * FROM blog
+        my $lsth = $dbh->prepare_cached("SELECT * FROM " . $self->{tablename} . "
                                         $whereclause
                                         ORDER BY releasedate DESC
                                         LIMIT 1")
@@ -245,7 +245,7 @@ sub get {
     }
 
     my $selsth = $dbh->prepare_cached("SELECT b.*, u.first_name || ' ' || u.last_name AS realauthorname
-                                        FROM blog b
+                                        FROM " . $self->{tablename} . " b
                                         INNER JOIN users u ON b.author = u.username
                                       WHERE article_id = ?
                                       $selclause
@@ -290,7 +290,7 @@ sub get {
     my $prevlink = '';
     my $prevlinktitle = '';
     {
-        my $nsth = $dbh->prepare_cached("SELECT * FROM blog
+        my $nsth = $dbh->prepare_cached("SELECT * FROM " . $self->{tablename} . "
                                          WHERE releasedate > ?
                                          $selclause
                                          ORDER BY releasedate
@@ -304,7 +304,7 @@ sub get {
         $nsth->finish;
     }
     {
-        my $psth = $dbh->prepare_cached("SELECT * FROM blog
+        my $psth = $dbh->prepare_cached("SELECT * FROM " . $self->{tablename} . "
                                          WHERE releasedate < ?
                                          $selclause
                                          ORDER BY releasedate DESC
@@ -507,7 +507,7 @@ sub get {
             my $comment = $ua->{postparams}->{'comment'} || '';
             $comment = webSafeString($comment);
             if($mode eq 'comment' && $comment ne '') {
-                my $insth = $dbh->prepare_cached("INSERT INTO blog_comments
+                my $insth = $dbh->prepare_cached("INSERT INTO " . $self->{commentstablename} . "
                                                  (article_id, username, usercomment)
                                                  VALUES (?,?,?)")
                         or croak($dbh->errstr);
@@ -526,7 +526,7 @@ sub get {
 
     my $cselsth = $dbh->prepare_cached("SELECT c.comment_id, c.username, date_trunc('seconds', c.logtime) AS tlogtime, c.usercomment,
                                                 u.first_name || ' ' || u.last_name AS realusername
-                                    FROM blog_comments c
+                                    FROM " . $self->{commentstablename} . " c
                                     JOIN users u ON u.username = c.username
                                     WHERE c.article_id = ?
                                     ORDER BY c.logtime")
@@ -564,7 +564,7 @@ sub get_script {
     }
 
     my $selsth = $dbh->prepare_cached("SELECT javascript_onload, javascript_functions
-                                        FROM blog
+                                        FROM " . $self->{tablename} . "
                                       WHERE article_id = ?
                                       $selclause
                                       LIMIT 1")
@@ -615,7 +615,7 @@ sub get_blog_archive {
     my $selsth = $dbh->prepare_cached("SELECT b.article_id, b.archive_teaser, b.releasedate,
                                         b.post_type,
                                         u.first_name || ' ' || u.last_name AS realauthorname
-                                        FROM blog b
+                                        FROM " . $self->{tablename} . " b
                                         INNER JOIN users u ON b.author = u.username
                                         WHERE releasedate <= now() AND is_released = true
                                         ORDER BY releasedate DESC")
@@ -662,7 +662,7 @@ sub sitemap {
         $whereclause = "WHERE releasedate <= now() AND is_released = true"
     }
 
-    my $selsth = $dbh->prepare_cached("SELECT article_id FROM blog
+    my $selsth = $dbh->prepare_cached("SELECT article_id FROM " . $self->{tablename} . "
                                       $whereclause
                                       ORDER BY releasedate DESC")
             or croak($dbh->errstr);
@@ -691,7 +691,7 @@ sub rssfeed {
     my @articles;
 
     my $selsth = $dbh->prepare_cached("SELECT b.*, u.first_name || ' ' || u.last_name AS realauthorname
-                                        FROM blog b
+                                        FROM " . $self->{tablename} . " b
                                         INNER JOIN users u ON b.author = u.username
                                       $whereclause
                                       ORDER BY releasedate DESC

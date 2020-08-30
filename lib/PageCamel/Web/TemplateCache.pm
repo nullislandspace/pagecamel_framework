@@ -212,6 +212,9 @@ sub get {
     if(defined($webdata{UserLayout}) && defined($self->{cache}->{$webdata{UserLayout}})) {
         $layoutname = $webdata{UserLayout};
     }
+    if(defined($webdata{override_template})) {
+        $layoutname = $webdata{override_template};
+    }
 
     if($uselayout) {
         my $debugname;

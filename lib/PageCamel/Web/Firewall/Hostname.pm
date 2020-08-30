@@ -112,6 +112,16 @@ sub prefilter {
                 }
             }
 
+            {
+                my $path = $item->{pathprefix};
+                my $suburl = substr($ua->{url}, 0, length($path));
+                if($suburl eq $path) {
+                    # Already pointing to the right sub path
+                    $doignore = 1;
+                }
+            }
+
+
             if(!$doignore) {
                 $ua->{url} = $item->{pathprefix} . $ua->{url};
                 if(1 || $self->{isDebugging}) {
