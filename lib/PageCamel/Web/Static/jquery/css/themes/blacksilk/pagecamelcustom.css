@@ -11,3 +11,28 @@ body {
     color: #000000;
 }
 
+div.blogtoc {
+    border-style: groove;
+    border-color: #d7d9dd;
+    background-color: #f4f5f7;
+    border-radius: 5px;
+    width: 33%;
+    padding: 20px;
+}
+
+span.blogtocshowhide {
+    color: #0000EE;
+}
+
+div.wikitoc {
+    border-style: groove;
+    border-color: #d7d9dd;
+    background-color: #f4f5f7;
+    border-radius: 5px;
+    width: 33%;
+    padding: 20px;
+}
+
+span.wikitocshowhide {
+    color: #0000EE;
+}

@@ -1,5 +1,5 @@
 
-table.dataTable tr.odd { color: white; background-color: #909090; }
+table.dataTable tr.odd { color: white; background-color: #505050; }
 table.dataTable tr.even { color: white; background-color: black; }
 
 tr.staticeven { color: white; background-color: #A0A0A0; }
@@ -11,3 +11,41 @@ body {
     color: #FFFFFF;
 }
 
+a:link {
+    color: yellow;
+}
+a:visited {
+    color: yellow;
+}
+a:hover {
+    color: yellow;
+}
+a:active {
+    color: yellow;
+}
+
+div.blogtoc {
+    border-style: groove;
+    border-color: #d7d9dd;
+    background-color: #404040;
+    border-radius: 5px;
+    width: 33%;
+    padding: 20px;
+}
+
+span.blogtocshowhide {
+    color: #EE00EE;
+}
+
+div.wikitoc {
+    border-style: groove;
+    border-color: #d7d9dd;
+    background-color: #404040;
+    border-radius: 5px;
+    width: 33%;
+    padding: 20px;
+}
+
+span.wikitocshowhide {
+    color: #EE00EE;
+}
