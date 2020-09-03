@@ -22,7 +22,7 @@
 [% END %]
 
 [% IF MobileDesktopClientMode != 'mobile' %]
-    <table border="0" width="800px" id="blogtable">
+    <table border="0" width="1000px" id="blogtable" align="left">
         <tr>
             <td colspan="5"><div id="toppadding"></div></td>
         </tr>
