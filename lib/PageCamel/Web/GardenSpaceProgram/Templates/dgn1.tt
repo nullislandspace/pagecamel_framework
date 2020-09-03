@@ -58,7 +58,8 @@
 
     function animateCell(cellid) {
         var highlight_color = "#fbec88";
-        var original_color = $(cellid).css("color");
+        //var original_color = $(cellid).css("color");
+        var original_color = "#ffffff";
         $(cellid)
                 .animate({
                         'color': highlight_color
