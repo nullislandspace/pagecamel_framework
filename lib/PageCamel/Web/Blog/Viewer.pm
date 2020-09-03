@@ -58,14 +58,22 @@ sub reload {
 
 sub register {
     my $self = shift;
-    $self->register_webpath($self->{webpath}, "get");
+    if(defined($self->{internal_webpath})) {
+        $self->register_webpath($self->{internal_webpath}, "get");
+    } else {
+        $self->register_webpath($self->{webpath}, "get");
+    }
 
     if(defined($self->{sitemap}) && $self->{sitemap}) {
         $self->register_sitemap('sitemap');
     }
 
     if(defined($self->{rssfeed})) {
-        $self->register_webpath($self->{rssfeed}->{url}, 'rssfeed');
+        if(defined($self->{rssfeed}->{internal_url})) {
+            $self->register_webpath($self->{rssfeed}->{internal_url}, 'rssfeed');
+        } else {
+            $self->register_webpath($self->{rssfeed}->{url}, 'rssfeed');
+        }
     }
 
     if($self->{hookrootpath}) {
@@ -193,6 +201,9 @@ sub get {
 
     my $id = $ua->{url};
     my $remove = $self->{webpath};
+    if(defined($self->{internal_webpath})) {
+        $remove = $self->{internal_webpath};
+    }
     $id =~ s/^$remove//;
     $id =~ s/\///g;
 
