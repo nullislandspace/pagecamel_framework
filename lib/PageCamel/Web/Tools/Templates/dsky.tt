@@ -108,6 +108,7 @@
             var bgcol = '#A0A0A0';
             if(dskybuttons[i].active > 0) {
                 dskybuttons[i].active--;
+                fgcol = '#FFFFFF';
                 bgcol = '#505050';
             }
             buttonHandler.addButton(dskybuttons[i].x,
