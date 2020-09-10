@@ -19,7 +19,7 @@
     var dskybuttons = [
         {x: 640, y: 50, w: 100, h: 100, text: "ACK", name: "ACK", active: 0},
         {x: 760, y: 50, w: 100, h: 100, text: "PWR", name: "POWER", active: 0},
-        {x: 880, y: 50, w: 100, h: 100, text: "KR", name: "KEYRELEASE", active: 0},
+        {x: 880, y: 50, w: 100, h: 100, text: "KR", name: "KEYBOARDRELEASE", active: 0},
 
         {x: 640, y: 210, w: 100, h: 100, text: "ESC", name: "ESC", active: 0},
         {x: 760, y: 210, w: 100, h: 100, text: "PRO", name: "PRO", active: 0},
