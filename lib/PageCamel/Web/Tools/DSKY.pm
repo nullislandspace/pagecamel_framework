@@ -68,6 +68,7 @@ sub wshandlerstart {
     $self->{clacks}->listen('DSKY::Display4');
     $self->{clacks}->listen('DSKY::Display5');
     $self->{clacks}->listen('DSKY::Display6');
+    $self->{clacks}->listen('DSKY::KeyPressed');
     $self->{clacks}->notify('DSKY::update_all');
 
     $self->{clacks}->doNetwork();
@@ -138,6 +139,15 @@ sub wscyclic {
                 type => "SETDISPLAY",
                 displaynum => $displaynum,
                 data => $bitdata,
+            );
+            
+            if(!$self->wsprint(\%msg)) {
+                return 0;
+            }
+        } elsif($cmsg->{type} eq 'set' && $cmsg->{name} =~ /^DSKY::KeyPressed$/) {
+            my %msg = (
+                type => "KEYPRESSED",
+                data => $cmsg->{data},
             );
             
             if(!$self->wsprint(\%msg)) {

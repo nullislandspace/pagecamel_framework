@@ -18,8 +18,8 @@
     
     var dskybuttons = [
         {x: 640, y: 50, w: 100, h: 100, text: "ACK", name: "ACK", active: 0},
-        {x: 760, y: 50, w: 100, h: 100, text: "TX", name: "IR", active: 0},
-        {x: 880, y: 50, w: 100, h: 100, text: "PWR", name: "POWER", active: 0},
+        {x: 760, y: 50, w: 100, h: 100, text: "PWR", name: "POWER", active: 0},
+        {x: 880, y: 50, w: 100, h: 100, text: "KR", name: "KEYRELEASE", active: 0},
 
         {x: 640, y: 210, w: 100, h: 100, text: "ESC", name: "ESC", active: 0},
         {x: 760, y: 210, w: 100, h: 100, text: "PRO", name: "PRO", active: 0},
@@ -62,6 +62,12 @@
     function handleMessage(msg) {
         if(msg.type === "SETDISPLAY") {
             sevendisplays[msg.displaynum] = msg.data;
+        } else if(msg.type === 'KEYPRESSED') {
+            for(var i = 0; i < dskybuttons.length; i++) {
+                if(dskybuttons[i].name === msg.data) {
+                    dskybuttons[i].active = 5;
+                }
+            }
         }
     }
 
@@ -118,8 +124,8 @@
 
         /*
         buttonHandler.addButton(640, 50, 100, 100,  "ACK",   '#000000', '#A0A0A0', buttonSendMessage, "ACK", 5);
-        buttonHandler.addButton(760, 50, 100, 100,  "TX",    '#000000', '#A0A0A0', buttonSendMessage, "IR", 5);
-        buttonHandler.addButton(880, 50, 100, 100,  "PWR",   '#000000', '#A0A0A0', buttonSendMessage, "POWER", 5);
+        buttonHandler.addButton(760, 50, 100, 100,  "PWR",    '#000000', '#A0A0A0', buttonSendMessage, "POWER", 5);
+        buttonHandler.addButton(880, 50, 100, 100,  "KR",   '#000000', '#A0A0A0', buttonSendMessage, "KEYRELEASE", 5);
         
         buttonHandler.addButton(640, 210, 100, 100,  "ESC",  '#000000', '#A0A0A0', buttonSendMessage, "ESC", 5);
         buttonHandler.addButton(760, 210, 100, 100,  "PRO",  '#000000', '#A0A0A0', buttonSendMessage, "PRO", 5);
@@ -167,11 +173,13 @@
             data: msg
         };
         ws.send(JSON.stringify(buttonmsg));
+        /*
         for(var i = 0; i < dskybuttons.length; i++) {
             if(dskybuttons[i].name === msg) {
                 dskybuttons[i].active = 5;
             }
         }
+        */
         return;
     }
     
