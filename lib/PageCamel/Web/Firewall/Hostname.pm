@@ -44,6 +44,7 @@ sub new {
 sub register {
     my $self = shift;
     $self->register_prefilter("prefilter");
+    $self->register_defaultwebdata("get_defaultwebdata");
     return;
 }
 
@@ -51,6 +52,10 @@ sub prefilter {
     my ($self, $ua) = @_;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    if(defined($self->{defaultwebdata})) {
+        delete $self->{defaultwebdata};
+    }
 
     my $webpath = $ua->{original_path_info}; # Need the unmangled path
     my $requesthostname = $ua->{headers}->{Host};
@@ -95,9 +100,36 @@ sub prefilter {
             if($ua->{url} !~ /^\//) {
                 $ua->{url} = '/' . $ua->{url};
             }
-            $ua->{url} = $item->{pathprefix} . $ua->{url};
-            if(1 || $self->{isDebugging}) {
-                print STDERR "******************************************    internally rerouting to ", $ua->{url}, "\n";
+
+            my $doignore = 0;
+            if(defined($item->{ignorepaths})) {
+                foreach my $path (@{$item->{ignorepaths}->{item}}) {
+                    my $suburl = substr($ua->{url}, 0, length($path));
+                    if($suburl eq $path) {
+                        #print STDERR "Ignoring PATH ", $ua->{url}, " for rerouting\n";
+                        $doignore = 1;
+                    }
+                }
+            }
+
+            {
+                my $path = $item->{pathprefix};
+                my $suburl = substr($ua->{url}, 0, length($path));
+                if($suburl eq $path) {
+                    # Already pointing to the right sub path
+                    $doignore = 1;
+                }
+            }
+
+
+            if(!$doignore) {
+                $ua->{url} = $item->{pathprefix} . $ua->{url};
+                if(1 || $self->{isDebugging}) {
+                    print STDERR "******************************************    internally rerouting to ", $ua->{url}, "\n";
+                }
+            }
+            if(defined($item->{defaultwebdata})) {
+                $self->{defaultwebdata} = $item->{defaultwebdata};
             }
         }
 
@@ -119,6 +151,20 @@ sub prefilter {
                 data   => 'You requested information from ' . $requesthostname . ' which is unknown to this server. Maybe check your DNS settings?',
                 );
     }
+
+    return;
+}
+
+sub get_defaultwebdata {
+    my ($self, $webdata) = @_;
+
+    return unless defined($self->{defaultwebdata});
+    foreach my $key (keys %{$self->{defaultwebdata}}) {
+        my $val = $self->{defaultwebdata}->{$key};
+        print STDERR "   ADDING DEFAULTWEBDATA: ", $key, " => ", $val, "\n";
+        $webdata->{$key} = $val;
+    }
+    delete $self->{defaultwebdata};
 
     return;
 }

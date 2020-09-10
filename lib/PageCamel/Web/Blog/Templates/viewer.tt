@@ -15,18 +15,18 @@
 [% ELSIF posttype == 'Economy' %]
     [% dialogbody = "<img src='/pics/blog/Economy.png'> In this article, i talk about the economy. I'm a bear, so expect a lot of doom and gloom.
                      If you want the future painted as a rosy picture, go and talk to your local banker."%]
-[% ELSIF posttype == 'Garden Space Program' %]
+[% ELSIF posttype == 'DISABLED Garden Space Program' %]
     [% dialogbody = "<img src='/pics/blog/garden_exploration_program.png'> Exploring my garden with remote probes. Just like Nasa, but with a fraction of the budget."%]
 [% ELSIF posttype == 'Standard' %]
     [% dialogbody = "The Standard category of blog posts is a mixed bag. Anything that doesn't fall into any of the other categories, really."%]
 [% END %]
 
 [% IF MobileDesktopClientMode != 'mobile' %]
-    <table border="0" width="800px" id="blogtable">
+    <table border="0" width="1000px" id="blogtable" align="left">
         <tr>
             <td colspan="5"><div id="toppadding"></div></td>
         </tr>
-        [% IF posttype == 'Garden Space Program' %]
+        [% IF posttype == 'DISABLED Garden Space Program' %]
             <tr>
                 <td></td>
                 <td></td>

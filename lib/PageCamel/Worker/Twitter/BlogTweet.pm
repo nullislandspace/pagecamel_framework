@@ -46,7 +46,7 @@ sub work {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
-    my $selsth = $dbh->prepare_cached("SELECT * FROM blog
+    my $selsth = $dbh->prepare_cached("SELECT * FROM " . $self->{blogtable} . "
                                         WHERE is_released = true
                                         AND is_twittered = false
                                         AND releasedate <= now()
@@ -70,7 +70,7 @@ sub work {
                                      RETURNING tweet_id")
             or croak($dbh->errstr);
 
-    my $upsth = $dbh->prepare_cached("UPDATE blog
+    my $upsth = $dbh->prepare_cached("UPDATE " . $self->{blogtable} . "
                                      SET is_twittered = true
                                      WHERE article_id = ?")
             or croak($dbh->errstr);

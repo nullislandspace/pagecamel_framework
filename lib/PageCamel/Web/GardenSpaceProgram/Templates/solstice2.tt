@@ -11,13 +11,12 @@
 
     <p>
         <table id="panelstable" border="1">
-            <!-- ************************ MAIN SYSTEM STATUS ************************ -->
             <tr>
                 <td>
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th colspan="2" class="statichead">System status (Main)</th>
+                                <th colspan="2" class="statichead">System status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -61,7 +60,7 @@
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th colspan="2" class="statichead">Power configuration (Main)</th>
+                                <th colspan="2" class="statichead">Power configuration</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -228,8 +227,9 @@
             var sensorselector = 'span[sensorname="liveview_' + msg.sensor + '"]';
             $(sensorselector).each(function() {
                 $(this).text(msg.measurement);
+                animateCell($(this));
             });
-            animateCell("#liveview_" + msg.sensor);
+            //animateCell("#liveview_" + msg.sensor);
             return;
         }
         
@@ -237,15 +237,15 @@
 
     function animateCell(cellid) {
         var highlight_color = "#fbec88";
-        var original_color = $(cellid).css("background-color");
+        //var original_color = $(cellid).css("color");
+        var original_color = "#ffffff";
         $(cellid)
                 .animate({
-                        'background-color': highlight_color,
-                        'color': '#000000'
-                }, 'slow', 'swing')
+                        'color': highlight_color
+                }, 'fast', 'swing')
                 .delay(1000)
                 .animate({
-                        'background-color': original_color
+                        'color': original_color
                 }, 'slow', 'swing');
         return;
     }

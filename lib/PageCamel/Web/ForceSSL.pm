@@ -45,8 +45,17 @@ sub prefilter {
     }
 
     my $webpath = $ua->{url};
+    my $hostprefix;
+    if(defined($ua->{headers}->{Host})) {
+        $hostprefix = $ua->{headers}->{Host};
+    } else {
+        $hostprefix = $self->{urlprefix};
+    }
 
-    my $fullpath = $self->{urlprefix} . $webpath;
+    my $fullpath = $hostprefix . $webpath;
+    if($fullpath !~ /^https/) {
+        $fullpath = 'https://' . $fullpath;
+    }
 
     return (
         status => 301,
