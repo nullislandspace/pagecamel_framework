@@ -1,5 +1,5 @@
 [% IF MobileDesktopClientMode != 'mobile' %]
-    <table border="0" id="wikitable">
+    <table border="0" id="wikitable" width="100%" align="left">
         <tr>
             <td colspan="3"><div id="toppadding"></div></td>
         </tr>
