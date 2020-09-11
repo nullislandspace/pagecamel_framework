@@ -120,6 +120,7 @@ sub prerender {
     return unless(defined($line));
 
     $webdata->{AdsHeaderCode} = $line->{header_code};
+    $webdata->{AdsSidebarCode} = $line->{sidebar_code};
 
     return;
 }

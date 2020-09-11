@@ -709,6 +709,11 @@
                                         XX_BODY_XX
                                     </div>
                                 </td>
+                               [% IF AdsSidebarCode != '' %]<!-- For Adblock remove code below -->
+                                <td>
+                                    [% AdsSidebarCode %]
+                                </td>
+                                <!-- For Adblock remove code above -->[% END %]
                             </tr>
                         </table>
         [% IF DropDownMenuCount != "" AND DropDownMenuCount > 1 AND UIMenubarName == "sidebar" %]
