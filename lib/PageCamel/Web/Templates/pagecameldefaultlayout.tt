@@ -190,7 +190,9 @@
 
                     // Add special submit function to hide the table and restore hidden rows
                     $('#MainFilterForm').submit(function(){
+                        document.getElementById('pagecamelMenuContent').style.display = 'none';
                         document.getElementById('pagecamelPageContent').style.display = 'none';
+                        document.getElementById('pagecamelFooterContent').style.display = 'none';
                         document.getElementById('pagecamelSendingContent').style.display = 'block';
 
                         $(filter_table.fnGetHiddenNodes()).appendTo(this);
@@ -264,7 +266,9 @@
                 }
 
                 document.getElementById('pagecamelLoadingContent').style.display = 'none';
+                document.getElementById('pagecamelMenuContent').style.display = 'block';
                 document.getElementById('pagecamelPageContent').style.display = 'block';
+                document.getElementById('pagecamelFooterContent').style.display = 'block';
 
                 $('#jsddm_top > li').bind('mouseover', jsddm_open);
                 $('#jsddm_top > li').bind('mouseout',  jsddm_timer);
@@ -477,7 +481,12 @@
         </p>
     </div>
 
-    <div id="pagecamelPageContent" class="elem_display_none" width="100%" align="center" valign="top" border="0">
+    [% IF AdsSidebarCode != '' %]
+    <table border="0"  align="center" cellpadding="10" width="100%">
+        <tr>
+            <td>
+    [% END %]
+    <div id="pagecamelMenuContent" class="elem_display_none" width="100%" align="center" valign="top" border="0">
         [% IF HideMenuBar == "1" %]
             <!-- No menu bar in this window -->
         [% ELSE %]
@@ -679,49 +688,66 @@
                 </table>
             [% END %]
         [% END %]
+    </div>
 
+    [% IF AdsSidebarCode != '' %]
+    <table border="0"  align="center" cellpadding="10" width="100%">
+        <tr>
+            <td>
+    [% END %]
+                <div id="pagecamelPageContent" class="elem_display_none" width="100%" align="center" valign="top" border="0">
+                    [% IF DropDownMenuCount != "" AND DropDownMenuCount > 1 AND UIMenubarName == "sidebar" %]
+                        <table border="0"  align="center" cellpadding="10" width="100%">
+                            <tr>
+                                <td width="100px" valign="top">
+                                    <ul id="jsddm_side">
+                                        [% FOREACH menu IN DropDownMenu %]
+                                            <li><div><a href="[% menu.defaultpath %]">[% tr.trquote(menu.title) %]</a><br/></div>
 
-        [% IF DropDownMenuCount != "" AND DropDownMenuCount > 1 AND UIMenubarName == "sidebar" %]
-            <table border="0"  align="center" cellpadding="10" width="100%">
-                <tr>
-                    <td width="100px" valign="top">
-                        <ul id="jsddm_side">
-                            [% FOREACH menu IN DropDownMenu %]
-                                <li><div><a href="[% menu.defaultpath %]">[% tr.trquote(menu.title) %]</a><br/></div>
+                                                <ul>
+                                                    [% FOREACH menuitem IN menu.items %]
+                                                        <li><a href="[% menuitem.path %]">[% tr.trquote(menuitem.title) %]</a></li>
+                                                    [% END %]
+                                                </ul>
 
-                                    <ul>
-                                        [% FOREACH menuitem IN menu.items %]
-                                            <li><a href="[% menuitem.path %]">[% tr.trquote(menuitem.title) %]</a></li>
+                                            </li>
                                         [% END %]
                                     </ul>
-
-                                </li>
-                            [% END %]
-                        </ul>
-                    </td>
-                    <td align="center" valign="top">
-        [% END %]
-
-                        <table border="0"  align="center" cellpadding="10">
-                            <tr>
-                                <td width="100%">
-                                    <div id="dataarea" name="dataarea" align="center">
-                                        XX_BODY_XX
-                                    </div>
                                 </td>
-                               [% IF AdsSidebarCode != '' %]<!-- For Adblock remove code below -->
-                                <td>
-                                    [% AdsSidebarCode %]
+                                <td align="center" valign="top">
+                    [% END %]
+
+                                    <table border="0"  align="center" cellpadding="10">
+                                        <tr>
+                                            <td width="100%">
+                                                <div id="dataarea" name="dataarea" align="center">
+                                                    XX_BODY_XX
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                    [% IF DropDownMenuCount != "" AND DropDownMenuCount > 1 AND UIMenubarName == "sidebar" %]
                                 </td>
-                                <!-- For Adblock remove code above -->[% END %]
+                                <td width="100px" valign="top"></td>
                             </tr>
                         </table>
-        [% IF DropDownMenuCount != "" AND DropDownMenuCount > 1 AND UIMenubarName == "sidebar" %]
-                    </td>
-                    <td width="100px" valign="top"></td>
-                </tr>
-            </table>
-        [% END %]
+                    [% END %]
+    [% IF AdsSidebarCode != '' %]
+            </td>
+            <td width="200px">
+               <!-- For Adblock remove code below -->
+                [% AdsSidebarCode %]
+                <!-- For Adblock remove code above -->
+            </td>
+            <td width="100px">
+                &nbsp;
+            </td>
+        </tr>
+    </table>
+    [% END %]
+
+                </div>
+    <div id="pagecamelFooterContent" class="elem_display_none" width="100%" align="center" valign="top" border="0">
 
         <br>
 
