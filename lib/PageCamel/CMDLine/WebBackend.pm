@@ -200,10 +200,7 @@ sub handleClient {
         $ok = 1;
     };
     if(!$ok) {
-        $self->xdebuglog("!!!!! FAILED child_init_hook $@");
-        kill 'USR1', $header->{pid}; # Notify frontend that we are done
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+        $self->endprogram($header, "!!!!! FAILED child_init_hook $@");
     }
 
     my $allowclient;
@@ -213,10 +210,7 @@ sub handleClient {
         $ok = 1;
     };
     if(!$ok) {
-        $self->xdebuglog("!!!!! FAILED allow_deny_hook $@");
-        kill 'USR1', $header->{pid}; # Notify frontend that we are done
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+        $self->endprogram($header, "!!!!! FAILED allow_deny_hook $@");
     }
 
     if(!$allowclient) {
@@ -229,10 +223,7 @@ sub handleClient {
             $ok = 1;
         };
         if(!$ok) {
-            $self->xdebuglog("!!!!! FAILED process_request $@");
-            #$self->{webserver}->processing_error_hook($EVAL_ERROR);
-            kill 9, $PID;
-            POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+            $self->endprogram($header, "!!!!! FAILED process_request $@");
         }
     }
     
@@ -244,10 +235,7 @@ sub handleClient {
     };
 
     if(!$ok) {
-        $self->xdebuglog("!!!!! FAILED post_process_request_hook $@");
-        kill 'USR1', $header->{pid}; # Notify frontend that we are done
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+        $self->endprogram($header, "!!!!! FAILED post_process_request_hook $@");
     }
     
     $ok = 0;
@@ -257,10 +245,7 @@ sub handleClient {
         $ok = 1;
     };
     if(!$ok) {
-        $self->xdebuglog("!!!!! FAILED child_finish_hook $@");
-        kill 'USR1', $header->{pid}; # Notify frontend that we are done
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+        $self->endprogram($header, "!!!!! FAILED child_finish_hook $@");
     }
 
 
@@ -275,18 +260,22 @@ sub handleClient {
     };
 
     if(!$ok) {
-        $self->xdebuglog("!!!!! FAILED stopping process $@");
-        kill 'USR1', $header->{pid}; # Notify frontend that we are done
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+        $self->endprogram($header, "!!!!! FAILED stopping process $@");
     }
 
 
-    $self->xdebuglog("exit(0)");
+    $self->endprogram($header, "exit(0)");
+}
+
+sub endprogram {
+    my ($self, $header, $debugmessage) = @_;
     kill 'USR1', $header->{pid}; # Notify frontend that we are done
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
     exit(0);
+
+    #$self->xdebuglog("exit(0)");
+    #    kill 9, $PID;
+    #    POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    #exit(0);
 }
 
 sub readFrontendheader {
