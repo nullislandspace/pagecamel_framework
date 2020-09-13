@@ -154,6 +154,17 @@ sub do_dyndns {
         );
     }
 
+    my $axfrslavesth = $dbh->prepare_cached("UPDATE nameserver_domain SET axfr_slave = ?
+                                        WHERE axfr_slave like ? || ',%'")
+            or croak($dbh->errstr);
+    if(!$axfrslavesth->execute($desthostname . ',' . $host, $desthostname)) {
+        $dbh->rollback;
+        return (
+            status  => 500,
+            statustext => "Database error",
+        );
+    }
+
     $dbh->commit;
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
