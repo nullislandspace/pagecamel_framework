@@ -199,16 +199,16 @@ sub quit {
     return;
 }
 
-sub DESTROY {
-    my ($self) = @_;
-
-    # Try to run quit(), might error out though.
-    eval {
-        $self->quit;
-    };
-
-    return;
-}
+#sub DESTROY {
+#    my ($self) = @_;
+#
+#    # Try to run quit(), might error out though.
+#    eval {
+#        $self->quit;
+#    };
+#
+#    return;
+#}
 
 
 1;

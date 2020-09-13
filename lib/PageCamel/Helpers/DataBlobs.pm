@@ -129,15 +129,15 @@ sub blobClose {
 
 }
 
-sub DESTROY {
-    my ($self) = @_;
-
-    # Try to close BLOB during DESTROY, might error out though
-    eval {
-        $self->blobClose();
-    };
-    return;
-}
+#sub DESTROY {
+#    my ($self) = @_;
+#
+#    # Try to close BLOB during DESTROY, might error out though
+#    eval {
+#        $self->blobClose();
+#    };
+#    return;
+#}
 
 sub blobID {
     my ($self) = @_;

@@ -63,19 +63,19 @@ sub log { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
 
 }
 
-sub DESTROY {
-    my ($self) = @_;
-
-    # Socket might already be DESTROYed, so catch any errors
-    eval {
-        if(defined($self->{socket})) {
-            $self->{socket}->close();
-            delete $self->{socket};
-        }
-    };
-
-    return;
-}
+#sub DESTROY {
+#    my ($self) = @_;
+#
+#    # Socket might already be DESTROYed, so catch any errors
+#    eval {
+#        if(defined($self->{socket})) {
+#            $self->{socket}->close();
+#            delete $self->{socket};
+#        }
+#    };
+#
+#    return;
+#}
 
 1;
 __END__
