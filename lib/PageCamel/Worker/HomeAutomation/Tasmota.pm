@@ -189,7 +189,7 @@ sub runCommand {
         $url .= '%20' . $option;
     }
 
-    my $mech = WWW::Mechanize->new();
+    my $mech = WWW::Mechanize->new(timeout => 10);
     my $result;
     my $success;
     if(!(eval {
