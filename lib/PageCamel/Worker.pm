@@ -69,6 +69,7 @@ use PageCamel::Worker::HomeAutomation::FritzBox;
 use PageCamel::Worker::HomeAutomation::HWGSTE;
 use PageCamel::Worker::HomeAutomation::KeepRange;
 use PageCamel::Worker::HomeAutomation::PowerShare;
+use PageCamel::Worker::HomeAutomation::ResetDevice;
 use PageCamel::Worker::HomeAutomation::Tasmota;
 use PageCamel::Worker::HomeAutomation::Timer;
 use PageCamel::Worker::Logging::PluginBase;
