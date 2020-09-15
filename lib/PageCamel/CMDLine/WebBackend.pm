@@ -270,11 +270,12 @@ sub handleClient {
 sub endprogram {
     my ($self, $header, $debugmessage) = @_;
     kill 'USR1', $header->{pid}; # Notify frontend that we are done
-    exit(0);
+    #exit(0);
 
-    #$self->xdebuglog("exit(0)");
-    #    kill 9, $PID;
-    #    POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    $self->xdebuglog("exit(0)");
+    sleep(1);
+        kill 9, $PID;
+        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
     #exit(0);
 }
 
