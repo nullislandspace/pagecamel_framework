@@ -87,10 +87,10 @@ sub work {
     if(defined($data)) {
         $workCount++;
         # Both SET and STORE the data
-        if(defined($data->{temperature})) {
+        if(defined($data->{temperature}) && defined($self->{clacksname_temperature})) {
             $self->{clacks}->setAndStore($self->{clacksname_temperature}, $data->{temperature});
         }
-        if(defined($data->{humidity})) {
+        if(defined($data->{humidity}) && defined($self->{clacksname_humidity})) {
             $self->{clacks}->setAndStore($self->{clacksname_humidity}, $data->{humidity});
         }
         $reph->debuglog('HWGSTE ' . $self->{hostname} . ': ' . $data->{temperature} . 'C, ' . $data->{humidity} . '%');

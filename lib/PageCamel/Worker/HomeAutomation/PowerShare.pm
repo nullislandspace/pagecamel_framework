@@ -95,8 +95,8 @@ sub work {
             } else {
                 $reph->debuglog("Powershare: Enabling switch " . $item->{itemname});
             }
-            $self->{clacks}->set($item->{clacksname_switch}, $nextstate);
         }
+        $self->{clacks}->set($item->{clacksname_switch}, $nextstate);
     }
 
     $self->{clacks}->doNetwork();

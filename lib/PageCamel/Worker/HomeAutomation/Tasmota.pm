@@ -94,10 +94,13 @@ sub work {
             #$reph->debuglog("GOT CLACKS: " . $cmsg->{name} . "=" . $cmsg->{data});
             foreach my $key (keys %{$self->{switches}}) {
                 if($cmsg->{name} eq $self->{switches}->{$key}->{clacksname_disable_switch}) {
-                    if($cmsg->{data}) {
-                        $reph->debuglog("Disabling switch $key");
-                    } else {
-                        $reph->debuglog("Enabling switch $key");
+                    my $curstate = $self->{clacks}->retrieve($self->{switches}->{$key}->{clacksname_disable_state});
+                    if($curstate != $cmsg->{data}) {
+                        if($cmsg->{data}) {
+                            $reph->debuglog("Disabling switch $key");
+                        } else {
+                            $reph->debuglog("Enabling switch $key");
+                        }
                     }
                     $self->{clacks}->setAndStore($self->{switches}->{$key}->{clacksname_disable_state}, $cmsg->{data});
                 } elsif($cmsg->{name} eq $self->{switches}->{$key}->{clacksname_setswitch}) {
