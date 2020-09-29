@@ -18,7 +18,7 @@
     
     var dskybuttons = [
         {x: 640, y: 50, w: 100, h: 100, text: "ACK", name: "ACK", active: 0},
-        {x: 760, y: 50, w: 100, h: 100, text: "PWR", name: "POWER", active: 0},
+        {x: 760, y: 50, w: 100, h: 100, text: "MACK", name: "MASTERACK", active: 0},
         {x: 880, y: 50, w: 100, h: 100, text: "KR", name: "KEYBOARDRELEASE", active: 0},
 
         {x: 640, y: 210, w: 100, h: 100, text: "ESC", name: "ESC", active: 0},
@@ -122,36 +122,6 @@
                                     dskybuttons[i].name,
                                     5);
         }
-
-        /*
-        buttonHandler.addButton(640, 50, 100, 100,  "ACK",   '#000000', '#A0A0A0', buttonSendMessage, "ACK", 5);
-        buttonHandler.addButton(760, 50, 100, 100,  "PWR",    '#000000', '#A0A0A0', buttonSendMessage, "POWER", 5);
-        buttonHandler.addButton(880, 50, 100, 100,  "KR",   '#000000', '#A0A0A0', buttonSendMessage, "KEYRELEASE", 5);
-        
-        buttonHandler.addButton(640, 210, 100, 100,  "ESC",  '#000000', '#A0A0A0', buttonSendMessage, "ESC", 5);
-        buttonHandler.addButton(760, 210, 100, 100,  "PRO",  '#000000', '#A0A0A0', buttonSendMessage, "PRO", 5);
-        buttonHandler.addButton(880, 210, 100, 100,  "FUNC", '#000000', '#A0A0A0', buttonSendMessage, "FUNC", 5);
-        buttonHandler.addButton(1000, 210, 100, 100, "α",    '#000000', '#A0A0A0', buttonSendMessage, "I1", 5);
-        
-        buttonHandler.addButton(640, 320, 100, 100,  "7",    '#000000', '#A0A0A0', buttonSendMessage, "7", 5);
-        buttonHandler.addButton(760, 320, 100, 100,  "8",    '#000000', '#A0A0A0', buttonSendMessage, "8", 5);
-        buttonHandler.addButton(880, 320, 100, 100,  "9",    '#000000', '#A0A0A0', buttonSendMessage, "9", 5);
-        buttonHandler.addButton(1000, 320, 100, 100, "β",    '#000000', '#A0A0A0', buttonSendMessage, "I2", 5);
-        
-        buttonHandler.addButton(640, 430, 100, 100,  "4",    '#000000', '#A0A0A0', buttonSendMessage, "4", 5);
-        buttonHandler.addButton(760, 430, 100, 100,  "5",    '#000000', '#A0A0A0', buttonSendMessage, "5", 5);
-        buttonHandler.addButton(880, 430, 100, 100,  "6",    '#000000', '#A0A0A0', buttonSendMessage, "6", 5);
-        buttonHandler.addButton(1000, 430, 100, 100, "γ",    '#000000', '#A0A0A0', buttonSendMessage, "I3", 5);
-        
-        buttonHandler.addButton(640, 540, 100, 100,  "1",    '#000000', '#A0A0A0', buttonSendMessage, "1", 5);
-        buttonHandler.addButton(760, 540, 100, 100,  "2",    '#000000', '#A0A0A0', buttonSendMessage, "2", 5);
-        buttonHandler.addButton(880, 540, 100, 100, "3",     '#000000', '#A0A0A0', buttonSendMessage, "3", 5);
-        buttonHandler.addButton(1000, 540, 100, 210, "⏎",    '#000000', '#A0A0A0', buttonSendMessage, "ENTER", 5);
-        
-        buttonHandler.addButton(640, 650, 100, 100, "0",     '#000000', '#A0A0A0', buttonSendMessage, "0", 5);
-        buttonHandler.addButton(760, 650, 100, 100, "00",    '#000000', '#A0A0A0', buttonSendMessage, "00", 5);
-        buttonHandler.addButton(880, 650, 100, 100, "DEL",   '#000000', '#A0A0A0', buttonSendMessage, "BACKSPACE", 5);
-        */
 
         ctx.strokeStyle = '#AF0000';        
         paintMatrixDisplay(ctx, 400, 40, sevendisplays[0]);
