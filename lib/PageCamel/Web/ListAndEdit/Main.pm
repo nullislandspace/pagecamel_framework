@@ -684,14 +684,14 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         if($table =~ /\./) {
             ($schema, $table) = split/\./, $table;
         }
-        my $nvsel = $dbh->prepare("SELECT adsrc FROM pg_attrdef WHERE adrelid =
+        my $nvsel = $dbh->prepare("SELECT pg_get_expr(adbin, adrelid) AS adsrc FROM pg_attrdef WHERE adrelid =
                                     (
                                         SELECT c.oid FROM pg_class c
                                         INNER JOIN pg_namespace n ON n.oid = c.relnamespace
                                         WHERE n.nspname = ?
                                         AND c.relname = ?
                                     )
-                                    and adsrc like 'nextval%';")
+                                    and pg_get_expr(adbin, adrelid) like 'nextval%';")
             or croak($dbh->errstr);
         $nvsel->execute($schema, $table) or croak($dbh->errstr);
         while((my $line = $nvsel->fetchrow_hashref)) {
