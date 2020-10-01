@@ -5,12 +5,6 @@
                         confirm => "Delete",
                         cancel => "Cancel",
                         mode => "delete") %]
-[% dialog.notification(name => "noCoordinatesError",
-                        title => "No coordinates",
-                        text => "This computer has no coordinates on the map!",
-                        picture => "/pics/computer_map_preview.png"
-                        icon => "alert",
-                        confirm => "OK") %]
 
 [% IF statustext %]
 <p align="center">
@@ -29,7 +23,6 @@
             <li><a href="#tabs-realnetwork">[% tr.trquote("Network") %]</a></li>
             <li><a href="#tabs-vboxnetwork">[% tr.trquote("VBox Network") %]</a></li>
             <li><a href="#tabs-vnc">[% tr.trquote("VNC") %]</a></li>
-            <li><a href="#tabs-map">[% tr.trquote("Map") %]</a></li>
             <li><a href="#tabs-developer">[% tr.trquote("Developer") %]</a></li>
             <li><a href="#tabs-notes">[% tr.trquote("Notes") %]</a></li>
             <li><a href="#tabs-debug">[% tr.trquote("Debug") %]</a></li>
@@ -263,7 +256,7 @@
                         </tr>
                         <tr>
                             <td>[% tr.trquote("MAC address") %]</td>
-                            <td><input type="text" name="net_public1_mac" id="prod_mac_input" size="30" maxLength="60" value="[% tr.quote(computer.net_public1_mac) %]"></td>
+                            <td><input type="text" name="net_public1_mac" size="30" maxLength="60" value="[% tr.quote(computer.net_public1_mac) %]"></td>
                         </tr>
 
                         <tr class="tabheader">
@@ -294,7 +287,7 @@
                         </tr>
                         <tr>
                             <td>[% tr.trquote("MAC address") %]</td>
-                            <td><input type="text" name="net_public2_mac" id="prod_mac_input" size="30" maxLength="60" value="[% tr.quote(computer.net_public2_mac) %]"></td>
+                            <td><input type="text" name="net_public2_mac" size="30" maxLength="60" value="[% tr.quote(computer.net_public2_mac) %]"></td>
                         </tr>
 
                         <tr class="tabheader">
@@ -325,7 +318,7 @@
                         </tr>
                         <tr>
                             <td>[% tr.trquote("MAC address") %]</td>
-                            <td><input type="text" name="net_private1_mac" id="prod_mac_input" size="30" maxLength="60" value="[% tr.quote(computer.net_private1_mac) %]"></td>
+                            <td><input type="text" name="net_private1_mac" size="30" maxLength="60" value="[% tr.quote(computer.net_private1_mac) %]"></td>
                         </tr>
 
                         <tr class="tabheader">
@@ -356,7 +349,7 @@
                         </tr>
                         <tr>
                             <td>[% tr.trquote("MAC address") %]</td>
-                            <td><input type="text" name="net_private2_mac" id="prod_mac_input" size="30" maxLength="60" value="[% tr.quote(computer.net_private2_mac) %]"></td>
+                            <td><input type="text" name="net_private2_mac" size="30" maxLength="60" value="[% tr.quote(computer.net_private2_mac) %]"></td>
                         </tr>
                        
                     </tbody>
@@ -460,6 +453,14 @@
                             </td>
                         </tr>
                         <tr>
+                            <td>[% tr.trquote("IP") %]</td>
+                            <td><input type="text" name="vnc_ip" value="[% tr.quote(computer.vnc_ip) %]"></td>
+                        </tr>
+                        <tr>
+                            <td>[% tr.trquote("Port") %]</td>
+                            <td><input type="text" name="vnc_port" value="[% tr.quote(computer.vnc_port) %]"></td>
+                        </tr>
+                        <tr>
                             <td>[% tr.trquote("Password") %]</td>
                             <td><input type="text" name="vnc_password" value="[% tr.quote(computer.vnc_password) %]"></td>
                         </tr>
@@ -484,39 +485,6 @@
                         [% END %]
                     </tbody>
                 </table>
-            </p>
-        </div>
-
-        <div id="tabs-map">
-            <p align="center">
-                <table class="data" id="HelperTable6">
-                    <thead>
-                        <tr class="tabheader">
-                            <th>[% tr.trquote("Key") %]</th>
-                            <th>[% tr.trquote("Value") %]</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>[% tr.trquote("Hostname") %]</td>
-                            <td>
-                                <div class="computer_name_display"></div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>[% tr.trquote("Coordinates") %]</td>
-                            <td>
-                                <div id="openlayerscoords">[% tr.quote(computer.openlayers_pos_x) %] : [% tr.quote(computer.openlayers_pos_y) %]</div>
-                                <input type="hidden" name="openlayers_pos_x" id="openlayers_pos_x_c" value="[% tr.quote(computer.openlayers_pos_x) %]">
-                                <input type="hidden" name="openlayers_pos_y" id="openlayers_pos_y_c" value="[% tr.quote(computer.openlayers_pos_y) %]">
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </p>
-
-            <p align="center">
-                <div id="xxystreetMap" class="pagecamelmap"></div>
             </p>
         </div>
 
@@ -633,41 +601,13 @@
     <p align="center">
         <table class="data" id="HelperTable10">
             <tfoot>
-                [% IF EditMode != "create" %]
-                    <!-- PTOUCH PRINTING -->
-                    <tr>
-                        <td colspan="2" align="center">
-                            <input type="checkbox" name="do_print">
-                            [% tr.trquote("Print") %]
-                            <select name="print_pagecount">
-                                [% FOREACH AvailPageCount IN AvailPageCounts %]
-                                    <option value="[% tr.quote(AvailPageCount) %]"
-                                    [% IF AvailPageCount == PTouchDefaultPageCount %]
-                                        selected="selected"
-                                    [% END %]
-                                    >[% tr.quote(AvailPageCount) %]</option>
-                                [% END %]
-                            </select>
-                            [% tr.trquote("copies on printer") %]
-                            <select name="print_printername">
-                                [% FOREACH AvailPrinter IN AvailPrinters %]
-                                    <option value="[% tr.quote(AvailPrinter.printer_name) %]"
-                                    [% IF AvailPrinter.printer_name == PTouchDefaultPrinter %]
-                                        selected="selected"
-                                    [% END %]
-                                    >[% tr.quote(AvailPrinter.printer_name) %]</option>
-                                [% END %]
-                            </select>
-                        </td>
-                    </tr>
-                [% END %]
                 <tr>
                     <td colspan="2" align="center">
                         <input type="hidden" name="mode" id="editmode" value="[% EditMode %]">
                         [% IF EditMode == "create" %]
-                            <input type="submit" value="[% tr.trquote("Create") %]" onClick="return checkCoordinates();">
+                            <input type="submit" value="[% tr.trquote("Create") %]">
                         [% ELSE %]
-                            <input type="submit" value="[% tr.trquote("Update") %]" onClick="return checkCoordinates();">
+                            <input type="submit" value="[% tr.trquote("Update") %]">
                             <input type="submit" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteComputer('computeredit', 'editmode');">
                         [% END %]
                     </td>
@@ -712,21 +652,8 @@
                 removeButtons: 'Image'
                 });
         
-        mapExtraOnLoad();
     }
 
-    function checkCoordinates() {
-        var xcoord = $('#openlayers_pos_x_c').val();
-        var ycoord = $('#openlayers_pos_x_c').val();
-        
-        if(xcoord == 0.0 && ycoord == 0.0) {
-            noCoordinatesError();
-            return false;
-        }
-        
-        return true;
-    }
-        
     function changeosdefaults(osname) {
         var servicepack_c = document.getElementById("servicepack_c");
         
@@ -744,143 +671,6 @@
 
         return false;
     }   
-
-    // -- OpenLayers --
-    var map;
-    var mapBounds;// = new OpenLayers.Bounds( 0.0, -7000.0, 4764.0, 0.0);
-    var mapMinZoom = 0;
-    var mapMaxZoom = 7;
-    var markers;
-    var firstOSMDisplay = 1;
-    OpenLayers.ImgPath = "[% imagepath %]";
-    
-    // *********** CAN ONLY INITIALIZE OpenLayers WHEN VISIBLE. This is a
-    // major OpenLayers bug, but we can work around it. Of course, this might slow
-    // the user down, but there is nothing we can do about short of rewriting OpenLayers ******************
-    function mapExtraOnLoad(){
-        $("#tabs").bind("tabsactivate", function(event, ui) {
-            if(firstOSMDisplay == 1 && ui.newPanel.selector == '#tabs-map') {
-                setTimeout(initOSM, 1000);
-                firstOSMDisplay = 0;
-            }
-        });
-    }
-        
-
-    function initOSMVars() {
-        mapBounds = new OpenLayers.Bounds(0.0, -7000.0, 15000.0, 0.0);
-    
-        // avoid pink tiles
-        OpenLayers.IMAGE_RELOAD_ATTEMPTS = 3;
-        OpenLayers.Util.onImageLoadErrorColor = "transparent";
-
-
-        OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {                
-            defaultHandlerOptions: {
-                'single': true,
-                'double': false,
-                'pixelTolerance': 0,
-                'stopSingle': false,
-                'stopDouble': false
-            },
-
-            initialize: function(options) {
-                this.handlerOptions = OpenLayers.Util.extend(
-                    {}, this.defaultHandlerOptions
-                );
-                OpenLayers.Control.prototype.initialize.apply(
-                    this, arguments
-                ); 
-                this.handler = new OpenLayers.Handler.Click(
-                    this, {
-                        'click': this.trigger
-                    }, this.handlerOptions
-                );
-            }, 
-
-            trigger: function(e) {
-                var lonlat = map.getLonLatFromPixel(e.xy);
-                /*
-                var tmpStr = lonlat.toShortString();
-                var newLonLat = OpenLayers.LonLat.fromString(tmpStr);
-                markers.clearMarkers();
-                var marker = new OpenLayers.Marker(newLonLat);
-                */
-                markers.clearMarkers();
-                var marker = new OpenLayers.Marker(lonlat);
-                markers.addMarker(marker);
-                var dispcoords = lonlat.lon + ' : ' + lonlat.lat;
-                $('#openlayerscoords').html(dispcoords);
-                $('#openlayers_pos_x_c').val(lonlat.lon);
-                $('#openlayers_pos_y_c').val(lonlat.lat);
-                
-                /*
-                marker.events.register('click', marker, function(evt){
-                    alert("Hello");
-                     //this.pop.show();
-                     // OpenLayers.Event.stop(evt); 
-                });
-                */
-
-            }
-
-        });
-    }
-
-    function initOSM(){
-        initOSMVars();
-        
-        var options = {
-            controls: [],
-            maxExtent: new OpenLayers.Bounds(0.0, -7000.0, 15000.0, 0.0 ),
-            maxResolution: 64.000000,
-            numZoomLevels: 8,
-            transitionEffect: "resize",
-            attribution: "<p align=\"center\">Prod-IT Ilz</p>"
-        };
-
-        map = new OpenLayers.Map('xxystreetMap', options);
-
-        var layer = new OpenLayers.Layer.TMS( "TMS Layer","",
-            {  url: '', serviceVersion: '.', layername: '.', alpha: true,
-                type: 'png', getURL: overlay_getTileURL 
-            });
-        map.addLayer(layer);
-        //map.zoomToExtent( mapBounds );    
-
-        map.addControl(new OpenLayers.Control.Navigation());
-        map.addControl(new OpenLayers.Control.PanZoomBar());
-        map.addControl(new OpenLayers.Control.MousePosition());
-        //map.addControl(new OpenLayers.Control.MouseDefaults());
-        map.addControl(new OpenLayers.Control.KeyboardDefaults());
-        map.addControl(new OpenLayers.Control.Attribution());
-
-        markers = new OpenLayers.Layer.Markers( "Markers" );
-        map.addLayer(markers);
-
-        var click = new OpenLayers.Control.Click();
-        map.addControl(click);
-        click.activate();
-        
-        var lonlat = new OpenLayers.LonLat($('#openlayers_pos_x_c').val(), $('#openlayers_pos_y_c').val());
-        var marker = new OpenLayers.Marker(lonlat);
-        markers.addMarker(marker);
-        map.setCenter(lonlat, 5);
-        
-    }
-    
-    function overlay_getTileURL(bounds) {
-        var res = this.map.getResolution();
-        var x = Math.round((bounds.left - this.maxExtent.left) / (res * this.tileSize.w));
-        var y = Math.round((bounds.bottom - this.maxExtent.bottom) / (res * this.tileSize.h));
-        var z = this.map.getZoom();
-        if (x >= 0 && y >= 0) {
-            return "[% tiles %]" + z + "/" + x + "/" + y + "." + this.type;                
-        } else {
-            return "[% tiles %]herebedragons.png";
-        }
-    }
-    
 
 </script>
 

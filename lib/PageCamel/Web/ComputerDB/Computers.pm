@@ -167,22 +167,6 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         @extracolumns = ('pagecamel_designation', 'pagecamel_notes');
     }
 
-    { # PTouch Printing preparation
-        my $selsth = $dbh->prepare_cached("SELECT * FROM ptouch_printers
-                                          ORDER BY printer_name")
-                or croak($dbh->errstr);
-        $selsth->execute or croak($dbh->errstr);
-        my @availprinters;
-        while((my $availprinter = $selsth->fetchrow_hashref)) {
-            push @availprinters, $availprinter;
-        }
-        $selsth->finish;
-        my @availpagecount = 1..10;
-
-        $webdata{AvailPrinters} = \@availprinters;
-        $webdata{AvailPageCounts} = \@availpagecount;
-    }
-
     my %computer;
     if($mode ne "new") {
         # Get parameters from webform
@@ -514,36 +498,6 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         }
     }
 
-    # PTouch: Print Labels if required
-    if($mode eq "edit") {
-        my $doPrint = $ua->{postparams}->{"do_print"} || '';
-        my $printername = $ua->{postparams}->{'print_printername'} || '';
-        my $pagecount = $ua->{postparams}->{'print_pagecount'} || '';
-        if(($doPrint eq "1" || $doPrint eq "on") && $printername ne '' && $pagecount ne '') {
-
-            my $pristh = $dbh->prepare_cached("INSERT INTO ptouch_queue (printer_name, label_type, labeldata)
-                                              VALUES (?, 'COMPUTER', ?)")
-                    or croak($dbh->errstr);
-            my @labeldata;
-            foreach my $key (qw[computer_name account_user account_password account_domain line_id description net_prod_ip net_line_ip net_haustechnik_ip]) {
-                push @labeldata, $computer{$key};
-            }
-            my $ok = 1;
-            for(1..$pagecount) {
-                if(!$pristh->execute($printername, \@labeldata)) {
-                    $ok = 0;
-                    last;
-                }
-            }
-            if(!$ok) {
-                $dbh->rollback;
-            } else {
-                $dbh->commit;
-            }
-        }
-    }
-
-
     if($mode eq "new") {
         my %defaultcomputer = (
             is_64bit            => 0,
@@ -558,10 +512,6 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                 $defaultcomputer{$keyname} = "";
             }
         }
-
-        $defaultcomputer{openlayers_pos_x} = "0";
-        $defaultcomputer{openlayers_pos_y} = "0";
-
 
         $webdata{computer} = \%defaultcomputer;
 
@@ -611,15 +561,6 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         push @devicetypes, $line;
     }
     $webdata{devicetypes} = \@devicetypes;
-
-    # Openlayers Map
-
-    foreach my $key (qw[tiles imagepath]) {
-        $webdata{$key} = $self->{$key};
-    }
-    if($webdata{IsAprilFoolsDay}) {
-        $webdata{tiles} = $self->{aprilfoolstiles};
-    }
 
     if(!defined($webdata{HeadExtraScripts})) {
         my @tmp;

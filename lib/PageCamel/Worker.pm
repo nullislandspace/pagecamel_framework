@@ -50,6 +50,7 @@ use PageCamel::Worker::Firewall::SyslogForwarder;
 use PageCamel::Worker::ForceVacuumAnalyze;
 use PageCamel::Worker::Foscam::Stream;
 use PageCamel::Worker::GardenSpaceProgram::Balcony1Decoder;
+use PageCamel::Worker::GardenSpaceProgram::BedroomSensorDecoder;
 use PageCamel::Worker::GardenSpaceProgram::DGN1Decoder;
 use PageCamel::Worker::GardenSpaceProgram::DGN2Decoder;
 use PageCamel::Worker::GardenSpaceProgram::DrivewaylightsDecoder;
@@ -97,7 +98,6 @@ use PageCamel::Worker::TableStatistics;
 use PageCamel::Worker::Twitter::BlogTweet;
 use PageCamel::Worker::Twitter::HistoryTweet;
 use PageCamel::Worker::Twitter::TweetOutbox;
-use PageCamel::Worker::VNC::VNCCommands;
 use PageCamel::Worker::Wansview::Stream;
 #=!=END-AUTO-INCLUDES
 

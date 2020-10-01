@@ -35,10 +35,6 @@ sub new {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
-    if(!defined($self->{computer_ip_column})) {
-        $self->{computer_ip_column} = 'net_prod_ip';
-    }
-
     return $self;
 }
 
@@ -367,10 +363,10 @@ sub get_vnc {
 
     $webdata{WSPath} = $socketpath;
 
-    my $insth = $dbh->prepare_cached("INSERT INTO computers_vnc_session (session_id, computer_name, ip_address)
-                                     VALUES (?, ?, ?)")
+    my $insth = $dbh->prepare_cached("INSERT INTO computers_vnc_session (session_id, computer_name, ip_address, vnc_port)
+                                     VALUES (?, ?, ?, ?)")
             or croak($dbh->errstr);
-    if(!$insth->execute($sockid, $host, $hostdata->{$self->{computer_ip_column}})) {
+    if(!$insth->execute($sockid, $host, $hostdata->{vnc_ip}, $hostdata->{vnc_port})) {
         $dbh->rollback;
         return(status => 500);
     }
@@ -387,13 +383,6 @@ sub get_vnc {
     }
 
     $webdata{VNCPass} = $hostdata->{vnc_password};
-
-    my @shareddirkeys;
-    foreach my $key (split//, $self->{shared_directory}) {
-        push @shareddirkeys, ord($key);
-    }
-    $webdata{shareddirkeys} = \@shareddirkeys;
-    $webdata{shareddirectorypath} = $self->{shared_directory};
 
     my @extracss = (
         '/static/vnc_html5/base.css',
@@ -551,17 +540,17 @@ sub sockethandler { ## no critic (Subroutines::ProhibitExcessComplexity)
         my $socketclosed = 0;
 
         if($self->{isDebugging}) {
-            print STDERR "Connecting to " . $session->{ip_address} . ":5900\n";
+            print STDERR "Connecting to " . $session->{ip_address} . ":" . $session->{vnc_port} . "\n";
         }
 
         my $vnc = IO::Socket::INET->new(
             PeerHost => $session->{ip_address},
-            PeerPort => '5900',
+            PeerPort => $session->{vnc_port},
             Proto => 'tcp',
         );
 
         if(!defined($vnc)) {
-            print STDERR "Can't connect to " . $session->{ip_address} . ":5900\n";
+            print STDERR "Can't connect to " . $session->{ip_address} . ":" . $session->{vnc_port} . "\n";
             return;
         }
 

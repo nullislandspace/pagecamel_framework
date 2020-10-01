@@ -1,6 +1,5 @@
 <p align="left"><b>[% tr.trquote("You must use the following credentials to login to this remote computer:") %]</b><br>
 [% tr.quote(Computer.computer_name) %]<br/>
-[% tr.trquote("Shared directory") %]: [% tr.quote(shareddirectorypath) %]<br></p><!-- ******* VNC CODE START ******** -->
 <script src="/static/vnc_html5/util.js" type="text/javascript"></script>
 
 <div id="noVNC_wrapper" class="noVNC_wrapper">
@@ -26,7 +25,6 @@
 
                 <td align="right">
                     <div id="noVNC_buttons">
-                        <input type="button" value="[% tr.trquote("Shared directory") %]" shared="" id="openSharedDirButton" onclick="return openSharedDir();">
                         <input type="button" value="[% tr.trquote("Windows Key") %]" windows="" id="sendWindowsKeyButton" onclick="return sendWindowsKey();">
                         <input type="button" value="[% tr.trquote("Ctrl+Alt+Del") %]" id="sendCtrlAltDelButton" onclick="return sendCtrlAltDel();">
                         <input type="button" value="[% tr.quote("\\") %]" id="sendBackslashKeyButton" onclick="return sendBackslashKey();">
@@ -204,44 +202,6 @@
         return false;
     }
     
-    // Block UI, send escape (make sure start menu is NOT open)
-    function openSharedDir() {
-        $.blockUI({ message: '<h1>[% tr.trquote("Trying to start Windows Explorer...") %]<\/h1>' });
-        rfb.sendKey(0xff1b);
-        setTimeout(typeSharedDirPathA, 2000);
-        return false;
-    }
-    
-    // Send Windows-R for "Run command" window or relevant start menu part
-    function typeSharedDirPathA() {    
-        rfb.sendKey(0xffeb, 1);
-        rfb.sendKey('r');
-        rfb.sendKey(0xffeb, 0);
-
-        setTimeout(typeSharedDirPathB, 3000);
-
-        return false;
-    }
-    
-    // Type path and send "Enter", unblock UI
-    function typeSharedDirPathB() {
-        [% FOREACH dirkey IN shareddirkeys %]
-            [% IF dirkey == 92 %]
-                // Backslash
-                rfb.sendKey(65027, 1);
-                rfb.sendKey(92, 1);
-                rfb.sendKey(92, 0);
-                rfb.sendKey(65027, 0);
-            [% ELSE %]        
-                rfb.sendKey([% dirkey %]);
-            [% END %]
-        [% END %]
-        rfb.sendKey(0xff0d);
-        $.unblockUI();
-
-        return false;
-    }
-    
     function xvpReboot() {
         rfb.xvpReboot();
         return false;
@@ -270,7 +230,6 @@
         if (state === "normal") {
             $('#noVNC_wrapper').css("overflow","scroll");
             cad.disabled = false;
-            $( "#openSharedDirButton" ).show();
             $( "#sendWindowsKeyButton" ).show();
             $( "#fullscreenButton" ).show();
             $( "#sendCtrlAltDelButton" ).show();
@@ -282,7 +241,6 @@
             $('#noVNC_wrapper').css("overflow","hidden");
             cad.disabled = true;
 
-            $( "#openSharedDirButton" ).hide();
             $( "#sendWindowsKeyButton" ).hide();
             $( "#fullscreenButton" ).hide();
             $( "#sendCtrlAltDelButton" ).hide();
