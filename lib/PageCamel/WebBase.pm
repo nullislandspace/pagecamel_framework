@@ -30,7 +30,6 @@ use PageCamel::Web::Cables::View;
 use PageCamel::Web::ClacksCache;
 use PageCamel::Web::CommandQueue;
 use PageCamel::Web::ComputerDB::Computers;
-use PageCamel::Web::ComputerDB::MapSelect;
 use PageCamel::Web::DirCleaner;
 use PageCamel::Web::DirSync::DirSync;
 use PageCamel::Web::DynDNS;

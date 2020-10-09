@@ -73,14 +73,12 @@ sub get_admin {
         NOP_FAIL            => 'simple',
         BACKUP              => 'simple',
         SCHEDULE_DIRSYNC    => 'dirsync',
-        VNC_UPDATE_RESOLUTION => 'computer',
         SVC_RESET_ALL_SERVICES => 'simple',
     );
     my @commandorder = qw[
                         ANALYZE_TABLE VACUUM_ANALYZE_TABLE VACUUM_ANALYZE VACUUM_FULL
                         REINDEX_TABLE REINDEX_ALL_TABLES
                         BACKUP
-                        VNC_UPDATE_RESOLUTION
                         NOP_OK NOP_FAIL
                         SVC_RESET_ALL_SERVICES
                         ];

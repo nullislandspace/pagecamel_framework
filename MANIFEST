@@ -82,11 +82,9 @@ lib/PageCamel/Web/Cables/View.pm
 lib/PageCamel/Web/ClacksCache.pm
 lib/PageCamel/Web/CommandQueue.pm
 lib/PageCamel/Web/ComputerDB/Computers.pm
-lib/PageCamel/Web/ComputerDB/MapSelect.pm
 lib/PageCamel/Web/ComputerDB/Templates/computers_edit.tt
 lib/PageCamel/Web/ComputerDB/Templates/computers_select.tt
 lib/PageCamel/Web/ComputerDB/Templates/computers_vncedit.tt
-lib/PageCamel/Web/ComputerDB/Templates/mapselect.tt
 lib/PageCamel/Web/CSPHeader.pm
 lib/PageCamel/Web/DirCleaner.pm
 lib/PageCamel/Web/DirSync/DirSync.pm
@@ -2489,7 +2487,6 @@ lib/PageCamel/Worker/TableStatistics.pm
 lib/PageCamel/Worker/Twitter/BlogTweet.pm
 lib/PageCamel/Worker/Twitter/HistoryTweet.pm
 lib/PageCamel/Worker/Twitter/TweetOutbox.pm
-lib/PageCamel/Worker/VNC/VNCCommands.pm
 lib/PageCamel/Worker/Wansview/Stream.pm
 Makefile.PL
 makeppd.bat
