@@ -1,0 +1,18 @@
+# Newest postgresql
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+
+# PGAdmin 4
+curl https://www.pgadmin.org/static/packages_pgadmin_org.pub | sudo apt-key add
+echo "deb https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/$(lsb_release -cs) pgadmin4 main" > /etc/apt/sources.list.d/pgadmin4.list
+apt update
+apt dist-upgrade
+apt install libpq-dev pgadmin4-server postgresql-common
+
+apt install python3-pip
+pip3 install uwsgi
+pip3 install flask flask-babelex flask-login flask-mail flask-paranoid flask-security email-validator flask-sqlalchemy flask-migrate psycopg2 sshtunnel ldap3 flask-gravatar sqlparse flask-compress
+
+#uwsgi --http-socket :8282 --wsgi-file /usr/pgadmin4/web/pgAdmin4.wsgi --master --processes 1 --threads 25
+
+
