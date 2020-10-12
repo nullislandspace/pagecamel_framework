@@ -6,40 +6,86 @@
     </p>
     <p>
         DGN1 is the "Deep Garden Network" relais station 1 on the west side of my house. See
-        <a href="/guest/blog/view/96">this blog article</a> for more details.
+        <a href="/news/96">this blog article</a> for more details.
     </p>
 
     <p>
         <table id="panelstable" border="1">
-            <thead>
-                <tr class="tabheader">
-                    <th colspan="2" class="statichead">STATUSFRAME</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="staticeven">
-                    <td>Last frame</td>
-                    <td><span class="livedata" id="liveview_timestamp"></span></td>
-                </tr>
-                <tr class="staticodd">
-                    <td>Uptime (milliseconds)</td>
-                    <td align="right"><span class="livedata" id="liveview_ticks"></span></td>
-                </tr>
-                <tr class="staticeven">
-                    <td>Free memory (bytes)</td>
-                    <td align="right"><span class="livedata" id="liveview_memfree"></span></td>
-                </tr>
-                <tr class="staticodd">
-                    <td>Packets in</td>
-                    <td align="right"><span class="livedata" id="liveview_packets_in"></span></td>
-                </tr>
-                <tr class="staticeven">
-                    <td>Packets out</td>
-                    <td align="right"><span class="livedata" id="liveview_packets_out"></span></td>
-                </tr>
-            </tbody>
+            <tr>
+                <td>
+
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">System status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_status_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Uptime (milliseconds)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_ticks"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Packets in</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_packets_in"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Packets out</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_packets_out"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>VCC</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_vcc"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Firmware version</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_firmware_version"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Keep awake enabled</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_keepawake_enabled"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Powersave enabled</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_enabled"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+
+                <!--
+                <td valign="top">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Digital Temperature and Humidity (DHT)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_dht_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Temperature</td>
+                                <td><span class="livedata" sensorname="liveview_temperature"></span>&#176;C</td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Humidity</td>
+                                <td><span class="livedata" sensorname="liveview_humidity"></span>&#37;</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+                -->
+            </tr>
         </table>
     </p>
+
 </div>
 
 <script>    
