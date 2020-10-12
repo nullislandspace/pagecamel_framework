@@ -249,6 +249,7 @@ lib/PageCamel/Web/OSMTiles.pm
 lib/PageCamel/Web/PageCamelStats.pm
 lib/PageCamel/Web/PageViewStats.pm
 lib/PageCamel/Web/PathRedirection.pm
+lib/PageCamel/Web/PGAdmin4Proxy.pm
 lib/PageCamel/Web/PluginConfig.pm
 lib/PageCamel/Web/PostgresDB.pm
 lib/PageCamel/Web/PreventGetWithArgs.pm

@@ -93,8 +93,11 @@
 
     function handleMessage(msg) {                
         if(msg.type === "probedata") {
-            $("#liveview_" + msg.sensor).text(msg.measurement);
-            animateCell("#liveview_" + msg.sensor);
+            var sensorselector = 'span[sensorname="liveview_' + msg.sensor + '"]';
+            $(sensorselector).each(function() {
+                $(this).text(msg.measurement);
+                animateCell($(this));
+            });
             return;
         }
         

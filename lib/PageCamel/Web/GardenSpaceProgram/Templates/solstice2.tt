@@ -216,11 +216,9 @@
 </div>
 
 <script>    
-
     function websocketmaskOnload() {
         $('.livedata').css('font-family', 'SourceCodePro');
     }
-
 
     function handleMessage(msg) {                
         if(msg.type === "probedata") {
@@ -229,7 +227,6 @@
                 $(this).text(msg.measurement);
                 animateCell($(this));
             });
-            //animateCell("#liveview_" + msg.sensor);
             return;
         }
         
