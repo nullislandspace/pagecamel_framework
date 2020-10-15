@@ -1,407 +1,101 @@
-<p align="left"><b>[% tr.trquote("You must use the following credentials to login to this remote computer:") %]</b><br>
-[% tr.quote(Computer.computer_name) %]<br/>
-<script src="/static/vnc_html5/util.js" type="text/javascript"></script>
+<!DOCTYPE html>
 
-<div id="noVNC_wrapper" class="noVNC_wrapper">
-    <div id="noVNC_hidden_status_bar" class="noVNC_hidden_status_bar">
-        <table border="0" width="100%" height="2px" class="noVNC_status_bar" onclick="return show_status_bar();"  class="noVNC_table_yellow">
-            <tr>
-                <td height="2px" width="100%" id="statusbarshowbutton">
-                </td>
-            </tr>
-        </table>
-    </div>
-    <div id="noVNC_status_bar" class="noVNC_status_bar">
-        <table border="0" width="100%">
-            <tr>
-                <td>
-                    <span class="ui-icon ui-icon-arrowthick-1-n" id="statusbarhidebutton" onclick="return hide_status_bar();"></span>
-                </td>
-                <td>
-                    <div id="noVNC_status">
-                        Loading
-                    </div>
-                </td>
-
-                <td align="right">
-                    <div id="noVNC_buttons">
-                        <input type="button" value="[% tr.trquote("Windows Key") %]" windows="" id="sendWindowsKeyButton" onclick="return sendWindowsKey();">
-                        <input type="button" value="[% tr.trquote("Ctrl+Alt+Del") %]" id="sendCtrlAltDelButton" onclick="return sendCtrlAltDel();">
-                        <input type="button" value="[% tr.quote("\\") %]" id="sendBackslashKeyButton" onclick="return sendBackslashKey();">
-                        <input type="button" value="[% tr.trquote("Toggle Fullscreen") %]" id="fullscreenButton" onclick="return toggleFullscreen();">
-                        <input type="button" value="[% tr.trquote("Disconnect") %]" id="disconnectButton" onclick="return finishpage();">
-                        <input type="button" value="[% tr.trquote("Reconnect") %]" id="reconnectButton" onclick="window.location.reload();">
-                    </div>
-                </td>
-                <td width="30px">
-                    <!-- SPACER -->
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <div id="noVNC_screen">
-        <canvas id="noVNC_canvas" width="640px" height="200px">Canvas not supported.</canvas>
-    </div>
+<div id="top_bar">
+    <div id="status">Loading</div>
+    <div id="sendCtrlAltDelButton">Send CtrlAltDel</div>
+</div>
+<div id="screen">
+    <!-- This is where the remote screen will appear -->
 </div>
 
-<script type="text/javascript">
-    /*jslint white: false */
-    /*global window, $, Util, RFB, */
-    //"use strict";
-    
-    var fw_host = '[% ProxyHost %]';
-    var fw_port = '[% ProxyPort %]';
-    var fw_path = '[% WSPath %]';
-    var fw_password = '[% VNCPass %]';
-    var INCLUDE_URI = '/static/vnc_html5/';
-    
-    $('#noVNC_wrapper').width(window.innerWidth-(window.innerWidth/20));
+<!-- Promise polyfill for IE11 -->
+<script src="/static/vnc_html5/vendor/promise.js"></script>
 
-    // Load supporting scripts
-    Util.load_scripts(["webutil.js", "base64.js", "websock.js", "des.js",
-                       "keysymdef.js", "keyboard.js", "input.js", "display.js",
-                       "inflator.js", "rfb.js", "keysym.js"]);
+<!-- ES2015/ES6 modules polyfill -->
+<script nomodule src="/static/vnc_html5/vendor/browser-es-module-loader/dist/browser-es-module-loader.js"></script>
 
-    var rfb;
-    var resizeTimeout;
+<!-- actual script modules -->
+<script type="module" crossorigin="anonymous">
+    // RFB holds the API to connect and communicate with a VNC server
+    import RFB from './core/rfb.js';
 
+    let rfb;
+    let desktopName;
 
-    function UIresize() {
-        if (WebUtil.getQueryVar('resize', false)) {
-            var innerW = window.innerWidth;
-            var innerH = window.innerHeight;
-            var controlbarH = $D('noVNC_status_bar').offsetHeight;
-            var padding = 5;
-            if (innerW !== undefined && innerH !== undefined)
-                rfb.setDesktopSize(innerW, innerH - controlbarH - padding);
-        }
+    // When this function is called we have
+    // successfully connected to a server
+    function connectedToServer(e) {
+        status("Connected to " + desktopName);
     }
-    
-    var oldstatusbarheight = 0;
-    var oldhiddenbarheight = 0;
-    var statusbaranimdelay = 500;
-    function hide_status_bar() {
-        if(oldstatusbarheight == 0) {
-            oldstatusbarheight = $('#noVNC_status_bar').height();
-        }
-        
-        $('#noVNC_status_bar').animate({height: '0px'}, statusbaranimdelay, function() {
-                $(this).hide();
-            }
-        );
-        
-        $('#noVNC_hidden_status_bar').show();
-        if(oldhiddenbarheight == 0) {
-            //oldhiddenbarheight = $('#noVNC_hidden_status_bar').height();
-            oldhiddenbarheight = 3; // Force 3 pixels
-            $('#noVNC_hidden_status_bar').height(0);
-        }
-        
-        $('#noVNC_hidden_status_bar').animate({height: oldhiddenbarheight + 'px'}, statusbaranimdelay, function() {
-                $(this).show();
-            }
-        );
-        
-    }
-    function show_status_bar() {
-        
-        $('#noVNC_status_bar').show();
-        if(oldstatusbarheight > 0) {
-            $('#noVNC_status_bar').animate({height: oldstatusbarheight + 'px'}, statusbaranimdelay, function() {
-                    $(this).show();
-                }
-            );
-        }
-        
-        if(oldhiddenbarheight > 0) {
-            $('#noVNC_hidden_status_bar').animate({height: '0px'}, statusbaranimdelay, function() {
-                    $(this).hide();
-                }
-            );
+
+    // This function is called when we are disconnected
+    function disconnectedFromServer(e) {
+        if (e.detail.clean) {
+            status("Disconnected");
         } else {
-            $('#noVNC_hidden_status_bar').hide();
+            status("Something went wrong, connection is closed");
         }
-        
-        //$('#noVNC_hidden_status_bar').hide();
-    }
-    
-    function enableFullscreen(elem) {
-        $('#noVNC_wrapper').width(screen.width);
-        $('#noVNC_wrapper').height(screen.height);
-        $('#statusbarhidebutton').show();
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen();
-        } else if (document.documentElement.msRequestFullscreen) {
-            elem.msRequestFullscreen();
-        } else if (document.documentElement.mozRequestFullScreen) {
-            elem.mozRequestFullScreen();
-       } else if (document.documentElement.webkitRequestFullscreen) {
-            elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-       }
-    }
-    
-    function disableFullscreen() {
-        $('#noVNC_wrapper').width(window.innerWidth-(window.innerWidth/20));
-        $('#noVNC_wrapper').height("100%");
-        
-        $('#statusbarhidebutton').hide();
-        show_status_bar(); // Make sure we display the status bar again when exiting fullscreen
-        
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-            document.mozCancelFullScreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-       }
-    }
-    
-    function toggleFullscreen(){
-        var nonvc_screen = document.getElementById("noVNC_wrapper");
-        if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
-            enableFullscreen(nonvc_screen);  
-        } else {
-            disableFullscreen();
-        }
-    }
-    
-    function FBUComplete(rfb, fbu) {
-        UIresize();
-        rfb.set_onFBUComplete(function() { });
     }
 
-    function setPassword() {
-        rfb.sendPassword($D('password_input').value);
-        return false;
+    // When this function is called, the server requires
+    // credentials to authenticate
+    function credentialsAreRequired(e) {
+        const password = '[% VNCPass %]';
+        rfb.sendCredentials({ password: password });
     }
+
+    // When this function is called we have received
+    // a desktop name from the server
+    function updateDesktopName(e) {
+        desktopName = e.detail.name;
+    }
+
+    // Since most operating systems will catch Ctrl+Alt+Del
+    // before they get a chance to be intercepted by the browser,
+    // we provide a way to emulate this key sequence.
     function sendCtrlAltDel() {
         rfb.sendCtrlAltDel();
         return false;
     }
-    function xvpShutdown() {
-        rfb.xvpShutdown();
-        return false;
-    }
-    
-    function sendWindowsKey() {
-        rfb.sendKey(65515, 1);
-        rfb.sendKey(65515, 0);
-        return false;
+
+    // Show a status text in the top bar
+    function status(text) {
+        document.getElementById('status').textContent = text;
     }
 
-    function sendBackslashKey() {
-        //rfb.sendKey(65027, 1);
-        //rfb.sendKey(65027, 0);
-        rfb.sendKey(65027, 1);
-        rfb.sendKey(92, 1);
-        rfb.sendKey(92, 0);
-        rfb.sendKey(65027, 0);
-        return false;
+    document.getElementById('sendCtrlAltDelButton')
+        .onclick = sendCtrlAltDel;
+
+    // | | |         | | |
+    // | | | Connect | | |
+    // v v v         v v v
+
+    status("Connecting");
+
+    // Build the websocket URL used to connect
+    let url;
+    if (window.location.protocol === "https:") {
+        url = 'wss';
+    } else {
+        url = 'ws';
     }
-    
-    function xvpReboot() {
-        rfb.xvpReboot();
-        return false;
+    url += '://' + '[% ProxyHost %]';
+    if(port) {
+        url += ':' + '[% ProxyPort %]';
     }
-    function xvpReset() {
-        rfb.xvpReset();
-        return false;
-    }
-    function updateState(rfb, state, oldstate, msg) {
-        var s, sb, cad, level;
-        s = $D('noVNC_status');
-        sb = $D('noVNC_status_bar');
-        cad = $D('sendCtrlAltDelButton');
-        show_status_bar(); // Always show the status bar when changing status
-        switch (state) {
-            case 'failed':       level = "error";  break;
-            case 'fatal':        level = "error";  break;
-            case 'normal':       level = "normal"; break;
-            case 'disconnected': level = "normal"; break;
-            case 'loaded':       level = "normal"; break;
-            default:             level = "warn";   break;
-        }
+    url += '/' + '[% WSPath %]';
 
-        console.log("State Changed " + state);    
-            
-        if (state === "normal") {
-            $('#noVNC_wrapper').css("overflow","scroll");
-            cad.disabled = false;
-            $( "#sendWindowsKeyButton" ).show();
-            $( "#fullscreenButton" ).show();
-            $( "#sendCtrlAltDelButton" ).show();
-            $( "#sendBackslashKeyButton" ).show();
-            $( "#disconnectButton" ).show();
-            $( "#reconnectButton" ).hide();
-        } else {
-            disableFullscreen();
-            $('#noVNC_wrapper').css("overflow","hidden");
-            cad.disabled = true;
+    // Creating a new RFB object will start a new connection
+    rfb = new RFB(document.getElementById('screen'), url,
+                  { credentials: { password: password } });
 
-            $( "#sendWindowsKeyButton" ).hide();
-            $( "#fullscreenButton" ).hide();
-            $( "#sendCtrlAltDelButton" ).hide();
-            $( "#sendBackslashKeyButton" ).hide();
-            $( "#disconnectButton" ).hide();
-            $( "#reconnectButton" ).show();
-            
-            // Mark with a big red X to indicate broken connection
-            canvasPaintX();
-        }
+    // Add listeners to important events from the RFB module
+    rfb.addEventListener("connect",  connectedToServer);
+    rfb.addEventListener("disconnect", disconnectedFromServer);
+    rfb.addEventListener("credentialsrequired", credentialsAreRequired);
+    rfb.addEventListener("desktopname", updateDesktopName);
 
-        if (typeof(msg) !== 'undefined') {
-            sb.setAttribute("class", "noVNC_status_" + level);
-            s.innerHTML = msg;
-        }
-    }
-    
-
-    window.onresize = function () {
-        // When the window has been resized, wait until the size remains
-        // the same for 0.5 seconds before sending the request for changing
-        // the resolution of the session
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(function(){
-            UIresize();
-        }, 500);
-    };
-
-
-    window.onscriptsload = function () {
-        var host, port, password, path, token;
-
-        $D('sendCtrlAltDelButton').style.display = "inline";
-
-        //WebUtil.init_logging(WebUtil.getQueryVar('logging', 'warn'));
-        WebUtil.init_logging('debug');
-        
-        //document.title = unescape(WebUtil.getQueryVar('title', 'noVNC'));
-        // By default, use the host and port of server that served this file
-        host = fw_host;
-        port = fw_port;
-
-        // if port != 8080 (debugport) set it automatically
-        if (port != '8080') {
-            if (WebUtil.getQueryVar('encrypt', (window.location.protocol === "https:"))) {
-                console.log('Auto set to Port 443');
-                port = 443;
-            } else {
-                console.log('Auto set to Port 80');
-                port = 80;
-            }
-        } else {
-            console.log('Using configured debug port');
-        }
-        
-        console.log('HOST: ' + host + ' Port: ' + port);
-
-        // If a token variable is passed in, set the parameter in a cookie.
-        // This is used by nova-novncproxy.
-        token = WebUtil.getQueryVar('token', null);
-        if (token) {
-            WebUtil.createCookie('token', token, 1)
-        }
-
-        password = fw_password;
-        path = fw_path;
-
-        if ((!host) || (!port)) {
-            updateState(null, 'fatal', null, 'Must specify host and port in URL');
-            return;
-        }
-
-        
-        try {
-            rfb = new RFB({'target':       $D('noVNC_canvas'),
-                            [% IF ClientSettings.websocket_encryption == 'off' %]
-                            'encrypt':      false, // <<- This fixes problems with a number of browsers when using https
-                            [% ELSIF ClientSettings.websocket_encryption == 'on' %]
-                            'encrypt':      true,
-                            [% ELSE %]
-                            'encrypt':      WebUtil.getQueryVar('encrypt', (window.location.protocol === "https:")), // Mode "auto"
-                            [% END %]
-                           'repeaterID':   '', //WebUtil.getQueryVar('repeaterID', ''),
-                           'true_color': true, //WebUtil.getQueryVar('true_color', true),
-                           'local_cursor': true, //WebUtil.getQueryVar('cursor', true),
-                           'shared':       true, //WebUtil.getQueryVar('shared', true),
-                           'view_only':    false, //WebUtil.getQueryVar('view_only', false),
-                           'onUpdateState':  updateState,
-                           //'onPasswordRequired':  passwordRequired,
-                           'onFBUComplete': FBUComplete});
-        } catch (exc) {
-            updateState(null, 'fatal', null, 'Unable to create RFB client -- ' + exc);
-            return; // don't continue trying to connect
-        }
-
-        rfb.connect(host, port, password, path);
-    };
-
-// ******* VNC CODE END ******** -->
-
-    
-function canvasPaintX() {
-    var canvas = document.getElementById('noVNC_canvas');
-    if(typeof(canvas) === 'undefined') {
-        alert("NO CANVAS");
-        return;
-    }
-    var ctx = canvas.getContext('2d');
-    if(typeof(ctx) === 'undefined') {
-        alert("NO CTX");
-        return;
-    }
-    
-    var cw = canvas.width;
-    var ch = canvas.height;
-    
-    ctx.strokeStyle = '#FF0000';
-    
-    
-    for(ow = 0; ow < (cw - 200); ow += 200) {
-        for(oh = 0; oh < (ch - 200); oh += 200) {
-            for(i = 0; i < 15; i += 1) {
-                ctx.beginPath();
-                ctx.moveTo(i + ow, oh);
-                ctx.lineTo(135 + i + ow, oh + 150);
-                ctx.stroke();
-    
-                ctx.beginPath();
-                ctx.moveTo(i + ow, oh + 150);
-                ctx.lineTo(135 + i + ow, oh);
-                ctx.stroke();
-            }
-        }
-    }
-
-    
-
-}
-function finishpage() {
-        //alert("Disconnecting");
-        rfb.disconnect();
-    }
-    
-function extraOnLoad() {
-    $(document).on('webkitfullscreenchange mozfullscreenchange fullscreenchange MSFullscreenChange',
-        function() {
-            if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
-                // Just make sure we fire the disableFullscreen event. This triggers automatically
-                // when user clicks the "toggle fullscreen" button while in fullscreen, but we have to
-                // add this here "manually", because otherwise it doesn't get triggered when the user
-                // presses escape, potentially leaving them with the "hidden" status bar (damn hard to
-                // click when not in fullscreen, since it's only a few pixels high)
-                disableFullscreen();
-            }
-        }
-    );
-    
-    disableFullscreen();
-}
-    
+    // Set parameters that can be changed on an active connection
+    rfb.viewOnly = false;
+    rfb.scaleViewport = false;
 </script>
-
-<p>Websocket encoding: [% websocketencoding %]</p>
-
