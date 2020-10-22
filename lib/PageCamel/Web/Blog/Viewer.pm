@@ -332,7 +332,7 @@ sub get {
     $dbh->pg_savepoint("Viewcount");
 
     if(!$self->{disable_viewcount}) {
-        my $vsth = $dbh->prepare_cached("UPDATE blog
+        my $vsth = $dbh->prepare_cached("UPDATE " . $self->{tablename} . "
                                         SET viewcount = viewcount + 1
                                         WHERE article_id = ?")
                 or croak($dbh->errstr);
