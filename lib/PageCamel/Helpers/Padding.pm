@@ -17,7 +17,7 @@ use Data::Dumper;
 
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(doFPad doSpacePad trim doLeftSpacePad forceByteLength);
+our @EXPORT_OK = qw(doFPad doSpacePad trim doLeftSpacePad forceByteLength doCenterPad);
 
 
 sub doFPad {
@@ -44,6 +44,20 @@ sub doLeftSpacePad {
     while(length($val) < $len) {
         $val = " $val";
     }
+    return $val;
+}
+
+sub doCenterPad {
+    my ($val, $len) = @_;
+    
+    while(length($val) < $len) {
+        $val = " $val";
+        
+        if(length($val) < $len) {
+            $val .= ' ';
+        }
+    }
+    
     return $val;
 }
 
