@@ -226,11 +226,11 @@ sub decodeDHTFrame {
 
     my %decoded;
 
-    $decoded{status} = 'UNKNOWN_ERROR';
+    $decoded{dht_status} = 'UNKNOWN_ERROR';
     $decoded{temperature} = '999';
     $decoded{humidity} = '999';
     if($frame[$data + 0] == 0x00) {
-        $decoded{status} = 'OK';
+        $decoded{dht_status} = 'OK';
         $decoded{humidity} = ($frame[$data + 1] << 8) + $frame[$data + 2];
         $decoded{temperature} = ($frame[$data + 3] << 8) + $frame[$data + 4];
 
@@ -242,11 +242,11 @@ sub decodeDHTFrame {
         $decoded{humidity} = $self->roundFloat($decoded{humidity}, 2);
         $decoded{temperature} = $self->roundFloat($decoded{temperature}, 2);
     } elsif($frame[$data + 0] == 0x01) {
-        $decoded{status} = 'CHECKSUM_ERROR';
+        $decoded{dht_status} = 'CHECKSUM_ERROR';
     } elsif($frame[$data + 0] == 0x02) {
-        $decoded{status} = 'TIMEOUT_ERROR';
+        $decoded{dht_status} = 'TIMEOUT_ERROR';
     } else {
-        $decoded{status} = 'OTHER_ERROR';
+        $decoded{dht_status} = 'OTHER_ERROR';
     }
 
     $decoded{dht_timestamp} = getISODate();
@@ -262,7 +262,7 @@ sub decodeDHTFrame {
     $reph->debuglog("DGN1 DHT frame: $clacksdata");
 
     if(!$insth->execute(
-                $decoded{status},
+                $decoded{dht_status},
                 $decoded{temperature},
                 $decoded{humidity},
         )) {
