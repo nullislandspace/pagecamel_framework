@@ -57,7 +57,6 @@
                     </table>
                 </td>
 
-                <!--
                 <td valign="top">
                     <table class="data">
                         <thead>
@@ -71,17 +70,21 @@
                                 <td><span class="livedata" sensorname="liveview_dht_timestamp"></span></td>
                             </tr>
                             <tr class="staticodd">
+                                <td>Status</td>
+                                <td><span class="livedata" sensorname="liveview_dht_status"></span></td>
+                            </tr>
+                            <tr class="staticeven">
                                 <td>Temperature</td>
                                 <td><span class="livedata" sensorname="liveview_temperature"></span>&#176;C</td>
                             </tr>
-                            <tr class="staticeven">
+                            <tr class="staticodd">
                                 <td>Humidity</td>
                                 <td><span class="livedata" sensorname="liveview_humidity"></span>&#37;</td>
                             </tr>
                         </tbody>
                     </table>
                 </td>
-                -->
+
             </tr>
         </table>
     </p>
