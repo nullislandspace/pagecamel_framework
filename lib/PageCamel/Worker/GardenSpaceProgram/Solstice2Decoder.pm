@@ -345,6 +345,8 @@ sub decodeBatteryStatus {
     $decoded{battery_max_voltage} = (($frame[$data + 8] << 8) + $frame[$data + 9]) / 100;
     $decoded{battery_min_voltage} = (($frame[$data + 10] << 8) + $frame[$data + 11]) / 100;
 
+    $decoded{battery_power} = $self->roundFloat($decoded{battery_current} * $decoded{battery_volts}, 2);
+
     $decoded{battery_timestamp} = getISODate();
 
     if($decoded{battery_current} > 0) {
