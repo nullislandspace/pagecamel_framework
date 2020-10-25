@@ -193,14 +193,18 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_battery_current"></span></td>
                             </tr>
                             <tr class="staticodd">
+                                <td>Power (Watts)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_battery_power"></span></td>
+                            </tr>
+                            <tr class="staticeven">
                                 <td>Percent remaining</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_battery_percentage"></span></td>
                             </tr>
-                            <tr class="staticeven">
+                            <tr class="staticodd">
                                 <td>Max volt today</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_battery_max_voltage"></span></td>
                             </tr>
-                            <tr class="staticodd">
+                            <tr class="staticeven">
                                 <td>Min volt today</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_battery_min_voltage"></span></td>
                             </tr>
@@ -211,17 +215,33 @@
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th colspan="2" class="statichead">State estimations</th>
+                                <th colspan="2" class="statichead">Switches</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="staticeven">
-                                <td>Battery mode</td>
-                                <td><span class="livedata" sensorname="liveview_battery_mode"></span></td>
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_switches_timestamp"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Charge state</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_estimated_charge_state"></span></td>
+                                <td>Powerrail 1<br/>(NC)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powerrail_1"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Powerrail 2<br/>(NC)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powerrail_2"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Powerrail 3<br/>(NC)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powerrail_3"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Powerrail 4<br/>Driveway light</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powerrail_4"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Door closed</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_door_closed"></span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -256,37 +276,21 @@
                         </tbody>
                     </table>
                 </td>
-                <td>
+                <td valign="top">
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th colspan="2" class="statichead">Switches</th>
+                                <th colspan="2" class="statichead">State estimations</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="staticeven">
-                                <td>Last update</td>
-                                <td><span class="livedata" sensorname="liveview_switches_timestamp"></span></td>
+                                <td>Battery mode</td>
+                                <td><span class="livedata" sensorname="liveview_battery_mode"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Powerrail 1<br/>(NC)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_powerrail_1"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Powerrail 2<br/>(NC)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_powerrail_2"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Powerrail 3<br/>(NC)</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_powerrail_3"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Powerrail 4<br/>Driveway light</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_powerrail_4"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Door closed</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_door_closed"></span></td>
+                                <td>Charge state</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_estimated_charge_state"></span></td>
                             </tr>
                         </tbody>
                     </table>
