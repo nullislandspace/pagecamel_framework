@@ -122,6 +122,10 @@ sub decodeFrame {
 
     if($frame[8] == 1) {
         return $self->decodeStatusFrame(@frame);
+    } elsif($frame[8] == 11) {
+        return $self->decodeDHTFrame(@frame);
+    } elsif($frame[8] == 13) {
+        return $self->decodeSwitchFrame(@frame);
     } elsif($frame[8] == 40) {
         return $self->decodeStatus2Frame(@frame);
     } elsif($frame[8] == 41) {
@@ -342,6 +346,46 @@ sub decodeBatteryStatus {
     $decoded{battery_min_voltage} = (($frame[$data + 10] << 8) + $frame[$data + 11]) / 100;
 
     $decoded{battery_timestamp} = getISODate();
+
+    if($decoded{battery_current} > 0) {
+        $decoded{battery_mode} = 'CHARGING';
+        if($decoded{battery_volts} >= 15) {
+            $decoded{estimated_charge_state} = 'Equalization';
+        } elsif($decoded{battery_volts} >= 14.4) {
+            $decoded{estimated_charge_state} = '> 80%';
+        } elsif($decoded{battery_volts} >= 12.0) {
+            $decoded{estimated_charge_state} = '> 30%';
+        } else {
+            $decoded{estimated_charge_state} = '< 30%';
+        }
+    } else {
+        $decoded{battery_mode} = 'DISCHARGING';
+        if($decoded{battery_volts} >= 12.7) {
+            $decoded{estimated_charge_state} = '100%';
+        } elsif($decoded{battery_volts} >= 12.60) {
+            $decoded{estimated_charge_state} = '95%';
+        } elsif($decoded{battery_volts} >= 12.50) {
+            $decoded{estimated_charge_state} = '90%';
+        } elsif($decoded{battery_volts} >= 12.42) {
+            $decoded{estimated_charge_state} = '80%';
+        } elsif($decoded{battery_volts} >= 12.32) {
+            $decoded{estimated_charge_state} = '70%';
+        } elsif($decoded{battery_volts} >= 12.20) {
+            $decoded{estimated_charge_state} = '60%';
+        } elsif($decoded{battery_volts} >= 12.06) {
+            $decoded{estimated_charge_state} = '50%';
+        } elsif($decoded{battery_volts} >= 11.90) {
+            $decoded{estimated_charge_state} = '40%';
+        } elsif($decoded{battery_volts} >= 11.75) {
+            $decoded{estimated_charge_state} = '30%';
+        } elsif($decoded{battery_volts} >= 11.58) {
+            $decoded{estimated_charge_state} = '20%';
+        } elsif($decoded{battery_volts} >= 11.31) {
+            $decoded{estimated_charge_state} = '10%';
+        } else {
+            $decoded{estimated_charge_state} = '0%';
+        }
+    }
     my @parts;
     foreach my $key (sort keys %decoded) {
         #    print $key, "=", $decoded{$key}, "\n";
@@ -461,6 +505,117 @@ sub decodeLoadStatus {
         return 0;
     }
 
+    $dbh->commit;
+    return 1;
+}
+
+sub decodeDHTFrame {
+    my ($self, @frame) =@_;
+    
+    my $data = 12;
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.solstice_dht
+                                        (status, temperature, humidity)
+                                        VALUES (?, ?, ?)")
+            or croak($dbh->errstr);
+
+
+    my %decoded;
+
+    $decoded{dht_status} = 'UNKNOWN_ERROR';
+    $decoded{temperature} = '999';
+    $decoded{humidity} = '999';
+    if($frame[$data + 0] == 0x00) {
+        $decoded{dht_status} = 'OK';
+        $decoded{humidity} = ($frame[$data + 1] << 8) + $frame[$data + 2];
+        $decoded{temperature} = ($frame[$data + 3] << 8) + $frame[$data + 4];
+
+        # Convert back to original values
+        $decoded{humidity} = $decoded{humidity} / 10;
+        $decoded{temperature} = ($decoded{temperature} / 10) - 100;
+
+        # Round
+        $decoded{humidity} = $self->roundFloat($decoded{humidity}, 2);
+        $decoded{temperature} = $self->roundFloat($decoded{temperature}, 2);
+    } elsif($frame[$data + 0] == 0x01) {
+        $decoded{dht_status} = 'CHECKSUM_ERROR';
+    } elsif($frame[$data + 0] == 0x02) {
+        $decoded{dht_status} = 'TIMEOUT_ERROR';
+    } else {
+        $decoded{dht_status} = 'OTHER_ERROR';
+    }
+
+    $decoded{dht_timestamp} = getISODate();
+    my @parts;
+    foreach my $key (sort keys %decoded) {
+        push @parts, $key . '=' . $decoded{$key};
+    }
+    my $clacksdata = join(',', @parts);
+    $self->{clacks}->set('GSP::SOLSTICE::DHT', $clacksdata);
+    $self->{clacks}->setAndStore('GSP::DHT::TEMPERATURE', 0 + $decoded{temperature});
+    $self->{clacks}->setAndStore('GSP::DHT::HUMIDITY', 0 + $decoded{humidity});
+    $self->{clacks}->doNetwork();
+    $reph->debuglog("SOLSTICE DHT frame: $clacksdata");
+
+    if(!$insth->execute(
+                $decoded{dht_status},
+                $decoded{temperature},
+                $decoded{humidity},
+        )) {
+        $reph->debuglog("DB ERROR: " . $dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+    
+    $dbh->commit;
+    return 1;
+}
+
+sub decodeSwitchFrame {
+    my ($self, @frame) =@_;
+    
+    my $data = 12;
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.solstice_switches
+                                        (powerrail_1, powerrail_2, powerrail_3, powerrail_4, door_closed)
+                                        VALUES (?, ?, ?, ?, ?)")
+            or croak($dbh->errstr);
+
+
+    my %decoded;
+
+    $decoded{powerrail_1} = $frame[$data + 0];
+    $decoded{powerrail_2} = $frame[$data + 1];
+    $decoded{powerrail_3} = $frame[$data + 2];
+    $decoded{powerrail_4} = $frame[$data + 3];
+    $decoded{door_closed} = $frame[$data + 4];
+
+    $decoded{switches_timestamp} = getISODate();
+    my @parts;
+    foreach my $key (sort keys %decoded) {
+        push @parts, $key . '=' . $decoded{$key};
+    }
+    my $clacksdata = join(',', @parts);
+    $self->{clacks}->set('GSP::SOLSTICE::SWITCHES', $clacksdata);
+    $self->{clacks}->doNetwork();
+    $reph->debuglog("SOLSTICE SWITCHES frame: $clacksdata");
+
+    if(!$insth->execute(
+                $decoded{powerrail_1},
+                $decoded{powerrail_2},
+                $decoded{powerrail_3},
+                $decoded{powerrail_4},
+                $decoded{door_closed},
+        )) {
+        $reph->debuglog("DB ERROR: " . $dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+    
     $dbh->commit;
     return 1;
 }
