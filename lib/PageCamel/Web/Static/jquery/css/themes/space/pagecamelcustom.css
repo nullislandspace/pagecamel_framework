@@ -2,7 +2,7 @@
 table.dataTable tr.odd { color: white; background-color: #505050; }
 table.dataTable tr.even { color: white; background-color: black; }
 
-tr.staticeven { color: white; background-color: #A0A0A0; }
+tr.staticeven { color: white; background-color: #474747; }
 tr.staticodd { color: white; background-color: black; }
 th.statichead { color: white; background-color: #808080; }
 
