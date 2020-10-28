@@ -274,7 +274,7 @@ sub decodeSwitchFrame {
     my $clacksdata = join(',', @parts);
     $self->{clacks}->set('GSP::DGN1::SWITCHES', $clacksdata);
     $self->{clacks}->doNetwork();
-    $self->{clacks}->set('HomeAutomation::BalconyDoor::Open', 1 - $decoded{door_closed});
+    $self->{clacks}->setAndStore('HomeAutomation::BalconyDoor::Open', 1 - $decoded{door_closed});
     $reph->debuglog("DGN1 SWITCHES frame: $clacksdata");
 
     if(!$insth->execute(
