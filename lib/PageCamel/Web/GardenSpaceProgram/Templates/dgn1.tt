@@ -12,8 +12,7 @@
     <p>
         <table id="panelstable" border="1">
             <tr>
-                <td>
-
+                <td valign="top">
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
@@ -30,28 +29,20 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_ticks"></span></td>
                             </tr>
                             <tr class="staticeven">
+                                <td>Free memory (bytes)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_memfree"></span></td>
+                            </tr>
+                            <tr class="staticodd">
                                 <td>Packets in</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_packets_in"></span></td>
                             </tr>
-                            <tr class="staticodd">
+                            <tr class="staticeven">
                                 <td>Packets out</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_packets_out"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>VCC</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vcc"></span></td>
                             </tr>
                             <tr class="staticodd">
                                 <td>Firmware version</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_firmware_version"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Keep awake enabled</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_keepawake_enabled"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Powersave enabled</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_powersave_enabled"></span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -61,30 +52,65 @@
                     <table class="data">
                         <thead>
                             <tr class="tabheader">
-                                <th colspan="2" class="statichead">Digital Temperature and Humidity (DHT)</th>
+                                <th colspan="2" class="statichead">Power configuration</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="staticeven">
                                 <td>Last update</td>
-                                <td><span class="livedata" sensorname="liveview_dht_timestamp"></span></td>
+                                <td><span class="livedata" sensorname="liveview_status2_timestamp"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Status</td>
-                                <td><span class="livedata" sensorname="liveview_dht_status"></span></td>
+                                <td>Keep awake flag</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_keepawake_flag"></span></td>
                             </tr>
                             <tr class="staticeven">
-                                <td>Temperature</td>
-                                <td><span class="livedata" sensorname="liveview_temperature"></span>&#176;C</td>
+                                <td>PowerSave enabled</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_enabled"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Humidity</td>
-                                <td><span class="livedata" sensorname="liveview_humidity"></span>&#37;</td>
+                                <td>Reboot counter<br>(current)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_current"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>Reboot counter<br>(powersave trigger)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_reboot_counter_trigger"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>PowerSave sleepcycles</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_sleepcycle_count"></span></td>
+                            </tr>
+                            <tr class="staticeven">
+                                <td>PowerSave awake seconds</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_powersave_keepawake_seconds"></span></td>
                             </tr>
                         </tbody>
                     </table>
                 </td>
 
+            </tr>
+            <tr>
+                <td valign="top">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Switches</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Last update</td>
+                                <td><span class="livedata" sensorname="liveview_switches_timestamp"></span></td>
+                            </tr>
+                            <tr class="staticodd">
+                                <td>Balcony door closed</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_door_closed"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+                <td valign="top">
+                </td>
             </tr>
         </table>
     </p>
