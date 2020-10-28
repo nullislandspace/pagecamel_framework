@@ -121,8 +121,10 @@ sub decodeFrame {
 
     if($frame[8] == 1) {
         return $self->decodeStatusFrame(@frame);
-    } elsif($frame[8] == 11) {
-        return $self->decodeDHTFrame(@frame);
+    } elsif($frame[8] == 13) {
+        return $self->decodeSwitchFrame(@frame);
+    } elsif($frame[8] == 40) {
+        return $self->decodeStatus2Frame(@frame);
     } elsif($frame[8] == 33) {
         # Wake up from powersave
         my %decoded;
@@ -145,14 +147,9 @@ sub decodeFrame {
         }
         my $clacksdata = join(',', @parts);
         $self->{clacks}->set('GSP::DGN1::STATECHANGE', $clacksdata);
-    } elsif($frame[8] == 19) {
-        return $self->decodeSoilCapacityData(@frame);
-    } elsif($frame[8] == 32) {
-        return $self->decodeRFISeriesData(@frame);
     }
     return;
 }
-
 
 sub decodeStatusFrame {
     my ($self, @frame) =@_;
@@ -162,24 +159,18 @@ sub decodeStatusFrame {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $insth = $dbh->prepare_cached("INSERT INTO gsp.dgn1_status
-                                        (ticks, vcc, packets_in, packets_out, firmware_version, keepawake_enabled, powersave_enabled)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)")
+                                        (ticks, memfree, packets_in, packets_out, firmware_version)
+                                        VALUES (?, ?, ?, ?, ?)")
             or croak($dbh->errstr);
 
 
     my %decoded;
     $decoded{ticks} = ($frame[$data + 0] << 24) + ($frame[$data + 1] << 16) + ($frame[$data + 2] << 8) + $frame[$data + 3];
-    $decoded{vcc} = ($frame[$data + 6] << 8) + $frame[$data + 13];
 
+    $decoded{memfree} = ($frame[$data + 4] << 24) + ($frame[$data + 5] << 16) + ($frame[$data + 6] << 8) + $frame[$data + 7];
 
     $decoded{packets_in} = ($frame[$data + 12] << 8) + $frame[$data + 13];
     $decoded{packets_out} = ($frame[$data + 14] << 8) + $frame[$data + 15];
-
-    $decoded{keepawake_enabled} = $frame[$data + 4];
-    $decoded{powersave_enabled} = $frame[$data + 5];
-
-    my $vcc = (($frame[$data + 6] << 8) + $frame[$data + 7])/1000;
-    $decoded{vcc} = $vcc;
 
     $decoded{firmware_version} = $frame[$data + 10];
 
@@ -195,12 +186,10 @@ sub decodeStatusFrame {
 
     if(!$insth->execute(
                 $decoded{ticks},
-                $decoded{vcc},
+                $decoded{memfree},
                 $decoded{packets_in},
                 $decoded{packets_out},
                 $decoded{firmware_version},
-                $decoded{keepawake_enabled},
-                $decoded{powersave_enabled},
         )) {
         $reph->debuglog("DB ERROR: " . $dbh->errstr);
         $dbh->rollback;
@@ -211,60 +200,85 @@ sub decodeStatusFrame {
     return 1;
 }
 
-sub decodeDHTFrame {
+sub decodeStatus2Frame {
     my ($self, @frame) =@_;
     
     my $data = 12;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    my $insth = $dbh->prepare_cached("INSERT INTO gsp.dgn1_dht
-                                        (status, temperature, humidity)
-                                        VALUES (?, ?, ?)")
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.dgn1_status2
+                                        (keepawake_flag, powersave_enabled, reboot_counter_current, reboot_counter_trigger,
+                                         powersave_sleepcycle_count, powersave_keepawake_seconds)
+                                        VALUES (?, ?, ?, ?, ?, ?)")
             or croak($dbh->errstr);
 
 
     my %decoded;
+    $decoded{keepawake_flag} = $frame[$data + 0];
+    $decoded{powersave_enabled} = $frame[$data + 2];
+    $decoded{reboot_counter_current} = $frame[$data + 3];
+    $decoded{reboot_counter_trigger} = $frame[$data + 4];
+    $decoded{powersave_sleepcycle_count} = $frame[$data + 5];
+    $decoded{powersave_keepawake_seconds} = $frame[$data + 6];
 
-    $decoded{dht_status} = 'UNKNOWN_ERROR';
-    $decoded{temperature} = '999';
-    $decoded{humidity} = '999';
-    if($frame[$data + 0] == 0x00) {
-        $decoded{dht_status} = 'OK';
-        $decoded{humidity} = ($frame[$data + 1] << 8) + $frame[$data + 2];
-        $decoded{temperature} = ($frame[$data + 3] << 8) + $frame[$data + 4];
-
-        # Convert back to original values
-        $decoded{humidity} = $decoded{humidity} / 10;
-        $decoded{temperature} = ($decoded{temperature} / 10) - 100;
-
-        # Round
-        $decoded{humidity} = $self->roundFloat($decoded{humidity}, 2);
-        $decoded{temperature} = $self->roundFloat($decoded{temperature}, 2);
-    } elsif($frame[$data + 0] == 0x01) {
-        $decoded{dht_status} = 'CHECKSUM_ERROR';
-    } elsif($frame[$data + 0] == 0x02) {
-        $decoded{dht_status} = 'TIMEOUT_ERROR';
-    } else {
-        $decoded{dht_status} = 'OTHER_ERROR';
-    }
-
-    $decoded{dht_timestamp} = getISODate();
+    $decoded{status2_timestamp} = getISODate();
     my @parts;
     foreach my $key (sort keys %decoded) {
         push @parts, $key . '=' . $decoded{$key};
     }
     my $clacksdata = join(',', @parts);
-    $self->{clacks}->set('GSP::DGN1::DHT', $clacksdata);
-    $self->{clacks}->setAndStore('GSP::DGN1::TEMPERATURE', 0 + $decoded{temperature});
-    $self->{clacks}->setAndStore('GSP::DGN1::HUMIDITY', 0 + $decoded{humidity});
+    $self->{clacks}->set('GSP::DGN1::STATUS2', $clacksdata);
     $self->{clacks}->doNetwork();
-    $reph->debuglog("DGN1 DHT frame: $clacksdata");
+    $reph->debuglog("DGN1 status2 frame: $clacksdata");
 
     if(!$insth->execute(
-                $decoded{dht_status},
-                $decoded{temperature},
-                $decoded{humidity},
+                $decoded{keepawake_flag},
+                $decoded{powersave_enabled},
+                $decoded{reboot_counter_current},
+                $decoded{reboot_counter_trigger},
+                $decoded{powersave_sleepcycle_count},
+                $decoded{powersave_keepawake_seconds},
+        )) {
+        $reph->debuglog("DB ERROR: " . $dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+
+    $dbh->commit;
+    return 1;
+}
+
+sub decodeSwitchFrame {
+    my ($self, @frame) =@_;
+    
+    my $data = 12;
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.dgn1_switches
+                                        (door_closed)
+                                        VALUES (?)")
+            or croak($dbh->errstr);
+
+
+    my %decoded;
+
+    $decoded{door_closed} = $frame[$data + 0];
+
+    $decoded{switches_timestamp} = getISODate();
+    my @parts;
+    foreach my $key (sort keys %decoded) {
+        push @parts, $key . '=' . $decoded{$key};
+    }
+    my $clacksdata = join(',', @parts);
+    $self->{clacks}->set('GSP::DGN1::SWITCHES', $clacksdata);
+    $self->{clacks}->doNetwork();
+    $self->{clacks}->set('HomeAutomation::BalconyDoor::Open', 1 - $decoded{door_closed});
+    $reph->debuglog("DGN1 SWITCHES frame: $clacksdata");
+
+    if(!$insth->execute(
+                $decoded{door_closed},
         )) {
         $reph->debuglog("DB ERROR: " . $dbh->errstr);
         $dbh->rollback;
