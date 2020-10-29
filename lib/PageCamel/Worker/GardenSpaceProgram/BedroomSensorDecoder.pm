@@ -248,6 +248,9 @@ sub decodeDHTFrame {
         $decoded{status} = 'OTHER_ERROR';
     }
 
+    $decoded{oventemperature} = ($frame[$data + 5] << 8) + $frame[$data + 6];
+    $decoded{oventemperature} = ($decoded{oventemperature} / 10) - 100;
+
     $decoded{dht_timestamp} = getISODate();
     my @parts;
     foreach my $key (sort keys %decoded) {
