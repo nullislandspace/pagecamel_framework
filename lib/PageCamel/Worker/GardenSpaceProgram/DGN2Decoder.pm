@@ -122,6 +122,8 @@ sub decodeFrame {
         return $self->decodeStatusFrame(@frame);
     } elsif($frame[8] == 11) {
         return $self->decodeDHTFrame(@frame);
+    } elsif($frame[8] == 40) {
+        return $self->decodeStatus2Frame(@frame);
     } elsif($frame[8] == 33) {
         # Wake up from powersave
         my %decoded;
@@ -144,14 +146,9 @@ sub decodeFrame {
         }
         my $clacksdata = join(',', @parts);
         $self->{clacks}->set('GSP::DGN2::STATECHANGE', $clacksdata);
-    } elsif($frame[8] == 19) {
-        return $self->decodeSoilCapacityData(@frame);
-    } elsif($frame[8] == 32) {
-        return $self->decodeRFISeriesData(@frame);
     }
     return;
 }
-
 
 sub decodeStatusFrame {
     my ($self, @frame) =@_;
@@ -200,6 +197,55 @@ sub decodeStatusFrame {
                 $decoded{firmware_version},
                 $decoded{keepawake_enabled},
                 $decoded{powersave_enabled},
+        )) {
+        $reph->debuglog("DB ERROR: " . $dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+
+    $dbh->commit;
+    return 1;
+}
+
+sub decodeStatus2Frame {
+    my ($self, @frame) =@_;
+    
+    my $data = 12;
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.dgn2_status2
+                                        (keepawake_flag, powersave_enabled, reboot_counter_current, reboot_counter_trigger,
+                                         powersave_sleepcycle_count, powersave_keepawake_seconds)
+                                        VALUES (?, ?, ?, ?, ?, ?)")
+            or croak($dbh->errstr);
+
+
+    my %decoded;
+    $decoded{keepawake_flag} = $frame[$data + 0];
+    $decoded{powersave_enabled} = $frame[$data + 2];
+    $decoded{reboot_counter_current} = $frame[$data + 3];
+    $decoded{reboot_counter_trigger} = $frame[$data + 4];
+    $decoded{powersave_sleepcycle_count} = $frame[$data + 5];
+    $decoded{powersave_keepawake_seconds} = $frame[$data + 6];
+
+    $decoded{status2_timestamp} = getISODate();
+    my @parts;
+    foreach my $key (sort keys %decoded) {
+        push @parts, $key . '=' . $decoded{$key};
+    }
+    my $clacksdata = join(',', @parts);
+    $self->{clacks}->set('GSP::DGN2::STATUS2', $clacksdata);
+    $self->{clacks}->doNetwork();
+    $reph->debuglog("DGN2 status2 frame: $clacksdata");
+
+    if(!$insth->execute(
+                $decoded{keepawake_flag},
+                $decoded{powersave_enabled},
+                $decoded{reboot_counter_current},
+                $decoded{reboot_counter_trigger},
+                $decoded{powersave_sleepcycle_count},
+                $decoded{powersave_keepawake_seconds},
         )) {
         $reph->debuglog("DB ERROR: " . $dbh->errstr);
         $dbh->rollback;
