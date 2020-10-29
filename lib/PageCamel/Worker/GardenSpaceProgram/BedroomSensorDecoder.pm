@@ -218,8 +218,8 @@ sub decodeDHTFrame {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $insth = $dbh->prepare_cached("INSERT INTO gsp.bedroomsensor_dht
-                                        (status, temperature, humidity)
-                                        VALUES (?, ?, ?)")
+                                        (status, temperature, humidity, oventemperature)
+                                        VALUES (?, ?, ?, ?)")
             or croak($dbh->errstr);
 
 
@@ -267,6 +267,7 @@ sub decodeDHTFrame {
                 $decoded{status},
                 $decoded{temperature},
                 $decoded{humidity},
+                $decoded{oventemperature},
         )) {
         $reph->debuglog("DB ERROR: " . $dbh->errstr);
         $dbh->rollback;
