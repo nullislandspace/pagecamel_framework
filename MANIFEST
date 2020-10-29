@@ -9,6 +9,7 @@ devscripts/debugremove.pl
 devscripts/findbrokenforms.pl
 devscripts/fixpragmas.pl
 devscripts/nohss.pl
+devscripts/pgadmin4_install.txt
 devscripts/resetpod.pl
 devscripts/setcopyright.pl
 devscripts/setversion.pl
@@ -118,6 +119,7 @@ lib/PageCamel/Web/ForceSSL.pm
 lib/PageCamel/Web/ForceTransportSecurity.pm
 lib/PageCamel/Web/GardenSpaceProgram/Liveview.pm
 lib/PageCamel/Web/GardenSpaceProgram/Templates/balcony1.tt
+lib/PageCamel/Web/GardenSpaceProgram/Templates/bedroomsensor.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/dgn1.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/dgn2.tt
 lib/PageCamel/Web/GardenSpaceProgram/Templates/drivewaylights.tt

@@ -1,12 +1,12 @@
 <div align="left">
-    <h1>DGN2 live view</h1>
+    <h1>BEDROOMSENSOR live view</h1>
     <p>
-        This is the live data from DGN2. Depending on circumstances, this might not always update.<br/>
+        This is the live data from BEDROOMSENSOR. Depending on circumstances, this might not always update.<br/>
         You do <em>not</em> have to reload the page, when new data comes in, it will update automatically.
     </p>
     <p>
-        DGN2 is the "Deep Garden Network" relais station 2 on the south side of my house. See
-        <a href="/news/96">this blog article</a> for more details.
+        BEDROOMSENSOR is the "Deep Garden Network" a room temperature sensor for my home automation. It also acts as a
+        deep garden relais station.
     </p>
 
     <p>
@@ -29,28 +29,20 @@
                                 <td align="right"><span class="livedata" sensorname="liveview_ticks"></span></td>
                             </tr>
                             <tr class="staticeven">
+                                <td>Free memory (bytes)</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_memfree"></span></td>
+                            </tr>
+                            <tr class="staticodd">
                                 <td>Packets in</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_packets_in"></span></td>
                             </tr>
-                            <tr class="staticodd">
+                            <tr class="staticeven">
                                 <td>Packets out</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_packets_out"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>VCC</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_vcc"></span></td>
                             </tr>
                             <tr class="staticodd">
                                 <td>Firmware version</td>
                                 <td align="right"><span class="livedata" sensorname="liveview_firmware_version"></span></td>
-                            </tr>
-                            <tr class="staticeven">
-                                <td>Keep awake enabled</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_keepawake_enabled"></span></td>
-                            </tr>
-                            <tr class="staticodd">
-                                <td>Powersave enabled</td>
-                                <td align="right"><span class="livedata" sensorname="liveview_powersave_enabled"></span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -95,8 +87,8 @@
                         </tbody>
                     </table>
                 </td>
-            </tr>
 
+            </tr>
             <tr>
                 <td valign="top">
                     <table class="data">
@@ -111,21 +103,34 @@
                                 <td><span class="livedata" sensorname="liveview_dht_timestamp"></span></td>
                             </tr>
                             <tr class="staticodd">
-                                <td>Status</td>
-                                <td><span class="livedata" sensorname="liveview_dht_status"></span></td>
+                                <td>Sensor Status</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_dht_status"></span></td>
                             </tr>
                             <tr class="staticeven">
                                 <td>Temperature</td>
-                                <td><span class="livedata" sensorname="liveview_temperature"></span>&#176;C</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_temperature"></span>&#176;C</td>
                             </tr>
                             <tr class="staticodd">
                                 <td>Humidity</td>
-                                <td><span class="livedata" sensorname="liveview_humidity"></span>&#37;</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_humidity"></span>&#37;</td>
                             </tr>
                         </tbody>
                     </table>
                 </td>
                 <td valign="top">
+                    <table class="data">
+                        <thead>
+                            <tr class="tabheader">
+                                <th colspan="2" class="statichead">Tiled stove thermocouple</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="staticeven">
+                                <td>Temperature</td>
+                                <td align="right"><span class="livedata" sensorname="liveview_oventemperature"></span>&#176;C</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </td>
             </tr>
         </table>
