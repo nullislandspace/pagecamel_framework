@@ -63,12 +63,18 @@
                         <input type="hidden" name="html5_draganddrop" id="html5_draganddrop" value="-1">
                         <input type="hidden" name="html5_xmlhttprequest" id="html5_xmlhttprequest" value="-1">
                         <input type="hidden" name="html5_beacon" id="html5_beacon" value="-1">
-                        <div id="submitbuttondiv" class="elem_display_none">
-                            <input type="submit" value="[% tr.trquote("Login") %]" id="submitbutton">
-                        </div>
-                        <div id="mousemovediv" class="elem_display_block">
-                            <img src="/pics/movemouse.gif[% URLReloadPostfix %]">
-                        </div>
+                        [% IF DisableMousechecks == "0" %]
+                            <div id="submitbuttondiv" class="elem_display_none">
+                                <input type="submit" value="[% tr.trquote("Login") %]" id="submitbutton">
+                            </div>
+                            <div id="mousemovediv" class="elem_display_block">
+                                <img src="/pics/movemouse.gif[% URLReloadPostfix %]">
+                            </div>
+                        [% ELSE %]
+                            <div id="submitbuttondiv">
+                                <input type="submit" value="[% tr.trquote("Login") %]" id="submitbutton">
+                            </div>
+                        [% END %]
                     </td>
                 </tr>
             [% END %]
@@ -134,6 +140,7 @@
     data-statuscolor="[% statuscolor %]"
     data-statustext="[% statustext %]"
     data-trquote-checkingpassword="[% tr.trquote("Checking password...") %]"
+    data-disablemousechecks="[% DisableMousechecks %]"
 ></span>
 
 <script>
@@ -239,7 +246,9 @@
             $('#html5_websockets_display').addClass('errortext');
         };
         
-        romoTest();
+        if(ttvars.disablemousechecks == 0) {
+            romoTest();
+        }
     
         var localStoreSupported = (function() {
           var uid = new Date,
@@ -334,6 +343,7 @@
     
     var romoState = 0;
     function romoCallback() {
+        console.log(ttvars.disablemousechecks);
         romoState = 1;
         
         document.getElementById('mousemovediv').style.display = 'none';
@@ -345,7 +355,7 @@
     var canSubmit = 0;
     function checkInput() {
         var uname = $('#username').val();
-        if(uname.length > 0 && romoState) {
+        if(uname.length > 0 && (ttvars.disablemousechecks == 1 || romoState)) {
             canSubmit = 1;
         } else {
             canSubmit = 0;

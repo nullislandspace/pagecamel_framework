@@ -58,6 +58,10 @@ sub new {
         $self->{disable_firewall} = 0;
     }
 
+    if(!defined($self->{disable_mousecheck})) {
+        $self->{disable_mousecheck} = 1;
+    }
+
     return $self;
 }
 
@@ -152,6 +156,7 @@ sub get_login {
         username    =>  $ua->{postparams}->{'username'} || '',
         password    =>  $ua->{postparams}->{'password'} || '',
         PostLink    =>  $self->{login}->{webpath},
+        DisableMousechecks => $self->{disable_mousecheck},
         showads => $self->{showads},
     );
 
@@ -169,16 +174,19 @@ sub get_login {
 
         my $pwok = verify_password($dbh, $webdata{username}, $webdata{password});
 
-        my $tempsessionid = $ua->{postparams}->{'tempsessionid'} || '';
-        my $tempclientid = $ua->{postparams}->{'tempclientid'} || '';
-        for(my $i = 1; $i < 20; $i++) {
-            $tempsessionid = sha256_hex(substr($tempsessionid, 1, 12) . $i);
-        }
-        $tempsessionid = uc substr($tempsessionid, 3, 8);
         my $clidmsg = '';
-        if($tempsessionid ne $tempclientid) {
-            $pwok = 0;
-            $clidmsg = ' (CLIDFAIL)';
+
+        if(!$self->{disable_mousecheck}) {
+            my $tempsessionid = $ua->{postparams}->{'tempsessionid'} || '';
+            my $tempclientid = $ua->{postparams}->{'tempclientid'} || '';
+            for(my $i = 1; $i < 20; $i++) {
+                $tempsessionid = sha256_hex(substr($tempsessionid, 1, 12) . $i);
+            }
+            $tempsessionid = uc substr($tempsessionid, 3, 8);
+            if($tempsessionid ne $tempclientid) {
+                $pwok = 0;
+                $clidmsg = ' (CLIDFAIL)';
+            }
         }
 
         if(!$pwok) {
@@ -319,10 +327,12 @@ sub get_login {
     $webdata{password} = "";
 
     # Robby detection ("romotest")
-    my @extrascripts = ('/static/sha256.js');
-    $webdata{HeadExtraScripts} = \@extrascripts;
-    $webdata{tempsessionid} = PageCamel::Helpers::Passwords::gen_textsalt();
-    $webdata{tempclientid} = PageCamel::Helpers::Passwords::gen_textsalt();
+    if(!$self->{disable_mousecheck}) {
+        my @extrascripts = ('/static/sha256.js');
+        $webdata{HeadExtraScripts} = \@extrascripts;
+        $webdata{tempsessionid} = PageCamel::Helpers::Passwords::gen_textsalt();
+        $webdata{tempclientid} = PageCamel::Helpers::Passwords::gen_textsalt();
+    }
 
     my $template = $self->{server}->{modules}->{templates}->get("users/login", 1, %webdata);
     return (status  =>  404) unless $template;
