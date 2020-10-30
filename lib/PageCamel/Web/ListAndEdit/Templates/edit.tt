@@ -14,180 +14,216 @@
 [% END %]
 
 <p align="center">
-    <form name="listandedit" method="post" action="[% webpath %]"  id="MainForm" enctype="multipart/form-data">
-        <input type="hidden" name="primary_key" value="[% primary_key %]">
-        <input type="hidden" name="mode" value="list" id="mode">
-        [% IF UseTabs == 0 %]
-            <table class="data" align="center" id="MainDataTable">
-                <thead>
-                    <tr class="tabheader">
-                        <th>[% tr.trquote("Key") %]</th>
-                        <th>[% tr.trquote("Value") %]</th>
-                    </tr>
-                </thead>
-                <tbody>
-        [% ELSE %]
-            <input type="hidden" name="selectedTab" value="[% SelectedTab %]" id="selectedTab">
-            <div id="tabs">
-                <ul align="center">
-                    [% FOREACH column IN columns %]
-                        [% IF column.displaytype == "newtab" %]
-                            <li><a href="#[% column.tabname %]" tabname="[% column.tabname %]">[% tr.trquote(column.displayname) %]</a></li>
-                        [% END %]
-                    [% END %]
-                </ul>
-        [% END %]
-
-
-                [% FOREACH column IN columns %]
-                    [% IF column.displaytype == "newtab"%]
-                        <!-- [% column.tablename %] -->
-                        [% IF column.tablename != 'MainDataTable' %]
-                                        </tbody>
-                                    </table>
-                                </p>
-                            </div>
-                        [% END %]
-                        <div id="[% column.tabname %]">
-                            <p align="center">
-                                <table class="data" id="[% column.tablename %]">
-                                    <thead>
-                                        <tr class="tabheader">
-                                            <th>[% tr.trquote("Key") %]</th>
-                                            <th>[% tr.trquote("Value") %]</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-
-                    [% ELSIF column.displaytype == "hidden" %]
-                        <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+    [% IF SidebarHTML != '' %]
+    <table>
+        <tr>
+            <td valign="top">
+    [% END %]
+                <form name="listandedit" method="post" action="[% webpath %]"  id="MainForm" enctype="multipart/form-data">
+                    <input type="hidden" name="primary_key" value="[% primary_key %]">
+                    <input type="hidden" name="mode" value="list" id="mode">
+                    [% IF UseTabs == 0 %]
+                        <table class="data" align="center" id="MainDataTable">
+                            <thead>
+                                <tr class="tabheader">
+                                    <th>[% tr.trquote("Key") %]</th>
+                                    <th>[% tr.trquote("Value") %]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                     [% ELSE %]
-                        <tr>
-                            <td valign="center">[% tr.trquote(column.displayname) %]</td>
-                            <td valign="center">
-                                [% IF column.displaytype == "text" %]
-                                    <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
-                                [% ELSIF column.displaytype == "date" %]
-                                    <input type="text" displaytype="dateandtime" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="19" maxlength="19">
-                                [% ELSIF column.displaytype == "dateonly" %]
-                                    <input type="text" displaytype="dateonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="10" maxlength="10">
-                                [% ELSIF column.displaytype == "timeonly" %]
-                                    <input type="text" displaytype="timeonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="5" maxlength="5">
-                                [% ELSIF column.displaytype == "textarea" %]
-                                    [% IF column.charcount > 0 %]
-                                        <div displaytype="charcount" charcount="[% column.charcount %]">
-                                            <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" ccpart="input">[% tr.quote(column.columnvalue) %]</textarea>
-                                            <br/><div id="[% tr.quote(column.columnname) %]_charcount" ccpart="count">...</div>
-                                        </div>
-                                    [% ELSE %]
-                                        <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]">[% tr.quote(column.columnvalue) %]</textarea>
+                        <input type="hidden" name="selectedTab" value="[% SelectedTab %]" id="selectedTab">
+                        <div id="tabs">
+                            <ul align="center">
+                                [% FOREACH column IN columns %]
+                                    [% IF column.displaytype == "newtab" %]
+                                        <li><a href="#[% column.tabname %]" tabname="[% column.tabname %]">[% tr.trquote(column.displayname) %]</a></li>
                                     [% END %]
-                                [% ELSIF column.displaytype == "textarea-readonly" %]
-                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" readonly="readonly">[% tr.quote(column.columnvalue) %]</textarea>
-                                [% ELSIF column.displaytype == "editor" %]
-                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" displaytype="editor">[% column.columnvalue %]</textarea>
-                                [% ELSIF column.displaytype == "scripteditor" %]
-                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" displaytype="scripteditor">[% tr.quote(column.columnvalue) %]</textarea>
-                                [% ELSIF column.displaytype == "codedisplay" %]
-                                    <pre><code>[% tr.quote(column.columnvalue) %]</code></pre>
-                                [% ELSIF column.displaytype == "number" %]
-                                    <input type="number" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="18" maxlength="20" step="[% column.step %]" min="[% column.value_min %]" max="[% column.value_max %]">
-                                [% ELSIF column.displaytype == "colorpicker" %]
-                                    <input type="color" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
-                                [% ELSIF column.displaytype == "image" %]
-                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]"><br/>
-                                    [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
-                                    <input type="file" name="[% tr.quote(column.columnname) %]___new" id="[% tr.quote(column.columnname) %]___new_id">
-                                [% ELSIF column.displaytype == "checkbox" %]
-                                    <input type="checkbox" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id"
-                                        [% IF column.columnvalue == 1 %]
-                                            checked="checked"
-                                        [% END %]
-                                        >
-                                [% ELSIF column.displaytype == "display" %]
-                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
-                                    [% tr.quote(column.columnvalue) %]
-                                [% ELSIF column.displaytype == "led" %]
-                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
-                                    [% IF column.columnvalue == 1 %]
-                                        <img src="/pics/led_OK.png" alt="ON">
-                                    [% ELSE %]
-                                        <img src="/pics/led_OFF.png" alt="OFF">
-                                    [% END %]
-                                [% ELSIF column.displaytype == "switch" %]
-                                    <div displaytype="switch">
-                                        <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
-                                                    id="[% tr.quote(column.columnname) %]_value" switchpart="value">
-                                        <table>
-                                            <tr>
-                                                <td width="20px"><img id="[% tr.quote(column.columnname) %]_led" switchpart="led" src="/pics/led_UNKNOWN.png"></td>
-                                                <td width="87px"><img id="[% tr.quote(column.columnname) %]_switch" switchpart="switch" src="/pics/switch_ON.png"></td>
-                                            </tr>
-                                        </table>
-                                    </div>
-
-                                [% ELSIF column.displaytype == "enum" %]
-                                        <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
-                                            [% FOREACH enumvalue IN column.enum_values %]
-                                                <option value="[% enumvalue.selectorenumvalue %]"
-                                                [% IF enumvalue.selectorenumvalue == column.columnvalue %]
-                                                    selected="selected"
-                                                [% END %]
-                                                >
-                                                    [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
-                                                </option>
-                                            [% END %]
-                                        </select>
-                                [% ELSIF column.displaytype == "subenum" %]
-                                    <div displaytype="subenum" subenum="[% column.columnname %]" parentenum="[% column.parentcolumn %]" initialvalue="[% column.columnvalue %]" subenumdata="JSON:[% column.enum_values_json %]">
-                                        <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
-                                            <option value=""></option>
-                                        </select>
-                                        <!--<input type="hidden" name="[% column.columnname %]" value="[% column.columnvalue %]">-->
-                                    </div>
-                                [% ELSIF column.displaytype == "slider" %]
-                                    <div displaytype="slider" svalue="[% tr.quote(column.columnvalue) %]" smin="[% column.value_min %]" smax="[% column.value_max %]" sstep="[% column.step %]">
-                                        <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
-                                                    id="[% tr.quote(column.columnname) %]_value" sliderpart="value">
-                                        <table border="0">
-                                            <tr>
-                                                <td width="20px">&nbsp;</td>
-                                                <td width="200px"><div id="[% tr.quote(column.columnname) %]_slider" sliderpart="slider"></div></td>
-                                                <td width="20px">&nbsp;</td>
-                                                <td><div id="[% tr.quote(column.columnname) %]_display" sliderpart="display">[% tr.quote(column.columnvalue) %]</div></td>
-                                            </tr>
-                                        </table>
-                                    </div>
-
-                                [% ELSIF column.displaytype == "array" %]
-                                    [% arraycount = 0 %]
-                                    [% FOREACH arrayvalue IN column.columnvalue %]
-                                        <input type="text" name="[% tr.quote(column.columnname) %]_[% arraycount %]" value="[% tr.quote(arrayvalue) %]" size="60" maxlength="200"><br/>
-                                        [% arraycount = arraycount + 1 %]
-                                    [% END %]
-                                    [% emptycount = 2 %]
-                                    [% WHILE emptycount > 0 %]
-                                        <input type="text" name="[% tr.quote(column.columnname) %]_[% arraycount %]" value="" size="60" maxlength="200"><br/>
-                                        [% arraycount = arraycount + 1 %]
-                                        [% emptycount = emptycount - 1 %]
-                                    [% END %]
-                                    <input type="hidden" name="[% tr.quote(column.columnname) %]_count" value="[% arraycount %]">
-                                [% ELSE %]
-                                    UNSUPPORTED DISPLAYTYPE [% column.fieldtype %] / [% column.displaytype %] FOR COLUMN [% column.columnname %]
                                 [% END %]
-
-                                [% IF column.goto == 1 %]
-                                    <input type="button" class="gotobutton" goto="[% column.gotourl %]">
-                                [% END %]
-                            </td>
-                        </tr>
+                            </ul>
                     [% END %]
-                [% END %]
-            </tbody>
-            [% IF UseTabs == 0 %]
-                <tfoot>
-                    <tr>
-                        <td colspan="2" align="center">
+
+
+                            [% FOREACH column IN columns %]
+                                [% IF column.displaytype == "newtab"%]
+                                    <!-- [% column.tablename %] -->
+                                    [% IF column.tablename != 'MainDataTable' %]
+                                                    </tbody>
+                                                </table>
+                                            </p>
+                                        </div>
+                                    [% END %]
+                                    <div id="[% column.tabname %]">
+                                        <p align="center">
+                                            <table class="data" id="[% column.tablename %]">
+                                                <thead>
+                                                    <tr class="tabheader">
+                                                        <th>[% tr.trquote("Key") %]</th>
+                                                        <th>[% tr.trquote("Value") %]</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+
+                                [% ELSIF column.displaytype == "hidden" %]
+                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                                [% ELSE %]
+                                    <tr>
+                                        <td valign="center">[% tr.trquote(column.displayname) %]</td>
+                                        <td valign="center">
+                                            [% IF column.displaytype == "text" %]
+                                                <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
+                                            [% ELSIF column.displaytype == "date" %]
+                                                <input type="text" displaytype="dateandtime" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="19" maxlength="19">
+                                            [% ELSIF column.displaytype == "dateonly" %]
+                                                <input type="text" displaytype="dateonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="10" maxlength="10">
+                                            [% ELSIF column.displaytype == "timeonly" %]
+                                                <input type="text" displaytype="timeonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="5" maxlength="5">
+                                            [% ELSIF column.displaytype == "textarea" %]
+                                                [% IF column.charcount > 0 %]
+                                                    <div displaytype="charcount" charcount="[% column.charcount %]">
+                                                        <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" ccpart="input">[% tr.quote(column.columnvalue) %]</textarea>
+                                                        <br/><div id="[% tr.quote(column.columnname) %]_charcount" ccpart="count">...</div>
+                                                    </div>
+                                                [% ELSE %]
+                                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]">[% tr.quote(column.columnvalue) %]</textarea>
+                                                [% END %]
+                                            [% ELSIF column.displaytype == "textarea-readonly" %]
+                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" readonly="readonly">[% tr.quote(column.columnvalue) %]</textarea>
+                                            [% ELSIF column.displaytype == "editor" %]
+                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" displaytype="editor">[% column.columnvalue %]</textarea>
+                                            [% ELSIF column.displaytype == "scripteditor" %]
+                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" displaytype="scripteditor">[% tr.quote(column.columnvalue) %]</textarea>
+                                            [% ELSIF column.displaytype == "codedisplay" %]
+                                                <pre><code>[% tr.quote(column.columnvalue) %]</code></pre>
+                                            [% ELSIF column.displaytype == "number" %]
+                                                <input type="number" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="18" maxlength="20" step="[% column.step %]" min="[% column.value_min %]" max="[% column.value_max %]">
+                                            [% ELSIF column.displaytype == "colorpicker" %]
+                                                <input type="color" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                                            [% ELSIF column.displaytype == "image" %]
+                                                <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]"><br/>
+                                                [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
+                                                <input type="file" name="[% tr.quote(column.columnname) %]___new" id="[% tr.quote(column.columnname) %]___new_id">
+                                            [% ELSIF column.displaytype == "checkbox" %]
+                                                <input type="checkbox" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id"
+                                                    [% IF column.columnvalue == 1 %]
+                                                        checked="checked"
+                                                    [% END %]
+                                                    >
+                                            [% ELSIF column.displaytype == "display" %]
+                                                <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                                                [% tr.quote(column.columnvalue) %]
+                                            [% ELSIF column.displaytype == "led" %]
+                                                <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                                                [% IF column.columnvalue == 1 %]
+                                                    <img src="/pics/led_OK.png" alt="ON">
+                                                [% ELSE %]
+                                                    <img src="/pics/led_OFF.png" alt="OFF">
+                                                [% END %]
+                                            [% ELSIF column.displaytype == "switch" %]
+                                                <div displaytype="switch">
+                                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
+                                                                id="[% tr.quote(column.columnname) %]_value" switchpart="value">
+                                                    <table>
+                                                        <tr>
+                                                            <td width="20px"><img id="[% tr.quote(column.columnname) %]_led" switchpart="led" src="/pics/led_UNKNOWN.png"></td>
+                                                            <td width="87px"><img id="[% tr.quote(column.columnname) %]_switch" switchpart="switch" src="/pics/switch_ON.png"></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+
+                                            [% ELSIF column.displaytype == "enum" %]
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
+                                                        [% FOREACH enumvalue IN column.enum_values %]
+                                                            <option value="[% enumvalue.selectorenumvalue %]"
+                                                            [% IF enumvalue.selectorenumvalue == column.columnvalue %]
+                                                                selected="selected"
+                                                            [% END %]
+                                                            >
+                                                                [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
+                                                            </option>
+                                                        [% END %]
+                                                    </select>
+                                            [% ELSIF column.displaytype == "subenum" %]
+                                                <div displaytype="subenum" subenum="[% column.columnname %]" parentenum="[% column.parentcolumn %]" initialvalue="[% column.columnvalue %]" subenumdata="JSON:[% column.enum_values_json %]">
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
+                                                        <option value=""></option>
+                                                    </select>
+                                                    <!--<input type="hidden" name="[% column.columnname %]" value="[% column.columnvalue %]">-->
+                                                </div>
+                                            [% ELSIF column.displaytype == "slider" %]
+                                                <div displaytype="slider" svalue="[% tr.quote(column.columnvalue) %]" smin="[% column.value_min %]" smax="[% column.value_max %]" sstep="[% column.step %]">
+                                                    <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
+                                                                id="[% tr.quote(column.columnname) %]_value" sliderpart="value">
+                                                    <table border="0">
+                                                        <tr>
+                                                            <td width="20px">&nbsp;</td>
+                                                            <td width="200px"><div id="[% tr.quote(column.columnname) %]_slider" sliderpart="slider"></div></td>
+                                                            <td width="20px">&nbsp;</td>
+                                                            <td><div id="[% tr.quote(column.columnname) %]_display" sliderpart="display">[% tr.quote(column.columnvalue) %]</div></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+
+                                            [% ELSIF column.displaytype == "array" %]
+                                                [% arraycount = 0 %]
+                                                [% FOREACH arrayvalue IN column.columnvalue %]
+                                                    <input type="text" name="[% tr.quote(column.columnname) %]_[% arraycount %]" value="[% tr.quote(arrayvalue) %]" size="60" maxlength="200"><br/>
+                                                    [% arraycount = arraycount + 1 %]
+                                                [% END %]
+                                                [% emptycount = 2 %]
+                                                [% WHILE emptycount > 0 %]
+                                                    <input type="text" name="[% tr.quote(column.columnname) %]_[% arraycount %]" value="" size="60" maxlength="200"><br/>
+                                                    [% arraycount = arraycount + 1 %]
+                                                    [% emptycount = emptycount - 1 %]
+                                                [% END %]
+                                                <input type="hidden" name="[% tr.quote(column.columnname) %]_count" value="[% arraycount %]">
+                                            [% ELSE %]
+                                                UNSUPPORTED DISPLAYTYPE [% column.fieldtype %] / [% column.displaytype %] FOR COLUMN [% column.columnname %]
+                                            [% END %]
+
+                                            [% IF column.goto == 1 %]
+                                                <input type="button" class="gotobutton" goto="[% column.gotourl %]">
+                                            [% END %]
+                                        </td>
+                                    </tr>
+                                [% END %]
+                            [% END %]
+                        </tbody>
+                        [% IF UseTabs == 0 %]
+                            <tfoot>
+                                <tr>
+                                    <td colspan="2" align="center">
+                                        [% IF mode == "create" %]
+                                            <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
+                                        [% ELSE %]
+                                            [% IF UsePrevNext == "1" && prevprimarykey != "" %]
+                                                <input type="submit" value=" &#8656;" onclick="return setMode('select_[% prevprimarykey %]');">
+                                            [% END %]
+                                            <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                                            [% IF cansaveandclose == "1" %]
+                                                <input type="submit" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose');">
+                                            [% END %]
+                                            [% IF cancopy == "1" %]
+                                                <input type="submit" value="[% tr.tr("Copy") %]" onclick="return setMode('copy');">
+                                            [% END %]
+                                            [% IF candelete == "1" %]
+                                                &nbsp;
+                                                <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
+                                            [% END %]
+                                            [% IF UsePrevNext == "1" && nextprimarykey != "" %]
+                                                <input type="submit" value=" &#8658;" onclick="return setMode('select_[% nextprimarykey %]');">
+                                            [% END %]
+                                        [% END %]
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        [% END %]
+                    </table>
+                    [% IF UseTabs == 1 %]
+                            </p>
+                        </div>
+                    </div>
+                        <p align="center">
                             [% IF mode == "create" %]
                                 <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
                             [% ELSE %]
@@ -209,40 +245,17 @@
                                     <input type="submit" value=" &#8658;" onclick="return setMode('select_[% nextprimarykey %]');">
                                 [% END %]
                             [% END %]
-                        </td>
-                    </tr>
-                </tfoot>
-            [% END %]
-        </table>
-        [% IF UseTabs == 1 %]
-                </p>
-            </div>
-        </div>
-            <p align="center">
-                [% IF mode == "create" %]
-                    <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
-                [% ELSE %]
-                    [% IF UsePrevNext == "1" && prevprimarykey != "" %]
-                        <input type="submit" value=" &#8656;" onclick="return setMode('select_[% prevprimarykey %]');">
+                        </p>
                     [% END %]
-                    <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
-                    [% IF cansaveandclose == "1" %]
-                        <input type="submit" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose');">
-                    [% END %]
-                    [% IF cancopy == "1" %]
-                        <input type="submit" value="[% tr.tr("Copy") %]" onclick="return setMode('copy');">
-                    [% END %]
-                    [% IF candelete == "1" %]
-                        &nbsp;
-                        <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
-                    [% END %]
-                    [% IF UsePrevNext == "1" && nextprimarykey != "" %]
-                        <input type="submit" value=" &#8658;" onclick="return setMode('select_[% nextprimarykey %]');">
-                    [% END %]
-                [% END %]
-            </p>
-        [% END %]
-    </form>
+                </form>
+    [% IF SidebarHTML != '' %]
+            </td>
+            <td valign="top">
+                [% SidebarHTML %]
+            </td>
+        </tr>
+    </table>
+    [% END %]
 </p>
 
 <span id="masktemplatedataset"

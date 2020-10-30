@@ -4,68 +4,81 @@
     [% IF UseURLID == 1 %][% URLID %][% END %]</h1></p>
 [% END %]
 <p align="center">
-    <form name="listandeditform" method="post" action="[% webpath %]"  id="ListAndEditForm">
-        <table class="data" id="ListAndEditTable">
-            <thead>
-                <tr class="tabheader">
-                    [% IF ListOnly == "0" || ListOnlyCustomSelect == "1" %]
-                        <th></th>
-                    [% END %]
-                    [% FOREACH column IN columns %]
-                        <th>[% tr.trquote(column.header) %]</th>
-                    [% END %]
-                </tr>
-            </thead>
-
-            <tbody>
-                [% FOREACH line IN lines %]
-                    <tr>
-                        <td colspan="[% column_count + 1 %]" class="dataTables_empty">[% tr.trquote("Loading data from server") %]</td>
-                    </tr>
-                [% END %]
-
-
-            </tbody>
-
-            <tfoot>
-                [% IF ColumnFilters == "1" %]
-                    <!-- column search bar -->
-                    <tr class="tabheader">
-                        [% IF ListOnly == "0" || ListOnlyCustomSelect == "1" %]
-                            <th></th>
-                        [% END %]
-                        [% FOREACH column IN columns %]
-                            <th class="datatablescolumnsearch" align="left"
-                            [% FOREACH columnfilter IN rawColumnFilters %]
-                                [% IF columnfilter.column == column.colname %]
-                                    filtervalue="[% tr.quote(columnfilter.filter) %]"
-                                [% END %]
-                            [% END %]
-                            colname="[% column.colname %]">[% tr.trquote(column.header) %]</th>
-                        [% END %]
-                    </tr>
-                [% END %]
-                [% IF cancreate == "1" %]
-                    <tr id="footereditrow">
-                        <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
-                        <td colspan="[% column_count %]" align="left" valign="top">[% tr.trquote("New") %]</td>
-
-                    </tr>
-                [% END %]
-            </tfoot>
-
-        </table>
-        <br/>
-    [% IF ListOnly == "0" %]
-        <div align="center">
-            <input type="hidden" name="mode" value="select">
-            <input type="submit" value="[% tr.trquote("Select") %]" id="SelectButton">
-        </div>
-    [% ELSIF ListOnlyCustomSelect == "1" %]
-        <div align="center" id="customselectdiv">
-        </div>
+    [% IF SidebarHTML != '' %]
+    <table>
+        <tr>
+            <td valign="top">
     [% END %]
-    </form>
+                <form name="listandeditform" method="post" action="[% webpath %]"  id="ListAndEditForm">
+                    <table class="data" id="ListAndEditTable">
+                        <thead>
+                            <tr class="tabheader">
+                                [% IF ListOnly == "0" || ListOnlyCustomSelect == "1" %]
+                                    <th></th>
+                                [% END %]
+                                [% FOREACH column IN columns %]
+                                    <th>[% tr.trquote(column.header) %]</th>
+                                [% END %]
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            [% FOREACH line IN lines %]
+                                <tr>
+                                    <td colspan="[% column_count + 1 %]" class="dataTables_empty">[% tr.trquote("Loading data from server") %]</td>
+                                </tr>
+                            [% END %]
+
+
+                        </tbody>
+
+                        <tfoot>
+                            [% IF ColumnFilters == "1" %]
+                                <!-- column search bar -->
+                                <tr class="tabheader">
+                                    [% IF ListOnly == "0" || ListOnlyCustomSelect == "1" %]
+                                        <th></th>
+                                    [% END %]
+                                    [% FOREACH column IN columns %]
+                                        <th class="datatablescolumnsearch" align="left"
+                                        [% FOREACH columnfilter IN rawColumnFilters %]
+                                            [% IF columnfilter.column == column.colname %]
+                                                filtervalue="[% tr.quote(columnfilter.filter) %]"
+                                            [% END %]
+                                        [% END %]
+                                        colname="[% column.colname %]">[% tr.trquote(column.header) %]</th>
+                                    [% END %]
+                                </tr>
+                            [% END %]
+                            [% IF cancreate == "1" %]
+                                <tr id="footereditrow">
+                                    <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
+                                    <td colspan="[% column_count %]" align="left" valign="top">[% tr.trquote("New") %]</td>
+
+                                </tr>
+                            [% END %]
+                        </tfoot>
+
+                    </table>
+                    <br/>
+                [% IF ListOnly == "0" %]
+                    <div align="center">
+                        <input type="hidden" name="mode" value="select">
+                        <input type="submit" value="[% tr.trquote("Select") %]" id="SelectButton">
+                    </div>
+                [% ELSIF ListOnlyCustomSelect == "1" %]
+                    <div align="center" id="customselectdiv">
+                    </div>
+                [% END %]
+                </form>
+    [% IF SidebarHTML != '' %]
+            </td>
+            <td valign="top">
+                [% SidebarHTML %]
+            </td>
+        </tr>
+    </table>
+    [% END %]
 </p>
 [% IF AllowSendCSV == "1" OR AllowDownloadCSV == "1" %]
     <p id="csvlinkparagraph">
