@@ -10,8 +10,7 @@ apt dist-upgrade
 apt install libpq-dev pgadmin4-server postgresql-common
 
 apt install python3-pip
-pip3 install uwsgi
-pip3 install flask flask-babelex flask-login flask-mail flask-paranoid flask-security email-validator flask-sqlalchemy flask-migrate psycopg2 sshtunnel ldap3 flask-gravatar sqlparse flask-compress
+pip3 install uwsgi flask flask-babelex flask-login flask-mail flask-paranoid flask-security email-validator flask-sqlalchemy flask-migrate psycopg2 sshtunnel ldap3 flask-gravatar sqlparse flask-compress psutil
 
 #uwsgi --http-socket :8282 --wsgi-file /usr/pgadmin4/web/pgAdmin4.wsgi --master --processes 1 --threads 25
 
