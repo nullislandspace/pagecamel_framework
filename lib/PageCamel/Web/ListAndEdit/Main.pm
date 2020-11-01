@@ -90,6 +90,21 @@ sub new {
         }
     }
 
+    if(defined($self->{list}) && !defined($self->{list}->{sidebarhtml})) {
+        if(defined($self->{sidebarhtml})) {
+            $self->{list}->{sidebarhtml} = $self->{sidebarhtml};
+        } else {
+            $self->{list}->{sidebarhtml} = '';
+        }
+    }
+    if(defined($self->{edit}) && !defined($self->{edit}->{sidebarhtml})) {
+        if(defined($self->{sidebarhtml})) {
+            $self->{edit}->{sidebarhtml} = $self->{sidebarhtml};
+        } else {
+            $self->{edit}->{sidebarhtml} = '';
+        }
+    }
+
     $self->{useextraeditscript} = 0;
     if(defined($self->{editjavascript})) {
         $self->{useextraeditscript} = 1;
@@ -188,6 +203,14 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
             $self->{$optionalattr} = 0;
         }
     }
+
+    foreach my $optionalattr (qw[radiobuttonhtml]) {
+        if(!defined($self->{$optionalattr})) {
+            print "    Attribute $optionalattr is undefined, set to empty string\n";
+            $self->{$optionalattr} = '';
+        }
+    }
+
 
     # When send_csv is true, then we need a sendmail module
     if($self->{send_csv} && !defined($self->{sendmail})) {
@@ -1030,6 +1053,7 @@ sub get_list {
         ListPageHeader => $self->{listpageheader},
         ListLength     => $listlength,
         showads => $self->{list}->{showads},
+        SidebarHTML => $self->{list}->{sidebarhtml},
     );
 
     if($self->{send_csv}) {
@@ -1399,7 +1423,7 @@ sub get_lines { ## no critic (Subroutines::ProhibitExcessComplexity)
             $primval =~ s/Ö/&Ouml;/g;
             $primval =~ s/Ü/&Uuml;/g;
             $primval =~ s/ß/&szlig;/;
-            my $primfield = '<input type="radio" name="primary_key" value="' . $primval . '">';
+            my $primfield = '<input type="radio" name="primary_key" value="' . $primval . '" ' . $self->{radiobuttonhtml} . '>';
 
             push @columns, $primfield;
         }
@@ -1607,6 +1631,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         extrattvars     =>  $self->{extrattvars},
         EditPageHeader => $self->{editpageheader},
         showads => $self->{edit}->{showads},
+        SidebarHTML => $self->{edit}->{sidebarhtml},
     );
 
     if($self->{autosave}) {

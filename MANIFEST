@@ -87,6 +87,7 @@ lib/PageCamel/Web/ComputerDB/Templates/computers_edit.tt
 lib/PageCamel/Web/ComputerDB/Templates/computers_select.tt
 lib/PageCamel/Web/ComputerDB/Templates/computers_vncedit.tt
 lib/PageCamel/Web/CSPHeader.pm
+lib/PageCamel/Web/DatablobLoader.pm
 lib/PageCamel/Web/DirCleaner.pm
 lib/PageCamel/Web/DirSync/DirSync.pm
 lib/PageCamel/Web/DirSync/Templates/dirsync_edit.tt

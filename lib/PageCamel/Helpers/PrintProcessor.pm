@@ -102,11 +102,12 @@ sub printAddTextLine {
     
     chomp $line;
     
+    my $oldoffs = $self->{imgoffs};
     $self->{img}->string($self->{bitmapfont}, 10, $self->{imgoffs}, $line, $self->{imgblack});
     
     $self->{imgoffs} += 16;
     
-    return;
+    return $oldoffs;
 }
 
 sub printAddSmallTextLine {
@@ -431,16 +432,16 @@ sub printAddGreyscaleImage {
 }
 
 sub rememberPrint {
-    my ($self, $imagedata, $description, $markascopy) = @_;
+    my ($self, $imagedata, $description, $markascopytext, $copy_y) = @_;
     
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
 
-    if(defined($markascopy) && $markascopy) {
+    if(defined($markascopytext)) {
         my $img = GD::Image->new($imagedata);
         my $black = $img->colorAllocate(0, 0, 0);
         my $white = $img->colorAllocate(255, 255, 255);
-        $img->stringFT($black, $self->{bigfont}, 50, 0, 10, 100, "Kopie");
+        $img->string($self->{bitmapfont}, 10, $copy_y, $markascopytext, $self->{imgblack});
         $imagedata = $img->png;
     }
     
