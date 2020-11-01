@@ -136,9 +136,8 @@ sub decodeFrame {
         return $self->decodePanelStatus(@frame);
     } elsif($frame[8] == 62) {
         return $self->decodeLoadStatus(@frame);
-        #return $self->dumpFramePayload(@frame);
     } elsif($frame[8] == 63) {
-        return $self->dumpFramePayload(@frame);
+        return $self->decodeChargerStatus(@frame);
     } elsif($frame[8] == 255) {
         return $self->dumpErrorFrame(@frame);
     } elsif($frame[8] == 33) {
@@ -351,10 +350,12 @@ sub decodeBatteryStatus {
 
     if($decoded{battery_current} > 0) {
         $decoded{battery_mode} = 'CHARGING';
-        if($decoded{battery_volts} >= 15) {
+        if($decoded{battery_volts} >= 14.8) {
             $decoded{estimated_charge_state} = 'Equalization';
-        } elsif($decoded{battery_volts} >= 14.4) {
-            $decoded{estimated_charge_state} = '> 80%';
+        } elsif($decoded{battery_volts} >= 14.6) {
+            $decoded{estimated_charge_state} = 'Boost';
+        } elsif($decoded{battery_volts} >= 14.8) {
+            $decoded{estimated_charge_state} = 'Float';
         } elsif($decoded{battery_volts} >= 12.0) {
             $decoded{estimated_charge_state} = '> 30%';
         } else {
@@ -386,6 +387,10 @@ sub decodeBatteryStatus {
             $decoded{estimated_charge_state} = '10%';
         } else {
             $decoded{estimated_charge_state} = '0%';
+        }
+
+        if($decoded{battery_volts} <= 12.0) {
+            $decoded{estimated_charge_state} .= ' UNDERVOLTAGE';
         }
     }
     my @parts;
@@ -501,6 +506,222 @@ sub decodeLoadStatus {
                 $decoded{load_power},
                 $decoded{load_power_today},
                 $decoded{load_power_total},
+        )) {
+        $reph->debuglog("DB ERROR: " . $dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+
+    $dbh->commit;
+    return 1;
+}
+
+sub decodeChargerStatus {
+    my ($self, @frame) =@_;
+    
+    my $data = 12;
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $insth = $dbh->prepare_cached("INSERT INTO gsp.solstice_charger
+                                         (charger_temperature, charger_overtemperature, charger_battery_flags, 
+                                          charger_equipment_flags, charger_battmosfet_status, charger_battresistance_status, 
+                                          charger_batttemp_status, charger_battvolt_status, charger_battvoltid_status, 
+                                          charger_charging_status, charger_equipment_running, charger_equipment_status, 
+                                          charger_load_status, charger_loadmosfet_short, charger_pvinput_status, 
+                                          charger_pvinput_voltage) 
+
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            or croak($dbh->errstr);
+
+    my %decoded;
+
+    $decoded{charger_temperature} = (($frame[$data + 0] << 8) + $frame[$data + 1]) / 100;
+    $decoded{charger_battery_flags} = ($frame[$data + 6] << 8) + $frame[$data + 7];
+    $decoded{charger_equipment_flags} = ($frame[$data + 8] << 8) + $frame[$data + 9];
+    $decoded{charger_overtemperature} = $frame[$data + 10];
+
+    {
+        # decode the battery flags
+        my $flags = $decoded{charger_battery_flags};
+        my $voltstatusflag =  $flags & 0b0000000000001111;
+        my $temperatureflag = $flags & 0b0000000011110000;
+        my $resistanceflag =  $flags & 0b0000000100000000;
+        my $wrongidflag =     $flags & 0b1000000000000000;
+
+        # Voltage flags
+        if($voltstatusflag == 0x0) {
+            $decoded{charger_battvolt_status} = 'Nominal';
+        } elsif($voltstatusflag == 0x1) {
+            $decoded{charger_battvolt_status} = 'Overvolt';
+        } elsif($voltstatusflag == 0x2) {
+            $decoded{charger_battvolt_status} = 'Undervolt';
+        } elsif($voltstatusflag == 0x3) {
+            $decoded{charger_battvolt_status} = 'Low voltage disconnect';
+        } elsif($voltstatusflag == 0x4) {
+            $decoded{charger_battvolt_status} = 'Other fault';
+        } else {
+            $decoded{charger_battvolt_status} = 'Unknown ' . $voltstatusflag;
+        }
+
+        # Temperature flags
+        $temperatureflag >>= 4;
+        if($temperatureflag == 0x0) {
+            $decoded{charger_batttemp_status} = 'Nominal';
+        } elsif($temperatureflag == 0x1) {
+            $decoded{charger_batttemp_status} = 'Over Temp';
+        } elsif($temperatureflag == 0x2) {
+            $decoded{charger_batttemp_status} = 'Low temp';
+        } else {
+            $decoded{charger_batttemp_status} = 'Unknown ' . $temperatureflag;
+        }
+
+        if($resistanceflag) {
+            $decoded{charger_battresistance_status} = 'Abnormal';
+        } else {
+            $decoded{charger_battresistance_status} = 'Nominal';
+        }
+
+        if($wrongidflag) {
+            $decoded{charger_battvoltid_status} = 'Abnormal';
+        } else {
+            $decoded{charger_battvoltid_status} = 'Nominal';
+        }
+    }
+
+    {
+        # decode the equipment flags
+        my $flags = $decoded{charger_equipment_flags};
+        my $runningstatusflag =      $flags & 0b0000000000000001;
+        my $basicstatusflag =        $flags & 0b0000000000000010;
+        my $chargingstatusflag =     $flags & 0b0000000000001100;
+        my $inputshortstatusflag =   $flags & 0b0000000000010000;
+        my $loadmosfetstatusflag =   $flags & 0b0000000010000000;
+        my $loadshortstatusflag =    $flags & 0b0000000100000000;
+        my $loadcurrentstatusflag =  $flags & 0b0000001000000000;
+        my $inputcurrentstatusflag = $flags & 0b0000010000000000;
+        my $antimosfetstatusflag =   $flags & 0b0000100000000000;
+        my $bothmosfetstatusflag =   $flags & 0b0001000000000000;
+        my $chargemosfetstatusflag = $flags & 0b0010000000000000;
+        my $inputstatusflag =        $flags & 0b1100000000000000;
+
+        if($runningstatusflag) {
+            $decoded{charger_equipment_running} = 'Running';
+        } else {
+            $decoded{charger_equipment_running} = 'Standby';
+        }
+
+        if(!$basicstatusflag) {
+            $decoded{charger_equipment_status} = 'Nominal';
+        } else {
+            $decoded{charger_equipment_status} = 'Fault';
+        }
+
+        # Charging flags
+        $chargingstatusflag >>= 2;
+        if($chargingstatusflag == 0x0) {
+            $decoded{charger_charging_status} = 'No charging';
+        } elsif($chargingstatusflag == 0x1) {
+            $decoded{charger_charging_status} = 'Float';
+        } elsif($chargingstatusflag == 0x2) {
+            $decoded{charger_charging_status} = 'Boost';
+        } elsif($chargingstatusflag == 0x3) {
+            $decoded{charger_charging_status} = 'Equilization';
+        } else {
+            $decoded{charger_charging_status} = 'Unknown ' . $chargingstatusflag;
+        }
+
+        if(!$inputshortstatusflag && !$inputcurrentstatusflag) {
+            $decoded{charger_pvinput_status} = 'Nominal';
+        } elsif($inputshortstatusflag && !$inputcurrentstatusflag) {
+            $decoded{charger_pvinput_status} = 'Short';
+        } elsif(!$inputshortstatusflag && $inputcurrentstatusflag) {
+            $decoded{charger_pvinput_status} = 'Over current';
+        } else {
+            $decoded{charger_pvinput_short} = 'Fault';
+        }
+
+        if(!$loadmosfetstatusflag) {
+            $decoded{charger_loadmosfet_short} = 'Nominal';
+        } else {
+            $decoded{charger_loadmosfet_short} = 'Short';
+        }
+
+        if(!$loadcurrentstatusflag && !$loadshortstatusflag) {
+            $decoded{charger_load_status} = 'Nominal';
+        } elsif($loadcurrentstatusflag && !$loadshortstatusflag) {
+            $decoded{charger_load_status} = 'Over current';
+        } elsif(!$loadcurrentstatusflag && $loadshortstatusflag) {
+            $decoded{charger_load_status} = 'Short';
+        } else {
+            $decoded{charger_load_status} = 'Fault';
+        }
+
+        if(!$antimosfetstatusflag && !$chargemosfetstatusflag && !$bothmosfetstatusflag) {
+            $decoded{charger_battmosfet_status} = 'Nominal';
+        } elsif($antimosfetstatusflag && !$chargemosfetstatusflag && !$bothmosfetstatusflag) {
+            $decoded{charger_battmosfet_status} = 'Anti-reverse short';
+        } elsif(!$antimosfetstatusflag && $chargemosfetstatusflag && !$bothmosfetstatusflag) {
+            $decoded{charger_battmosfet_status} = 'Charge short';
+        } elsif($antimosfetstatusflag && $chargemosfetstatusflag && !$bothmosfetstatusflag) {
+            $decoded{charger_battmosfet_status} = 'Both short';
+        } elsif(!$antimosfetstatusflag && !$chargemosfetstatusflag && $bothmosfetstatusflag) {
+            $decoded{charger_battmosfet_status} = 'Suspected short in both';
+        } elsif($antimosfetstatusflag && !$chargemosfetstatusflag && $bothmosfetstatusflag) {
+            $decoded{charger_battmosfet_status} = 'Anti-reverse short, suspected short in charge mosfet';
+        } elsif(!$antimosfetstatusflag && $chargemosfetstatusflag && $bothmosfetstatusflag) {
+            $decoded{charger_battmosfet_status} = 'Charge short, suspected short in anti reverse mosfet';
+        } elsif($antimosfetstatusflag && $chargemosfetstatusflag && $bothmosfetstatusflag) {
+            $decoded{charger_battmosfet_status} = 'Charge short, Anti-reverse short, suspected short in both';
+        }
+
+        $inputstatusflag >>= 14;
+        if($inputstatusflag eq 0x0) {
+            $decoded{charger_pvinput_voltage} = 'Nominal';
+        } elsif($inputstatusflag eq 0x1) {
+            $decoded{charger_pvinput_voltage} = 'Not connected';
+        } elsif($inputstatusflag eq 0x2) {
+            $decoded{charger_pvinput_voltage} = 'Higher voltage';
+        } elsif($inputstatusflag eq 0x2) {
+            $decoded{charger_pvinput_voltage} = 'Voltage error';
+        } else {
+            $decoded{charger_pvinput_voltage} = 'Unknown ' . $inputstatusflag;
+        }
+    }
+
+    $decoded{charger_timestamp} = getISODate();
+
+    foreach my $key (sort keys %decoded) {
+        print "    $key : $decoded{$key}\n";
+    }
+
+    my @parts;
+    foreach my $key (sort keys %decoded) {
+        #print $key, "=", $decoded{$key}, "\n";
+        push @parts, $key . '=' . $decoded{$key};
+    }
+    my $clacksdata = join(',', @parts);
+    $self->{clacks}->set('GSP::SOLSTICE::LOAD', $clacksdata);
+    $self->{clacks}->doNetwork();
+    $reph->debuglog("!!!! SOLSTICE LOAD frame: $clacksdata");
+
+    if(!$insth->execute(
+            $decoded{charger_temperature},
+            $decoded{charger_overtemperature},
+            $decoded{charger_battery_flags},
+            $decoded{charger_equipment_flags},
+            $decoded{charger_battmosfet_status},
+            $decoded{charger_battresistance_status},
+            $decoded{charger_batttemp_status},
+            $decoded{charger_battvolt_status},
+            $decoded{charger_battvoltid_status},
+            $decoded{charger_charging_status},
+            $decoded{charger_equipment_running},
+            $decoded{charger_equipment_status},
+            $decoded{charger_load_status},
+            $decoded{charger_loadmosfet_short},
+            $decoded{charger_pvinput_status},
+            $decoded{charger_pvinput_voltage},
         )) {
         $reph->debuglog("DB ERROR: " . $dbh->errstr);
         $dbh->rollback;
