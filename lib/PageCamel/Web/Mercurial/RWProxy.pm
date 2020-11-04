@@ -81,6 +81,8 @@ sub get {
         $mercurialpath = '/' . $mercurialpath;
     }
 
+    print STDERR "###########   PATH: $mercurialpath\n";
+
     $mercurialpath = encode_uri_path($mercurialpath);
     my @uriparamkey = keys %{$ua->{uriparams}};
     if(@uriparamkey) {
@@ -96,7 +98,11 @@ sub get {
         PeerPort => $self->{mercurial}->{port},
         Proto => 'tcp',
     );
-    return(status => 500) unless($socket);
+
+    if(!defined($socket)) {
+        print STDERR "###########   Can't open socket to mercurial\n";
+        return(status => 500);
+    }
     #binmode $socket;
 
     if($ua->{method} eq 'POST') {
@@ -118,12 +124,21 @@ sub get {
     }
     my %retpage;
     my $statusline = $self->readsocketline($socket, 30);
+    if(!defined($statusline)) {
+        print STDERR "###########   Can't read status line (timeout?)\n";
+        return(status => 500);
+    }
+
     my @statusparts = split/\ /, $statusline, 3;
     $retpage{status} = $statusparts[1];
     $retpage{statustext} = $statusparts[2];
 
     while(1) {
         my $headerline = $self->readsocketline($socket, 10);
+        if(!defined($headerline)) {
+            print STDERR "###########   Can't read header line (timeout?)\n";
+            return(status => 500);
+        }
         last if($headerline eq '');
         my ($hname, $hvalue) = split/\:/, $headerline, 3;
         if($hname eq 'Content-Type') {
@@ -136,9 +151,17 @@ sub get {
     my $content;
     if(defined($retpage{'Transfer-Encoding'}) && $retpage{'Transfer-Encoding'} =~ /chunked/) {
         $content = $self->readChunked($socket);
+        if(!defined($content)) {
+            print STDERR "###########   Can't read chunked content (timeout?)\n";
+            return(status => 500);
+        }
         delete $retpage{'Transfer-Encoding'};
     } elsif(defined($retpage{'Content-Length'})) {
-        $content = $self->readPlain($socket, $retpage{'Content-Length'});
+        $content = $self->readPlain($socket, $retpage{'Content-Length'}, 60);
+        if(!defined($content)) {
+            print STDERR "###########   Can't read plain content (timeout?)\n";
+            return(status => 500);
+        }
     } else {
         print STDERR "DO NOT KNOW HOW MUCH TO READ!!!!!\n";
         return(status => 500);
@@ -173,10 +196,13 @@ sub readsocketline {
     while(1) {
         my $char = '';
         $socket->recv($char, 1);
-        last if(time > $failat);
+        if(time > $failat) {
+            return;
+        }
         next if(!defined($char) || $char eq '');
         next if($char eq "\r");
         last if($char eq "\n");
+        $failat = time + $timeout;
         $line .= $char;
     }
 
@@ -189,9 +215,12 @@ sub readChunked {
     my $content = '';
     while(1) {
         my $chunklen = $self->readsocketline($socket, 30);
+        if(!defined($chunklen)) {
+            return;
+        }
         $chunklen = hex($chunklen);
         last unless $chunklen;
-        my $partial = $self->readPlain($socket, $chunklen);
+        my $partial = $self->readPlain($socket, $chunklen, 60);
         $content .= $partial;
         my $dummycrlf = $self->readsocketline($socket, 10);
     }
@@ -201,11 +230,19 @@ sub readChunked {
 }
 
 sub readPlain {
-    my ($self, $socket, $clength) = @_;
+    my ($self, $socket, $clength, $timeout) = @_;
+
+    if(!defined($timeout) || !$timeout) {
+        $timeout = 30;
+    };
 
     my $content = '';
     my $reallength = 0;
+    my $failat = time + $timeout;
     while($reallength < $clength) {
+        if(time > $failat) {
+            return;
+        }
         my $partial;
         my $readlen = 1000;
         my $remainlen = $clength - $reallength;
@@ -216,6 +253,7 @@ sub readPlain {
         if(defined($partial) && $partial ne '') {
             $reallength += length($partial);
             $content .= $partial;
+            $failat = time + $timeout;
         }
     }
 
