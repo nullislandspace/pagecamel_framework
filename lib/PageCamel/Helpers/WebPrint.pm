@@ -73,6 +73,7 @@ sub webPrint {
                 print STDERR "Rate limiting output\n";
                 $shownlimitmessage = 1;
             }
+            $timeout = time + $timeoutthres;
             if(!$written) {
                 sleep(0.01);
             }
