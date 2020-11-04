@@ -230,8 +230,7 @@ lib/PageCamel/Web/Logging/Templates/reportedit.tt
 lib/PageCamel/Web/Logging/Templates/reportselect.tt
 lib/PageCamel/Web/Logging/Templates/reportview.tt
 lib/PageCamel/Web/Logging/WebAPI.pm
-lib/PageCamel/Web/Mercurial/ROProxy.pm
-lib/PageCamel/Web/Mercurial/RWProxy.pm
+lib/PageCamel/Web/Mercurial/Proxy.pm
 lib/PageCamel/Web/Minecraft/Players.pm
 lib/PageCamel/Web/Minecraft/Templates/mapviewer.tt
 lib/PageCamel/Web/Minecraft/Templates/playermarkers.js.tt

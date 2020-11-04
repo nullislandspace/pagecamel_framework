@@ -1,4 +1,4 @@
-package PageCamel::Web::Mercurial::RWProxy;
+package PageCamel::Web::Mercurial::Proxy;
 #---AUTOPRAGMASTART---
 use 5.030;
 use strict;
@@ -29,13 +29,21 @@ sub new {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    if(!defined($self->{readwrite})) {
+        $self->{readwrite} = 0;
+    }
+
     return $self;
 }
 
 sub register {
     my $self = shift;
 
-    $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
+    if($self->{readwrite}) {
+        $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
+    } else {
+        $self->register_webpath($self->{webpath}, "get", 'GET');
+    }
     $self->register_postfilter("postfilter");
     return;
 }
@@ -69,6 +77,12 @@ sub postfilter {
 
 sub get {
     my ($self, $ua) = @_;
+
+    if(!$self->{readwrite} && ($ua->{method} eq 'GET' || $ua->{method} eq 'HEAD')) {
+        # Readonly proxy does not accept POST
+        # Should be handled by WebBase anyway, this is just to be sure
+        return (status => 405); # Method not allowed
+    }
 
     my $mercurialpath = $ua->{url};
 
