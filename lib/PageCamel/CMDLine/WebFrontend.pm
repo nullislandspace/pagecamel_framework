@@ -163,8 +163,8 @@ sub handleClient {
     my $finishcountdown = 0;
     $SIG{USR1} = sub {
         if(!$finishcountdown) {
-            $finishcountdown = time + 10;
-            print "Backend finished, 10 second countdown before closing socket\n";
+            $finishcountdown = time + 20;
+            print "Backend finished, 20 second countdown before closing socket\n";
         } else {
             print "Backend finished, countdown already started\n";
         }
@@ -274,6 +274,8 @@ sub handleClient {
     my $failcount = 0;
     my $toclientbuffer = '';
     my $tobackendbuffer = '';
+    my $backendclosed = 0;
+    my $clientclosed = 0;
     while(!$done) {
         my $totalread = 0;
         my $rawbuffer;
@@ -287,9 +289,14 @@ sub handleClient {
         
         my @connections = $select->can_read($waittime);
         foreach my $connection (@connections) {
-            sysread($connection, $rawbuffer, 1_000_000); # Read at most 1 Meg at a time
+            sysread($connection, $rawbuffer, 10_000); # Read at most 10kB at a time
             if(!length($rawbuffer)) {
-                $failcount++;
+                if(ref $connection eq 'IO::Socket::UNIX') {
+                    $backendclosed = 1;
+                } else {
+                    $clientclosed = 1;
+                    $failcount++;
+                }
             } else {
                 $failcount = 0;
                 if(ref $connection eq 'IO::Socket::UNIX') {
@@ -304,13 +311,18 @@ sub handleClient {
         if(length($toclientbuffer)) {
             my $written;
 
-            my $writebuffer = substr($toclientbuffer, 0, 1_000_000); # write at most one meg at a time
+            my $writebuffer = substr($toclientbuffer, 0, 10_000); # write at most 10kB at a time
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $written = syswrite($client, $writebuffer);
             };
             if($EVAL_ERROR) {
                 print STDERR "Write error: $EVAL_ERROR\n";
                 $failcount++;
+            } else {
+                if($failcount >= 5) {
+                    # We are in countdown but could still send data to client. Reset countdown
+                    $finishcountdown = time + 20;
+                }
             }
             $toclientbuffer = substr($toclientbuffer, $written);
         }
@@ -318,29 +330,35 @@ sub handleClient {
         if(length($tobackendbuffer)) {
             my $written;
 
-            my $writebuffer = substr($tobackendbuffer, 0, 1_000_000); # write at most one meg at a time
+            my $writebuffer = substr($tobackendbuffer, 0, 10_000); # write at most 10kB at a time
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $written = syswrite($backend, $writebuffer);
             };
             if($EVAL_ERROR) {
                 print STDERR "Write error: $EVAL_ERROR\n";
                 $failcount++;
+            } else {
+                if($failcount >= 5) {
+                    # We are in countdown but could still send data to backend. Reset countdown
+                    $finishcountdown = time + 20;
+                }
+
             }
             $tobackendbuffer = substr($tobackendbuffer, $written);
         }
 
         if($failcount >= 5) {
-            print "Possible disconnect detected!\n";
+            #print "Possible disconnect detected!\n";
             if(length($toclientbuffer)) {
-                print "   !!! toclientbuffer still has ", length($toclientbuffer), " bytes unsent!\n";
+                #print "   !!! toclientbuffer still has ", length($toclientbuffer), " bytes unsent!\n";
             }
             if(length($tobackendbuffer)) {
                 print "   !!! tobackendbuffer still has ", length($tobackendbuffer), " bytes unsent!\n";
             }
             if(length($toclientbuffer) || length($toclientbuffer)) {
                 if(!$finishcountdown) {
-                    print "Still trying to send buffer data, starting 10 second countdown\n";
-                    $finishcountdown = time + 10;
+                    print "Still trying to send buffer data, starting 20 second countdown\n";
+                    $finishcountdown = time + 20;
                 }
             } else {
                 print "Errors but outgoing buffers are empty, shutting down right now\n";
@@ -350,7 +368,7 @@ sub handleClient {
         
         if($finishcountdown > 0) {
             if($finishcountdown > time) {
-                print "Time to shutdown: ", $finishcountdown - time, "\n";
+                #print "Time to shutdown: ", $finishcountdown - time, "\n";
             } else {
                 print "Finally done!\n";
                 $done = 1;
