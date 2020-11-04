@@ -429,7 +429,6 @@ sub readheader {
         }
     };
     if(!$ok || !defined($line)) {
-        print STDERR "!!!!!! X1 $@\n";
         return;
     }
 
