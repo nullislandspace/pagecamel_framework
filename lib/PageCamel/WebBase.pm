@@ -2146,7 +2146,7 @@ sub get_cors_config {
 sub xdebuglog {
     my ($self, @args) = @_;
 
-    return unless($self->{isDebugging});
+    return unless(0 && $self->{isDebugging});
 
     my $debugline = join(' ', @args) . "\n";
 
