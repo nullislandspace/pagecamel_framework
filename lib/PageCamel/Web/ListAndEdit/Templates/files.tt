@@ -1,5 +1,5 @@
 <p align="center">
-    <form name="translations" method="post" action="[% webpath %]" enctype="multipart/form-data">
+    <form name="translations" method="POST" action="[% webpath %]" enctype="multipart/form-data">
         <table class="data" align="center" id="HelperTable1">
             <tr class="tabheader">
                 <th>[% tr.trquote("File upload") %]</th>
@@ -71,25 +71,18 @@
     data-checkfname="[% checkfname %]"
 ></span>
 
-
 <script language="javascript">
     function extraOnLoad() {
         $("#ajaxwait").hide();
         $("#uploadwait").hide();
     }
     
-    function updateButton () {
-        var noText = true;
-        var reason_c = document.getElementById("reason");
-        var hostname = $('input[name=computername]:checked').val()
-        if(hostname.length > 0 && reason_c.value.length > 10) {
-            noText = false;
-        }
-        $( "#submitbutton" ).button( "option", "disabled", noText );
-        return true;
-    }
+    var alreadyUpdating = 0;
 
     function upfile_change() {
+        if(alreadyUpdating) {
+            return true;
+        }
         var origname_c = document.getElementById("upfile");
         $("#ajaxwait").show();
         $("#upbutton" ).button( "option", "disabled", true );
@@ -97,8 +90,12 @@
         ajaxUpdateFName();
         return true;
     }
-        
+
     function ajaxUpdateFName() {
+      if(alreadyUpdating) {
+          return;
+      }
+      alreadyUpdating = 1;
       $( "#upbutton" ).button( "option", "disabled", true );
       var origname_c = document.getElementById("upfile");
       var newname_c = document.getElementById("upfname");
@@ -122,22 +119,26 @@
           if(parsed.status == 'OK') {
             $("#upfnamestatus").css("color", "green");
             $('#upfname').removeAttr("disabled");
-            $( "#upbutton" ).button( "option", "disabled", false );
+            $("#upbutton" ).button( "option", "disabled", false );
           } else if(parsed.status == "WARNING") {
             $("#upfnamestatus").css("color", "orange");
             $('#upfname').removeAttr("disabled");
-            $( "#upbutton" ).button( "option", "disabled", false );
+            $("#upbutton" ).button( "option", "disabled", false );
           } else {
             $("#upfnamestatus").css("color", "red");
           }
           $("#upfnamestatus").show();
-          upfname_change();
+          alreadyUpdating = 1;
         }
       }
       srefresh.send(params);
     }
 
     function ajaxValidateManualFName() {
+      if(alreadyUpdating) {
+          return;
+      }
+      alreadyUpdating = 1;
       $( "#upbutton" ).button( "option", "disabled", true );
       var newname_c = document.getElementById("upfname");
       var description_c = document.getElementById("updescription");
@@ -162,16 +163,16 @@
           if(parsed.status == 'OK') {
             $("#upfnamestatus").css("color", "green");
             $('#upfname').removeAttr("disabled");
-            $( "#upbutton" ).button( "option", "disabled", false );
+            $("#upbutton" ).button( "option", "disabled", false );
           } else if(parsed.status == "WARNING") {
             $("#upfnamestatus").css("color", "orange");
             $('#upfname').removeAttr("disabled");
-            $( "#upbutton" ).button( "option", "disabled", false );
+            $("#upbutton" ).button( "option", "disabled", false );
           } else {
             $("#upfnamestatus").css("color", "red");
           }
           $("#upfnamestatus").show();
-          upfname_change();
+          alreadyUpdating = 0;
         }
       }
       srefresh.send(params);
