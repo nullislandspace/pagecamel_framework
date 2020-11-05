@@ -455,6 +455,7 @@ sub get_request_body {
     my $ok = 0;
     my $unread = $ua->{headers}->{'Content-Length'};
     my $tempdata;
+    #print STDERR Dumper($ua->{headers});
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $endtime = time + $timeout;
         while($unread) {
@@ -478,6 +479,8 @@ sub get_request_body {
             $unread -= $lastread;
             $datalen += $lastread;
             $postdata .= $tempdata;
+
+            #print STDERR "Getting POST data ($unread to go)....\n";
 
         }
 
@@ -859,7 +862,7 @@ nextrequest:
 
     if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
         $self->xdebuglog("Handling request body...");
-        if(!$self->get_request_body($realsocket, $ua, 5, 1024)) {
+        if(!$self->get_request_body($realsocket, $ua, 15, 1024)) {
             $ua->{keepalive} = 0;
             webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             $self->xdebuglog("Could not get request body");
