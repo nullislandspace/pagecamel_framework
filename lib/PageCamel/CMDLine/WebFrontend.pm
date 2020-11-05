@@ -50,6 +50,18 @@ sub new {
     
     croak("Config file $configfile not found!") unless(-f $configfile);
 
+    if($isDebugging) {
+        my @lines = `/usr/bin/who`;
+        foreach my $line (@lines) {
+            if($line =~ /\((.*)\)/) {
+                my $debugip = $1;
+                print STDERR "DEBUG MODE - LIMIT TO IP $debugip\n";
+                $self->{debugip} = $debugip;
+                last;
+            }
+        }
+    }
+
     $self->init();
     
     return $self;
@@ -126,6 +138,14 @@ sub run {
         while((my @connections = $self->{select}->can_read)) {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
+
+                if(defined($self->{debugip})) {
+                    my $peerhost = $client->peerhost();
+                    if($peerhost ne $self->{debugip}) {
+                        $client->close;
+                        next;
+                    }
+                }
 
                 if($childcount >= $self->{config}->{max_childs}) {
                     print "Too many children already!\n";
@@ -274,8 +294,6 @@ sub handleClient {
     my $failcount = 0;
     my $toclientbuffer = '';
     my $tobackendbuffer = '';
-    my $backendclosed = 0;
-    my $clientclosed = 0;
     while(!$done) {
         my $totalread = 0;
         my $rawbuffer;
@@ -289,12 +307,11 @@ sub handleClient {
         
         my @connections = $select->can_read($waittime);
         foreach my $connection (@connections) {
-            sysread($connection, $rawbuffer, 10_000); # Read at most 10kB at a time
+            sysread($connection, $rawbuffer, 10_000_000); # Read at most 10kB at a time
             if(!length($rawbuffer)) {
                 if(ref $connection eq 'IO::Socket::UNIX') {
-                    $backendclosed = 1;
+                    # WHatever
                 } else {
-                    $clientclosed = 1;
                     $failcount++;
                 }
             } else {
@@ -311,7 +328,7 @@ sub handleClient {
         if(length($toclientbuffer)) {
             my $written;
 
-            my $writebuffer = substr($toclientbuffer, 0, 10_000); # write at most 10kB at a time
+            my $writebuffer = substr($toclientbuffer, 0, 10_000_000); # write at most 10kB at a time
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $written = syswrite($client, $writebuffer);
             };
@@ -324,13 +341,17 @@ sub handleClient {
                     $finishcountdown = time + 20;
                 }
             }
-            $toclientbuffer = substr($toclientbuffer, $written);
+            if(defined($written) && $written) {
+                $toclientbuffer = substr($toclientbuffer, $written);
+            } else {
+                print STDERR "No data written to client\n";
+            }
         }
 
         if(length($tobackendbuffer)) {
             my $written;
 
-            my $writebuffer = substr($tobackendbuffer, 0, 10_000); # write at most 10kB at a time
+            my $writebuffer = substr($tobackendbuffer, 0, 10_000_000); # write at most 10kB at a time
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $written = syswrite($backend, $writebuffer);
             };
@@ -344,7 +365,11 @@ sub handleClient {
                 }
 
             }
-            $tobackendbuffer = substr($tobackendbuffer, $written);
+            if(defined($written) && $written) {
+                $tobackendbuffer = substr($tobackendbuffer, $written);
+            } else {
+                print STDERR "No data written to backend\n";
+            }
         }
 
         if($failcount >= 5) {
