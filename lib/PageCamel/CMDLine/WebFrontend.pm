@@ -310,7 +310,7 @@ sub handleClient {
         
         my @connections = $select->can_read($waittime);
         foreach my $connection (@connections) {
-            sysread($connection, $rawbuffer, 10_000_000); # Read at most 10kB at a time
+            sysread($connection, $rawbuffer, 10_000); # Read at most 10kB at a time
             if(!length($rawbuffer)) {
                 if(ref $connection eq 'IO::Socket::UNIX') {
                     $failcount++;
@@ -332,13 +332,13 @@ sub handleClient {
         if(length($toclientbuffer)) {
             my $written;
 
-            my $writebuffer = substr($toclientbuffer, 0, 10_000_000); # write at most 10kB at a time
+            my $writebuffer = substr($toclientbuffer, 0, 10_000); # write at most 10kB at a time
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $written = syswrite($client, $writebuffer);
             };
             if($EVAL_ERROR) {
                 print STDERR "Write error: $EVAL_ERROR\n";
-                $failcount++;
+                #$failcount++;
             } else {
                 if($failcount >= 5) {
                     # We are in countdown but could still send data to client. Reset countdown
@@ -355,13 +355,13 @@ sub handleClient {
         if(length($tobackendbuffer)) {
             my $written;
 
-            my $writebuffer = substr($tobackendbuffer, 0, 10_000_000); # write at most 10kB at a time
+            my $writebuffer = substr($tobackendbuffer, 0, 10_000); # write at most 10kB at a time
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $written = syswrite($backend, $writebuffer);
             };
             if($EVAL_ERROR) {
                 print STDERR "Write error: $EVAL_ERROR\n";
-                $failcount++;
+                #$failcount++;
             } else {
                 if($failcount >= 5) {
                     # We are in countdown but could still send data to backend. Reset countdown
