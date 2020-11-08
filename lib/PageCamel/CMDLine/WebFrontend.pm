@@ -50,7 +50,7 @@ sub new {
     
     croak("Config file $configfile not found!") unless(-f $configfile);
 
-    if($isDebugging) {
+    if(0 && $isDebugging) {
         my @lines = `/usr/bin/who`;
         foreach my $line (@lines) {
             if($line =~ /\((.*)\)/) {
@@ -286,6 +286,9 @@ sub handleClient {
             Type => SOCK_STREAM,
         ) or croak("Failed to connect to backend: $ERRNO");
 
+    binmode($client);
+    binmode($backend);
+
     syswrite($backend, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n");
 
     my $select = IO::Select->new($client, $backend);
@@ -300,7 +303,7 @@ sub handleClient {
 
         # Wait long if we currently have nothing to send, only wait a very short time for new data if we already got
         # something in out output buffers
-        my $waittime = 0.3;
+        my $waittime = 0.1;
         if(length($toclientbuffer) || length($tobackendbuffer)) {
             $waittime = 0.05;
         }
@@ -310,6 +313,7 @@ sub handleClient {
             sysread($connection, $rawbuffer, 10_000_000); # Read at most 10kB at a time
             if(!length($rawbuffer)) {
                 if(ref $connection eq 'IO::Socket::UNIX') {
+                    $failcount++;
                     # WHatever
                 } else {
                     $failcount++;
