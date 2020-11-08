@@ -200,6 +200,8 @@ sub handleClient {
     my $peerport = $client->peerport();
 
     my $usessl = 0;
+    my $selectedbackend = $self->{config}->{internal_socket};
+
     # Check if we need to use SSL
     foreach my $service (@{$self->{config}->{external_network}->{service}}) {
         # Search for the correct service
@@ -216,6 +218,7 @@ sub handleClient {
 
     if($usessl) {
         my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+        $selectedssldomain = $defaultdomain;
         my $encrypted = IO::Socket::SSL->start_SSL($client,
             SSL_server => 1,
             SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
@@ -250,6 +253,12 @@ sub handleClient {
                         print STDERR Dumper($self->{config}->{sslconfig}->{ssldomains});
                         return;
                     }
+                    
+                    if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket})) {
+                        # This SSL connection uses a different backend
+                        $selectedbackend = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket};
+                    }
+
                     if($h eq $self->{config}->{sslconfig}->{ssldefaultdomain}) {
                         # Already the correct CTX setting, just return
                         return;
@@ -282,7 +291,7 @@ sub handleClient {
     }
 
     my $backend = IO::Socket::UNIX->new(
-            Peer => $self->{config}->{internal_socket},
+            Peer => $selectedbackend,
             Type => SOCK_STREAM,
         ) or croak("Failed to connect to backend: $ERRNO");
 
