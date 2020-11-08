@@ -79,7 +79,7 @@ sub init {
         chmod 0755, '/run/lock/pagecamel';
     }
     
-    my $weblockname = "/run/lock/pagecamel_webgui_backend.lock";
+    my $weblockname = "/run/lock/pagecamel_" . $ps_appname . ".lock";
 
     if(-f $weblockname) {
         carp("LOCKFILE $weblockname ALREADY EXISTS!");
