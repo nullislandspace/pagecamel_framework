@@ -218,7 +218,6 @@ sub handleClient {
 
     if($usessl) {
         my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-        $selectedssldomain = $defaultdomain;
         my $encrypted = IO::Socket::SSL->start_SSL($client,
             SSL_server => 1,
             SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
