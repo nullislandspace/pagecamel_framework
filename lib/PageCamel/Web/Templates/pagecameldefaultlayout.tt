@@ -79,7 +79,13 @@
                 });
                 $("select[searchable='1']").each(function() {
                     $(this).width(400);
-                    $(this).select2();
+                    var extendable = false;
+                    if($(this).attr('extendable') == '1') {
+                        extendable = true;
+                    }
+                    $(this).select2({
+                       tags: extendable
+                    });
                 });
 
                 $("input[type=checkbox]").checkify({
