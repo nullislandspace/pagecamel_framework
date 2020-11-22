@@ -284,7 +284,7 @@ sub child_finish_hook {
 }
 
 sub isownip {
-    my ($self, $ip) = @_;
+    my ($self, $ip, $dbh) = @_;
 
     $ip =~ s/\/.*//;
 
@@ -305,7 +305,43 @@ sub isownip {
         }
     }
 
-    return 0;
+    # Check if IP is in your ComputerDB. If so, consider it as ownip, since it might be one of the DynDNS IPs.
+    # We can only do this if we have defined columnprefixes
+
+    if(!defined($self->{config}->{columnprefix})) {
+        return 0;
+    }
+
+    my @checkcols;
+    foreach my $cprefix (@{$self->{config}->{columnprefix}}) {
+        push @checkcols, $cprefix . '_ipv4';
+        push @checkcols, $cprefix . '_ipv6';
+    }
+
+    my $selsth = $dbh->prepare_cached("SELECT * FROM computers")
+            or croak($dbh->errstr);
+    # Need to work with savepoints, since we might be in a transaction already
+    $dbh->pg_savepoint('ownip');
+    if(!$selsth->execute) {
+        $dbh->pg_rollback_to('ownip');
+        return 0;
+    }
+    my $ismyown = 0;
+    while((my $line = $selsth->fetchrow_hashref)) {
+        foreach my $colname (@checkcols) {
+            if(defined($line->{$colname}) && $line->{$colname} eq $ip) {
+                $ismyown = 1;
+            }
+        }
+    }
+    $selsth->finish;
+    $dbh->pg_release('ownip');
+
+    if($ismyown) {
+        $self->debuglog("## $ip is my own, according to computerdb");
+    }
+
+    return $ismyown;
 }
 
 sub debuglog {
@@ -590,7 +626,7 @@ sub compile_reply { ## no critic (Subroutines::ProhibitExcessComplexity)
     }
 
     # IP floodcheck (DNS DDOS to IP target), don't check for recursive lookups and whenever the client is localhost
-    if($peerhost ne $RECURSIVELOOKUP && !$self->isownip($peerhost)) {
+    if($peerhost ne $RECURSIVELOOKUP && !$self->isownip($peerhost, $dbh)) {
         # localhost doesn't have limitations
         if(!$self->{ipfloodinssth}->execute($peerhost)) {
             $self->debuglog("Can't log $qname from $peerhost");
@@ -615,7 +651,7 @@ sub compile_reply { ## no critic (Subroutines::ProhibitExcessComplexity)
     }
 
     # Hostname floodcheck (DNS DDOS to DNS Server), don't check for recursive lookups and whenever the client is localhost
-    if($peerhost ne $RECURSIVELOOKUP && !$self->isownip($peerhost)) {
+    if($peerhost ne $RECURSIVELOOKUP && !$self->isownip($peerhost, $dbh)) {
         if(!$self->{hostfloodinssth}->execute($qname)) {
             $self->debuglog("Can't log $qname from $peerhost");
             $dbh->rollback;
