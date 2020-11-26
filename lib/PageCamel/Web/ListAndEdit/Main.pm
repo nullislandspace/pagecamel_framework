@@ -1070,12 +1070,6 @@ sub get_list {
 
     if($self->{userawhtml}) {
         $webdata{UseRawHTML} = 1;
-
-        my @headextrascripts = ('/static/codehighlight/highlight.pack.js');
-        $webdata{HeadExtraScripts} = \@headextrascripts;
-
-        my @headextracss = ('/static/codehighlight/styles/sunburst.css');
-        $webdata{HeadExtraCSS} = \@headextracss;
     }
 
     my @columns;

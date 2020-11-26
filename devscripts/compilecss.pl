@@ -75,6 +75,7 @@ jquery/css/themes/XXUIThemeNameXX/dropdownmenu_top.css
 jquery/css/themes/XXUIThemeNameXX/dropdownmenu_side.css
 jquery/css/themes/XXUIThemeNameXX/select2.css
 pagecameldefaultlayout.css
+codehighlight/styles/sunburst.css
 jquery/css/datatables.css
 jquery/css/jquery.datetimepicker.css
 jquery/css/jquery.timepicker.css

@@ -156,11 +156,8 @@ sub get {
 
     $dbh->commit;
 
-    my @headextrascripts = ('/static/codehighlight/highlight.pack.js',
-                            );
-
-    my @headextracss = ('/static/codehighlight/styles/sunburst.css',
-                        );
+    my @headextrascripts;
+    my @headextracss;
 
     # Handle some tags that don't work in CVCEditor. Currently, designed to handle only one per line
     my @flines = split/\n/, $fulltext;

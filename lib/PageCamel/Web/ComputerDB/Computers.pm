@@ -577,9 +577,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
     push @{$webdata{HeadExtraScripts}}, (
                                          '/static/cvceditor/cvceditor.js',
                                          '/static/cvceditor/adapters/jquery.js',
-                                         '/static/codehighlight/highlight.pack.js',
                                         );
-    push @{$webdata{HeadExtraCSS}}, '/static/codehighlight/styles/sunburst.css';
     $ua->{UseUnsafeCVCEditor} = 1;
     # -- CVCEditor stuff --
 
