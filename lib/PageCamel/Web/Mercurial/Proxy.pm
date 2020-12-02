@@ -78,7 +78,7 @@ sub postfilter {
 sub get {
     my ($self, $ua) = @_;
 
-    if(!$self->{readwrite} && ($ua->{method} eq 'GET' || $ua->{method} eq 'HEAD')) {
+    if(!$self->{readwrite} && $ua->{method} ne 'GET' && $ua->{method} ne 'HEAD') {
         # Readonly proxy does not accept POST
         # Should be handled by WebBase anyway, this is just to be sure
         return (status => 405); # Method not allowed
