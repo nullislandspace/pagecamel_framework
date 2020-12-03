@@ -191,8 +191,12 @@ sub wsprint {
     
     my $frametype = 'text';
 
-    if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json($message), type => 'text')->to_bytes)) {
-        #print STDERR "Write to socket failed, closing connection!\n";
+    #print STDERR "Prepareing message ", Dumper($message), "\n";
+    my $buffer = encode_json($message);
+    #print STDERR "JSON: $buffer\n";
+
+    if(!webPrint($ua->{realsocket}, $frame->new(buffer => $buffer, type => 'text')->to_bytes)) {
+        print STDERR "Write to socket failed, closing connection!\n";
         return 0;
     }
     
@@ -391,19 +395,19 @@ sub sockethandler {
                 }
 
                 if($frame->opcode == 8) {
-                    #print STDERR "Connection closed by Browser\n";
+                    print STDERR "Connection closed by Browser\n";
                     $socketclosed = 1;
                     last;
                 }
 
-                #print STDERR "GOT TYPE ", $realmsg->{type}, "\n";
+                print STDERR "GOT TYPE ", $realmsg->{type}, "\n";
                 if($realmsg->{type} eq 'PING') {
                     $timeout = time + $settings{client_disconnect_timeout};
                     my %msg = (
                         type => 'PING',
                     );
                     if(!$self->wsprint(\%msg)) {
-                        #print STDERR "Write to socket failed, closing connection!\n";
+                        print STDERR "Write to socket failed, closing connection!\n";
                         $socketclosed = 1;
                         last;
                     }
@@ -420,10 +424,10 @@ sub sockethandler {
             # This is OUTSIDE the $frame->next_bytes loop, because a close event never returns a full frame
             # from WSockFrame
             if($frame->is_close) {
-                #print STDERR "CLOSE FRAME RECIEVED!\n";
+                print STDERR "CLOSE FRAME RECIEVED!\n";
                 $socketclosed = 1;
                 if(!webPrint($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
-                    #print STDERR "Write to socket failed, failed to properly close connection!\n";
+                    print STDERR "Write to socket failed, failed to properly close connection!\n";
                 }
             }
             
@@ -437,7 +441,7 @@ sub sockethandler {
             }
 
             if($timeout < time) {
-                #print STDERR "CLIENT TIMEOUT\n";
+                print STDERR "CLIENT TIMEOUT\n";
                 $socketclosed = 1;
             }
 

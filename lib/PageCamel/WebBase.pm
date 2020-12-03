@@ -1563,9 +1563,17 @@ nextrequest:
                     }
                 }
                 next unless $upgradetofound;
-                print STDERR getISODate() . " Upgrading connection to $upgradeTo\n";
-                my $conok = $module->$funcname($ua);
-                print STDERR getISODate() . " Connection for $upgradeTo closed, status $conok\n";
+                print STDERR getISODate() . " Upgrading connection to $upgradeTo in PID $PID\n";
+                my $evalok = 0;
+                my $conok;
+                eval {
+                    $conok = $module->$funcname($ua);
+                    $evalok = 1;
+                };
+                if(!$evalok) {
+                    print STDERR getISODate(), " Eval error in connection upgrade: $EVAL_ERROR\n";
+                }
+                print STDERR getISODate() . " Connection for $upgradeTo closed in PID $PID, status $conok\n";
                 last;
             }
         }

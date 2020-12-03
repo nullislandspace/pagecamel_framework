@@ -67,6 +67,8 @@
         var rawmsg = String(ev.data);
         
         var msg = JSON.parse(rawmsg);
+
+        //console.log(msg);
         
         if(msg.type === "PING") {
             lastPing = Math.round(Date.now() / 1000);
