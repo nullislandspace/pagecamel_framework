@@ -435,13 +435,19 @@ sub handleUDP {
         # Multiple questions(?) currently unsupported
         $header->rcode("FORMERR");
     } else {
-        my $qname = lc $question->qname;
-        my $qtype = uc $question->qtype;
-        my $qclass = $question->qclass;
+        my ($qname, $qtype, $qclass);
+        my $ok = 0;
+        eval {
+            $qname = lc $question->qname;
+            $qtype = uc $question->qtype;
+            $qclass = $question->qclass;
+            $ok = 1;
+        };
 
-        #$self->debuglog("UDP request for $qname / $qtype");
-
-        if($opcode eq 'QUERY') {
+        if(!$ok) {
+            # Request error
+            $rcode = 'FORMERR';
+        } elsif($opcode eq 'QUERY') {
             ($validreply, $rcode, $ans, $auth, $add, $remotelookup) = $self->compile_reply($qname, $qclass, $qtype, $peerhost, 'UDP');
             if(!defined($validreply) || !$validreply) {
                 # Client blocked or something else went wrong. Close the connection without answer
@@ -454,6 +460,7 @@ sub handleUDP {
             # Unsupported opcode
             $rcode = 'FORMERR';
         }
+
         $header->rcode($rcode);
         $reply->{answer} = [@{$ans}] if $ans;
         $reply->{authority} = [@{$auth}] if $auth;
@@ -566,11 +573,19 @@ sub handleTCP {
             # Multiple questions(?) currently unsupported
             $header->rcode("FORMERR");
         } else {
-            my $qname = lc $question->qname;
-            my $qtype = uc $question->qtype;
-            my $qclass = $question->qclass;
+            my ($qname, $qtype, $qclass);
+            my $ok = 0;
+            eval {
+                $qname = lc $question->qname;
+                $qtype = uc $question->qtype;
+                $qclass = $question->qclass;
+                $ok = 1;
+            };
 
-            if($opcode eq 'QUERY') {
+            if(!$ok) {
+                # Request error
+                $rcode = 'FORMERR';
+            } elsif($opcode eq 'QUERY') {
                 ($validreply, $rcode, $ans, $auth, $add, $remotelookup) = $self->compile_reply($qname, $qclass, $qtype, $peerhost, 'TCP');
                 if(!defined($validreply) || !$validreply) {
                     # Client blocked or something else went wrong. Close the connection without answer
