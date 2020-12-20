@@ -31,6 +31,8 @@ sub new {
     PageCamelLogo($APPNAME, $APPVERSION);
     my $self = bless {}, $class;
 
+    $self->{APPNAME} = $APPNAME;
+    $self->{APPVERSION} = $APPVERSION;
     $self->{isService} = $isService;
 
     $basePath =~ s/\//\\/g; # Convert to Win32 Path
@@ -222,6 +224,11 @@ sub startup {
 
     # "Don't fear the Reaper"
     $SIG{CHLD} = 'IGNORE';
+
+    my $ps_appname = lc($self->{APPNAME});
+    $ps_appname =~ s/[^a-z0-9]+/_/gio;
+    print "Changing ps app name to '$ps_appname'\n\n";
+    $PROGRAM_NAME = $ps_appname;
 
     foreach my $script (@{$self->{startup_scripts}}) {
         $self->run_script($script);
