@@ -2158,9 +2158,16 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
                 $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
                 $hasdescription = 1;
             }
+
+            my $where = '';
+            if(defined($item->{enumwhere})) {
+                $where = ' WHERE ' . $item->{enumwhere} . ' ';
+            }
+
             my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
                                                $extracolumn .
                                                ' FROM ' . $item->{enumtable} .
+                                               $where .
                                                ' ORDER BY ' . $item->{enumcolumn})
                     or croak($dbh->errstr);
             $eselsth->execute or croak($dbh->errstr);
