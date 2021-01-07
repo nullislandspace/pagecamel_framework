@@ -441,7 +441,7 @@ sub rememberPrint {
         my $img = GD::Image->new($imagedata);
         my $black = $img->colorAllocate(0, 0, 0);
         my $white = $img->colorAllocate(255, 255, 255);
-        $img->string($self->{bitmapfont}, 10, $copy_y, $markascopytext, $self->{imgblack});
+        $img->string($self->{bitmapfont}, 10, $copy_y, $markascopytext, $black);
         $imagedata = $img->png;
     }
     
