@@ -118,12 +118,12 @@ sub work {
                             } else {
                                 $reph->debuglog("Clacks: Switching $key to ON");
                                 $self->switch_on($key);
-                                $self->{nextrun} = time + 5;
+                                $self->{nextrun} = time + 1;
                             }
                         } else {
                             $reph->debuglog("Clacks: Switching $key to OFF");
                             $self->switch_off($key);
-                            $self->{nextrun} = time + 5;
+                            $self->{nextrun} = time + 1;
                         }
                         $workCount++;
                     }
@@ -134,10 +134,10 @@ sub work {
     }
     $self->{clacks}->doNetwork();
     
-    # Only read states from Tasmota every 5 seconds, unless switches have been changed via clacks
+    # Only read states from Tasmota every 3 seconds, unless switches have been changed via clacks
     if($now > $self->{nextrun}) {
         #$reph->debuglog("_");
-        $self->{nextrun} = time + 5;
+        $self->{nextrun} = time + 3;
     } else {
         return $workCount;
     }
@@ -171,7 +171,7 @@ sub work {
             if(defined($disablestate) && defined($switchstate) && $disablestate == 1 && $switchstate == 1) {
                 $reph->debuglog("Forcing switch $switch to OFF because it is DISABLED!");
                 $self->switch_off($switch);
-                $self->{nextrun} = time + 5;
+                $self->{nextrun} = time + 1;
             }
         }
     }
