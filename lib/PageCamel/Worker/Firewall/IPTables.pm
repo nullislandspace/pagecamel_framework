@@ -341,6 +341,7 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     # IPv4 only for DNS Hostnames for the moment.
     push @four, "#    DNS Hostname";
     foreach my $host (@dnshosts) {
+        next if(!defined($host) || $host eq '');
         push @four, '-A INPUT -p udp --dport 53 -m string --hex-string "' . $host . '" --algo bm -j DROP';
     }
 
