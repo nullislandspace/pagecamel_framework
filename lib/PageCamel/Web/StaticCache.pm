@@ -141,6 +141,8 @@ sub load_dir {
     my $fcount = 0;
     my $ft = File::Type->new();
 
+    print $ofh "StaticCache loading directory $basedir into $basewebpath...\n";
+
     opendir(my $dfh, $basedir) or croak($ERRNO);
     while((my $fname = readdir($dfh))) {
         next if($fname =~ /^\./);
@@ -187,12 +189,22 @@ sub load_dir {
             $mtype = 'application/octet-stream';
         }
 
-        if(!$self->{isDebugging}) {
+        if(0) {
+        #if(!$self->{isDebugging}) {
             # Only minify when not debugging for faster startup
             if($mtype eq "text/css") {
-                print $ofh ("   MINIFY $nfname\n");
-                my $tmp = CSS::Minifier::XS::minify($data);
-                $data = $tmp;
+                my $miniok = 0;
+                eval {
+                    print $ofh ("   MINIFY $nfname\n");
+                    my $tmp = CSS::Minifier::XS::minify($data);
+                    print $ofh ("   MINIFY $nfname OK\n");
+                    $data = $tmp;
+                    $miniok = 1;
+                };
+
+                if(!$miniok) {
+                    print $ofh "MINIFY ERROR: ", $EVAL_ERROR, "\n";
+                }
             }
         }
 
@@ -235,6 +247,8 @@ sub load_dir {
         $fcount++;
     }
     closedir($dfh);
+
+    print $ofh "StaticCache loading directory $basedir into $basewebpath... done\n";
     return $fcount;
 }
 
