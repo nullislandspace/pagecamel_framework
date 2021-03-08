@@ -77,7 +77,7 @@ sub do_backup {
 
     my $logtype = "OTHER"; # make logging visible only to admin user
 
-    my $fname = $self->{basedir} . '/' . hostname() . '_' . getFileDate() . '.backup';
+    my $fname = $self->{basedir} . '/' . hostname() . '_' . $self->{database} . '_' . getFileDate() . '.backup';
     $reph->debuglog("Starting database backup to $fname");
     $reph->dblog("COMMAND", "Database backup to $fname");
 
@@ -94,7 +94,7 @@ sub do_backup {
                 ' --username ' . $self->{username} .
                 ' --format custom ' .
                 ' --blobs ' .
-                ' --oids ' .
+#                ' --oids ' .
 #                ' --verbose ' .
                 ' --file ' . $fname .
                 ' ' . $self->{database};
