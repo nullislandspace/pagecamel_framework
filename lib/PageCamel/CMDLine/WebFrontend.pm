@@ -139,6 +139,8 @@ sub run {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
 
+                print "**** Connection from ", $client->peerhost(), "   \n";
+
                 if(defined($self->{debugip})) {
                     my $peerhost = $client->peerhost();
                     if($peerhost ne $self->{debugip}) {
@@ -416,8 +418,10 @@ sub handleClient {
     
     print "Shutting down child PID $PID\n";
     
-    close $backend;
-    close $client;
+    eval {
+        close $backend;
+        close $client;
+    };
 
     exit(0);
 }
