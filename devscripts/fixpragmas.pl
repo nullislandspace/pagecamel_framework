@@ -38,7 +38,7 @@ foreach my $file (@files) {
         if($line =~ /^use\ +(.+)\;/) {
             my $pragma = $1;
             my $skip = 0;
-            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper)/ && $pragma !~ /Digest/) {
+            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF)/ && $pragma !~ /Digest/) {
                 # Remove this (old) lines
                 $skip = 1;
             }
