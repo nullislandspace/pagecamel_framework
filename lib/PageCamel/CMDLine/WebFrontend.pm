@@ -182,243 +182,243 @@ sub run {
 sub handleClient {
     my ($self, $client) = @_;
     
-    my $finishcountdown = 0;
-    $SIG{USR1} = sub {
-        if(!$finishcountdown) {
-            $finishcountdown = time + 20;
-            print "Backend finished, 20 second countdown before closing socket\n";
-        } else {
-            print "Backend finished, countdown already started\n";
-        }
-        return;
-    };
-    
-
-    print "Doing some network stuff in child PID $PID\n";
-
-    my $lhost = $client->sockhost();
-    my $lport = $client->sockport();
-    my $peerhost = $client->peerhost();
-    my $peerport = $client->peerport();
-
-    my $usessl = 0;
-    my $selectedbackend = $self->{config}->{internal_socket};
-
-    # Check if we need to use SSL
-    foreach my $service (@{$self->{config}->{external_network}->{service}}) {
-        # Search for the correct service
-        if($service->{port} == $lport) {
-            # Now check the IP address
-            foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
-                if($ip eq $lhost) {
-                    # Found it
-                    $usessl = $service->{usessl};
-                }
-            }
-        }
-    }
-
-    if($usessl) {
-        my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-        my $encrypted = IO::Socket::SSL->start_SSL($client,
-            SSL_server => 1,
-            SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
-            SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
-            SSL_cipher_list => $self->{config}->{sslconfig}->{sslciphers},
-            SSL_create_ctx_callback => sub {
-                my $ctx = shift;
-
-                print STDERR "******************* CREATING NEW CONTEXT ********************\n";
-
-                # Enable workarounds for broken clients
-                Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL); ## no critic (Subroutines::ProhibitAmpersandSigils)
-
-                # Disable session resumption completely
-                Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
-
-                # Disable session tickets
-                Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET); ## no critic (Subroutines::ProhibitAmpersandSigils)
-
-                # Check requested server name
-                Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
-                    my $ssl = shift;
-                    my $h = Net::SSLeay::get_servername($ssl);
-
-                    if(!defined($h)) {
-                        print STDERR "SSL: No Hostname given during SSL setup\n";
-                        return;
-                    }
-
-                    if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$h})) {
-                        print STDERR "SSL: Hostname $h not configured\n";
-                        print STDERR Dumper($self->{config}->{sslconfig}->{ssldomains});
-                        return;
-                    }
-                    
-                    if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket})) {
-                        # This SSL connection uses a different backend
-                        $selectedbackend = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket};
-                    }
-
-                    if($h eq $self->{config}->{sslconfig}->{ssldefaultdomain}) {
-                        # Already the correct CTX setting, just return
-                        return;
-                    }
-
-                    #print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
-                    my $newctx;
-                    if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx})) {
-                        $newctx = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx};
-                    } else {
-                        $newctx = Net::SSLeay::CTX_new or croak("Can't create new SSL CTX");
-                        Net::SSLeay::CTX_set_cipher_list($newctx, $self->{config}->{sslconfig}->{sslciphers});
-                        Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert},
-                                                            $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
-                                or croak("Can't set cert and key file");
-                        $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
-                    }
-                    Net::SSLeay::set_SSL_CTX($ssl, $newctx);
-                });
-
-                #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
-                ## Advertise supported HTTP versions
-                #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
-            },
-        );
-        if(!$encrypted) {
-            print "startSSL failed: ", $SSL_ERROR, "\n";
-            exit(0);
-        }
-    }
-
-    my $backend = IO::Socket::UNIX->new(
-            Peer => $selectedbackend,
-            Type => SOCK_STREAM,
-        ) or croak("Failed to connect to backend: $ERRNO");
-
-    binmode($client);
-    binmode($backend);
-
-    syswrite($backend, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n");
-
-    my $select = IO::Select->new($client, $backend);
-
-    my $done = 0;
-    my $failcount = 0;
-    my $toclientbuffer = '';
-    my $tobackendbuffer = '';
-    while(!$done) {
-        my $totalread = 0;
-        my $rawbuffer;
-
-        # Wait long if we currently have nothing to send, only wait a very short time for new data if we already got
-        # something in out output buffers
-        my $waittime = 0.1;
-        if(length($toclientbuffer) || length($tobackendbuffer)) {
-            $waittime = 0.05;
-        }
-        
-        my @connections = $select->can_read($waittime);
-        foreach my $connection (@connections) {
-            sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
-            if(!length($rawbuffer)) {
-                if(ref $connection eq 'IO::Socket::UNIX') {
-                    $failcount++;
-                    # WHatever
-                } else {
-                    $failcount++;
-                }
-            } else {
-                $failcount = 0;
-                if(ref $connection eq 'IO::Socket::UNIX') {
-                    # data FROM the backend
-                    $toclientbuffer .= $rawbuffer;
-                } else {
-                    $tobackendbuffer .= $rawbuffer;
-                }
-            }
-        }
-
-        if(length($toclientbuffer)) {
-            my $written;
-
-            my $writebuffer = substr($toclientbuffer, 0, 10_000_000); # write at most 10MB at a time
-            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                $written = syswrite($client, $writebuffer);
-            };
-            if($EVAL_ERROR) {
-                print STDERR "Write error: $EVAL_ERROR\n";
-                #$failcount++;
-            } else {
-                if($failcount >= 5) {
-                    # We are in countdown but could still send data to client. Reset countdown
-                    $finishcountdown = time + 20;
-                }
-            }
-            if(defined($written) && $written) {
-                $toclientbuffer = substr($toclientbuffer, $written);
-            } else {
-                print STDERR "No data written to client\n";
-            }
-        }
-
-        if(length($tobackendbuffer)) {
-            my $written;
-
-            my $writebuffer = substr($tobackendbuffer, 0, 10_000_000); # write at most 10MB at a time
-            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                $written = syswrite($backend, $writebuffer);
-            };
-            if($EVAL_ERROR) {
-                print STDERR "Write error: $EVAL_ERROR\n";
-                #$failcount++;
-            } else {
-                if($failcount >= 5) {
-                    # We are in countdown but could still send data to backend. Reset countdown
-                    $finishcountdown = time + 20;
-                }
-
-            }
-            if(defined($written) && $written) {
-                $tobackendbuffer = substr($tobackendbuffer, $written);
-            } else {
-                print STDERR "No data written to backend\n";
-            }
-        }
-
-        if($failcount >= 5) {
-            #print "Possible disconnect detected!\n";
-            if(length($toclientbuffer)) {
-                #print "   !!! toclientbuffer still has ", length($toclientbuffer), " bytes unsent!\n";
-            }
-            if(length($tobackendbuffer)) {
-                print "   !!! tobackendbuffer still has ", length($tobackendbuffer), " bytes unsent!\n";
-            }
-            if(length($toclientbuffer) || length($toclientbuffer)) {
-                if(!$finishcountdown) {
-                    print "Still trying to send buffer data, starting 20 second countdown\n";
-                    $finishcountdown = time + 20;
-                }
-            } else {
-                print "Errors but outgoing buffers are empty, shutting down right now\n";
-                $done = 1;
-            }
-        }
-        
-        if($finishcountdown > 0) {
-            if($finishcountdown > time) {
-                #print "Time to shutdown: ", $finishcountdown - time, "\n";
-            } else {
-                print "Finally done!\n";
-                $done = 1;
-            }
-        }
-        
-    }
-    
-    print "Shutting down child PID $PID\n";
-    
     eval {
+        my $finishcountdown = 0;
+        $SIG{USR1} = sub {
+            if(!$finishcountdown) {
+                $finishcountdown = time + 20;
+                print "Backend finished, 20 second countdown before closing socket\n";
+            } else {
+                print "Backend finished, countdown already started\n";
+            }
+            return;
+        };
+        
+
+        print "Doing some network stuff in child PID $PID\n";
+
+        my $lhost = $client->sockhost();
+        my $lport = $client->sockport();
+        my $peerhost = $client->peerhost();
+        my $peerport = $client->peerport();
+
+        my $usessl = 0;
+        my $selectedbackend = $self->{config}->{internal_socket};
+
+        # Check if we need to use SSL
+        foreach my $service (@{$self->{config}->{external_network}->{service}}) {
+            # Search for the correct service
+            if($service->{port} == $lport) {
+                # Now check the IP address
+                foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
+                    if($ip eq $lhost) {
+                        # Found it
+                        $usessl = $service->{usessl};
+                    }
+                }
+            }
+        }
+
+        if($usessl) {
+            my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+            my $encrypted = IO::Socket::SSL->start_SSL($client,
+                SSL_server => 1,
+                SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
+                SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
+                SSL_cipher_list => $self->{config}->{sslconfig}->{sslciphers},
+                SSL_create_ctx_callback => sub {
+                    my $ctx = shift;
+
+                    print STDERR "******************* CREATING NEW CONTEXT ********************\n";
+
+                    # Enable workarounds for broken clients
+                    Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL); ## no critic (Subroutines::ProhibitAmpersandSigils)
+
+                    # Disable session resumption completely
+                    Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
+
+                    # Disable session tickets
+                    Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET); ## no critic (Subroutines::ProhibitAmpersandSigils)
+
+                    # Check requested server name
+                    Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
+                        my $ssl = shift;
+                        my $h = Net::SSLeay::get_servername($ssl);
+
+                        if(!defined($h)) {
+                            print STDERR "SSL: No Hostname given during SSL setup\n";
+                            return;
+                        }
+
+                        if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$h})) {
+                            print STDERR "SSL: Hostname $h not configured\n";
+                            print STDERR Dumper($self->{config}->{sslconfig}->{ssldomains});
+                            return;
+                        }
+                        
+                        if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket})) {
+                            # This SSL connection uses a different backend
+                            $selectedbackend = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket};
+                        }
+
+                        if($h eq $self->{config}->{sslconfig}->{ssldefaultdomain}) {
+                            # Already the correct CTX setting, just return
+                            return;
+                        }
+
+                        #print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
+                        my $newctx;
+                        if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx})) {
+                            $newctx = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx};
+                        } else {
+                            $newctx = Net::SSLeay::CTX_new or croak("Can't create new SSL CTX");
+                            Net::SSLeay::CTX_set_cipher_list($newctx, $self->{config}->{sslconfig}->{sslciphers});
+                            Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert},
+                                                                $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
+                                    or croak("Can't set cert and key file");
+                            $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
+                        }
+                        Net::SSLeay::set_SSL_CTX($ssl, $newctx);
+                    });
+
+                    #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
+                    ## Advertise supported HTTP versions
+                    #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
+                },
+            );
+            if(!$encrypted) {
+                print "startSSL failed: ", $SSL_ERROR, "\n";
+                exit(0);
+            }
+        }
+
+        my $backend = IO::Socket::UNIX->new(
+                Peer => $selectedbackend,
+                Type => SOCK_STREAM,
+            ) or croak("Failed to connect to backend: $ERRNO");
+
+        binmode($client);
+        binmode($backend);
+
+        syswrite($backend, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n");
+
+        my $select = IO::Select->new($client, $backend);
+
+        my $done = 0;
+        my $failcount = 0;
+        my $toclientbuffer = '';
+        my $tobackendbuffer = '';
+        while(!$done) {
+            my $totalread = 0;
+            my $rawbuffer;
+
+            # Wait long if we currently have nothing to send, only wait a very short time for new data if we already got
+            # something in out output buffers
+            my $waittime = 0.1;
+            if(length($toclientbuffer) || length($tobackendbuffer)) {
+                $waittime = 0.05;
+            }
+            
+            my @connections = $select->can_read($waittime);
+            foreach my $connection (@connections) {
+                sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
+                if(!length($rawbuffer)) {
+                    if(ref $connection eq 'IO::Socket::UNIX') {
+                        $failcount++;
+                        # WHatever
+                    } else {
+                        $failcount++;
+                    }
+                } else {
+                    $failcount = 0;
+                    if(ref $connection eq 'IO::Socket::UNIX') {
+                        # data FROM the backend
+                        $toclientbuffer .= $rawbuffer;
+                    } else {
+                        $tobackendbuffer .= $rawbuffer;
+                    }
+                }
+            }
+
+            if(length($toclientbuffer)) {
+                my $written;
+
+                my $writebuffer = substr($toclientbuffer, 0, 10_000_000); # write at most 10MB at a time
+                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                    $written = syswrite($client, $writebuffer);
+                };
+                if($EVAL_ERROR) {
+                    print STDERR "Write error: $EVAL_ERROR\n";
+                    #$failcount++;
+                } else {
+                    if($failcount >= 5) {
+                        # We are in countdown but could still send data to client. Reset countdown
+                        $finishcountdown = time + 20;
+                    }
+                }
+                if(defined($written) && $written) {
+                    $toclientbuffer = substr($toclientbuffer, $written);
+                } else {
+                    print STDERR "No data written to client\n";
+                }
+            }
+
+            if(length($tobackendbuffer)) {
+                my $written;
+
+                my $writebuffer = substr($tobackendbuffer, 0, 10_000_000); # write at most 10MB at a time
+                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                    $written = syswrite($backend, $writebuffer);
+                };
+                if($EVAL_ERROR) {
+                    print STDERR "Write error: $EVAL_ERROR\n";
+                    #$failcount++;
+                } else {
+                    if($failcount >= 5) {
+                        # We are in countdown but could still send data to backend. Reset countdown
+                        $finishcountdown = time + 20;
+                    }
+
+                }
+                if(defined($written) && $written) {
+                    $tobackendbuffer = substr($tobackendbuffer, $written);
+                } else {
+                    print STDERR "No data written to backend\n";
+                }
+            }
+
+            if($failcount >= 5) {
+                #print "Possible disconnect detected!\n";
+                if(length($toclientbuffer)) {
+                    #print "   !!! toclientbuffer still has ", length($toclientbuffer), " bytes unsent!\n";
+                }
+                if(length($tobackendbuffer)) {
+                    print "   !!! tobackendbuffer still has ", length($tobackendbuffer), " bytes unsent!\n";
+                }
+                if(length($toclientbuffer) || length($toclientbuffer)) {
+                    if(!$finishcountdown) {
+                        print "Still trying to send buffer data, starting 20 second countdown\n";
+                        $finishcountdown = time + 20;
+                    }
+                } else {
+                    print "Errors but outgoing buffers are empty, shutting down right now\n";
+                    $done = 1;
+                }
+            }
+            
+            if($finishcountdown > 0) {
+                if($finishcountdown > time) {
+                    #print "Time to shutdown: ", $finishcountdown - time, "\n";
+                } else {
+                    print "Finally done!\n";
+                    $done = 1;
+                }
+            }
+            
+        }
+        
+        print "Shutting down child PID $PID\n";
+    
         close $backend;
         close $client;
     };
