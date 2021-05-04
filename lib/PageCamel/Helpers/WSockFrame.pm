@@ -11,8 +11,8 @@ our $VERSION = 3.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
-use Encode qw(is_utf8 encode_utf8 decode_utf8);
 use Data::Dumper;
+use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use Config;
@@ -51,8 +51,8 @@ sub new {
 
     $buffer = '' unless defined $buffer;
 
-    if (Encode::is_utf8($buffer)) {
-        $self->{buffer} = Encode::encode('UTF-8', $buffer);
+    if (is_utf8($buffer)) {
+        $self->{buffer} = encode_utf8($buffer);
     }
     else {
         $self->{buffer} = $buffer;
@@ -95,7 +95,7 @@ sub next {
     my $bytes = $self->next_bytes;
     return unless defined $bytes;
 
-    return Encode::decode('UTF-8', $bytes);
+    return decode_utf8($bytes);
 }
 
 sub fin {
