@@ -160,6 +160,7 @@ sub get {
     if(!$forcedb) {
         $settingref = $memh->get($memhname);
         if(defined($settingref)) {
+            $settingref->{settingvalue} = decode_utf8($settingref->{settingvalue});
             return (1, $settingref);
         }
     }
@@ -181,6 +182,7 @@ sub get {
     $dbh->rollback;
 
     if(defined($settingref)) {
+        $settingref->{settingvalue} = decode_utf8($settingref->{settingvalue});
         return (1, $settingref);
     } else {
         return 0;
@@ -193,6 +195,8 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $memhname = "SystemSettings::" . $modulename . "::" . $settingname;
+
+    $value = encode_utf8($value);
 
     my $upsth = $dbh->prepare_cached("SELECT merge_system_settings(?, ?, ?)")
             or return;
