@@ -37,12 +37,23 @@ foreach my $file (@files) {
     foreach my $line (@lines) {
         if($line =~ /^use\ +(.+)\;/) {
             my $pragma = $1;
+            my $skip = 0;
             if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper)/ && $pragma !~ /Digest/) {
                 # Remove this (old) lines
-                next;
+                $skip = 1;
             }
             if($pragma =~ /(5.\d+)/ && $pragma !~ /Digest/) {
                 # Always update the required perl version
+                $skip = 1;
+            }
+
+            if($file =~ /Helpers\/UTF\.pm$/ && $pragme =~ /Encode/) {
+                # Don't skip this one instance, this is the only place that loads the Encode module
+                $skip = 0;
+            }
+
+
+            if($skip) {
                 next;
             }
         }
@@ -76,8 +87,10 @@ foreach my $file (@files) {
             print $ofh "use autodie qw( close );\n";
             print $ofh "use Array::Contains;\n";
             print $ofh "use utf8;\n";
-            print $ofh "use Encode qw(is_utf8 encode_utf8 decode_utf8);\n";
             print $ofh "use Data::Dumper;\n";
+            if($file !~ /Helpers\/UTF\.pm$/) {
+                print $ofh "use PageCamel::Helpers::UTF;\n";
+            }
             print $ofh "#---AUTOPRAGMAEND---\n";
             $inserted = 1;
         }

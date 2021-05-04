@@ -20,7 +20,7 @@ use Encode qw(encode decode);
 
 use base qw(Exporter);
 use PageCamel::Helpers::Padding qw(doSpacePad);
-our @EXPORT_OK = qw(encode_utf8 decode_utf8 encode_utf16 decode_utf16 is_utf8);
+our @EXPORT = qw(encode_utf8 decode_utf8 encode_utf16 decode_utf16 is_utf8);
 
 sub encode_utf8 {
     my ($orig) = @_;
