@@ -113,4 +113,8 @@
         ws.close();
     }
 
+    function sendMessage(data) {
+        ws.send(JSON.stringify(data));
+    }
+
 </script>

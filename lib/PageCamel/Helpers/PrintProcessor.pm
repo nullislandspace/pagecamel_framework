@@ -28,8 +28,6 @@ sub new {
     
     my $self = bless $config, $class;
 
-    $self->{bitmapfont} = GD::Font->load($self->{font});
-
     if(!defined($self->{use_eog})) {
         $self->{use_eog} = 0;
     }
@@ -102,10 +100,12 @@ sub printAddTextLine {
     
     chomp $line;
     
+    $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
-    $self->{img}->string($self->{bitmapfont}, 10, $self->{imgoffs}, $line, $self->{imgblack});
+    print Dumper($self->{font});
+    $self->{img}->stringFT($self->{imgblack}, $self->{font}, 10, 0, 10, $self->{imgoffs} + 10, $line);
     
-    $self->{imgoffs} += 16;
+    $self->{imgoffs} += 12;
     
     return $oldoffs;
 }
@@ -441,7 +441,7 @@ sub rememberPrint {
         my $img = GD::Image->new($imagedata);
         my $black = $img->colorAllocate(0, 0, 0);
         my $white = $img->colorAllocate(255, 255, 255);
-        $img->string($self->{bitmapfont}, 10, $copy_y, $markascopytext, $black);
+        $img->stringFT($black, $self->{font}, 10, 0, 10, $copy_y + 10, $markascopytext);
         $imagedata = $img->png;
     }
     

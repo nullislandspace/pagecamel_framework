@@ -18,7 +18,7 @@ use Encode qw(encode decode);
 
 use base qw(Exporter);
 use PageCamel::Helpers::Padding qw(doSpacePad);
-our @EXPORT = qw(encode_utf8 decode_utf8 encode_utf16 decode_utf16 is_utf8);
+our @EXPORT = qw(encode_utf8 decode_utf8 encode_utf8_array decode_utf8_array encode_utf16 decode_utf16 is_utf8);
 
 sub encode_utf8 {
     my ($orig) = @_;
@@ -31,6 +31,29 @@ sub decode_utf8 {
 
     return decode('UTF-8', $orig);
 }
+
+sub encode_utf8_array {
+    my @orig = @_;
+    my @newarray;
+
+    foreach my $val (@orig) {
+        push @newarray, encode('UTF-8', $val);
+    }
+
+    return @newarray;
+}
+
+sub decode_utf8_array {
+    my @orig = @_;
+    my @newarray;
+
+    foreach my $val (@orig) {
+        push @newarray, decode('UTF-8', $val);
+    }
+
+    return @newarray;
+}
+
 
 sub encode_utf16 {
     my ($orig) = @_;
@@ -47,7 +70,7 @@ sub decode_utf16 {
 sub is_utf8 {
     my ($orig) = @_;
 
-    return Encode->is_utf8($orig);
+    return Encode::is_utf8($orig);
 }
 
 

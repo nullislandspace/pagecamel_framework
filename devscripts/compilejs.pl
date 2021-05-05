@@ -59,6 +59,7 @@ foreach my $file (@files) {
 __DATA__
 ajaxhelpers.js
 formhelpers.js
+unicodehelpers.js
 pageviewstats.js
 codehighlight/highlight.pack.js
 jquery/js/jquery-3.4.1.js

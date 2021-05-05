@@ -2248,6 +2248,7 @@ lib/PageCamel/Web/Static/pagecameldefaultlayout.css
 lib/PageCamel/Web/Static/pageviewstats.js
 lib/PageCamel/Web/Static/sha256.js
 lib/PageCamel/Web/Static/snow.js
+lib/PageCamel/Web/Static/unicodehelpers.js
 lib/PageCamel/Web/Static/vnc_html5/base.css
 lib/PageCamel/Web/Static/vnc_html5/base64.js
 lib/PageCamel/Web/Static/vnc_html5/black.css
