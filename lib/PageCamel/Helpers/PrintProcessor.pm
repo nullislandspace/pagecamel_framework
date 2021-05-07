@@ -102,7 +102,6 @@ sub printAddTextLine {
     
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
-    print Dumper($self->{font});
     $self->{img}->stringFT($self->{imgblack}, $self->{font}, 10, 0, 10, $self->{imgoffs} + 10, $line);
     
     $self->{imgoffs} += 12;
