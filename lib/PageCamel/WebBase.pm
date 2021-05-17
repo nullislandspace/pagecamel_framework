@@ -372,7 +372,7 @@ sub post_process_request_hook {
 sub child_init_hook {
     my ($self) = @_;
 
-    if($self->{isDebugging}) {
+    if(0 && $self->{isDebugging}) {
         print STDERR "******************** CHILD START *********************\n";
     }
     foreach my $modname (keys %{$self->{modules}}) {
@@ -386,7 +386,7 @@ sub child_init_hook {
 sub child_finish_hook {
     my ($self) = @_;
 
-    if($self->{isDebugging}) {
+    if(0 && $self->{isDebugging}) {
         print STDERR "******************** CHILD STOP *********************\n";
     }
     foreach my $modname (keys %{$self->{modules}}) {
@@ -812,7 +812,7 @@ nextrequest:
     $self->xdebuglog("Reading request line");
     my $requestline = $self->readheader(10, $realsocket);
     if(!defined($requestline)) {
-        print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
+        #print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
         #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
         $self->xdebuglog("Request line timeout");

@@ -31,7 +31,7 @@ $SIG{CHLD} = \&REAPER;
 sub REAPER {
     my $stiff;
     while (($stiff = waitpid(-1, &WNOHANG)) > 0) {
-        print "Child PID $stiff has gone the way of the Dodo\n";
+        #print "Child PID $stiff has gone the way of the Dodo\n";
         $childcount--;
     }
     $SIG{CHLD} = \&REAPER; # install *after* calling waitpid
