@@ -23,7 +23,7 @@ use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep);
 use PageCamel::Helpers::Logo;
 use Sys::Hostname;
-use POSIX ":sys_wait_h";
+use POSIX;
 
 # For turning off SSL session cache
 use Readonly;
@@ -165,7 +165,7 @@ sub run {
                     $PROGRAM_NAME = $self->{ps_appname};
                     $self->handleClient($client);
                     print "Child PID $PID is done, exiting...\n";
-                    exit(0);
+                    $self->endprogram();
                 } else {
                     # Parent
                     $childcount++;
@@ -221,74 +221,79 @@ sub handleClient {
 
         if($usessl) {
             my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-            my $encrypted = IO::Socket::SSL->start_SSL($client,
-                SSL_server => 1,
-                SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
-                SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
-                SSL_cipher_list => $self->{config}->{sslconfig}->{sslciphers},
-                SSL_create_ctx_callback => sub {
-                    my $ctx = shift;
+            my $encrypted;
+            my $ok = 0;
+            eval {
+                $encrypted = IO::Socket::SSL->start_SSL($client,
+                    SSL_server => 1,
+                    SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
+                    SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
+                    SSL_cipher_list => $self->{config}->{sslconfig}->{sslciphers},
+                    SSL_create_ctx_callback => sub {
+                        my $ctx = shift;
 
-                    print STDERR "******************* CREATING NEW CONTEXT ********************\n";
+                        print STDERR "******************* CREATING NEW CONTEXT ********************\n";
 
-                    # Enable workarounds for broken clients
-                    Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL); ## no critic (Subroutines::ProhibitAmpersandSigils)
+                        # Enable workarounds for broken clients
+                        Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL); ## no critic (Subroutines::ProhibitAmpersandSigils)
 
-                    # Disable session resumption completely
-                    Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
+                        # Disable session resumption completely
+                        Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
 
-                    # Disable session tickets
-                    Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET); ## no critic (Subroutines::ProhibitAmpersandSigils)
+                        # Disable session tickets
+                        Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET); ## no critic (Subroutines::ProhibitAmpersandSigils)
 
-                    # Check requested server name
-                    Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
-                        my $ssl = shift;
-                        my $h = Net::SSLeay::get_servername($ssl);
+                        # Check requested server name
+                        Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
+                            my $ssl = shift;
+                            my $h = Net::SSLeay::get_servername($ssl);
 
-                        if(!defined($h)) {
-                            print STDERR "SSL: No Hostname given during SSL setup\n";
-                            return;
-                        }
+                            if(!defined($h)) {
+                                print STDERR "SSL: No Hostname given during SSL setup\n";
+                                return;
+                            }
 
-                        if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$h})) {
-                            print STDERR "SSL: Hostname $h not configured\n";
-                            print STDERR Dumper($self->{config}->{sslconfig}->{ssldomains});
-                            return;
-                        }
-                        
-                        if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket})) {
-                            # This SSL connection uses a different backend
-                            $selectedbackend = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket};
-                        }
+                            if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$h})) {
+                                print STDERR "SSL: Hostname $h not configured\n";
+                                print STDERR Dumper($self->{config}->{sslconfig}->{ssldomains});
+                                return;
+                            }
+                            
+                            if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket})) {
+                                # This SSL connection uses a different backend
+                                $selectedbackend = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{internal_socket};
+                            }
 
-                        if($h eq $self->{config}->{sslconfig}->{ssldefaultdomain}) {
-                            # Already the correct CTX setting, just return
-                            return;
-                        }
+                            if($h eq $self->{config}->{sslconfig}->{ssldefaultdomain}) {
+                                # Already the correct CTX setting, just return
+                                return;
+                            }
 
-                        #print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
-                        my $newctx;
-                        if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx})) {
-                            $newctx = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx};
-                        } else {
-                            $newctx = Net::SSLeay::CTX_new or croak("Can't create new SSL CTX");
-                            Net::SSLeay::CTX_set_cipher_list($newctx, $self->{config}->{sslconfig}->{sslciphers});
-                            Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert},
-                                                                $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
-                                    or croak("Can't set cert and key file");
-                            $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
-                        }
-                        Net::SSLeay::set_SSL_CTX($ssl, $newctx);
-                    });
+                            #print STDERR "§§§§§§§§§§§§§§§§§§§§§§§   Requested Hostname: $h §§§\n";
+                            my $newctx;
+                            if(defined($self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx})) {
+                                $newctx = $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx};
+                            } else {
+                                $newctx = Net::SSLeay::CTX_new or croak("Can't create new SSL CTX");
+                                Net::SSLeay::CTX_set_cipher_list($newctx, $self->{config}->{sslconfig}->{sslciphers});
+                                Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert},
+                                                                    $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
+                                        or croak("Can't set cert and key file");
+                                $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
+                            }
+                            Net::SSLeay::set_SSL_CTX($ssl, $newctx);
+                        });
 
-                    #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
-                    ## Advertise supported HTTP versions
-                    #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
-                },
-            );
-            if(!$encrypted) {
+                        #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
+                        ## Advertise supported HTTP versions
+                        #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
+                    },
+                );
+                $ok = 1;
+            };
+            if(!$ok || !defined($encrypted) || !$encrypted) {
                 print "startSSL failed: ", $SSL_ERROR, "\n";
-                exit(0);
+                $self->endprogram();
             }
         }
 
@@ -419,9 +424,24 @@ sub handleClient {
         
         print "Shutting down child PID $PID\n";
     
-        close $backend;
-        close $client;
+        eval {
+            close $backend;
+            close $client;
+        }
     };
 
-    exit(0);
+    endprogram();
 }
+
+sub endprogram {
+    my ($self) = @_;
+
+    sleep(1);
+    kill 9, $PID;
+    sleep(1);
+    POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+    sleep(1);
+}
+
+
+1;
