@@ -665,8 +665,8 @@ sub printTestMessage {
         $self->printAddTextLine('');
     }
     
-    $self->printEndDocument($printer);
-    return;
+    my $imagedata = $self->printEndDocument($printer);
+    return $imagedata;
 }
 
 sub makeFName {
