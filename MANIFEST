@@ -19,6 +19,7 @@ devscripts/testserver.pl
 devscripts/updateClasses.pl
 devscripts/useEnglish.pl
 lib/PageCamel/CMDLine/DNS.pm
+lib/PageCamel/CMDLine/Legacy/LetsEncrypt.pm
 lib/PageCamel/CMDLine/LetsEncrypt.pm
 lib/PageCamel/CMDLine/VoiceMusic.pm
 lib/PageCamel/CMDLine/VoiceServer.pm
