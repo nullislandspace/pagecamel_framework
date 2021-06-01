@@ -125,7 +125,7 @@ sub run {
                 #    $options{live} = 0;
                 #}
                 if(-f $options{crt}) {
-                    $options{renew} = 5;
+                    $options{renew} = 30; # Renew cert when only 30 days remaining
                     $self->debuglog("Activating RENEW option");
                 }
                 $self->debuglog("Working");
