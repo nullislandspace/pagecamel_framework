@@ -194,7 +194,7 @@ sub load_dir {
             # Only minify when not debugging for faster startup
             if($mtype eq "text/css") {
                 my $miniok = 0;
-                eval {
+                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                     print $ofh ("   MINIFY $nfname\n");
                     my $tmp = CSS::Minifier::XS::minify($data);
                     print $ofh ("   MINIFY $nfname OK\n");

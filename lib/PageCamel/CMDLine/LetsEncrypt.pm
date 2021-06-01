@@ -19,7 +19,6 @@ use PageCamel::Helpers::UTF;
 use IO::File;
 use JSON::MaybeXS;
 use Module::Load;
-use Encode 'decode';
 use Digest::SHA 'sha256';
 use MIME::Base64 'encode_base64url';
 use Crypt::LE ':errors', ':keys';

@@ -16,7 +16,7 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use base qw(Exporter);
-our @EXPORT = qw(getTestText getTestImage1 getTestImage2);
+our @EXPORT = qw(getTestText getTestImage1 getTestImage2); ## no critic (Modules::ProhibitAutomaticExportation)
 use MIME::Base64;
 
 sub getTestLines {

@@ -80,7 +80,7 @@ sub reload {
                     settingvalue => 0,
                     description => 'Window START time',
                     value_min => 0,
-                    value_max =>  86400,
+                    value_max =>  86_400,
                     processinghints => [
                         'decimal=0',
                     ],
@@ -92,7 +92,7 @@ sub reload {
                     settingvalue => 0,
                     description => 'Window END time',
                     value_min => 0,
-                    value_max =>  86400,
+                    value_max =>  86_400,
                     processinghints => [
                         'decimal=0',
                     ],

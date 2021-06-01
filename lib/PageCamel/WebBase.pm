@@ -484,7 +484,7 @@ sub get_request_body {
 
         }
 
-        unless($unread) {
+        if(!$unread) {
             $ok = 1;
         }
     };
@@ -1566,7 +1566,7 @@ nextrequest:
                 print STDERR getISODate() . " Upgrading connection to $upgradeTo in PID $PID\n";
                 my $evalok = 0;
                 my $conok;
-                eval {
+                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                     $conok = $module->$funcname($ua);
                     $evalok = 1;
                 };
@@ -2161,7 +2161,7 @@ sub xdebuglog {
     my $debugline = join(' ', @args) . "\n";
 
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
-    open(my $debugfh, '>>', $ofhname) or croak($!);
+    open(my $debugfh, '>>', $ofhname) or croak($ERRNO);
     print $debugfh getISODate(), ' ', $debugline;
     close $debugfh;
     return;

@@ -38,6 +38,7 @@ sub REAPER {
         $childcount--;
     }
     $SIG{CHLD} = \&REAPER; # install *after* calling waitpid
+    return;
 }
 
 
@@ -182,7 +183,7 @@ sub run {
 sub handleClient {
     my ($self, $client) = @_;
     
-    eval {
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $finishcountdown = 0;
         $SIG{USR1} = sub {
             if(!$finishcountdown) {
@@ -235,13 +236,13 @@ sub handleClient {
                         print STDERR "******************* CREATING NEW CONTEXT ********************\n";
 
                         # Enable workarounds for broken clients
-                        Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL); ## no critic (Subroutines::ProhibitAmpersandSigils)
+                        Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL);
 
                         # Disable session resumption completely
                         Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
 
                         # Disable session tickets
-                        Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET); ## no critic (Subroutines::ProhibitAmpersandSigils)
+                        Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
 
                         # Check requested server name
                         Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
@@ -424,23 +425,24 @@ sub handleClient {
         
         print "Shutting down child PID $PID\n";
     
-        eval {
-            close $backend;
-            close $client;
-        }
+        close $backend;
+        close $client;
     };
 
-    endprogram();
+    return;
+
 }
 
-sub endprogram {
+sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
     my ($self) = @_;
 
     sleep(1);
-    kill 9, $PID;
-    sleep(1);
-    POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
-    sleep(1);
+    while(1) {
+        kill 9, $PID;
+        sleep(1);
+        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
+        sleep(10);
+    }
 }
 
 

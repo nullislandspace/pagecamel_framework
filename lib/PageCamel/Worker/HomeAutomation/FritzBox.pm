@@ -176,7 +176,7 @@ sub work {
             $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_energy}, $switch->energy);
             my $temperature = 0;
             my $temperaturesupported = 0;
-            eval {
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $temperature = $switch->temperature;
                 $temperaturesupported = 1;
             };

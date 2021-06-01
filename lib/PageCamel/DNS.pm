@@ -437,7 +437,7 @@ sub handleUDP {
     } else {
         my ($qname, $qtype, $qclass);
         my $ok = 0;
-        eval {
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             $qname = lc $question->qname;
             $qtype = uc $question->qtype;
             $qclass = $question->qclass;
@@ -575,7 +575,7 @@ sub handleTCP {
         } else {
             my ($qname, $qtype, $qclass);
             my $ok = 0;
-            eval {
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $qname = lc $question->qname;
                 $qtype = uc $question->qtype;
                 $qclass = $question->qclass;

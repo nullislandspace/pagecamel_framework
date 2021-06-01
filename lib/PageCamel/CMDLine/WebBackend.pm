@@ -35,6 +35,7 @@ sub REAPER {
         $childcount--;
     }
     $SIG{CHLD} = \&REAPER; # install *after* calling waitpid
+    return;
 }
 
 sub new {
@@ -182,7 +183,7 @@ sub run {
     return;
 }
 
-sub handleClient {
+sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
     my ($self, $client) = @_;
 
     my $ok = 0;
@@ -195,22 +196,22 @@ sub handleClient {
 
     $self->xdebuglog("child_init_hook()");
     $ok = 0;
-    eval {
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         $self->{webserver}->child_init_hook();
         $ok = 1;
     };
     if(!$ok) {
-        $self->endprogram($header, "!!!!! FAILED child_init_hook $@");
+        $self->endprogram($header, "!!!!! FAILED child_init_hook $EVAL_ERROR");
     }
 
     my $allowclient;
     $ok = 0;
-    eval {
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         $allowclient = $self->{webserver}->allow_deny_hook($header->{peerhost});
         $ok = 1;
     };
     if(!$ok) {
-        $self->endprogram($header, "!!!!! FAILED allow_deny_hook $@");
+        $self->endprogram($header, "!!!!! FAILED allow_deny_hook $EVAL_ERROR");
     }
 
     if(!$allowclient) {
@@ -218,39 +219,39 @@ sub handleClient {
     } else {
         $self->xdebuglog("process_request()");
         $ok = 0;
-        eval {
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             $self->{webserver}->process_request($client, $header);
             $ok = 1;
         };
         if(!$ok) {
-            $self->endprogram($header, "!!!!! FAILED process_request $@");
+            $self->endprogram($header, "!!!!! FAILED process_request $EVAL_ERROR");
         }
     }
     
     $ok = 0;
-    eval {
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         $self->xdebuglog("Running post_process_request_hook()");
         $self->{webserver}->post_process_request_hook();
         $ok = 1;
     };
 
     if(!$ok) {
-        $self->endprogram($header, "!!!!! FAILED post_process_request_hook $@");
+        $self->endprogram($header, "!!!!! FAILED post_process_request_hook $EVAL_ERROR");
     }
     
     $ok = 0;
-    eval {
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         $self->xdebuglog("Running child_finish_hook()");
         $self->{webserver}->child_finish_hook();
         $ok = 1;
     };
     if(!$ok) {
-        $self->endprogram($header, "!!!!! FAILED child_finish_hook $@");
+        $self->endprogram($header, "!!!!! FAILED child_finish_hook $EVAL_ERROR");
     }
 
 
     $ok = 0;
-    eval {
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         $self->xdebuglog("Stopping process...");
         $client->close();
         kill 'USR1', $header->{pid}; # Notify frontend that we are done
@@ -260,23 +261,25 @@ sub handleClient {
     };
 
     if(!$ok) {
-        $self->endprogram($header, "!!!!! FAILED stopping process $@");
+        $self->endprogram($header, "!!!!! FAILED stopping process $EVAL_ERROR");
     }
 
 
     $self->endprogram($header, "exit(0)");
 }
 
-sub endprogram {
+sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
     my ($self, $header, $debugmessage) = @_;
     kill 'USR1', $header->{pid}; # Notify frontend that we are done
     #exit(0);
 
     $self->xdebuglog("exit(0)");
     sleep(1);
+    while(1) {
         kill 9, $PID;
         POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
-    #exit(0);
+        sleep(10);
+    }
 }
 
 sub readFrontendheader {
@@ -322,7 +325,7 @@ sub xdebuglogstart {
     return unless($self->{isDebugging});
 
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
-    open(my $debugfh, '>', $ofhname) or croak($!);
+    open(my $debugfh, '>', $ofhname) or croak($ERRNO);
     print $debugfh getISODate(), " Start new log\n";
     close $debugfh;
     return;
@@ -336,8 +339,10 @@ sub xdebuglog {
     my $debugline = join(' ', @args) . "\n";
 
     my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
-    open(my $debugfh, '>>', $ofhname) or croak($!);
+    open(my $debugfh, '>>', $ofhname) or croak($ERRNO);
     print $debugfh getISODate(), ' ', $debugline;
     close $debugfh;
     return;
 }
+
+1;

@@ -177,7 +177,7 @@ sub shorturl {
 
 }
 
-sub get {
+sub get { ## no critic (Subroutines::ProhibitExcessComplexity)
     my ($self, $ua) = @_;
 
     my $th = $self->{server}->{modules}->{templates};

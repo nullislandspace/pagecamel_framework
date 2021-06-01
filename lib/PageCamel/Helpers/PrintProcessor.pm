@@ -306,8 +306,8 @@ sub printAddGreyscaleImage {
                         my $deltay = $y + $dithery;
                         my $factor = $dither[$dithery]->[$ditherx];
                         next unless($factor);
-                        next unless($deltax >= 0 && $deltax < $destw);
-                        next unless($deltay >= 0 && $deltay < $desth);
+                        next if($deltax < 0 || $deltax >= $destw);
+                        next if($deltay < 0 || $deltay >= $desth);
                         my $change = $factor * $quanterror / 16.0;
     
                         #print "## $oldpixel $newpixel $factor $quanterror $change\n";
@@ -354,8 +354,8 @@ sub printAddGreyscaleImage {
                         my $deltay = $y + $dithery - 1;
                         my $factor = $dither[$dithery]->[$ditherx];
                         next unless($factor);
-                        next unless($deltax >= 0 && $deltax < $destw);
-                        next unless($deltay >= 0 && $deltay < $desth);
+                        next if($deltax < 0 || $deltax >= $destw);
+                        next if($deltay < 0 || $deltay >= $desth);
                         my $change = $factor * $quanterror / 48.0;
     
                         #print "## $oldpixel $newpixel $factor $quanterror $change\n";

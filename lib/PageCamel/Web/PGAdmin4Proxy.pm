@@ -253,16 +253,16 @@ sub get {
             }
         }
 
-        my $content;
-        if(defined($retpage{'Transfer-Encoding'}) && $retpage{'Transfer-Encoding'} =~ /chunked/) {
-            $content = $self->readChunked($socket);
-            delete $retpage{'Transfer-Encoding'};
-        } elsif(defined($retpage{'Content-Length'})) {
-            $content = $self->readPlain($socket, $retpage{'Content-Length'});
-        } else {
-            print STDERR "DO NOT KNOW HOW MUCH TO READ!!!!!\n";
-            return(status => 500);
-        }
+        #my $content;
+        #if(defined($retpage{'Transfer-Encoding'}) && $retpage{'Transfer-Encoding'} =~ /chunked/) {
+        #    $content = $self->readChunked($socket);
+        #    delete $retpage{'Transfer-Encoding'};
+        #} elsif(defined($retpage{'Content-Length'})) {
+        #    $content = $self->readPlain($socket, $retpage{'Content-Length'});
+        #} else {
+        #    print STDERR "DO NOT KNOW HOW MUCH TO READ!!!!!\n";
+        #    return(status => 500);
+        #}
 
         print STDERR "################ POSTRETURN ######################\n";
         print STDERR Dumper(\%retpage), "\n";
