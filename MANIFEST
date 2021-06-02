@@ -25,6 +25,7 @@ lib/PageCamel/CMDLine/VoiceMusic.pm
 lib/PageCamel/CMDLine/VoiceServer.pm
 lib/PageCamel/CMDLine/WebBackend.pm
 lib/PageCamel/CMDLine/WebFrontend.pm
+lib/PageCamel/CMDLine/WebFrontendNoFork.pm
 lib/PageCamel/CMDLine/Worker.pm
 lib/PageCamel/DNS.pm
 lib/PageCamel/Framework.pm

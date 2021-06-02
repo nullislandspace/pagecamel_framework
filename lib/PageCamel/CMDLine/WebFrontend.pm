@@ -29,6 +29,11 @@ use POSIX;
 use Readonly;
 Readonly my $SSL_SESS_CACHE_OFF => 0x0000;
 
+$SIG{PIPE} = sub {
+    print "SIG PIPE\n";
+    return;
+};
+
 my $childcount = 0;
 $SIG{CHLD} = \&REAPER;
 sub REAPER {
