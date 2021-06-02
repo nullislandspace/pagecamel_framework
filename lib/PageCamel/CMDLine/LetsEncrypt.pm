@@ -120,6 +120,7 @@ sub run {
                     'handle-as' => 'dns',
                     'email' => 'letsencrypt@cavac.at',
                     'live' => 1,
+                    'renew' => 30,
                 );
                 #if($self->{isDebugging}) {
                 #    $options{live} = 0;
