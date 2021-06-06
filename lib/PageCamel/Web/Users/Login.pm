@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 3.4;
+our $VERSION = 3.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -295,7 +295,12 @@ sub get_login {
         $upsth->finish;
         $dbh->commit;
 
-        my $session = $self->createSession($ua, $user{username});
+        my $hasDeveloper = 0;
+        if(contains('developer', \@dbRights)) {
+            $hasDeveloper = 1;
+        }
+
+        my $session = $self->createSession($ua, $user{username}, $hasDeveloper);
 
         if($user{require_password_change}) {
             $user{startpage} = $self->{pwchange};
@@ -435,7 +440,12 @@ sub getAutologin {
     $upsth->finish;
     $dbh->commit;
 
-    my $session = $self->createSession($ua, $user{username});
+    my $hasDeveloper = 0;
+    if(contains('developer', \@dbRights)) {
+        $hasDeveloper = 1;
+    }
+
+    my $session = $self->createSession($ua, $user{username}, $hasDeveloper);
     $self->{server}->{modules}->{$self->{memcache}}->set($session, \%user);
 
     return $session;
@@ -991,7 +1001,7 @@ sub get_defaultwebdata {
 }
 
 sub createSession {
-    my ($self, $ua, $username) = @_;
+    my ($self, $ua, $username, $hasdeveloper) = @_;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.+-";
@@ -1009,8 +1019,8 @@ sub createSession {
     my ($simpleUA, $batbot) = simplifyUA($userAgent);
 
     my $sth = $dbh->prepare_cached("INSERT INTO sessions
-                                    (sid, username, client_ip, useragent, useragent_simplified, logintime, valid_until)
-                                    VALUES (?,?,?,?,?, now(), (now() + interval '10 minutes'))")
+                                    (sid, username, client_ip, useragent, useragent_simplified, logintime, valid_until, has_developer)
+                                    VALUES (?,?,?,?,?, now(), (now() + interval '10 minutes'), ?)")
             or croak($dbh->errstr);
 
     if(!$sth->execute($session, $username, $host_addr, $userAgent, $simpleUA)) {
