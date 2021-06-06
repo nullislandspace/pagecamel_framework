@@ -296,11 +296,25 @@ sub get_login {
         $dbh->commit;
 
         my $hasDeveloper = 0;
-        if(contains('developer', \@dbRights)) {
+        if(contains('has_developer', \@dbRights)) {
             $hasDeveloper = 1;
         }
 
         my $session = $self->createSession($ua, $user{username}, $hasDeveloper);
+
+        if($session eq '') {
+            # Database error
+            $webdata{statustext} = "Internal database error";
+            $webdata{statuscolor} = "errortext";
+            goto finishlogin;
+        } elsif($session eq 'LICENSEPOINTSERROR') {
+            # Not enough license points
+            $webdata{statustext} = "Not enough license points";
+            $webdata{statuscolor} = "errortext";
+            $reph->auditlog($self->{modname}, "Login failed for user " . $webdata{username} . $clidmsg, $webdata{username} . ' (License points)');
+            goto finishlogin;
+        }
+
 
         if($user{require_password_change}) {
             $user{startpage} = $self->{pwchange};
@@ -441,11 +455,14 @@ sub getAutologin {
     $dbh->commit;
 
     my $hasDeveloper = 0;
-    if(contains('developer', \@dbRights)) {
+    if(contains('has_developer', \@dbRights)) {
         $hasDeveloper = 1;
     }
 
     my $session = $self->createSession($ua, $user{username}, $hasDeveloper);
+    if($session eq '' || $session eq 'LICENSEPOINTSERROR') {
+        return;
+    }
     $self->{server}->{modules}->{$self->{memcache}}->set($session, \%user);
 
     return $session;
@@ -660,6 +677,8 @@ sub preauthcleanup {
     $self->{hasBasicAuth} = 0;
     $self->{basicAuthRealm} = '';
 
+    $self->deleteStaleSessions();
+
     return;
 }
 
@@ -719,6 +738,13 @@ sub prefilter {
 
         if($autologin) {
             $session = $self->getAutologin($ua);
+            if(!defined($session)) {
+                return (
+                    status => 500,
+                    type => 'text/plain',
+                    data => 'Internal Server error',
+                );
+            }
         }
     }
 
@@ -1001,7 +1027,7 @@ sub get_defaultwebdata {
 }
 
 sub createSession {
-    my ($self, $ua, $username, $hasdeveloper) = @_;
+    my ($self, $ua, $username, $hasDeveloper) = @_;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.+-";
@@ -1023,9 +1049,15 @@ sub createSession {
                                     VALUES (?,?,?,?,?, now(), (now() + interval '10 minutes'), ?)")
             or croak($dbh->errstr);
 
-    if(!$sth->execute($session, $username, $host_addr, $userAgent, $simpleUA)) {
+    if(!$sth->execute($session, $username, $host_addr, $userAgent, $simpleUA, $hasDeveloper)) {
+        my $licensepointserror = '';
+        my $dberr = $dbh->errstr;
+        print STDERR "*********** DB ERROR: $dberr\n";
+        if($dberr =~ /not\ enough\ license\ points/i) {
+            $licensepointserror = 'LICENSEPOINTSERROR';
+        }
         $dbh->rollback;
-        return;
+        return $licensepointserror;
     }
 
     $dbh->commit;
@@ -1089,6 +1121,35 @@ sub updateSessionUsername {
     return;
 }
 
+sub deleteStaleSessions {
+    my ($self) = @_;
+
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my @stales;
+
+    # First, find all stale sessions
+    my $stalesth = $dbh->prepare_cached("SELECT sid FROM sessions
+                                      WHERE valid_until < now()")
+            or croak($dbh->errstr);
+    $stalesth->execute or croak($dbh->errstr); # if we can not check if the session is
+                                             # valid, we are really, really screwed!
+
+    while((my @stale = $stalesth->fetchrow_array)) {
+        push @stales, $stale[0];
+    }
+    $stalesth->finish;
+
+    $dbh->commit;
+
+    foreach my $stale (@stales) {
+        $self->deleteSession($stale);
+    }
+    
+    return;
+
+}
+
 sub validateSession {
     my ($self, $session, $ua) = @_;
 
@@ -1101,78 +1162,6 @@ sub validateSession {
 
     my $host_addr = $ua->{remote_addr};
     my $userAgent = $ua->{headers}->{'User-Agent'} || '--unknown--';
-
-    my @stales;
-
-    # First, find all stale sessions
-    {
-        my $stalesth = $dbh->prepare_cached("SELECT sid FROM sessions
-                                          WHERE valid_until < now()")
-                or croak($dbh->errstr);
-        $stalesth->execute or croak($dbh->errstr); # if we can not check if the session is
-                                                 # valid, we are really, really screwed!
-
-        while((my @stale = $stalesth->fetchrow_array)) {
-            push @stales, $stale[0];
-        }
-        $stalesth->finish;
-    }
-
-if(0) { # Disabled for testing
-    # If a session ID is beeing spoofed from different IP or browser we
-    # can detect that. Invalidate that session
-    my $fakesth = $dbh->prepare_cached("SELECT sid, client_ip, useragent FROM sessions
-                                      WHERE sid = ?
-                                      AND (client_ip != ?
-                                           OR useragent != ?)")
-            or croak($dbh->errstr);
-    $fakesth->execute($session, $host_addr, $userAgent)
-            or croak($dbh->errstr); # if we can not check if the session is
-                                    # valid, we are really, really screwed!
-
-    while((my @fake = $fakesth->fetchrow_array)) {
-        if($fake[2] ne $userAgent) {
-            print STDERR "Client changed userAgent string from:\n    $userAgent\nto\n    $fake[2]\n";
-            if($userAgent =~ /MSIE\ 8\.0/ && $fake[2] =~ /MSIE\ 7\.0/) {
-                # Our office team messed up big time in upgrading IE7 to IE 8. When the
-                # browser opens a new window, it suddenly loads the IE 7.0 renderer into
-                # a IE 8.0 window, changing the userAgent string.
-                # Reverse this one version number change and see if the strings compare then.
-                # If so, do not invalidate the session.
-                #
-                # This undermines security a but. But using IE does this anyway. And
-                # it's not really my problem, it's the office IT team that messed up..
-                $fake[2] =~ s/MSIE\ 7\.0/MSIE 8.0/g;
-                if($fake[2] eq $userAgent) {
-                    # Yeah, probably just found a broken IE 8.0 installation
-                    print STDERR "Detected major Office IT f.ck.p, temporarly accepting broken browser as valid.\n";
-                    next;
-                }
-
-            }
-        }
-
-        # !!!!!!!! WARNING !!!!!!! CURRENTLY userAgent check is disabled due to multiple problems!!!!!!!
-        if($fake[2] ne $userAgent && $fake[1] eq $host_addr) {
-            print STDERR "   !!! USERAGENT CHECK DISABLED !!!\n";
-            next;
-        }
-        # !!!!!!!! WARNING !!!!!!! CURRENTLY userAgent check is disabled due to multiple problems!!!!!!!
-
-        push @stales, $fake[0];
-        if($fake[1] ne $host_addr) {
-            print STDERR "Client changed IP from $host_addr to $fake[1]!\n";
-        }
-        print STDERR "Invalidating this session!!!\n";
-    }
-    $fakesth->finish;
-}
-    $dbh->commit;
-
-    foreach my $stale (@stales) {
-        $self->deleteSession($stale);
-    }
-
 
     my $countsth = $dbh->prepare_cached("SELECT count(*) FROM sessions
                                         WHERE sid = ?
