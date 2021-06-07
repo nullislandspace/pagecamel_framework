@@ -39,7 +39,7 @@ $SIG{CHLD} = \&REAPER;
 sub REAPER {
     my $stiff;
     while (($stiff = waitpid(-1, &WNOHANG)) > 0) {
-        print "Child PID $stiff has gone the way of the Dodo\n";
+        #print "Child PID $stiff has gone the way of the Dodo\n";
         $childcount--;
     }
     $SIG{CHLD} = \&REAPER; # install *after* calling waitpid
@@ -145,7 +145,7 @@ sub run {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
 
-                print "**** Connection from ", $client->peerhost(), "   \n";
+                #print "**** Connection from ", $client->peerhost(), "   \n";
 
                 if(defined($self->{debugip})) {
                     my $peerhost = $client->peerhost();
@@ -156,21 +156,21 @@ sub run {
                 }
 
                 if($childcount >= $self->{config}->{max_childs}) {
-                    print "Too many children already!\n";
+                    #print "Too many children already!\n";
                     $client->close;
                     next;
                 }
 
                 my $childpid = fork();
                 if(!defined($childpid)) {
-                    print "FORK FAILED!\n";
+                    #print "FORK FAILED!\n";
                     $client->close;
                     next;
                 } elsif($childpid == 0) {
                     # Child
                     $PROGRAM_NAME = $self->{ps_appname};
                     $self->handleClient($client);
-                    print "Child PID $PID is done, exiting...\n";
+                    #print "Child PID $PID is done, exiting...\n";
                     $self->endprogram();
                 } else {
                     # Parent
@@ -187,21 +187,31 @@ sub run {
 
 sub handleClient {
     my ($self, $client) = @_;
+
+    my $sigpipeseen = 0;
+    my $sigpipehandled = 0;
+
+    $SIG{PIPE} = sub {
+        #print "SIG PIPE (client)\n";
+        $sigpipeseen++;
+        return;
+    };
     
+    my $evalok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $finishcountdown = 0;
         $SIG{USR1} = sub {
             if(!$finishcountdown) {
                 $finishcountdown = time + 20;
-                print "Backend finished, 20 second countdown before closing socket\n";
+                #print "Backend finished, 20 second countdown before closing socket\n";
             } else {
-                print "Backend finished, countdown already started\n";
+                #print "Backend finished, countdown already started\n";
             }
             return;
         };
         
 
-        print "Doing some network stuff in child PID $PID\n";
+        #print "Doing some network stuff in child PID $PID\n";
 
         my $lhost = $client->sockhost();
         my $lport = $client->sockport();
@@ -238,7 +248,7 @@ sub handleClient {
                     SSL_create_ctx_callback => sub {
                         my $ctx = shift;
 
-                        print STDERR "******************* CREATING NEW CONTEXT ********************\n";
+                        #print STDERR "******************* CREATING NEW CONTEXT ********************\n";
 
                         # Enable workarounds for broken clients
                         Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL);
@@ -255,13 +265,13 @@ sub handleClient {
                             my $h = Net::SSLeay::get_servername($ssl);
 
                             if(!defined($h)) {
-                                print STDERR "SSL: No Hostname given during SSL setup\n";
+                                #print STDERR "SSL: No Hostname given during SSL setup\n";
                                 return;
                             }
 
                             if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$h})) {
-                                print STDERR "SSL: Hostname $h not configured\n";
-                                print STDERR Dumper($self->{config}->{sslconfig}->{ssldomains});
+                                #print STDERR "SSL: Hostname $h not configured\n";
+                                #print STDERR Dumper($self->{config}->{sslconfig}->{ssldomains});
                                 return;
                             }
                             
@@ -297,7 +307,11 @@ sub handleClient {
                 );
                 $ok = 1;
             };
-            if(!$ok || !defined($encrypted) || !$encrypted) {
+
+            if(!$ok) {
+                print "EVAL ERROR: ", $EVAL_ERROR, "\n";
+                $self->endprogram();
+            } elsif(!$ok || !defined($encrypted) || !$encrypted) {
                 print "startSSL failed: ", $SSL_ERROR, "\n";
                 $self->endprogram();
             }
@@ -311,7 +325,24 @@ sub handleClient {
         binmode($client);
         binmode($backend);
 
-        syswrite($backend, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n");
+        my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
+        my $overheadwritten;
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+            $overheadwritten = syswrite($backend, $overhead);
+        };
+        if($EVAL_ERROR) {
+            print STDERR "EVAL ERROR on writing overhead to backend: $EVAL_ERROR\n";
+            $self->endprogram();
+        } elsif($overheadwritten != length($overhead)) {
+            print STDERR "Could not write overheadline to backend!\n";
+            $self->endprogram();
+        }
+
+        sleep(0.01);
+        if($sigpipeseen) {
+            print STDERR "SIGPIPE ON FIRST WRITE TO BACKEND - Bailing out\n";
+            $self->endprogram();
+        }
 
         my $select = IO::Select->new($client, $backend);
 
@@ -319,7 +350,19 @@ sub handleClient {
         my $failcount = 0;
         my $toclientbuffer = '';
         my $tobackendbuffer = '';
+        my $debugincapture = '';
+        my $debugoutcapture = '';
         while(!$done) {
+            if($sigpipeseen > $sigpipehandled) {
+                sleep(0.05);
+                $sigpipehandled++;
+            }
+            if($sigpipehandled > 20) {
+                print STDERR "Too many SIGPIPEs, bailing out.\n";
+                print STDERR "*** Debug IN data: \n", $debugincapture, "\n";
+                print STDERR "*** Debug OUT data: \n", $debugoutcapture, "\n";
+                $self->endprogram();
+            }
             my $totalread = 0;
             my $rawbuffer;
 
@@ -345,8 +388,14 @@ sub handleClient {
                     if(ref $connection eq 'IO::Socket::UNIX') {
                         # data FROM the backend
                         $toclientbuffer .= $rawbuffer;
+                        if(length($debugoutcapture) < 1000) {
+                            $debugoutcapture .= $rawbuffer;
+                        }
                     } else {
                         $tobackendbuffer .= $rawbuffer;
+                        if(length($debugincapture) < 1000) {
+                            $debugincapture .= $rawbuffer;
+                        }
                     }
                 }
             }
@@ -370,7 +419,7 @@ sub handleClient {
                 if(defined($written) && $written) {
                     $toclientbuffer = substr($toclientbuffer, $written);
                 } else {
-                    print STDERR "No data written to client\n";
+                    #print STDERR "No data written to client\n";
                 }
             }
 
@@ -393,8 +442,12 @@ sub handleClient {
                 }
                 if(defined($written) && $written) {
                     $tobackendbuffer = substr($tobackendbuffer, $written);
+
+                    # Reset SIGPIPE counter whenever we have success writing to the backend
+                    $sigpipeseen = 0;
+                    $sigpipehandled = 0;
                 } else {
-                    print STDERR "No data written to backend\n";
+                    #print STDERR "No data written to backend\n";
                 }
             }
 
@@ -404,15 +457,15 @@ sub handleClient {
                     #print "   !!! toclientbuffer still has ", length($toclientbuffer), " bytes unsent!\n";
                 }
                 if(length($tobackendbuffer)) {
-                    print "   !!! tobackendbuffer still has ", length($tobackendbuffer), " bytes unsent!\n";
+                    #print "   !!! tobackendbuffer still has ", length($tobackendbuffer), " bytes unsent!\n";
                 }
                 if(length($toclientbuffer) || length($toclientbuffer)) {
                     if(!$finishcountdown) {
-                        print "Still trying to send buffer data, starting 20 second countdown\n";
+                        #print "Still trying to send buffer data, starting 20 second countdown\n";
                         $finishcountdown = time + 20;
                     }
                 } else {
-                    print "Errors but outgoing buffers are empty, shutting down right now\n";
+                    #print "Errors but outgoing buffers are empty, shutting down right now\n";
                     $done = 1;
                 }
             }
@@ -421,18 +474,28 @@ sub handleClient {
                 if($finishcountdown > time) {
                     #print "Time to shutdown: ", $finishcountdown - time, "\n";
                 } else {
-                    print "Finally done!\n";
+                    #print "Finally done!\n";
                     $done = 1;
                 }
             }
             
         }
         
-        print "Shutting down child PID $PID\n";
+        #print "Shutting down child PID $PID\n";
     
-        close $backend;
-        close $client;
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+            close $backend;
+        };
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+            close $client;
+        };
+
+        $evalok = 1;
     };
+
+    if(!$evalok) {
+        print STDERR "EVAL ERROR: ", $EVAL_ERROR, "\n";
+    }
 
     return;
 
@@ -445,8 +508,6 @@ sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
     while(1) {
         kill 9, $PID;
         sleep(1);
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
-        sleep(10);
     }
 }
 
