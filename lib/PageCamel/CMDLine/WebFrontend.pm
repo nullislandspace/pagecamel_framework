@@ -347,21 +347,22 @@ sub handleClient {
         my $select = IO::Select->new($client, $backend);
 
         my $done = 0;
-        my $failcount = 0;
         my $toclientbuffer = '';
         my $tobackendbuffer = '';
         my $debugincapture = '';
         my $debugoutcapture = '';
+        my $clientdisconnect = 0;
+        my $backenddisconnect = 0;
         while(!$done) {
             if($sigpipeseen > $sigpipehandled) {
                 sleep(0.05);
                 $sigpipehandled++;
             }
-            if($sigpipehandled > 20) {
+            if($sigpipehandled > 200) {
                 print STDERR "Too many SIGPIPEs, bailing out.\n";
                 print STDERR "*** Debug IN data: \n", $debugincapture, "\n";
-                print STDERR "*** Debug OUT data: \n", $debugoutcapture, "\n";
-                $self->endprogram();
+                #print STDERR "*** Debug OUT data: \n", $debugoutcapture, "\n";
+                $done = 1;
             }
             my $totalread = 0;
             my $rawbuffer;
@@ -377,14 +378,14 @@ sub handleClient {
             foreach my $connection (@connections) {
                 sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
                 if(!length($rawbuffer)) {
+                    # can_read active but no data.
+                    # this usually means the connection has closed
                     if(ref $connection eq 'IO::Socket::UNIX') {
-                        $failcount++;
-                        # WHatever
+                        $backenddisconnect = 1;
                     } else {
-                        $failcount++;
+                        $clientdisconnect = 1;
                     }
                 } else {
-                    $failcount = 0;
                     if(ref $connection eq 'IO::Socket::UNIX') {
                         # data FROM the backend
                         $toclientbuffer .= $rawbuffer;
@@ -400,7 +401,7 @@ sub handleClient {
                 }
             }
 
-            if(length($toclientbuffer)) {
+            if(length($toclientbuffer) && !$clientdisconnect) {
                 my $written;
 
                 my $writebuffer = substr($toclientbuffer, 0, 10_000_000); # write at most 10MB at a time
@@ -409,9 +410,8 @@ sub handleClient {
                 };
                 if($EVAL_ERROR) {
                     print STDERR "Write error: $EVAL_ERROR\n";
-                    #$failcount++;
                 } else {
-                    if($failcount >= 5) {
+                    if($finishcountdown) {
                         # We are in countdown but could still send data to client. Reset countdown
                         $finishcountdown = time + 20;
                     }
@@ -423,7 +423,7 @@ sub handleClient {
                 }
             }
 
-            if(length($tobackendbuffer)) {
+            if(length($tobackendbuffer) && !$backenddisconnect) {
                 my $written;
 
                 my $writebuffer = substr($tobackendbuffer, 0, 10_000_000); # write at most 10MB at a time
@@ -432,9 +432,8 @@ sub handleClient {
                 };
                 if($EVAL_ERROR) {
                     print STDERR "Write error: $EVAL_ERROR\n";
-                    #$failcount++;
                 } else {
-                    if($failcount >= 5) {
+                    if($finishcountdown) {
                         # We are in countdown but could still send data to backend. Reset countdown
                         $finishcountdown = time + 20;
                     }
@@ -451,31 +450,32 @@ sub handleClient {
                 }
             }
 
-            if($failcount >= 5) {
-                #print "Possible disconnect detected!\n";
-                if(length($toclientbuffer)) {
-                    #print "   !!! toclientbuffer still has ", length($toclientbuffer), " bytes unsent!\n";
-                }
-                if(length($tobackendbuffer)) {
-                    #print "   !!! tobackendbuffer still has ", length($tobackendbuffer), " bytes unsent!\n";
-                }
-                if(length($toclientbuffer) || length($toclientbuffer)) {
-                    if(!$finishcountdown) {
-                        #print "Still trying to send buffer data, starting 20 second countdown\n";
-                        $finishcountdown = time + 20;
-                    }
-                } else {
-                    #print "Errors but outgoing buffers are empty, shutting down right now\n";
+            if($clientdisconnect) {
+                # print STDERR "Client disconnect detected!\n";
+                # Client has gone, no sense in continuing
+                $done = 1;
+            }
+
+            if(!$finishcountdown && $backenddisconnect) {
+                if(!length($toclientbuffer)) {
+                    # Communication done
                     $done = 1;
+                } else {
+                    # Start a 20 second countdown for sending remaining data to client
+                    $finishcountdown = time + 20;
                 }
             }
-            
+
             if($finishcountdown > 0) {
-                if($finishcountdown > time) {
-                    #print "Time to shutdown: ", $finishcountdown - time, "\n";
-                } else {
-                    #print "Finally done!\n";
+                if(!length($toclientbuffer)) {
+                    #print STDERR "Sending remaining data to client done\n";
                     $done = 1;
+                } elsif($finishcountdown <= time) {
+                    #print STDERR "Finish countdown done\n";
+                    $done = 1;
+                } else {
+                    #print STDERR "Countdown remaining: ", $finishcountdown - time, " / Bytes remaining: ", length($toclientbuffer), "\n";
+                    sleep(0.05);
                 }
             }
             

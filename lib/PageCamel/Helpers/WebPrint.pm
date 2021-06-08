@@ -77,7 +77,7 @@ sub webPrint {
             if(!$written) {
                 sleep(0.01);
             }
-        } elsif($brokenpipe) {
+        } elsif(0 && $brokenpipe) {
             print STDERR "webPrint write failure: SIGPIPE\n";
             return 0;
         } elsif($ofh->error || $ERRNO ne '') {
