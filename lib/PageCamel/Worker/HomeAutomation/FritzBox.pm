@@ -151,7 +151,6 @@ sub work {
     my $switches = $self->{fritz}->list;
     foreach my $switch (@{$switches}) {
         my $sname = $switch->name();
-        print "Switch: $sname\n";
         next unless defined($self->{switches}->{$sname});
         if(!$switch->is_present) {
             $reph->debuglog("Switch $sname NOT PRESENT!");
