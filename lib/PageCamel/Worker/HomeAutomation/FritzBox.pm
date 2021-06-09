@@ -151,6 +151,7 @@ sub work {
     my $switches = $self->{fritz}->list;
     foreach my $switch (@{$switches}) {
         my $sname = $switch->name();
+        print "Switch: $sname\n";
         next unless defined($self->{switches}->{$sname});
         if(!$switch->is_present) {
             $reph->debuglog("Switch $sname NOT PRESENT!");
@@ -178,16 +179,18 @@ sub work {
             my $temperaturesupported = 0;
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 $temperature = $switch->temperature;
+                $temperature /= 10.0; # Need to convert from 0.1°C units to 1°C Units
                 $temperaturesupported = 1;
             };
             if(!$temperaturesupported) {
                 print STDERR "****** 'TEMPERATURE' NOT SUPPORTED BY THIS VERSION OF AHA.pm\n";
-                print STDERR "****** WE NEED 0.56 OR HIGHER FROM CPAN USER *CAVAC*\n";
+                print STDERR "****** WE NEED 0.6\n";
                 `kill -9 $PID`;
             }
             $self->{clacks}->setAndStore($self->{switches}->{$sname}->{clacksname_temperature}, $temperature);
 
             # Remember the AIN
+            my $ain = $switch->ain();
             $self->{switches}->{$sname}->{ain} = $switch->ain();
         }
     }
