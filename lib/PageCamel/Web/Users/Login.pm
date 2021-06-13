@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 3.5;
+our $VERSION = 3.6;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -299,8 +299,12 @@ sub get_login {
         if(contains('has_developer', \@dbRights)) {
             $hasDeveloper = 1;
         }
+        my $hasAdmin = 0;
+        if(contains('has_admin', \@dbRights)) {
+            $hasAdmin = 1;
+        }
 
-        my $session = $self->createSession($ua, $user{username}, $hasDeveloper);
+        my $session = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin);
 
         if($session eq '') {
             # Database error
@@ -458,8 +462,12 @@ sub getAutologin {
     if(contains('has_developer', \@dbRights)) {
         $hasDeveloper = 1;
     }
+    my $hasAdmin = 0;
+    if(contains('has_admin', \@dbRights)) {
+        $hasAdmin = 1;
+    }
 
-    my $session = $self->createSession($ua, $user{username}, $hasDeveloper);
+    my $session = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin);
     if($session eq '' || $session eq 'LICENSEPOINTSERROR') {
         return;
     }
@@ -1027,7 +1035,7 @@ sub get_defaultwebdata {
 }
 
 sub createSession {
-    my ($self, $ua, $username, $hasDeveloper) = @_;
+    my ($self, $ua, $username, $hasDeveloper, $hasAdmin) = @_;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.+-";
@@ -1045,11 +1053,11 @@ sub createSession {
     my ($simpleUA, $batbot) = simplifyUA($userAgent);
 
     my $sth = $dbh->prepare_cached("INSERT INTO sessions
-                                    (sid, username, client_ip, useragent, useragent_simplified, logintime, valid_until, has_developer)
-                                    VALUES (?,?,?,?,?, now(), (now() + interval '10 minutes'), ?)")
+                                    (sid, username, client_ip, useragent, useragent_simplified, logintime, valid_until, has_developer, has_admin)
+                                    VALUES (?,?,?,?,?, now(), (now() + interval '10 minutes'), ?, ?)")
             or croak($dbh->errstr);
 
-    if(!$sth->execute($session, $username, $host_addr, $userAgent, $simpleUA, $hasDeveloper)) {
+    if(!$sth->execute($session, $username, $host_addr, $userAgent, $simpleUA, $hasDeveloper, $hasAdmin)) {
         my $licensepointserror = '';
         my $dberr = $dbh->errstr;
         print STDERR "*********** DB ERROR: $dberr\n";
