@@ -84,6 +84,10 @@ sub register {
         $self->register_webpath($self->{switchfromuser}->{webpath}, "get_switchfromuser", 'GET');
     }
 
+    if(defined($self->{forcelogout}->{webpath})) {
+        $self->register_webpath($self->{forcelogout}->{webpath}, "get_forcelogout", 'DELETE');
+    }
+
     return;
 }
 
@@ -145,6 +149,28 @@ sub get_logout {
             location => '/', # Automatically restart everything as if user just called up the domain (handle all the guest user stuff)
             type    => "text/html",
             data    => $template);
+}
+
+sub get_forcelogout {
+    my ($self, $ua) = @_;
+
+    # This is called by session manager
+    my $session = $ua->{cookies}->{"pagecamel-session"};
+    if(!$self->validateSession($session, $ua)) {
+        return (status => 403); # Forbidden
+    }
+
+    print STDERR Dumper($ua);
+
+    if(!defined($ua->{postparams}->{sessionid})) {
+        return (status => 400); # Bad request! Sit! Stay!
+    }
+
+    my $othersession = $ua->{postparams}->{sessionid};
+
+    $self->deleteSession($othersession);
+
+    return (status  =>  204); # "OK, no content"
 }
 
 sub get_login {
