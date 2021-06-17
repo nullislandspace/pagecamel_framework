@@ -160,8 +160,6 @@ sub get_forcelogout {
         return (status => 403); # Forbidden
     }
 
-    print STDERR Dumper($ua);
-
     if(!defined($ua->{postparams}->{sessionid})) {
         return (status => 400); # Bad request! Sit! Stay!
     }
