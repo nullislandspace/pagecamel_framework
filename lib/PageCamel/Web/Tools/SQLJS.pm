@@ -50,20 +50,23 @@ sub get {
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
         showads => $self->{showads},
-
+        EnableDB => 1,
     );
-    if(!defined($webdata->{HeadExtraScripts})) {
-        $webdata->{HeadExtraScripts} = [];
-    }
-    push @{$webdata->{HeadExtraScripts}}, '/static/sqljs/sql-wasm.js';
     
-    my $template = $self->{server}->{modules}->{templates}->get('tools/sqljs', 1, %webdata);
+    my $template;
+    my $templateok = 0;
+
+    eval {
+        $template = $self->{server}->{modules}->{templates}->get('tools/sqljs', 1, %webdata);
+        $templateok = 1;
+    };
+    if(!$templateok) {
+        print STDERR "EVAL FAIL: ", $EVAL_ERROR, "\n";
+    }
     return (status  =>  404) unless $template;
     return (status  =>  200,
-            type    => $self->{type},
+            type    => 'text/html',
             data    => $template,
-            expires         => $self->{expires},
-            cache_control   =>  $self->{cache_control},
             );
 }
 

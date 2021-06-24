@@ -178,6 +178,9 @@ sub load_dir {
                 $mtype = "image/png";
             } elsif($type =~ /(jpg|jpeg|jpe)/i) {
                 $mtype = "image/jpeg";
+            } elsif($type =~ /wasm/i) {
+                print STDERR "***** WASM *****\n";
+                $mtype = "application/wasm";
             }
         } else {
             # File without extension
@@ -275,6 +278,8 @@ sub get {
     my ($self, $ua) = @_;
 
     my $name = $ua->{url};
+
+    print STDERR "##########   $name\n";
 
     return (status  =>  404) unless defined($self->{cache}->{$name});
 

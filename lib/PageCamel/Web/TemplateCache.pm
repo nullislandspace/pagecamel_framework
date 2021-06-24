@@ -237,11 +237,11 @@ sub get {
         $self->makeDynamicScript(\$fullpage, \%webdata, $name);
     }
 
-    if($self->{isDebugging} && $name =~ /login/) {
-        open(my $tofh, '>', '/home/cavac/temp/fullpage_before_tt.txt') or croak($ERRNO);
-        print $tofh $fullpage;
-        close $tofh;
-    }
+    #if($self->{isDebugging} && $name =~ /login/) {
+    #    open(my $tofh, '>', '/home/cavac/temp/fullpage_before_tt.txt') or croak($ERRNO);
+    #    print $tofh $fullpage;
+    #    close $tofh;
+    #}
 
     my $output;
     $fullpage = '[% USE tr %]' . $fullpage; # Make sure we load the translation plugin
@@ -252,11 +252,11 @@ sub get {
         print STDERR $self->{processor}->{_ERROR}->[1] . "\n";
     }
 
-    if($self->{isDebugging} && defined($output) && $name =~ /login/) {
-        open(my $tofh, '>', '/home/cavac/temp/fullpage_after_tt.txt') or croak($ERRNO);
-        print $tofh $output;
-        close $tofh;
-    }
+    #if($self->{isDebugging} && defined($output) && $name =~ /login/) {
+    #    open(my $tofh, '>', '/home/cavac/temp/fullpage_after_tt.txt') or croak($ERRNO);
+    #    print $tofh $output;
+    #    close $tofh;
+    #}
     return $output;
 }
 

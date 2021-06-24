@@ -2250,6 +2250,11 @@ lib/PageCamel/Web/Static/pagecameldefaultlayout.css
 lib/PageCamel/Web/Static/pageviewstats.js
 lib/PageCamel/Web/Static/sha256.js
 lib/PageCamel/Web/Static/snow.js
+lib/PageCamel/Web/Static/sqljs/sql-wasm-debug.js
+lib/PageCamel/Web/Static/sqljs/sql-wasm-debug.wasm
+lib/PageCamel/Web/Static/sqljs/sql-wasm.js
+lib/PageCamel/Web/Static/sqljs/sql-wasm.wasm
+lib/PageCamel/Web/Static/sqljs/version.txt
 lib/PageCamel/Web/Static/unicodehelpers.js
 lib/PageCamel/Web/Static/vnc_html5/base.css
 lib/PageCamel/Web/Static/vnc_html5/base64.js
@@ -2356,6 +2361,7 @@ lib/PageCamel/Web/Tools/PIMenu.pm
 lib/PageCamel/Web/Tools/RemoteLog.pm
 lib/PageCamel/Web/Tools/ShortURL.pm
 lib/PageCamel/Web/Tools/Sitemap.pm
+lib/PageCamel/Web/Tools/SQLJS.pm
 lib/PageCamel/Web/Tools/Templates/clacksconsole.tt
 lib/PageCamel/Web/Tools/Templates/debuglog.tt
 lib/PageCamel/Web/Tools/Templates/dsky.tt
@@ -2363,6 +2369,7 @@ lib/PageCamel/Web/Tools/Templates/kaffeesim.tt
 lib/PageCamel/Web/Tools/Templates/pimenu.tt
 lib/PageCamel/Web/Tools/Templates/pimenu_public.tt
 lib/PageCamel/Web/Tools/Templates/sitemap.tt
+lib/PageCamel/Web/Tools/Templates/sqljs.tt
 lib/PageCamel/Web/Tools/Templates/webdrive.tt
 lib/PageCamel/Web/Tools/Templates/webdrive_hashingworker.js.tt
 lib/PageCamel/Web/Tools/Templates/webdrive_uploadworker.js.tt
