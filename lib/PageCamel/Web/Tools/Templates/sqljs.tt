@@ -1,0 +1,76 @@
+<p>
+    <textarea id="sqlinput" rows="10" cols="120"></textarea><br/>
+    <button id="sqlbutton" value="Execute Statement">
+</p>
+
+<p>You have seen this page <span id="views">0</span> times.</p>
+<div>
+    You have been here on the following dates: <ol id="dates"></ol>
+</div>
+
+<script>
+    function toBinArray(str) {
+        var l = str.length,
+            arr = new Uint8Array(l);
+        for (var i = 0; i < l; i++) arr[i] = str.charCodeAt(i);
+        return arr;
+    }
+
+    function toBinString(arr) {
+        var uarr = new Uint8Array(arr);
+        var strings = [], chunksize = 0xffff;
+        // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
+        for (var i = 0; i * chunksize < uarr.length; i++) {
+            strings.push(String.fromCharCode.apply(null, uarr.subarray(i * chunksize, (i + 1) * chunksize)));
+        }
+        return strings.join('');
+    }
+
+    var pagecameldb;
+    function extraOnLoad() {
+
+        // Normally Sql.js tries to load sql-wasm.wasm relative to the page, not relative to the javascript
+        // doing the loading. So, we help it find the .wasm file with this function.
+        var config = {
+            locateFile: filename => `/static/sqljs/${filename}`
+        }
+        initSqlJs(config).then(function (SQL) {
+            var dbstr = window.localStorage.getItem("pagecamel.sqlite");
+            if (dbstr) {
+                var pagecameldb = new SQL.Database(toBinArray(dbstr));
+            } else {
+                var pagecameldb = new SQL.Database();
+                pagecameldb.run("CREATE TABLE views (date INTEGER PRIMARY KEY)");
+            }
+            pagecameldb.run("INSERT INTO views(date) VALUES (?)", [Date.now()]);
+
+            document.getElementById('views').textContent = pagecameldb.exec("SELECT COUNT(*) FROM views")[0].values[0][0];
+
+            var count = 0,
+                dates = document.getElementById("dates");
+
+            pagecameldb.each("SELECT date FROM views ORDER BY date ASC",
+                function callback(row) {
+                    var li = document.createElement("li");
+                    li.textContent = new Date(row.date);
+                    dates.appendChild(li);
+                }, function done() {
+                    var dbstr = toBinString(pagecameldb.export());
+                    window.localStorage.setItem("pagecamel.sqlite", dbstr);
+                }
+            );
+        });
+
+        $('#sqlbutton').on('click', function() {
+            var statement = $('#sqlinput').value();
+            console.log(statement);
+
+            var result = pagecameldb.exec(statement);
+            console.log(result);
+
+            var dbstr = toBinString(pagecameldb.export());
+            window.localStorage.setItem("pagecamel.sqlite", dbstr);
+        });
+    }
+
+</script>
