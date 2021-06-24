@@ -109,6 +109,7 @@ use PageCamel::Web::Tools::HostnameRedirect;
 use PageCamel::Web::Tools::KaffeeSim;
 use PageCamel::Web::Tools::PIMenu;
 use PageCamel::Web::Tools::RemoteLog;
+use PageCamel::Web::Tools::SQLJS;
 use PageCamel::Web::Tools::ShortURL;
 use PageCamel::Web::Tools::Sitemap;
 use PageCamel::Web::Tools::WebDrive;
@@ -328,7 +329,6 @@ sub new {
 
 sub processing_error_hook {
     my ($self, @errors) = @_;
-    $self->xdebuglog("Unhandled exception: \n", join("\n", @errors));
     print STDERR "Unhandled exception: \n", join("\n", @errors);
     print STDERR "Suiciding (SIGINT)  / PID $PID\n";
     return 0;
@@ -756,10 +756,6 @@ nextrequest:
     $ua->{extra_response_headers} = {};
     $ua->{frontend} = $frontendheader;
 
-    $self->xdebuglog("Dumper start");
-    $self->xdebuglog(Dumper($ua));
-    $self->xdebuglog("Dumper end");
-
     my $starttime = time();
 
     if($self->{need_srand_call}) {
@@ -769,8 +765,6 @@ nextrequest:
         #print STDERR "Restarted PRNG for $PID: testnumber = $testnumber\n";
         #die;
     }
-
-    $self->xdebuglog("Startup Cleanup");
 
     # Run cleanup functions in case the last cycle bailed out with croak
     foreach my $worker (@{$self->{cleanup}}) {
@@ -787,7 +781,6 @@ nextrequest:
     # if marked as "blocked", just send an HTTP status line and minimalistic body
     # to notify the client, then close the connection
     {
-        $self->xdebuglog("Firewall");
         foreach my $item (@{$self->{firewall}}) {
             my $module = $item->{Module};
             my $funcname = $item->{Function};
@@ -809,45 +802,37 @@ nextrequest:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    $self->xdebuglog("Reading request line");
     my $requestline = $self->readheader(10, $realsocket);
     if(!defined($requestline)) {
         #print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
         #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
-        $self->xdebuglog("Request line timeout");
 
         goto cleanup;
     }
 
-    $self->xdebuglog($requestline);
 
     if(!$self->parse_request_line($ua, $requestline)) {
-        $self->xdebuglog("Failed to parse request line");
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
     my $hcount = 0;
 
-    $self->xdebuglog("Read headers");
     while(1) {
         my $header = $self->readheader(5, $realsocket);
         if(!defined($header)) {
             print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
             $ua->{keepalive} = 0;
             #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
-            $self->xdebuglog("Header line timeout");
             goto cleanup;
         }
-        $self->xdebuglog($header);
         $hcount++;
         if($hcount > 500) {
             # too many headers, may be an attack
             #print STDERR "Too many headers!\n";
             $ua->{keepalive} = 0;
             webPrint($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
-            $self->xdebuglog("Too many headers");
             goto cleanup;
         }
         last if($header eq "");
@@ -855,25 +840,20 @@ nextrequest:
             #print STDERR "Error parsing header!\n";
             $ua->{keepalive} = 0;
             webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
-            $self->xdebuglog("Parsing error for header $header");
             goto cleanup;
         }
     }
 
     if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
-        $self->xdebuglog("Handling request body...");
         if(!$self->get_request_body($realsocket, $ua, 15, 1024)) {
             $ua->{keepalive} = 0;
             webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
-            $self->xdebuglog("Could not get request body");
             goto cleanup;
         }
-        $self->xdebuglog("Request body: ", $ua->{postdata});
 
         if(!$self->parse_post_data($ua)) {
             $ua->{keepalive} = 0;
             webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
-            $self->xdebuglog("Could not parse request body");
             goto cleanup;
         }
     }
@@ -886,11 +866,6 @@ nextrequest:
         }
     } elsif(defined($ua->{headers}->{Connection}) && $ua->{headers}->{Connection} =~ /keep\-alive/i) {
         $ua->{keepalive} = 1;
-    }
-    if($ua->{keepalive}) {
-        $self->xdebuglog("Keep-Alive IS set");
-    } else {
-        $self->xdebuglog("Keep-Alive is NOT set");
     }
 
     my $isdynamicpath = 0;
@@ -910,7 +885,6 @@ nextrequest:
     $ua->{url} = $webpath;
 
     if($self->{isDebugging} && $webpath eq '/crashme' && $ua->{remote_addr} eq '127.0.0.1') {
-        $self->xdebuglog("/crashme triggered");
         croak("/crashme triggered!");
     }
 
@@ -938,7 +912,6 @@ nextrequest:
     my $head_automagic = 0;
 
     # This starts logging with basic information before ANY filtering
-    $self->xdebuglog("Logstart");
     foreach my $filtermodule (@{$self->{logstart}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -951,7 +924,6 @@ nextrequest:
     }
 
     # See, if we can do any short circuit fast redirecting
-    $self->xdebuglog("Fastredirect");
     foreach my $filtermodule (@{$self->{fastredirect}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -988,7 +960,6 @@ nextrequest:
             $result{data} = "unsupported HTTP version";
             $result{type} = "text/plain";
             $result{pagedone} = 1;
-            $self->xdebuglog("Unsupported HTTP version");
         }
     }
 
@@ -998,7 +969,6 @@ nextrequest:
             $result{data} = "Host header missing";
             $result{type} = "text/plain";
             $result{pagedone} = 1;
-            $self->xdebuglog("Host header missing");
         }
     }
 
@@ -1009,7 +979,6 @@ nextrequest:
         $result{data} = "Unsafe method requested. Request refused.";
         $result{type} = "text/plain";
         $result{pagedone} = 1;
-        $self->xdebuglog("Unsafe method requested");
     }
 
     # Next, check if the method is supported at all (lowers CPU time used on certain hack attemps)
@@ -1019,11 +988,9 @@ nextrequest:
         delete $result{data};
         delete $result{type};
         $result{pagedone} = 1;
-        $self->xdebuglog("Method not implemented");
     }
 
     if(!$result{pagedone} && $uamethod eq "OPTIONS") {
-        $self->xdebuglog("OPTIONS");
         if($webpath eq "*") {
             @allowedmethods = @{$self->{supportedmethods}};
 
@@ -1088,7 +1055,6 @@ nextrequest:
     # (if any are registered). Custom method handlers have to handle that
     # by themselfs!!
     if(!$result{pagedone}) {
-        $self->xdebuglog("Custom methods");
         if(defined($self->{custom_methods}->{$uamethod})) {
             my $module = $self->{custom_methods}->{$uamethod}->{Module};
             my $funcname = $self->{custom_methods}->{$uamethod}->{Function};
@@ -1109,7 +1075,6 @@ nextrequest:
 
     # Now check if we find the URL and see if it supports the given method
     if(!$result{pagedone}) {
-        $self->xdebuglog("Webpaths");
         foreach my $dpath (keys %{$self->{webpaths}}) {
             if($webpath =~ /^$dpath/) {
                 my $pathmodule = $self->{webpaths}->{$dpath};
@@ -1135,7 +1100,6 @@ nextrequest:
     }
 
     if(!$result{pagedone}) {
-        $self->xdebuglog("No target url - do method guessing");
         # No target url found to check the METHOD against? Use some default handling, so
         # filter-modules still work:
         # Only allow GET and POST, as well as use the head_automagic.
@@ -1151,7 +1115,6 @@ nextrequest:
 
         # Method not ok? Delete the content and we're done.
         if(!$methodok) {
-            $self->xdebuglog("Method NOT good!");
             delete $result{data};
             delete $result{type};
             $result{pagedone} = 1;
@@ -1161,7 +1124,6 @@ nextrequest:
     # Check if we are handling a Cross Origin Resource Sharing request. If so,
     # check if the given path allows us to handle a CORS request
     if(!$result{pagedone} && defined($ua->{headers}->{Origin})) {
-        $self->xdebuglog("Handle CORS request");
         my $corsconf = $self->get_cors_config($ua->{url}, $ua->{headers}->{Origin});
         if(!defined($corsconf) || !defined($corsconf->{Methods})) {
             # No CORS handling defined, handle the "classic way", e.g. do nothing special
@@ -1185,10 +1147,8 @@ nextrequest:
                 delete $result{data};
                 delete $result{type};
                 $result{pagedone} = 1;
-                $self->xdebuglog('Cross Origin Resource Sharing with forbidden method');
             } else {
                 $ua->{extra_response_headers}->{'Access-Control-Allow-Origin'} = $ua->{headers}->{Origin};
-                $self->xdebuglog("CORS request accepted");
             }
         }
     }
@@ -1197,7 +1157,6 @@ nextrequest:
     # This works on "prefilters" checks, path
     # re-routing ("/" -> "302 /index") and similar.
     # This is the part BEFORE auth checks
-    $self->xdebuglog("Prefilter");
     if(!$result{pagedone}) {
         foreach my $filtermodule (@{$self->{prefilter}}) {
             my $module = $filtermodule->{Module};
@@ -1215,7 +1174,6 @@ nextrequest:
     $webpath = $ua->{url};
 
     # Run all authentification checks
-    $self->xdebuglog("Authcheck");
     if(!$result{pagedone}) {
         foreach my $filtermodule (@{$self->{authcheck}}) {
             my $module = $filtermodule->{Module};
@@ -1232,7 +1190,6 @@ nextrequest:
     # This works like the "prefilters" checks, but
     # AFTER authentication. This is for stuff where we need to
     # know the username, selected theme or something similar
-    $self->xdebuglog("Postauthfilter");
     if(!$result{pagedone}) {
         foreach my $filtermodule (@{$self->{postauthfilter}}) {
             my $module = $filtermodule->{Module};
@@ -1247,7 +1204,6 @@ nextrequest:
     }
 
     # Run the override page handling callbacks
-    $self->xdebuglog("Overridewebpaths");
     if(!$result{pagedone}) {
         foreach my $dpath (keys %{$self->{overridewebpaths}}) {
             if($webpath =~ /^$dpath/) {
@@ -1262,7 +1218,6 @@ nextrequest:
     }
 
     # Run the normal page handling callbacks
-    $self->xdebuglog("Normal page handling");
     if(!$result{pagedone}) {
         foreach my $dpath (keys %{$self->{webpaths}}) {
             if($webpath =~ /^$dpath/) {
@@ -1277,7 +1232,6 @@ nextrequest:
     }
 
     # run some postfilter callbacks, except for custom and internal methods
-    $self->xdebuglog("Postfilter");
     if(!defined($self->{custom_methods}->{$uamethod}) && !contains($uamethod, $self->{internal_methods})) {
         foreach my $filtermodule (@{$self->{postfilter}}) {
             my $module = $filtermodule->{Module};
@@ -1287,7 +1241,6 @@ nextrequest:
     }
 
     # run some logging callbacks
-    $self->xdebuglog("Logend");
     foreach my $filtermodule (@{$self->{logend}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -1316,7 +1269,6 @@ nextrequest:
         }
     }
 
-    $self->xdebuglog("Reply header");
     if(!webPrint($realsocket, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
@@ -1446,13 +1398,11 @@ nextrequest:
     my $broken_header_key = 0;
     foreach my $header_key (keys %header) {
         if($header_key !~ /^\-/) {
-            $self->xdebuglog("Broken Header key $header_key");
             carp("Broken Header key $header_key");
             $broken_header_key = 1;
         }
     }
     if($broken_header_key) {
-        $self->xdebuglog("Broken Header keys detected");
         croak("Broken header keys detected!");
     }
 
@@ -1525,22 +1475,17 @@ nextrequest:
         $ua->{keepalive} = 0;
         goto cleanup;
     }
-    $self->xdebuglog("Header finished");
 
     if(defined($result{data})) {
-        $self->xdebuglog("Send Body");
         # Some results do not have a body
         if(!webPrint($realsocket, $result{data})) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
-    } else {
-        $self->xdebuglog("No Body to send");
     }   
 
     # handle protocol upgrades like WebSockets
     if($result{status} eq "101") {
-        $self->xdebuglog("Protocol upgrade");
         # run some logging callbacks
         foreach my $filtermodule (@{$self->{logwebsocket}}) {
             my $module = $filtermodule->{Module};
@@ -1577,10 +1522,7 @@ nextrequest:
                 last;
             }
         }
-        $self->xdebuglog("Protocol upgrade done");
     } elsif(defined($result{dataGenerator})) {
-        $self->xdebuglog("Data generator");
-
         # run some logging callbacks
         foreach my $filtermodule (@{$self->{logrequestfinished}}) {
             my $module = $filtermodule->{Module};
@@ -1603,11 +1545,9 @@ nextrequest:
             last if($dpart{done});
         }
         print STDERR getISODate() . "     Send $totallength bytes in $partcount datagenerator parts.\n";
-        $self->xdebuglog("Data generator done");
     }
     
     # run some logging callbacks
-    $self->xdebuglog("Logrequestfinished");
     foreach my $filtermodule (@{$self->{logrequestfinished}}) {
         my $module = $filtermodule->{Module};
         my $funcname = $filtermodule->{Function};
@@ -1649,7 +1589,6 @@ nextrequest:
 
 cleanup:
     # Run cleanup functions
-    $self->xdebuglog("Final Cleanup");
     foreach my $worker (@{$self->{cleanup}}) {
         my $module = $worker->{Module};
         my $funcname = $worker->{Function} ;
@@ -1657,7 +1596,6 @@ cleanup:
         #$workCount += $module->$funcname();
         $module->$funcname();
     }
-    $self->xdebuglog("Final Cleanup done");
 
     if($ua->{keepalive}) {
         #print STDERR "  keepalive, restarting protocol handler\n";
@@ -2150,20 +2088,6 @@ sub get_cors_config {
     }
 
     # No matching origin defined
-    return;
-}
-
-sub xdebuglog {
-    my ($self, @args) = @_;
-
-    return unless(0 && $self->{isDebugging});
-
-    my $debugline = join(' ', @args) . "\n";
-
-    my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
-    open(my $debugfh, '>>', $ofhname) or croak($ERRNO);
-    print $debugfh getISODate(), ' ', $debugline;
-    close $debugfh;
     return;
 }
 

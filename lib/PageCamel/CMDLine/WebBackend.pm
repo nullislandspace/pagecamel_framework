@@ -188,13 +188,8 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
 
     my $ok = 0;
 
-    $self->xdebuglogstart();
-    $self->xdebuglog("Doing some network stuff in child PID $PID");
-
     my $header = $self->readFrontendheader($client);
-    $self->xdebuglog(Dumper($header));
 
-    $self->xdebuglog("child_init_hook()");
     $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         $self->{webserver}->child_init_hook();
@@ -214,10 +209,7 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
         $self->endprogram($header, "!!!!! FAILED allow_deny_hook $EVAL_ERROR");
     }
 
-    if(!$allowclient) {
-        $self->xdebuglog("Access denied by allow_deny_hook");
-    } else {
-        $self->xdebuglog("process_request()");
+    if($allowclient) {
         $ok = 0;
         eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             $self->{webserver}->process_request($client, $header);
@@ -230,7 +222,6 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
     
     $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-        $self->xdebuglog("Running post_process_request_hook()");
         $self->{webserver}->post_process_request_hook();
         $ok = 1;
     };
@@ -241,7 +232,6 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
     
     $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-        $self->xdebuglog("Running child_finish_hook()");
         $self->{webserver}->child_finish_hook();
         $ok = 1;
     };
@@ -252,7 +242,6 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
 
     $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-        $self->xdebuglog("Stopping process...");
         $client->close();
         kill 'USR1', $header->{pid}; # Notify frontend that we are done
 
@@ -273,7 +262,6 @@ sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
     kill 'USR1', $header->{pid}; # Notify frontend that we are done
     #exit(0);
 
-    $self->xdebuglog("exit(0)");
     sleep(1);
     while(1) {
         kill 9, $PID;
@@ -317,32 +305,6 @@ sub readFrontendheader {
     );
 
     return \%header;
-}
-
-sub xdebuglogstart {
-    my ($self) = @_;
-
-    return unless($self->{isDebugging});
-
-    my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
-    open(my $debugfh, '>', $ofhname) or croak($ERRNO);
-    print $debugfh getISODate(), " Start new log\n";
-    close $debugfh;
-    return;
-}
-
-sub xdebuglog {
-    my ($self, @args) = @_;
-
-    return unless($self->{isDebugging});
-
-    my $debugline = join(' ', @args) . "\n";
-
-    my $ofhname = '/home/cavac/temp/webbackend_pid_' . $PID;
-    open(my $debugfh, '>>', $ofhname) or croak($ERRNO);
-    print $debugfh getISODate(), ' ', $debugline;
-    close $debugfh;
-    return;
 }
 
 1;
