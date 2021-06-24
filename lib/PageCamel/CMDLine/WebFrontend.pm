@@ -295,6 +295,7 @@ sub handleClient {
                                 Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert},
                                                                     $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
                                         or croak("Can't set cert and key file");
+                                #print STDERR "Cert: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert}, " Key: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey}, "\n";
                                 $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
                             }
                             Net::SSLeay::set_SSL_CTX($ssl, $newctx);
