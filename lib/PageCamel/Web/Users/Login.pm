@@ -174,6 +174,8 @@ sub get_forcelogout {
 sub get_login {
     my ($self, $ua) = @_;
 
+    print STDERR "LOGIN\n";
+
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{login}->{pagetitle},
@@ -381,7 +383,20 @@ sub get_login {
         $webdata{tempclientid} = PageCamel::Helpers::Passwords::gen_textsalt();
     }
 
-    my $template = $self->{server}->{modules}->{templates}->get("users/login", 1, %webdata);
+    my $template;
+    my $templateok = 0;
+
+    print Dumper(\%webdata);
+
+    eval {
+        $template = $self->{server}->{modules}->{templates}->get('users/login', 1, %webdata);
+        $templateok = 1;
+    };
+    if(!$templateok) {
+        print STDERR "EVAL FAIL: ", $EVAL_ERROR, "\n";
+    }
+
+
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "text/html",
