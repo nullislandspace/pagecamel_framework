@@ -386,8 +386,6 @@ sub get_login {
     my $template;
     my $templateok = 0;
 
-    print Dumper(\%webdata);
-
     eval {
         $template = $self->{server}->{modules}->{templates}->get('users/login', 1, %webdata);
         $templateok = 1;
