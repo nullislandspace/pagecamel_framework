@@ -375,7 +375,9 @@
             function SQLtoBinArray(str) {
                 var l = str.length,
                     arr = new Uint8Array(l);
-                for (var i = 0; i < l; i++) arr[i] = str.charCodeAt(i);
+                for (var i = 0; i < l; i++) {
+                    arr[i] = str.charCodeAt(i);
+                }
                 return arr;
             }
 
@@ -393,13 +395,15 @@
 
             function pagecamelDBInit() {
 
-                var baseUrl = '/static/sqljs/'
+                var baseUrl = '/static/sqljs/';
 
                 // Normally Sql.js tries to load sql-wasm.wasm relative to the page, not relative to the javascript
                 // doing the loading. So, we help it find the .wasm file with this function.
+                var fname = baseUrl + 'sql-wasm.js';
                 var config = {
-                    locateFile: filename => `${baseUrl}/${filename}`
-                }
+                    //locateFile: filename => `${baseUrl}/${filename}`
+                    locateFile: filename => fname
+                };
                 initSqlJs(config).then(function (SQL) {
                     var dbstr = window.localStorage.getItem("pagecamel.sqlite");
                     if (dbstr) {
