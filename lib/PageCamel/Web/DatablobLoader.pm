@@ -20,12 +20,21 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DataBlobs;
 
+use PageCamel::Helpers::FileSlurp qw(slurpBinFile writeBinFile);
+use File::Temp;
+
 sub new {
     my ($proto, %config) = @_;
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
+
+    if(defined($self->{convert}) && defined($self->{convert}->{source}) && defined($self->{convert}->{destination}) && defined($self->{convert}->{command})) {
+        $self->{useconvert} = 1;
+    } else {
+        $self->{useconvert} = 0;
+    }
 
     return $self;
 }
@@ -75,6 +84,31 @@ sub get_blob {
     $blob->blobRead(\$blobdata);
     $blob->blobClose();
     $dbh->commit;
+
+    if($self->{useconvert}) {
+        print STDERR "Converting datablob from ", $self->{convert}->{source}, " to ", $self->{convert}->{destination}, "\n";
+        my $dir = File::Temp->newdir();
+        my $dirname = $dir->dirname;
+
+        my $sourcefname = $dirname . '/source.' . $self->{convert}->{source};
+        my $destinationfname = $dirname . '/dest.' . $self->{convert}->{destination};
+
+        my $cmd = '' . $self->{convert}->{command};
+        $cmd =~ s/SOURCE/$sourcefname/g;
+        $cmd =~ s/DESTINATION/$destinationfname/g;
+
+        print STDERR "Writing datablob to tempfile $sourcefname\n";
+        writeBinFile($sourcefname, $blobdata);
+
+        print STDERR "Running command $cmd\n";
+        my @state = `$cmd`;
+
+        print STDERR "Command returned: ", join("\n", @state), "\n";
+
+        print STDERR "Slurping tempfile $destinationfname\n";
+        $blobdata = slurpBinFile($destinationfname);
+    }
+
 
     return (status  =>  200,
             type    => $self->{filetype},
