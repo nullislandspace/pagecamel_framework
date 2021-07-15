@@ -168,6 +168,8 @@ sub load_dir {
                 $mtype = "text/plain";
             } elsif($type =~ /^css$/i) {
                 $mtype = "text/css";
+            } elsif($type =~ /^wasm$/i) {
+                $mtype = "application/wasm";
             } elsif($type =~ /js/i) {
                 $mtype = "application/javascript";
             } elsif($type =~ /ico/i) {
@@ -178,9 +180,6 @@ sub load_dir {
                 $mtype = "image/png";
             } elsif($type =~ /(jpg|jpeg|jpe)/i) {
                 $mtype = "image/jpeg";
-            } elsif($type =~ /wasm/i) {
-                print STDERR "***** WASM *****\n";
-                $mtype = "application/wasm";
             }
         } else {
             # File without extension

@@ -399,7 +399,7 @@
 
                 // Normally Sql.js tries to load sql-wasm.wasm relative to the page, not relative to the javascript
                 // doing the loading. So, we help it find the .wasm file with this function.
-                var fname = baseUrl + 'sql-wasm.js';
+                var fname = baseUrl + 'sql-wasm.wasm';
                 var config = {
                     //locateFile: filename => `${baseUrl}/${filename}`
                     locateFile: filename => fname
