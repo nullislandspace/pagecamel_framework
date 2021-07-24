@@ -25,6 +25,7 @@
 
     function executeSQL() {
         var statement = $('#sqlinput').val();
+        statement = 'PRAGMA foreign_keys = ON;' + statement;
         console.log(statement);
 
         noerror();
