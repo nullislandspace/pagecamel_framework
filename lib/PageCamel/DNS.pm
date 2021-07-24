@@ -152,6 +152,11 @@ sub child_init_hook {
     $dbh->do("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED");
     $dbh->commit;
 
+    $self->{ignoreselsth} = $dbh->prepare_cached('SELECT * FROM nameserver_ignorerequests
+                                      WHERE host_fqdn = ?
+                                      LIMIT 1')
+            or croak($dbh->errstr);
+
     $self->{nameselsth} = $dbh->prepare_cached('SELECT * FROM nameserver_domain_entry
                                       WHERE host_fqdn = ?
                                       AND record_type = ?
@@ -344,6 +349,28 @@ sub isownip {
     return $ismyown;
 }
 
+sub ignorerequest {
+    my ($self, $hostname) = @_;
+
+    my $found = 0;
+
+    if(!$self->{ignoreselsth}->execute($hostname)) {
+        $self->{dbh}->rollback;
+        return 0;
+    }
+    while((my $line = $self->{ignoreselsth}->fetchrow_hashref)) {
+        $found = 1;
+    }
+    $self->{ignoreselsth}->finish;
+    $self->{dbh}->commit;
+
+    if($found) {
+        $self->debuglog("Ignore request for ", $hostname);
+    }
+
+    return $found;
+}
+
 sub debuglog {
     my ($self, @loglineparts) = @_;
     my $logline;
@@ -417,6 +444,10 @@ sub handleUDP {
 
     # Count request
     $self->countRequest();
+
+    if($self->ignorerequest($question->qname)) {
+        return;
+    }
 
     # mark the answer as authoritive (by setting the 'aa' flag
     my $extra = { aa => $self->{config}->{authoritive} };
@@ -555,6 +586,10 @@ sub handleTCP {
 
         # Count request
         $self->countRequest();
+
+        if($self->ignorerequest($question->qname)) {
+            return;
+        }
 
         # mark the answer as authoritive (by setting the 'aa' flag
         my $extra = { aa => $self->{config}->{authoritive} };
