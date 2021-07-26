@@ -263,6 +263,10 @@
         startRecording();
     }
 
+    function websocketmaskOnSocketClose() {
+        isrecording = 0;
+    }
+
 
     function handleMessage(msg) {        
         if(msg.type === "OUTPUT") {

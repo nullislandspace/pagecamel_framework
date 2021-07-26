@@ -40,6 +40,14 @@ sub new {
         $self->{sleeptime} = 0.01;
     }
 
+    if(!defined($self->{reconnect})) {
+        $self->{reconnect} = 0;
+    }
+
+    if(!defined($self->{blockui})) {
+        $self->{blockui} = 1;
+    }
+
     return $self;
 }
 
@@ -249,6 +257,8 @@ sub get {
         webpath         =>  $self->{webpath},
         Settings        =>  \%settings,
         WSURL           =>  $wsurl,
+        Reconnect       =>  $self->{reconnect},
+        BlockUI         =>  $self->{blockui},
         showads => $self->{showads},
     );
     
