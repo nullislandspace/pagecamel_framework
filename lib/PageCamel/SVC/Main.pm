@@ -440,18 +440,6 @@ sub shutdownsvc {
     return;
 }
 
-#sub DESTROY {
-#    my ($self) = @_;
-#
-#    # This might error out during DESTROY, so catch any errors
-#    eval {
-#        if(!$self->{shutdown_complete}) {
-#            $self->shutdownsvc();
-#        }
-#    };
-#    return;
-#}
-
 sub disable_service {
     my ($self, $svcname) = @_;
 

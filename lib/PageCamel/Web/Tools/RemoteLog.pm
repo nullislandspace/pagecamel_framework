@@ -63,20 +63,6 @@ sub log { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
 
 }
 
-#sub DESTROY {
-#    my ($self) = @_;
-#
-#    # Socket might already be DESTROYed, so catch any errors
-#    eval {
-#        if(defined($self->{socket})) {
-#            $self->{socket}->close();
-#            delete $self->{socket};
-#        }
-#    };
-#
-#    return;
-#}
-
 1;
 __END__
 
@@ -103,11 +89,6 @@ PageCamel::Web::Tools::RemoteLog -
 
 
 =head2 log
-
-
-
-=head2 DESTROY
-
 
 
 =head1 IMPORTANT NOTE

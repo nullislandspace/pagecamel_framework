@@ -199,18 +199,6 @@ sub quit {
     return;
 }
 
-#sub DESTROY {
-#    my ($self) = @_;
-#
-#    # Try to run quit(), might error out though.
-#    eval {
-#        $self->quit;
-#    };
-#
-#    return;
-#}
-
-
 1;
 __END__
 
@@ -246,10 +234,6 @@ Copy/move files from local to remote.
 =head2 quit
 
 Disconnect from remote server.
-
-=head2 DESTROY
-
-Make sure we are (cleanly) disconnected when destrying this instance.
 
 =head1 IMPORTANT NOTE
 

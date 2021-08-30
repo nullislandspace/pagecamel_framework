@@ -129,16 +129,6 @@ sub blobClose {
 
 }
 
-#sub DESTROY {
-#    my ($self) = @_;
-#
-#    # Try to close BLOB during DESTROY, might error out though
-#    eval {
-#        $self->blobClose();
-#    };
-#    return;
-#}
-
 sub blobID {
     my ($self) = @_;
 
@@ -382,10 +372,6 @@ Open the postgresql blob.
 =head2 blobClose
 
 Close the postgresql blob.
-
-=head2 DESTROY
-
-Make sure we close the blob proberly on exit.
 
 =head2 blobID
 
