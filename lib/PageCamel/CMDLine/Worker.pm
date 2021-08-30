@@ -20,6 +20,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::ConfigLoader;
 use PageCamel::Helpers::Logo;
 use Time::HiRes qw(sleep time);
+use POSIX;
 
 sub new {
     my ($class, $isDebugging, $configfile) = @_;
@@ -36,48 +37,58 @@ sub new {
 
 sub init {
     my ($self) = @_;
+
+    my $initok = 0;
+
+    eval {
     
-    my $worker = PageCamel::Worker->new();
-    
-    print "Loading config file ", $self->{configfile}, "\n";
-    
-    my $config = LoadConfig($self->{configfile},
-                        ForceArray => [ 'module', 'directory', 'reciever', 'users', 'sourceip', 'item', 'argument', 'crop' ],);
-    
-    
-    my $APPNAME = $config->{appname};
-    PageCamelLogo($APPNAME, $VERSION);
-    print "Changing application name to '$APPNAME'\n\n";
-    my $ps_appname = lc($APPNAME);
-    $ps_appname =~ s/[^a-z0-9]+/_/gio;
-    $PROGRAM_NAME = $ps_appname;
-    
-    # set required values to default if they don't exist
-    if(!defined($config->{mincycletime})) {
-        $config->{mincycletime} = 10;
-    }
-    
-    
-    my @modlist = @{$config->{module}};
-    
-    $worker->startconfig($self->{isDebugging});
-    
-    
-    foreach my $module (@modlist) {
-        # Notify all modules if we are debugging (for example for "no compression=faster startup")
-        $module->{options}->{isDebugging} = $self->{isDebugging};
-        $module->{options}->{APPNAME} = $APPNAME;
-        $module->{options}->{PSAPPNAME} = $ps_appname;
+        my $worker = PageCamel::Worker->new();
         
-        $worker->configure($module->{modname}, $module->{pm}, %{$module->{options}});
+        print "Loading config file ", $self->{configfile}, "\n";
+        
+        my $config = LoadConfig($self->{configfile},
+                            ForceArray => [ 'module', 'directory', 'reciever', 'users', 'sourceip', 'item', 'argument', 'crop' ],);
+        
+        
+        my $APPNAME = $config->{appname};
+        PageCamelLogo($APPNAME, $VERSION);
+        print "Changing application name to '$APPNAME'\n\n";
+        my $ps_appname = lc($APPNAME);
+        $ps_appname =~ s/[^a-z0-9]+/_/gio;
+        $PROGRAM_NAME = $ps_appname;
+        
+        # set required values to default if they don't exist
+        if(!defined($config->{mincycletime})) {
+            $config->{mincycletime} = 10;
+        }
+        
+        
+        my @modlist = @{$config->{module}};
+        
+        $worker->startconfig($self->{isDebugging});
+        
+        
+        foreach my $module (@modlist) {
+            # Notify all modules if we are debugging (for example for "no compression=faster startup")
+            $module->{options}->{isDebugging} = $self->{isDebugging};
+            $module->{options}->{APPNAME} = $APPNAME;
+            $module->{options}->{PSAPPNAME} = $ps_appname;
+            
+            $worker->configure($module->{modname}, $module->{pm}, %{$module->{options}});
+        }
+        
+        $worker->endconfig();
+        
+        $self->{worker} = $worker;
+        $self->{config} = $config;
+        $self->{ps_appname} = $ps_appname;
+
+        $initok = 1;
+    };
+
+    if(!$initok) {
+        suicide('INIT FAILED', $EVAL_ERROR);
     }
-    
-    $worker->endconfig();
-    
-    $self->{worker} = $worker;
-    $self->{config} = $config;
-    $self->{ps_appname} = $ps_appname;
-    
     
     return;
 }
@@ -85,26 +96,50 @@ sub init {
 sub run {
     my ($self) = @_;
     
-    # Let STDOUT/STDERR settle down first
-    sleep(0.1);
-    
-    my $nextCycleTime = $self->{config}->{mincycletime} + time;
-    while(1) {
-        my $workCount = $self->{worker}->run();
-    
-        my $now = time;
-        if($now < $nextCycleTime) {
-            my $sleeptime = $nextCycleTime - $now;
-            #print "** Fast cycle ($sleeptime sec to spare), sleeping **\n";
-            sleep($sleeptime);
-            $nextCycleTime += $self->{config}->{mincycletime};
-            #print "** Wake-up call **\n";
-        } else {
-            #print "** Slow cycle **\n";
-            $nextCycleTime = $self->{config}->{mincycletime} + $now;
+    my $runok = 0;
+
+    eval {
+        # Let STDOUT/STDERR settle down first
+        sleep(0.1);
+        
+        my $nextCycleTime = $self->{config}->{mincycletime} + time;
+        while(1) {
+            my $workCount = $self->{worker}->run();
+        
+            my $now = time;
+            if($now < $nextCycleTime) {
+                my $sleeptime = $nextCycleTime - $now;
+                #print "** Fast cycle ($sleeptime sec to spare), sleeping **\n";
+                sleep($sleeptime);
+                $nextCycleTime += $self->{config}->{mincycletime};
+                #print "** Wake-up call **\n";
+            } else {
+                #print "** Slow cycle **\n";
+                $nextCycleTime = $self->{config}->{mincycletime} + $now;
+            }
         }
+
+        $runok = 1;
+    };
+
+    if(!$runok) {
+        suicide('RUN FAILED', $EVAL_ERROR);
     }
     
+    return;
+}
+
+# Suicide kills (-9) it's own program.
+# *** This is NOT an OO function ***
+sub suicide {
+    my ($errmsg, $evalerr) = @_;
+    print STDERR $errmsg, "\n";
+    print STDERR $evalerr, "\n";
+    while(1) {
+        sleep(4);
+        kill 9, $PID;
+    }
+
     return;
 }
 
