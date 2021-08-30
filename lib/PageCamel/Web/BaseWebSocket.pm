@@ -48,6 +48,10 @@ sub new {
         $self->{blockui} = 1;
     }
 
+    if(!defined($self->{enabledb})) {
+        $self->{enabledb} = 0;
+    }
+
     return $self;
 }
 
@@ -259,6 +263,7 @@ sub get {
         WSURL           =>  $wsurl,
         Reconnect       =>  $self->{reconnect},
         BlockUI         =>  $self->{blockui},
+        EnableDB        =>  $self->{enabledb},
         showads => $self->{showads},
     );
     

@@ -3,7 +3,8 @@
 
 [% IF isDebugging == '1' %]
     <p>
-        <input type="button" value="Close Socket" onclick="closeSocket(); return false;">
+        <input type="button" value="Close Socket" onclick="closeSocket(); return false;"><br/>
+        <input type="checkbox" id="networkerrorsimulation" realvalue="1" realinactivevalue="0" callback="setoffline"/>Simulate reconnect failure (stay offline)
     </p>
 [% END %]
 
@@ -26,6 +27,8 @@
     var wsconnected = 0;
     var wsfailed = 0;
     var lastPing = -1;
+
+    var stayoffline = 0;
     
     function extraOnLoad() {
         
@@ -38,10 +41,24 @@
             
     }
 
+    function setoffline(newstate) {
+        if(newstate == "1" ) {
+            stayoffline = 1;
+        } else {
+            stayoffline = 0;
+        }
+        console.log("Stay offline set to " + stayoffline);
+    }
 
     function openWebsocket() {
         if(ttvars.blockui == "1") {
             $('#dataarea').block({ message: ttvars.trquote.Wsconnecting });
+        }
+
+        if(stayoffline == 1) {
+            console.log("Staying offline, trying again in " + ttvars.client_connect_timeout + " seconds");
+            setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
+            return;
         }
     
         ws = new WebSocket(ttvars.websocketurl, 'base64');
