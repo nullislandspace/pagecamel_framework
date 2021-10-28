@@ -80,9 +80,19 @@ sub printEndDocument {
     } else {
         my $cmd = $self->{printcommand};
         if(defined($printername) && $printername ne '') {
+            print "Got printer name: $printername\n";
             $cmd .= ' -P ' . $printername;
+        } else {
+            print "No printer name given!!!!!!\n";
+            if(defined($self->{defaultprinter})) {
+                print "Using default printer ", $self->{defaultprinter}, "\n";
+                $cmd .= ' -P ' . $self->{defaultprinter};
+            } else {
+                print "...and no default printer set!!!!\n";
+            }
         }
         $cmd .= ' ' . $ofname;
+        print "Running print command: $cmd\n";
         `$cmd`;
     }
     

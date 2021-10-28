@@ -18,7 +18,7 @@ use PageCamel::Helpers::UTF;
 
 use base qw(Exporter);
 use PageCamel::Helpers::Padding qw(doSpacePad);
-our @EXPORT_OK = qw(tabsToTable normalizeString elemNameQuote stripString humanFilesize windowsStringsQuote splitStringWithQuotes webSafeString encodeVNCString cutStrings);
+our @EXPORT_OK = qw(tabsToTable normalizeString elemNameQuote stripString humanFilesize windowsStringsQuote splitStringWithQuotes webSafeString encodeVNCString cutStrings lineWrap);
 
 
 sub tabsToTable {
@@ -228,6 +228,50 @@ sub cutStrings {
     return @outlines;
 }
 
+# Line-wrap a string
+sub lineWrap {
+    my ($val, $linelength) = @_;
+
+    my @lines;
+    my $line = '';
+
+    my @words = split/\s+/, $val;
+
+    while(@words) {
+        my $word = shift @words;
+
+        # Need to shift word to the next line?
+        if((length($line) + length($word) + 1) > $linelength) {
+            if($line ne '') {
+                push @lines, $line;
+                $line = '';
+            }
+        }
+
+        # Add space?
+        if($line ne '') {
+            $line .= ' ';
+        }
+
+        # If the word itself is too long for a single line, "unpack" it into line-length chunks, else just
+        # add it to the current line
+        if(length($word) > $linelength) {
+            my @parts = unpack("(A" . $linelength . ")*", $word);
+            push @lines, @parts;
+        } else {
+            $line .= $word;
+        }
+    }
+
+    # Push the last (non-empty) line
+    if($line ne '') {
+        push @lines, $line;
+    }
+
+    return @lines;
+}
+
+
 1;
 __END__
 
@@ -282,6 +326,10 @@ Used in noVNC session recording.  Quote binary strings in a way to make them usa
 =head2 cutStrings
 
 'cut -c' compatible implementation. Warning: Same as 'cut' is 1-indexed instead of 0-indexed
+
+=head2 lineWrap
+
+Wrap a string into multiple lines with a maximum length
 
 =head1 IMPORTANT NOTE
 
