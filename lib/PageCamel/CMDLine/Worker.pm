@@ -129,7 +129,7 @@ sub run {
     return;
 }
 
-# Suicide kills (-9) it's own program.
+# suicide() kills (-9) it's own program.
 # *** This is NOT an OO function ***
 sub suicide {
     my ($errmsg, $evalerr) = @_;
