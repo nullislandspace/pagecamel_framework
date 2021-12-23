@@ -23,7 +23,11 @@ use Readonly;
 use Lingua::EN::Numbers::Ordinate;
 
 use base qw(Exporter);
-our @EXPORT = qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash timeToSeconds eternalseptemberize secondsToInterval); ## no critic (Modules::ProhibitAutomaticExportation)
+our @EXPORT = qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime
+                 getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute 
+                 getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime
+                 getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash 
+                 timeToSeconds eternalseptemberize secondsToInterval); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
 Readonly my $YEARBASEOFFSET => 1900;
