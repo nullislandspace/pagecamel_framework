@@ -19,19 +19,44 @@ use PageCamel::Helpers::UTF;
 use base qw(Exporter);
 our @EXPORT= qw(LoadConfig); ## no critic (Modules::ProhibitAutomaticExportation)
 use XML::Simple;
-
+use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 
 sub LoadConfig {
     my($fname, %options) = @_;
 
-    if(!defined($fname) || $fname eq "") {
-        croak("Can't load config file: No filename given!");
+    my @paths;
+    if(defined($ENV{'PC_CONFIG_PATHS'})) {
+        push @paths, split/\:/, $ENV{'PC_CONFIG_PATHS'};
+        print "Found config paths:\n", Dumper(\@paths), " \n";
+    } else {
+        croak("PC_CONFIG_PATHS undefined");
+    }
+
+    my $filedata;
+    foreach my $path (@paths) {
+        my $fullfname = $path . '/' . $fname;
+        next unless (-f $fullfname);
+
+        $filedata = slurpBinFile($fullfname);
+
+        foreach my $varname (qw[PC_PROJECTNAME_UC PC_PROJECTNAME_LC PC_BASEDIR PC_PERLBINARY]) {
+            if(!defined($ENV{$varname})) {
+                croak($varname . " undefined");
+            }
+            my $newval = $ENV{$varname};
+            $filedata =~ s/$varname/$newval/g;
+        }
+
+        last;
+    }
+
+    if(!defined($filedata) || $filedata eq "") {
+        croak("Can't load config file: Not found or empty!");
     }
 
     print "------- Parsing config file $fname ------\n";
 
-    croak("$fname not found") unless(-f $fname);
-    my $config = XMLin($fname, %options);
+    my $config = XMLin($filedata, %options);
 
     my $newconfig;
 
