@@ -19,8 +19,6 @@
         $('#sqlbutton').on('click', executeSQL);
 
         document.onkeydown = captureF5key;
-        //document.onkeypress = captureF5key;
-        //document.onkeyup = captureF5key;
     }
 
     function executeSQL() {
