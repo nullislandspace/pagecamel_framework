@@ -31,8 +31,6 @@ Readonly my $CFACTOR => 2048.0 / 44_100.0; # Original timing in browser (most li
 sub new {
     my ($class, $isDebugging, $configfile) = @_;
     
-    croak("Config file $configfile not found!") unless(-f $configfile);
-    
     my $self = bless {}, $class;
 
     $self->{isDebugging} = $isDebugging;

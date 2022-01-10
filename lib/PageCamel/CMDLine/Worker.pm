@@ -29,8 +29,6 @@ sub new {
     $self->{isDebugging} = $isDebugging;
     $self->{configfile} = $configfile;
     
-    croak("Config file $configfile not found!") unless(-f $configfile);
-    
     return $self;
 }
 

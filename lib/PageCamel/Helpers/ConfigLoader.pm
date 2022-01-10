@@ -39,7 +39,7 @@ sub LoadConfig {
 
         $filedata = slurpBinFile($fullfname);
 
-        foreach my $varname (qw[PC_PROJECTNAME_UC PC_PROJECTNAME_LC PC_BASEDIR PC_PERLBINARY]) {
+        foreach my $varname (qw[PC_PROJECTNAME_UC PC_PROJECTNAME_LC PC_PERLBINARY]) {
             if(!defined($ENV{$varname})) {
                 croak($varname . " undefined");
             }

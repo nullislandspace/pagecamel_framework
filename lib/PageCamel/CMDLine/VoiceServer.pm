@@ -32,8 +32,6 @@ Readonly my $BIASFACTOR => $BUFFERTARGET / 0.16;
 sub new {
     my ($class, $isDebugging, $configfile) = @_;
     
-    croak("Config file $configfile not found!") unless(-f $configfile);
-    
     my $self = bless {}, $class;
 
     $self->{isDebugging} = $isDebugging;

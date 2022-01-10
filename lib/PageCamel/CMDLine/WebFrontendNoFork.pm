@@ -101,8 +101,6 @@ sub new {
     $self->{isDebugging} = $isDebugging;
     $self->{configfile} = $configfile;
     
-    croak("Config file $configfile not found!") unless(-f $configfile);
-
     if(0 && $isDebugging) {
         my @lines = `/usr/bin/who`;
         foreach my $line (@lines) {

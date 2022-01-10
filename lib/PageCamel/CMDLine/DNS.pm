@@ -29,8 +29,6 @@ sub new {
     $self->{isVerbose} = $isVerbose;
     $self->{configfile} = $configfile;
 
-    croak("Config file $configfile not found!") unless(-f $configfile);
-
     return $self;
 }
 
