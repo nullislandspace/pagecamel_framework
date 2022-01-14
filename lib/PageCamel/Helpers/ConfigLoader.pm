@@ -29,20 +29,24 @@ sub LoadConfig {
         push @paths, split/\:/, $ENV{'PC_CONFIG_PATHS'};
         print "Found config paths:\n", Dumper(\@paths), " \n";
     } else {
-        croak("PC_CONFIG_PATHS undefined");
+        print("PC_CONFIG_PATHS undefined, falling back to legacy mode\n");
+        @paths = ('', 'configs/');
     }
 
     my $filedata;
     foreach my $path (@paths) {
-        my $fullfname = $path . '/' . $fname;
+        if($path ne '' && $path !~ /\/$/) {
+            $path .= '/';
+        }
+        my $fullfname = $path . $fname;
         next unless (-f $fullfname);
+        print "   Loading config file $fullfname\n";
 
         $filedata = slurpBinFile($fullfname);
 
-        foreach my $varname (qw[PC_PROJECTNAME_UC PC_PROJECTNAME_LC PC_PERLBINARY]) {
-            if(!defined($ENV{$varname})) {
-                croak($varname . " undefined");
-            }
+        foreach my $varname (keys %ENV) {
+            next unless $varname =~ /^PC\_/;
+
             my $newval = $ENV{$varname};
             $filedata =~ s/$varname/$newval/g;
         }

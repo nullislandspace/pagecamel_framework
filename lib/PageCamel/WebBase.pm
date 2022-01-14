@@ -1598,7 +1598,7 @@ cleanup:
     }
 
     if($ua->{keepalive}) {
-        #print STDERR "  keepalive, restarting protocol handler\n";
+        print STDERR getISODate() . "  keepalive, restarting protocol handler\n";
         goto nextrequest;
     }
 
