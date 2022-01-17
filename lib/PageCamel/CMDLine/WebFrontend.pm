@@ -197,6 +197,7 @@ sub handleClient {
     
     my $evalok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+
         my $finishcountdown = 0;
         $SIG{USR1} = sub {
             if(!$finishcountdown) {

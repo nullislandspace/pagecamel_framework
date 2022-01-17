@@ -18,7 +18,7 @@ use PageCamel::Helpers::UTF;
 use PageCamel::Helpers::DateStrings;
 use Pg::hstore;
 use DBI;
-use XML::Simple;
+use PageCamel::Helpers::ConfigLoader;
 
 use Readonly;
 Readonly::Scalar my $BLOBMODE => 0x00020000; ## no critic (ValuesAndExpressions::RequireNumberSeparators)
@@ -28,11 +28,8 @@ sub updateConfig {
     
     # This must be done *AFTER* new in SUPER (to handle host specific cases)
     if(defined($self->{include})) {
-        if(!-f $self->{include} ) {
-            croak("Can't find include config " . $self->{include});
-        }
         print "    Loading PostgreSQL connection info from ", $self->{include}, "\n";
-        my $include = XMLin($self->{include});
+        my $include = LoadConfig($self->{include});
         foreach my $key (qw[dburl dbuser dbpassword hosts]) {
             if(defined($include->{$key})) {
                 $self->{$key} = $include->{$key};
