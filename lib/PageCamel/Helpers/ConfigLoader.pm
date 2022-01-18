@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 3.8;
+our $VERSION = 4.0;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -27,9 +27,9 @@ sub LoadConfig {
     my @paths;
     if(defined($ENV{'PC_CONFIG_PATHS'})) {
         push @paths, split/\:/, $ENV{'PC_CONFIG_PATHS'};
-        print "Found config paths:\n", Dumper(\@paths), " \n";
+        #print "Found config paths:\n", Dumper(\@paths), " \n";
     } else {
-        print("PC_CONFIG_PATHS undefined, falling back to legacy mode\n");
+        #print("PC_CONFIG_PATHS undefined, falling back to legacy mode\n");
         @paths = ('', 'configs/');
     }
 

@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 3.8;
+our $VERSION = 4.0;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -28,7 +28,7 @@ sub updateConfig {
     
     # This must be done *AFTER* new in SUPER (to handle host specific cases)
     if(defined($self->{include})) {
-        print "    Loading PostgreSQL connection info from ", $self->{include}, "\n";
+        print "    Using PostgreSQL connection info from ", $self->{include}, "\n";
         my $include = LoadConfig($self->{include});
         foreach my $key (qw[dburl dbuser dbpassword hosts]) {
             if(defined($include->{$key})) {
