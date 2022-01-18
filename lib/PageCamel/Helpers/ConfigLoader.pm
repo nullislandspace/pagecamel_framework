@@ -27,9 +27,9 @@ sub LoadConfig {
     my @paths;
     if(defined($ENV{'PC_CONFIG_PATHS'})) {
         push @paths, split/\:/, $ENV{'PC_CONFIG_PATHS'};
-        print "Found config paths:\n", Dumper(\@paths), " \n";
+        #print "Found config paths:\n", Dumper(\@paths), " \n";
     } else {
-        print("PC_CONFIG_PATHS undefined, falling back to legacy mode\n");
+        #print("PC_CONFIG_PATHS undefined, falling back to legacy mode\n");
         @paths = ('', 'configs/');
     }
 

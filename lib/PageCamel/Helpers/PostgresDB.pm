@@ -28,7 +28,7 @@ sub updateConfig {
     
     # This must be done *AFTER* new in SUPER (to handle host specific cases)
     if(defined($self->{include})) {
-        print "    Loading PostgreSQL connection info from ", $self->{include}, "\n";
+        print "    Using PostgreSQL connection info from ", $self->{include}, "\n";
         my $include = LoadConfig($self->{include});
         foreach my $key (qw[dburl dbuser dbpassword hosts]) {
             if(defined($include->{$key})) {
