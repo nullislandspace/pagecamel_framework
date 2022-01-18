@@ -24,7 +24,7 @@
         if(ttvars.webappusegst == "1") {
             maxlinelength = 32;
         } else {
-            maxlinelength = 56;
+            maxlinelength = 49;
         }
     }
         
@@ -78,7 +78,7 @@
         ctx.fillStyle = '#FFFFFF';
         ctx.fillStyle = '#FFFFFF';
         for(i = 0; i < lines.length; i++) {
-            ctx.fillText(lines[i], 10, 20 + (i * 14));
+            ctx.fillText(lines[i], 10, 20 + (i * 16));
         }
         
         setTimeout(paintCanvas_nogst, 40);
@@ -93,7 +93,7 @@
         if(linenum < 0) {
             return;
         }
-        linenum = Math.floor(linenum / 14);
+        linenum = Math.floor(linenum / 16);
         
         if(linenum >= lines.length) {
             $('input[name="copypaste"]').val('');
