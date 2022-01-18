@@ -70,14 +70,22 @@
                     _init_pagecamel_pageviewstats();
                 }
 
-                // register all "pagecamelnavdestination onclick events
+                
                 $('[pagecamelnavdestination]').each(function() {
                     var mndest = $(this).attr('pagecamelnavdestination');
                     $(this).on('click', function() {
                         location.href=mndest;
                     });
+                    console.log($(this));
                 });
-
+                /*
+                $('[pagedestinationpath]').each(function() {
+                    var href = $(this).attr('pagecamelnavdestination');
+                    if ($(this).prop('href') == window.location.href){
+                        $(this).addClass('active');
+                    }
+                });
+                */
                 $("select[searchable!='1']").selectmenu({
                     width: 400
                 });
@@ -216,6 +224,13 @@
                 }
 
                 $( "#menutabs, #submenutabs" ).buttonset();
+
+                $("a[activemenutab='1']").each(function() {
+                    $(this).addClass('ui-state-active');
+                    $(this).mouseleave(function() {
+                        $(this).addClass('ui-state-active');
+                    });
+                });
 
                 $( "#dialog-logout" ).dialog({
                     autoOpen: false,
@@ -727,22 +742,20 @@
 
                             <table border="0" cellpadding="0" cellspacing="0" class="header" align="center">
                                 <tr>
-
+                                    <!-- ##########################################################################################################  -->
+                                    <!-- ##########################################################################################################  -->
+                                    <!-- ##########################################################################################################  -->
+                                    <!-- ##########################################################################################################  -->
+                                    <!-- ##########################################################################################################  -->
+                                    <!-- ##########################################################################################################  -->
                                     <td valign="center" align="center">
                                         <!-- *** QuickNav *** -->
                                         <div id="menutabs">
                                             [% FOREACH navItem IN QuickNavBar %]
-                                                <input type="radio" id="[% tr.quote(navItem.title) %]" name="menutab"
-                                                [% IF navItem.active == 1 %]
-                                                    checked="checked"
-                                                [% END %]
-                                                pagecamelnavdestination="[% navItem.path %]" />
-                                                [% IF navItem.warning == 1 && navItem.active == 0 %]
-                                                    <label for="[% tr.quote(navItem.title) %]" class="ui-state-error">[% tr.trquote(navItem.title) %]</label>
-                                                [% ELSE %]
-                                                    <label for="[% tr.quote(navItem.title) %]">[% tr.trquote(navItem.title) %][% IF navItem.active == 1 %]*[% END %]</label>
-                                                [% END %]
-
+                                                <a id="[% tr.quote(navItem.title) %]" name="menutab" href="[% navItem.path %]" pagecamelnavdestination="[% navItem.path %]"
+                                                [% IF navItem.active == 1 %]activemenutab="1"[% END %]>
+                                                    [% tr.trquote(navItem.title) %][% IF navItem.active == 1 %]*[% END %]
+                                                </a>
                                             [% END %]
                                         </div>
                                     </td>
