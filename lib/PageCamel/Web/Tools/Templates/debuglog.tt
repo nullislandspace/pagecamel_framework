@@ -1,5 +1,5 @@
 <p align="center">
-    <canvas id="debuglogcanvas" width="1000px" height="800px"></canvas>
+    <canvas id="debuglogcanvas" width="1300px" height="800px"></canvas>
 </p>
 [% tr.trquote("Copy&Paste") %]: <input type="input" size="100" name="copypaste"><br/>
 [% tr.trquote("Enable updates") %]: <input type="checkbox" name="enableUpdate" checked="checked"><br/>
@@ -24,7 +24,7 @@
         if(ttvars.webappusegst == "1") {
             maxlinelength = 32;
         } else {
-            maxlinelength = 55;
+            maxlinelength = 56;
         }
     }
         
@@ -66,13 +66,13 @@
         var canvas = document.getElementById('debuglogcanvas');
         var ctx = canvas.getContext('2d');
         
-        ctx.font="normal normal lighter 10px Courier";
+        ctx.font="normal normal lighter 16px Courier";
         
         // Background
         ctx.fillStyle = '#000000';
         ctx.strokeStyle = '#C0C0C0';
-        ctx.fillRect(0, 0, 1000, 800);
-        ctx.strokeRect(0, 0, 1000, 800);
+        ctx.fillRect(0, 0, 1300, 800);
+        ctx.strokeRect(0, 0, 1300, 800);
         
         // Lines
         ctx.fillStyle = '#FFFFFF';
@@ -113,7 +113,7 @@
         
         // Background
         ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, 1000, 800);
+        ctx.fillRect(0, 0, 1300, 800);
         
         // fading text lines
         ctx.fillStyle = '#001000';

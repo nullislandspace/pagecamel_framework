@@ -77,7 +77,7 @@
         var canvas = document.getElementById('debuglogcanvas');
         var ctx = canvas.getContext('2d');
 
-        ctx.font="normal normal lighter 10px Courier";
+        ctx.font="normal normal lighter 16px Courier";
 
         // Background
         ctx.fillStyle = '#000000';
