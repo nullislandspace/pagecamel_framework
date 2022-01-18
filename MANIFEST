@@ -2421,6 +2421,7 @@ lib/PageCamel/Worker/DirCleaner.pm
 lib/PageCamel/Worker/DirSync/Scheduler.pm
 lib/PageCamel/Worker/DirSync/SyncLinux.pm
 lib/PageCamel/Worker/DNSCache.pm
+lib/PageCamel/Worker/DummyModule.pm
 lib/PageCamel/Worker/DynamicFiles/Blob.pm
 lib/PageCamel/Worker/DynamicFiles/External.pm
 lib/PageCamel/Worker/DynDNSCommand.pm

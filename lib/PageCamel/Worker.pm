@@ -32,6 +32,7 @@ use PageCamel::Worker::Debuglog2DB;
 use PageCamel::Worker::DirCleaner;
 use PageCamel::Worker::DirSync::Scheduler;
 use PageCamel::Worker::DirSync::SyncLinux;
+use PageCamel::Worker::DummyModule;
 use PageCamel::Worker::DynDNSCommand;
 use PageCamel::Worker::DynamicFiles::Blob;
 use PageCamel::Worker::DynamicFiles::External;
