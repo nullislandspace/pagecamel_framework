@@ -25,7 +25,7 @@
             maxlinelength = 32;
             $('#cmdinput').addClass('consoleinput_gst');
         } else {
-            maxlinelength = 55;
+            maxlinelength = 48;
             $('#cmdinput').addClass('consoleinput_nogst');
         }
 
@@ -77,7 +77,7 @@
         var canvas = document.getElementById('debuglogcanvas');
         var ctx = canvas.getContext('2d');
 
-        ctx.font="normal normal lighter 10px Courier";
+        ctx.font="normal normal lighter 16px Courier";
 
         // Background
         ctx.fillStyle = '#000000';
@@ -88,7 +88,7 @@
         // Lines
         ctx.fillStyle = '#FFFFFF';
         for(i = 0; i < lines.length; i++) {
-            ctx.fillText(lines[i], 10, 20 + (i * 14));
+            ctx.fillText(lines[i], 10, 20 + (i * 16));
         }
 
         setTimeout(paintCanvas_nogst, 40);
@@ -103,7 +103,7 @@
         if(linenum < 0) {
             return;
         }
-        linenum = Math.floor(linenum / 14);
+        linenum = Math.floor(linenum / 16);
 
         if(linenum >= lines.length) {
             $('input[name="copypaste"]').val('');
