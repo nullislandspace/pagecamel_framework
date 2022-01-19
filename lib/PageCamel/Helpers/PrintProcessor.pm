@@ -112,9 +112,9 @@ sub printAddTextLine {
     
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
-    $self->{img}->stringFT($self->{imgblack}, $self->{font}, 10, 0, 10, $self->{imgoffs} + 10, $line);
+    $self->{img}->stringFT($self->{imgblack}, $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
     
-    $self->{imgoffs} += 12;
+    $self->{imgoffs} += 24;
     
     return $oldoffs;
 }
@@ -124,9 +124,9 @@ sub printAddSmallTextLine {
     
     chomp $line;
     
-    $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 8, 0, 10, $self->{imgoffs} + 8, $line);
+    $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
     
-    $self->{imgoffs} += 9;
+    $self->{imgoffs} += 17;
     
     return;
 }

@@ -48,6 +48,8 @@ sub LoadConfig {
             next unless $varname =~ /^PC\_/;
 
             my $newval = $ENV{$varname};
+
+            print "$varname = $newval\n";
             $filedata =~ s/$varname/$newval/g;
         }
 
