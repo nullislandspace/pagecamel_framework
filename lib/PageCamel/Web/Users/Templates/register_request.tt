@@ -146,19 +146,19 @@
         console.log("Points: " + inPoints);
     }
     
-    $('#username').keyup(function() {
+    $('#username').on('keyup', function() {
         validateInput();
     });
     
-    $('#email').keyup(function() {
+    $('#email').on('keyup', function() {
         validateInput();
     });
 
-    $('#first_name').keyup(function() {
+    $('#first_name').on('keyup', function() {
         validateInput();
     });
     
-    $('#last_name').keyup(function() {
+    $('#last_name').on('keyup', function() {
         validateInput();
     });
     
@@ -187,7 +187,6 @@
         }
         srefresh.send(params);
     }
-    
     function checkEmail() {
         var params = "email=" + last_email;
         srefresh.open("POST", ttvars.emailpath, true);
