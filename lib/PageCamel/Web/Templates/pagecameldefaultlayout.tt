@@ -11,10 +11,10 @@
 <link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/dropdownmenu_top.css[% URLReloadPostfix %]"></link>
 <link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/dropdownmenu_side.css[% URLReloadPostfix %]"></link>
 <link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/select2.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery.datetimepicker.css[% URLReloadPostfix %]"></link>
 <link REL="stylesheet" TYPE="text/css" href="/static/pagecameldefaultlayout.css[% URLReloadPostfix %]"></link>
 <link REL="stylesheet" TYPE="text/css" href="/static/codehighlight/styles/sunburst.css[% URLReloadPostfix %]"></link>
 <link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/datatables.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/jquery.datetimepicker.css[% URLReloadPostfix %]"></link>
 <link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/jquery.timepicker.css[% URLReloadPostfix %]"></link>
 <link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/pwprogressbar.css[% URLReloadPostfix %]"></link>
 <link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/cursortrails.css[% URLReloadPostfix %]"></link>
@@ -136,7 +136,6 @@
                     $(this).on('click', function() {
                         location.href=mndest;
                     });
-                    console.log($(this));
                 });
                 /*
                 $('[pagedestinationpath]').each(function() {
