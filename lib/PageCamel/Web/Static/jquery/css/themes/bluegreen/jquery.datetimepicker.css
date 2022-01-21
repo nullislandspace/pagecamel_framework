@@ -3,12 +3,12 @@
 	--datepicker-border: rgb(0, 0, 0);
 	--datepicker-text: rgb(255, 255, 255);
 	--datepicker-text-month-year: rgb(0,0,0);
-	--datepicker-background-secondary: rgb(59, 59, 59);
+	--datepicker-background-secondary: rgb(62, 200, 255);
 	--datepicker-background-month-year: rgb(255, 255, 255);
-	--datepicker-background-days: rgb(0, 0, 0);
-	--datepicker-background-select-hover: hsla(214, 100%, 58%, 0.788);
-	--datepicker-background-selected: hsl(214, 100%, 50%);
-	--datepicker-scrollbar: rgb(100, 100, 100);
+	--datepicker-background-days: rgb(0, 183, 255);
+	--datepicker-background-select-hover: hsla(183, 90%, 12%, 0.459);
+	--datepicker-background-selected: hsl(120, 100%, 50%);
+	--datepicker-scrollbar: rgb(0, 255, 42);
 }
 .xdsoft_datetimepicker {
 	box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.506);

@@ -1,11 +1,14 @@
 :root {
-	--datepicker-background-primary: rgb(0, 0, 0);
+	--datepicker-background-primary: rgb(255,255,255);
 	--datepicker-border: rgb(0, 0, 0);
-	--datepicker-text: rgb(255, 255, 255);
-	--datepicker-background-secondary: rgb(59, 59, 59);
-	--datepicker-background-select-hover: hsla(214, 100%, 58%, 0.788);
-	--datepicker-background-selected: hsl(214, 100%, 50%);
-	--datepicker-slider: rgb(100, 100, 100);
+	--datepicker-text: #665874;
+	--datepicker-text-month-year: rgb(0,0,0);
+	--datepicker-background-secondary: #dcd9de;
+	--datepicker-background-month-year: rgb(255, 255, 255);
+	--datepicker-background-days: #E0E0E0;
+	--datepicker-background-select-hover: hsla(0, 0%, 30%, 0.644);
+	--datepicker-background-selected: #5f5964;
+	--datepicker-scrollbar: rgb(100, 100, 100);
 }
 .xdsoft_datetimepicker {
 	box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.506);
@@ -14,7 +17,7 @@
 	border-left: 1px solid var(--datepicker-border);
 	border-right: 1px solid var(--datepicker-border);
 	border-top: 1px solid var(--datepicker-border);
-	color: var(--datepicker-text);
+	color: var(--datepicker-text-month-year);
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 	padding: 8px;
 	padding-left: 0;
@@ -230,7 +233,7 @@
 	font-size: 14px;
 	line-height: 20px;
 	font-weight: bold;
-	background-color: var(--datepicker-background-secondary);
+	background-color: var(--datepicker-background-month-year);
 	float: left;
 	width: 182px;
 	text-align: center;
@@ -306,7 +309,7 @@
 
 .xdsoft_datetimepicker .xdsoft_calendar td,.xdsoft_datetimepicker .xdsoft_calendar th {
 	width: 14.2857142%;
-	background: var(--datepicker-background-primary);
+	background: var(--datepicker-background-days);
 	border: 1px solid #ddd;
 	color: var(--datepicker-text);
 	font-size: 12px;
@@ -406,7 +409,7 @@
 	border: 1px solid rgb(12, 7, 7);
 }
 .xdsoft_scrollbar >.xdsoft_scroller {
-	background: var(--datepicker-slider) !important;
+	background: var(--datepicker-scrollbar) !important;
 	height: 20px;
 	border-radius: 3px;
 }
