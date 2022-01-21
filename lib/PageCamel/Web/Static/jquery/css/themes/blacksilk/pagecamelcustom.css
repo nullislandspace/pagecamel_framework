@@ -1,47 +1,14 @@
 :root{
-    --pagecamelcustom-table: black;
+    --pagecamelcustom-body-background: white;
+    --pagecamelcustom-body-foreground: black;
     --pagecamelcustom-toc-border: #d7d9dd;
     --pagecamelcustom-toc-background: #f4f5f7;
-    --pagecamelcustom-table-body-background: white;
-    --pagecamelcustom-table-background-one: #E0E0E0;
-    --pagecamelcustom-table-background-two: #C0C0C0;
+    --pagecamelcustom-table-foreground-even: black;
+    --pagecamelcustom-table-background-even: #E0E0E0;
+    --pagecamelcustom-table-foreground-odd: black;
+    --pagecamelcustom-table-background-odd: white;
+    --pagecamelcustom-table-foreground-head: black;
+    --pagecamelcustom-table-background-head: #C0C0C0;
     --pagecamelcustom-tocshowhide: #0000EE;
 
-}
-table.dataTable tr.odd { color: var(--pagecamelcustom-table-color); background-color: var(--pagecamelcustom-table-background-one); }
-table.dataTable tr.even { color: var(--pagecamelcustom-table-color); background-color: var(--pagecamelcustom-table-background-one); }
-
-tr.staticeven { color: var(--pagecamelcustom-table-color); background-color: var(--pagecamelcustom-table-background-one); }
-tr.staticodd { color: var(--pagecamelcustom-table-color); background-color: var(--pagecamelcustom-table-body-background); }
-th.statichead { color: var(--pagecamelcustom-table-color); background-color: var(--pagecamelcustom-table-background-two); }
-
-body {
-    background-color:var(--pagecamelcustom-table-body-background);
-    color: var(--pagecamelcustom-table-color);
-}
-
-div.blogtoc {
-    border-style: groove;
-    border-color: var(--pagecamelcustom-toc-border);
-    background-color: var(--pagecamelcustom-toc-background);
-    border-radius: 5px;
-    width: 33%;
-    padding: 20px;
-}
-
-span.blogtocshowhide {
-    color: var(--pagecamelcustom-tocshowhide);
-}
-
-div.wikitoc {
-    border-style: groove;
-    border-color: var(--pagecamelcustom-toc-border);
-    background-color: var(--pagecamelcustom-toc-background);
-    border-radius: 5px;
-    width: 33%;
-    padding: 20px;
-}
-
-span.wikitocshowhide {
-    color: var(--pagecamelcustom-tocshowhide);
 }
