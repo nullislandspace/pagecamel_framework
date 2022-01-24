@@ -1,38 +1,13 @@
-
-table.dataTable tr.odd { background-color: #FBD655; }
-table.dataTable tr.even { background-color: #FFEEB4; }
-
-tr.staticeven { color: black; background-color: #FBD655; }
-tr.staticodd { color: black; background-color: #FFEEB4; }
-th.statichead { color: black; background-color: #FFC600; }
-
-body {
-    background-color: #FFFFFF;
-    color: #000000;
-}
-
-div.blogtoc {
-    border-style: groove;
-    border-color: #d7d9dd;
-    background-color: #f4f5f7;
-    border-radius: 5px;
-    width: 33%;
-    padding: 20px;
-}
-
-span.blogtocshowhide {
-    color: #0000EE;
-}
-
-div.wikitoc {
-    border-style: groove;
-    border-color: #d7d9dd;
-    background-color: #f4f5f7;
-    border-radius: 5px;
-    width: 33%;
-    padding: 20px;
-}
-
-span.wikitocshowhide {
-    color: #0000EE;
+:root{
+    --pagecamelcustom-body-background:white;
+    --pagecamelcustom-body-foreground:black;
+    --pagecamelcustom-toc-border: #d7d9dd;
+    --pagecamelcustom-toc-background: #f4f5f7;
+    --pagecamelcustom-table-foreground-even:black;
+    --pagecamelcustom-table-background-even:#FBD655;
+    --pagecamelcustom-table-foreground-odd:black;
+    --pagecamelcustom-table-background-odd:#FFEEB4;
+    --pagecamelcustom-table-foreground-head: black;
+    --pagecamelcustom-table-background-head:#FFC600;
+    --pagecamelcustom-tocshowhide: #0000EE;
 }
