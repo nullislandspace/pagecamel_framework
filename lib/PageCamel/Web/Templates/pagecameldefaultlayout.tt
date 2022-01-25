@@ -364,7 +364,7 @@
 
                 // Fix button fonts
                 $('.ui-button').each(function() {
-                    $(this).css('font-family', ttvars.fontfamily);
+                    $(this).css('font-family', ttvars.fontface);
                 });
 
             });
@@ -483,6 +483,7 @@
             data-enablepageviewstats="[% EnablePageViewStats %]"
             data-enabledb="[% EnableDB %]"
             data-fontfamily="[% UIThemeFont %]"
+            data-fontface="[% UIThemeFontFace %]"
         ></span>
         <!-- master template TT vars dataset -->
 

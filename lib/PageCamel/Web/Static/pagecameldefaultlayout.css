@@ -187,26 +187,8 @@ input.autoNumeric {
 	src: url("/static/fonts/OpenDyslexic-Regular.otf");
 }
 
-/*
 @font-face {
-	font-family: "Typewriter1942";
-	src: url("/static/fonts/1942.ttf");
-}
-
-@font-face {
-	font-family: "carbontype";
-	src: url("/static/fonts/carbontype.ttf");
-}
-
-@font-face {
-	font-family: "LeagueScript";
-	src: url("/static/fonts/LeagueScript.otf");
-}
-
-*/
-
-@font-face {
-	font-family: "SourceCodePro";
+	font-family: "sourcecodepro";
 	src: url("/static/fonts/SourceCodePro-Medium.otf");
 }
 
