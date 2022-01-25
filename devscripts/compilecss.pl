@@ -74,11 +74,13 @@ jquery/css/themes/XXUIThemeNameXX/jquery-ui.theme.css
 jquery/css/themes/XXUIThemeNameXX/dropdownmenu_top.css
 jquery/css/themes/XXUIThemeNameXX/dropdownmenu_side.css
 jquery/css/themes/XXUIThemeNameXX/select2.css
+jquery/css/themes/XXUIThemeNameXX/jquery.datetimepicker.css
+jquery/css/themes/BASECSS/jquery.datetimepicker.css
 pagecameldefaultlayout.css
 codehighlight/styles/sunburst.css
 jquery/css/datatables.css
-jquery/css/jquery.datetimepicker.css
 jquery/css/jquery.timepicker.css
 jquery/css/pwprogressbar.css
 jquery/css/cursortrails.css
 jquery/css/themes/XXUIThemeNameXX/pagecamelcustom.css
+jquery/css/themes/BASECSS/pagecamelcustom.css

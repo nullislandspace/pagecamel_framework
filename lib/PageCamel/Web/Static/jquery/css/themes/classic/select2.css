@@ -1,10 +1,19 @@
-/*
- * Background: #D7EBF9
- * Foreground: #2779AA
- *
- * Highlight: bold, white
- * border-radius: 10px;
- */
+ :root{
+  --select2-background: #D7EBF9;
+  --select2-foreground: #2779AA;
+  --select2-foreground1: #999;
+  --select2-highlight: #eeeeee;
+  --select2-highlight1: white;
+  --select2-highlight2: #cccccc;
+  --select2-border: #aaa;
+  --select2-border1: #888;
+  --select2-container-focus-border: black;
+  --select2-container-classic-border: #5897fb;
+  --select2-container-classic-foreground: grey;
+  --select2-container-classic-multiple-foreground: #555;
+  --select2-container-default-foreground: #333;
+}
+
 .select2-container {
   box-sizing: border-box;
   display: inline-block;

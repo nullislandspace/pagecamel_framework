@@ -1,0 +1,9 @@
+:root{
+	--dropdown-background-border:rgb(20, 20, 20);
+	--dropdown-hover-background:#474747;
+	--dropdown-sidemenu-background:#000;
+	--dropdown-sidemenu-hover-background: #474747;
+	--dropdown-text:rgb(255, 255, 255);
+	--dropdown-sidemenu-text:rgb(255, 255, 255);
+	--dropdown-border-top-right:#474747;
+}

@@ -123,11 +123,11 @@
             });
         });
         
-        $('#pwold').keyup(function() {
+        $('#pwold').on('keyup', function() {
             validateInput();
         });
         
-        $('#pwnew2').keyup(function() {
+        $('#pwnew2').on('keyup', function() {
             validateInput();
         });
         

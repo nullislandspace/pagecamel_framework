@@ -1,0 +1,12 @@
+:root {
+	--datepicker-background-primary: rgb(255,255,255);
+	--datepicker-border: rgb(0, 0, 0);
+	--datepicker-text: rgb(255, 255, 255);
+	--datepicker-text-month-year: rgb(0,0,0);
+	--datepicker-background-secondary: #83de39;
+	--datepicker-background-month-year: rgb(255, 255, 255);
+	--datepicker-background-days: #4ca20b;
+	--datepicker-background-select-hover: #83de3988;
+	--datepicker-background-selected: #285c00;
+	--datepicker-scrollbar: rgb(100, 100, 100);
+}

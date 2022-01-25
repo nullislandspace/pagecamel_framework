@@ -83,11 +83,11 @@
         $( "#submitbutton" ).button( "option", "disabled", !canSubmit ); 
     }
     
-    $('#username').keyup(function() {
+    $('#username').on('keyup', function() {
         validateInput();
     });
     
-    $('#email').keyup(function() {
+    $('#email').on('keyup', function() {
         validateInput();
     });
     

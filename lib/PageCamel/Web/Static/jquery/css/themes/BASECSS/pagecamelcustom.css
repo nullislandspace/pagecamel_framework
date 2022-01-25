@@ -1,0 +1,37 @@
+table.dataTable tr.even { color: var(--pagecamelcustom-table-foreground-even); background-color: var(--pagecamelcustom-table-background-even); }
+table.dataTable tr.odd { color: var(--pagecamelcustom-table-foreground-odd); background-color: var(--pagecamelcustom-table-background-odd); }
+
+tr.staticeven { color: var(--pagecamelcustom-table-foreground-even); background-color: var(--pagecamelcustom-table-background-even); }
+tr.staticodd { color: var(--pagecamelcustom-table-foreground-odd); background-color: var(--pagecamelcustom-table-background-odd); }
+th.statichead { color: var(--pagecamelcustom-table-foreground-head); background-color: var(--pagecamelcustom-table-background-head); }
+
+body {
+    background-color:var(--pagecamelcustom-body-background);
+    color: var(--pagecamelcustom-body-foreground);
+}
+
+div.blogtoc {
+    border-style: groove;
+    border-color: var(--pagecamelcustom-toc-border);
+    background-color: var(--pagecamelcustom-toc-background);
+    border-radius: 5px;
+    width: 33%;
+    padding: 20px;
+}
+
+span.blogtocshowhide {
+    color: var(--pagecamelcustom-tocshowhide);
+}
+
+div.wikitoc {
+    border-style: groove;
+    border-color: var(--pagecamelcustom-toc-border);
+    background-color: var(--pagecamelcustom-toc-background);
+    border-radius: 5px;
+    width: 33%;
+    padding: 20px;
+}
+
+span.wikitocshowhide {
+    color: var(--pagecamelcustom-tocshowhide);
+}

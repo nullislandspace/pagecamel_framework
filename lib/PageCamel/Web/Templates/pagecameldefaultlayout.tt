@@ -4,7 +4,28 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
         <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
-        <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
+        <!--<link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>-->
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.structure.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.theme.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/dropdownmenu.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/dropdownmenu_top.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/dropdownmenu_side.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/select2.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/select2.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery.datetimepicker.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/jquery.datetimepicker.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/pagecameldefaultlayout.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/codehighlight/styles/sunburst.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/datatables.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/datatables.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/jquery.timepicker.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/pwprogressbar.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/cursortrails.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/pagecamelcustom.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/pagecamelcustom.css[% URLReloadPostfix %]"></link>
+
+
         <link REL="stylesheet" TYPE="text/css" href="/layout/pagecamel_webgui.css[% URLReloadPostfix %]"></link>
 
         [% FOREACH HeadExtraCS IN HeadExtraCSS %]
@@ -29,7 +50,51 @@
         <meta name="theme-color" content="#ffffff">
         <!-- end of favicon stuff -->
 
-        <script type="text/javascript" src="/static/jquery.compiled-min.js[% URLReloadPostfix %]"></script>
+        <!--<script type="text/javascript" src="/static/jquery.compiled-min.js[% URLReloadPostfix %]"></script>-->
+<script type="text/javascript" src="/static/ajaxhelpers.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/formhelpers.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/unicodehelpers.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/pageviewstats.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/codehighlight/highlight.pack.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery-3.6.0.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery-migrate-3.3.2.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery-ui.min.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.metadata.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.statictable.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.form.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.dataTables.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/datatables.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.dataTables.plugins.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.dataTables.sortplugin.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.dataTables.filterplugin.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.checkify.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.cavacnote.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.cavacnote_mobile.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.gotobutton.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.sparkline.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.sha1.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.hashmask.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.tmpl.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.iframe-transport.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.spritely-0.6.8.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.json-2.3.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.websocket-pagecamel.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.complexify.banlist.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.complexify.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.blockUI.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.datetimepicker.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/dropdownmenu.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.insertatcaret.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.xeyes-2.0.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.transit.min.0.9.12.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.cursortrails.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery.timepicker.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/three.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/cavaclogo.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/select2.full.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/jquery/js/js.cookie.js[% URLReloadPostfix %]"></script>
+<script type="text/javascript" src="/static/Chart.bundle.js[% URLReloadPostfix %]"></script>
+
 
         [% IF EnableDB == "1" %]
             <script type="text/javascript" src="/static/sqljs/sql-wasm.js[% URLReloadPostfix %]"></script>
@@ -76,7 +141,6 @@
                     $(this).on('click', function() {
                         location.href=mndest;
                     });
-                    console.log($(this));
                 });
                 /*
                 $('[pagedestinationpath]').each(function() {
@@ -105,11 +169,11 @@
                     image_unchecked:'/pics/checkbox_classic_OFF.png',
                     image_checked_delete:'/pics/checkbox_classic_DELETE.png'
                 });
-
+                   
                 $("input[displaytype=dateandtime]").datetimepicker({
                     format: 'Y-m-d H:i:s',
                     mask:true,
-                });
+                }); 
 
                 $("input[displaytype=dateonly]").datepicker({
                     dateFormat: 'yy-mm-dd',
@@ -211,7 +275,7 @@
                     filter_table.fnSortNeutral();
 
                     // Add special submit function to hide the table and restore hidden rows
-                    $('#MainFilterForm').submit(function(){
+                    $('#MainFilterForm').on('submit', function(){
                         document.getElementById('pagecamelMenuContent').style.display = 'none';
                         document.getElementById('pagecamelPageContent').style.display = 'none';
                         document.getElementById('pagecamelFooterContent').style.display = 'none';
@@ -227,7 +291,7 @@
 
                 $("a[activemenutab='1']").each(function() {
                     $(this).addClass('ui-state-active');
-                    $(this).mouseleave(function() {
+                    $(this).on('mouseleave',function() {
                         $(this).addClass('ui-state-active');
                     });
                 });
@@ -299,10 +363,10 @@
                 document.getElementById('pagecamelPageContent').style.display = 'block';
                 document.getElementById('pagecamelFooterContent').style.display = 'block';
 
-                $('#jsddm_top > li').bind('mouseover', jsddm_open);
-                $('#jsddm_top > li').bind('mouseout',  jsddm_timer);
-                $('#jsddm_side > li').bind('mouseover', jsddm_open);
-                $('#jsddm_side > li').bind('mouseout',  jsddm_timer);
+                $('#jsddm_top > li').on('mouseover', jsddm_open);
+                $('#jsddm_top > li').on('mouseout',  jsddm_timer);
+                $('#jsddm_side > li').on('mouseover', jsddm_open);
+                $('#jsddm_side > li').on('mouseout',  jsddm_timer);
 
                 // If appropriate, start the computer map
                 if(window.startMap) {

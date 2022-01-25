@@ -29,7 +29,7 @@
             $('#cmdinput').addClass('consoleinput_nogst');
         }
 
-        $('#cmdinput').keyup(function(event) {
+        $('#cmdinput').on('keyup', function(event) {
             if(event.keyCode === 13) {
                 var cmd = $('#cmdinput').val();
                 $('#cmdinput').val('');
@@ -49,10 +49,10 @@
     function websocketmaskOnSocketOpen() {
         if(ttvars.webappusegst == "1") {
             paintCanvas_gst();
-            $('#debuglogcanvas').click(canvasClicks_gst);
+            $('#debuglogcanvas').on('click', canvasClicks_gst);
         } else {
             paintCanvas_nogst();
-            $('#debuglogcanvas').click(canvasClicks_nogst);
+            $('#debuglogcanvas').on('click', canvasClicks_nogst);
         }
     }
 

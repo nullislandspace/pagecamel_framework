@@ -1,38 +1,14 @@
+:root{
+    --pagecamelcustom-body-background: white;
+    --pagecamelcustom-body-foreground: black;
+    --pagecamelcustom-toc-border: #d7d9dd;
+    --pagecamelcustom-toc-background: #f4f5f7;
+    --pagecamelcustom-table-foreground-even: black;
+    --pagecamelcustom-table-background-even: #E0E0E0;
+    --pagecamelcustom-table-foreground-odd: black;
+    --pagecamelcustom-table-background-odd: white;
+    --pagecamelcustom-table-foreground-head: #C0C0C0;
+    --pagecamelcustom-table-background-head: black;
+    --pagecamelcustom-tocshowhide: #0000EE;
 
-table.dataTable tr.odd { background-color: #E0E0E0; }
-table.dataTable tr.even { background-color: white; }
-
-tr.staticeven { color: black; background-color: #E0E0E0; }
-tr.staticodd { color: black; background-color: white; }
-th.statichead { color: #C0C0C0; background-color: black; }
-
-body {
-    background-color: #FFFFFF;
-    color: #000000;
-}
-
-div.blogtoc {
-    border-style: groove;
-    border-color: #d7d9dd;
-    background-color: #f4f5f7;
-    border-radius: 5px;
-    width: 33%;
-    padding: 20px;
-}
-
-span.blogtocshowhide {
-    color: #0000EE;
-}
-
-div.wikitoc {
-    border-style: groove;
-    border-color: #d7d9dd;
-    background-color: #f4f5f7;
-    border-radius: 5px;
-    width: 33%;
-    padding: 20px;
-}
-
-span.wikitocshowhide {
-    color: #0000EE;
 }

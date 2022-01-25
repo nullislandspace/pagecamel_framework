@@ -620,7 +620,7 @@
 
 <script language="javascript">    
     function extraOnLoad() {
-        $('#computer_name').keyup(function() {
+        $('#computer_name').on(keyup, function() {
             $('.computer_name_display').text($('#computer_name').val());
         });
         $('.computer_name_display').text($('#computer_name').val());

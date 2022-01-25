@@ -1,51 +1,13 @@
-
-table.dataTable tr.odd { color: white; background-color: #505050; }
-table.dataTable tr.even { color: white; background-color: black; }
-
-tr.staticeven { color: white; background-color: #474747; }
-tr.staticodd { color: white; background-color: black; }
-th.statichead { color: white; background-color: #808080; }
-
-body {
-    background-color: #000000;
-    color: #FFFFFF;
-}
-
-a:link {
-    color: yellow;
-}
-a:visited {
-    color: yellow;
-}
-a:hover {
-    color: yellow;
-}
-a:active {
-    color: yellow;
-}
-
-div.blogtoc {
-    border-style: groove;
-    border-color: #d7d9dd;
-    background-color: #404040;
-    border-radius: 5px;
-    width: 33%;
-    padding: 20px;
-}
-
-span.blogtocshowhide {
-    color: #EE00EE;
-}
-
-div.wikitoc {
-    border-style: groove;
-    border-color: #d7d9dd;
-    background-color: #404040;
-    border-radius: 5px;
-    width: 33%;
-    padding: 20px;
-}
-
-span.wikitocshowhide {
-    color: #EE00EE;
+:root{
+    --pagecamelcustom-body-background:#000000;
+    --pagecamelcustom-body-foreground:#FFFFFF;
+    --pagecamelcustom-toc-border:#d7d9dd;
+    --pagecamelcustom-toc-background:#404040;
+    --pagecamelcustom-table-foreground-even:white;
+    --pagecamelcustom-table-background-even:#474747;
+    --pagecamelcustom-table-foreground-odd:white;
+    --pagecamelcustom-table-background-odd: black;
+    --pagecamelcustom-table-foreground-head: white;
+    --pagecamelcustom-table-background-head:#808080 ;
+    --pagecamelcustom-tocshowhide:  #EE00EE ;
 }
