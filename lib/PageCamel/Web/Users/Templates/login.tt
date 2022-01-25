@@ -22,17 +22,6 @@
                         <input type="text" name="username" size="50" value="[% tr.quote(username) %]" maxLength="70" id="username">
                     </td>
                 </tr>
-                <!--
-                <tr>
-                    <td align="right">[% tr.trquote("Password mode") %]:</td>
-                    <td align="left">
-                        <div id="passwordmode">
-                            <input type="radio" name="pwmode" value="password" id="pwmode1"><label for="pwmode1">[% tr.trquote("Password") %]</label>
-                            <input type="radio" name="pwmode" value="otp" id="pwmode2"><label for="pwmode2">[% tr.trquote("OTP Token") %]</label>
-                        </div>
-                    </td>
-                </tr>
-                -->
                 <tr>
                     <td align="right">[% tr.trquote("Password") %]:</td>
                     <td align="left">
@@ -203,9 +192,8 @@
     }
 
     function maskExtraOnLoad() {
-        $("#password").hashmask();
+        //$("#password").hashmask();
         $('#pwmode1').attr('checked', 'checked');
-        $('#passwordmode').buttonset();
         checkInput();
         
         $('#username').on('keyup', checkInput);
