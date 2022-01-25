@@ -22,29 +22,30 @@ use Digest::SHA1  qw(sha1_hex);
 
 my %fontfamilies = (
     Georgia => 'Georgia, serif',
-    #Palantino => '"Palatino Linotype", "Book Antiqua", Palatino, serif',
-    TimesNewRoman => '"Times New Roman", Times, serif',
+    TimesNewRoman => '\'Times New Roman\', Times, serif',
     Arial => 'Arial, Helvetica, sans-serif',
-    ArialBlack => '"Arial Black", Gadget, sans-serif',
-    ComicSans => '"Comic Sans MS", cursive, sans-serif',
+    ArialBlack => '\'Arial Black\', Gadget, sans-serif',
+    ComicSans => '\'Comic Sans MS\', cursive, sans-serif',
     Impact => 'Impact, Charcoal, sans-serif',
-    #Lucida => '"Lucida Sans Unicode", "Lucida Grande", sans-serif',
-    #Tahoma => 'Tahoma, Geneva, sans-serif',
-    Trebuchet => '"Trebuchet MS", Helvetica, sans-serif',
+    Trebuchet => '\'Trebuchet MS\', Helvetica, sans-serif',
     Verdana => 'Verdana, Geneva, sans-serif',
-    Courier => '"Courier New", Courier, monospace',
-    Console => '"Lucida Console", Monaco, monospace',
-    #Typewriter => 'Typewriter1942',
-    #CarbonCopy => 'carbontype',
+    Courier => '\'Courier New\', Courier, monospace',
+    Console => '\'Lucida Console\', Monaco, monospace',
     Clipboard => 'herrvonmuellerhoff',
-    #Script  => "LeagueScript",
     Portcullion => 'portcullion',
-    SourceCode => 'SourceCodePro',
+    SourceCode => 'sourcecodepro',
     OpenDyslexic => 'opendyslexic',
     Anquietas => 'anquietas',
 );
 my @fontnames = sort keys %fontfamilies;
 
+my @fontlist;
+foreach my $key (sort keys %fontfamilies) {
+    push @fontlist, {
+                        name => $key,
+                        style => $fontfamilies{$key}
+                    };
+}
 
 sub new {
     my ($proto, %config) = @_;
@@ -98,7 +99,7 @@ sub get {
         PageTitle       =>  $self->{pagetitle},
         webpath         =>  $self->{webpath},
         AvailThemes     =>  $self->{Themes},
-        FontFamilies    => \%fontfamilies,
+        FontFamilies    => \@fontlist,
         showads => $self->{showads},
     );
 

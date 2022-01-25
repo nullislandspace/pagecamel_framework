@@ -9,18 +9,18 @@
                 </tr>
             </thead>
             <tbody>
-                [% FOREACH FontFamily IN FontFamilies.keys.sort %]
+                [% FOREACH FontFamily IN FontFamilies %]
                 <tr>
                     <td>
-                        <input type="radio" name="fontfamily" value="[% tr.quote(FontFamily) %]"
-                        [% IF FontFamily == UIThemeFont %]
+                        <input type="radio" name="fontfamily" value="[% tr.quote(FontFamily.name) %]"
+                        [% IF FontFamily.name == UIThemeFont %]
                             checked="checked"
                         [% END %]
                         >
                     </td>
-                    <td>[% tr.quote(FontFamily) %]</td>
+                    <td>[% tr.quote(FontFamily.name) %]</td>
                     <td>
-                        <div style='font-family:[% FontFamilies.$FontFamily %];'>
+                        <div displayfont="[% FontFamily.style %]">
                             The quick brown fox jumped over the lazy dog!
                         </div>
                     </td>
@@ -36,3 +36,14 @@
         <input type="submit" value="[% tr.trquote("Select") %]">
     </p>
 </form>
+
+<script type="text/javascript">
+    function extraOnLoad() {
+        $('div[displayfont]').each(function() {
+            var ff = $(this).attr('displayfont');
+            console.log('font: ' + ff);
+            $(this).css('font-family', ff);
+        });
+    }
+</script>
+
