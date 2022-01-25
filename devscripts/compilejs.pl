@@ -63,9 +63,7 @@ unicodehelpers.js
 pageviewstats.js
 codehighlight/highlight.pack.js
 jquery/js/jquery-3.6.0.js
-#jquery/js/jquery-3.4.1.js
 jquery/js/jquery-migrate-3.3.2.js
-#jquery/js/jquery-migrate-3.1.0.min.js
 jquery/js/jquery-ui.min.js
 jquery/js/jquery.metadata.js
 jquery/js/jquery.statictable.js
@@ -75,7 +73,6 @@ jquery/js/datatables.js
 jquery/js/jquery.dataTables.plugins.js
 jquery/js/jquery.dataTables.sortplugin.js
 jquery/js/jquery.dataTables.filterplugin.js
-#jquery/js/jquery.dataTables.filterdelay.js
 jquery/js/jquery.checkify.js
 jquery/js/jquery.cavacnote.js
 jquery/js/jquery.cavacnote_mobile.js
@@ -86,7 +83,6 @@ jquery/js/jquery.hashmask.js
 jquery/js/jquery.tmpl.js
 jquery/js/jquery.iframe-transport.js
 jquery/js/jquery.spritely-0.6.8.js
-# jquery/js/jquery.CKEditor.pack.js DON'T COMPILE CKEDITOR IN, THIS NEEDS EXCEMPTIONS FOR THE CSP
 jquery/js/jquery.json-2.3.js
 jquery/js/jquery.websocket-pagecamel.js
 jquery/js/jquery.complexify.banlist.js

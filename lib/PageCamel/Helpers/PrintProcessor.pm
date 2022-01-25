@@ -106,15 +106,20 @@ sub printEndDocument {
 }
 
 sub printAddTextLine {
-    my ($self, $line) = @_;
+    my ($self, $line, $y) = @_;
     
     chomp $line;
     
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
-    $self->{img}->stringFT($self->{imgblack}, $self->{font}, 10, 0, 10, $self->{imgoffs} + 10, $line);
-    
-    $self->{imgoffs} += 12;
+    if(!defined($y)) {
+        $self->{img}->stringFT($self->{imgblack}, $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
+        
+        $self->{imgoffs} += 24;
+    } else {
+        $self->{img}->stringFT($self->{imgblack}, $self->{font}, 20, 0, 10, $y + 10, $line);
+        $oldoffs = $y;
+    }
     
     return $oldoffs;
 }
@@ -124,9 +129,9 @@ sub printAddSmallTextLine {
     
     chomp $line;
     
-    $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 8, 0, 10, $self->{imgoffs} + 8, $line);
+    $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
     
-    $self->{imgoffs} += 9;
+    $self->{imgoffs} += 19;
     
     return;
 }
@@ -138,7 +143,7 @@ sub printAddBigTextLine {
     
     $self->{img}->stringFT($self->{imgblack}, $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
     
-    $self->{imgoffs} += 55;
+    $self->{imgoffs} += 58;
     
     return;
 }
@@ -450,7 +455,9 @@ sub rememberPrint {
         my $img = GD::Image->new($imagedata);
         my $black = $img->colorAllocate(0, 0, 0);
         my $white = $img->colorAllocate(255, 255, 255);
-        $img->stringFT($black, $self->{font}, 10, 0, 10, $copy_y + 10, $markascopytext);
+        #$img->stringFT($black, $self->{font}, 20, 0, 10, $copy_y + 10, $markascopytext);
+        $img->stringFT($black, $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
+
         $imagedata = $img->png;
     }
     
@@ -620,6 +627,12 @@ sub printTestMessage {
         }
         for(1..3) {
             $self->printAddTextLine('');
+        }
+        for(my $i = 0; $i < 4; $i++) {
+            $self->printAddBigTextLine("BIGTEXT LINE $i");
+        }
+        for(my $i = 0; $i < 4; $i++) {
+            $self->printAddSmallTextLine("SMALLTEXT LINE $i");
         }
     }
 

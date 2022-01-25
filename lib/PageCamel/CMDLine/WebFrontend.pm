@@ -80,6 +80,20 @@ sub init {
     
     $self->{config} = $config;
 
+    # Turn any comma-separated ip addresses into their own entry
+    foreach my $service (@{$config->{external_network}->{service}}) {
+        my @newips;
+        foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
+            if($ip !~ /\,/) {
+                push @newips, $ip;
+            } else {
+                push @newips, split/\,/, $ip;
+            }
+        }
+        $service->{bind_adresses}->{ip} = \@newips;
+    }
+
+
     my $hname = hostname;
     if(defined($config->{hosts}->{$hname})) {
         print "   Host-specific configuration for '$hname'\n";
