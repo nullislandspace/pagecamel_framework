@@ -69,7 +69,6 @@ jquery/js/jquery.metadata.js
 jquery/js/jquery.statictable.js
 jquery/js/jquery.form.js
 jquery/js/jquery.dataTables.js
-jquery/js/datatables.js
 jquery/js/jquery.dataTables.plugins.js
 jquery/js/jquery.dataTables.sortplugin.js
 jquery/js/jquery.dataTables.filterplugin.js
