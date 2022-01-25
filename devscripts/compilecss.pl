@@ -24,8 +24,7 @@ my $BASE = "./lib/PageCamel/Web/Static/";
 
 my @files = <DATA>;
 
-#my @themes = qw[classic blacksilk bluegreen corporateugliness orange recycled];
-my @themes = qw[blacksilk bluegreen classic corporateugliness orange recycled darkknight space];
+my @themes = qw[blacksilk bluegreen classic corporateugliness orange recycled space];
 
 foreach my $theme (@themes) {
     unlink($BASE . "jquery.compiled_" . $theme . ".css");
@@ -71,13 +70,16 @@ __DATA__
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.css
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.structure.css
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.theme.css
-jquery/css/themes/XXUIThemeNameXX/dropdownmenu_top.css
-jquery/css/themes/XXUIThemeNameXX/dropdownmenu_side.css
+jquery/css/themes/XXUIThemeNameXX/dropdownmenu.css
+jquery/css/themes/BASECSS/dropdownmenu_top.css
+jquery/css/themes/BASECSS/dropdownmenu_side.css
 jquery/css/themes/XXUIThemeNameXX/select2.css
+jquery/css/themes/BASECSS/select2.css
 jquery/css/themes/XXUIThemeNameXX/jquery.datetimepicker.css
 jquery/css/themes/BASECSS/jquery.datetimepicker.css
 pagecameldefaultlayout.css
 codehighlight/styles/sunburst.css
+jquery/css/themes/XXUIThemeNameXX/datatables.css
 jquery/css/datatables.css
 jquery/css/jquery.timepicker.css
 jquery/css/pwprogressbar.css
