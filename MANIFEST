@@ -1561,7 +1561,6 @@ lib/PageCamel/Web/Static/jquery/images/sort_both.png
 lib/PageCamel/Web/Static/jquery/images/sort_desc.png
 lib/PageCamel/Web/Static/jquery/images/sort_desc_disabled.png
 lib/PageCamel/Web/Static/jquery/js/cavaclogo.js
-lib/PageCamel/Web/Static/jquery/js/datatables.js
 lib/PageCamel/Web/Static/jquery/js/dropdownmenu.js
 lib/PageCamel/Web/Static/jquery/js/jquery-3.6.0.js
 lib/PageCamel/Web/Static/jquery/js/jquery-migrate-3.3.2.js
@@ -2328,7 +2327,6 @@ lib/PageCamel/Web/Templates/impressum.tt
 lib/PageCamel/Web/Templates/pagecamel_webgui.css.tt
 lib/PageCamel/Web/Templates/pagecamel_webgui_mobile.css.tt
 lib/PageCamel/Web/Templates/pagecameldefaultlayout.tt
-lib/PageCamel/Web/Templates/pagecameldefaultlayout.tt.orig
 lib/PageCamel/Web/Templates/pagecamelmobilelayout.tt
 lib/PageCamel/Web/Templates/privacypolicy.tt
 lib/PageCamel/Web/Templates/sendmail.tt
