@@ -381,6 +381,11 @@
                     $(ttvars.focusonfield).focus();
                 }
 
+                // Fix button fonts
+                $('.ui-button').each(function() {
+                    $(this).css('font-family', ttvars.fontfamily);
+                });
+
             });
 
 
@@ -496,6 +501,7 @@
             data-trquote-calendarbutton="[% tr.trquote("Select Date") %]"
             data-enablepageviewstats="[% EnablePageViewStats %]"
             data-enabledb="[% EnableDB %]"
+            data-fontfamily="[% UIThemeFont %]"
         ></span>
         <!-- master template TT vars dataset -->
 
@@ -623,23 +629,6 @@
                                                 </a>
                                             [% END %]
                                         </div>
-                                        <!--
-                                        <div id="menutabs">
-                                            <input type="radio" id="loginmenuitem" checked="checked" pagecamelnavdestination='/user/login'/>
-                                            <label for="loginmenuitem">[% tr.trquote("Login") %]</label>
-
-                                            <input type="radio" id="pwresetmenuitem" pagecamelnavdestination='/user/pwreset'/>
-                                            <label for="pwresetmenuitem">[% tr.trquote("Password Reset") %]</label>
-                                            [% IF canRegisterUsers == 1 %]
-                                                <input type="radio" id="registermenuitem" pagecamelnavdestination='/user/register'/>
-                                                <label for="registermenuitem">[% tr.trquote("Register") %]</label>
-                                            [% END %]
-                                            [% IF webpath == PIMenuPublicUrl %]
-                                                <input type="radio" id="pimenuitem" checked="checked" pagecamelnavdestination='[% PIMenuPublicUrl %]'/>
-                                                <label for="pimenuitem">&Pi;</label>
-                                            [% END %]
-                                        </div>
-                                    -->
                                     </td>
                                 </tr>
                             </table>
