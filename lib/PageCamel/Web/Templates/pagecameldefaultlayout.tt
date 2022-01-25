@@ -4,7 +4,26 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
         <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
-        <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
+        <!--<link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>-->
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.structure.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.theme.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/dropdownmenu.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/dropdownmenu_top.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/dropdownmenu_side.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/select2.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/select2.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery.datetimepicker.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/jquery.datetimepicker.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/pagecameldefaultlayout.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/codehighlight/styles/sunburst.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/datatables.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/datatables.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/jquery.timepicker.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/pwprogressbar.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/cursortrails.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/pagecamelcustom.css[% URLReloadPostfix %]"></link>
+<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/pagecamelcustom.css[% URLReloadPostfix %]"></link>
 
         <link REL="stylesheet" TYPE="text/css" href="/layout/pagecamel_webgui.css[% URLReloadPostfix %]"></link>
 
@@ -571,7 +590,7 @@
         [% IF HideMenuBar == "1" %]
             <!-- No menu bar in this window -->
         [% ELSE %]
-            [% IF PageTitle == "Login" %]
+            [% IF PageTitle == "Login" || PageTitle == "Logout" || PageTitle == "Reset Password" || PageTitle == "Register new account" || webpath == PIMenuPublicUrl %]
                 <br/>
                 <table border="0" cellpadding="0" cellspacing="0" class="header" align="center" width="100%">
                     <tr>
@@ -580,130 +599,47 @@
                             <table border="0" cellpadding="2" cellspacing="0" class="header" align="center">
                                 <tr>
                                     <td align="center">
+                                        <!-- *** QuickNav *** -->
+                                        <div id="menutabs">
+                                            <!-- login -->
+                                            <a id="login_button" name="menutab" href="/user/login" pagecamelnavdestination="/user/login"
+                                                [% IF PageTitle == "Login" %]activemenutab="1"[% END %]>
+                                                [% tr.trquote("Login") %][% IF PageTitle == "Login" %]*[% END %]
+                                            </a>
+                                            <a id="reset_password_button" name="menutab" href="/user/pwreset" pagecamelnavdestination="/user/pwreset"
+                                                [% IF PageTitle == "Reset Password" %]activemenutab="1"[% END %]>
+                                                [% tr.trquote("Reset password") %][% IF PageTitle == "Reset Password" %]*[% END %]
+                                            </a>
+                                            [% IF canRegisterUsers == 1 %]
+                                                <a id="register_account_button" name="menutab" href="/user/register" pagecamelnavdestination="/user/register"
+                                                    [% IF PageTitle == "Register new account" %]activemenutab="1"[% END %]>
+                                                    [% tr.trquote("Register") %][% IF PageTitle == "Register new account" %]*[% END %]
+                                                </a>
+                                            [% END %]
+                                            [% IF webpath == PIMenuPublicUrl %]
+                                                <a id="pimenu_button" name="menutab" href="[% PIMenuPublicUrl %]" pagecamelnavdestination="[% PIMenuPublicUrl %]"
+                                                    activemenutab="1">
+                                                    &Pi;
+                                                </a>
+                                            [% END %]
+                                        </div>
+                                        <!--
                                         <div id="menutabs">
                                             <input type="radio" id="loginmenuitem" checked="checked" pagecamelnavdestination='/user/login'/>
                                             <label for="loginmenuitem">[% tr.trquote("Login") %]</label>
+
                                             <input type="radio" id="pwresetmenuitem" pagecamelnavdestination='/user/pwreset'/>
                                             <label for="pwresetmenuitem">[% tr.trquote("Password Reset") %]</label>
                                             [% IF canRegisterUsers == 1 %]
                                                 <input type="radio" id="registermenuitem" pagecamelnavdestination='/user/register'/>
                                                 <label for="registermenuitem">[% tr.trquote("Register") %]</label>
                                             [% END %]
-                                            <input type="radio" id="backmenuitem" pagecamelnavdestination='/'/>
-                                            <label for="backmenuitem">[% tr.trquote("Back") %]</label>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                        <td width="*">&nbsp;</td>
-                    </tr>
-                </table>
-            [% ELSIF PageTitle == "Logout" %]
-                <br/>
-                <table border="0" cellpadding="0" cellspacing="0" class="header" align="center" width="100%">
-                    <tr>
-                        <td width="*">&nbsp;</td>
-                        <td>
-                            <table border="0" cellpadding="2" cellspacing="0" class="header" align="center">
-                                <tr>
-                                    <td align="center">
-                                        <div id="menutabs">
-                                            <input type="radio" id="loginmenuitem" pagecamelnavdestination='/user/login'/>
-                                            <label for="loginmenuitem">[% tr.trquote("Login") %]</label>
-                                            <input type="radio" id="pwresetmenuitem" pagecamelnavdestination='/user/pwreset'/>
-                                            <label for="pwresetmenuitem">[% tr.trquote("Password Reset") %]</label>
-                                            [% IF canRegisterUsers == 1 %]
-                                                <input type="radio" id="registermenuitem" pagecamelnavdestination='/user/register'/>
-                                                <label for="registermenuitem">[% tr.trquote("Register") %]</label>
+                                            [% IF webpath == PIMenuPublicUrl %]
+                                                <input type="radio" id="pimenuitem" checked="checked" pagecamelnavdestination='[% PIMenuPublicUrl %]'/>
+                                                <label for="pimenuitem">&Pi;</label>
                                             [% END %]
-                                            <input type="radio" id="backmenuitem" checked="checked" pagecamelnavdestination='/'/>
-                                            <label for="backmenuitem">[% tr.trquote("Back") %]</label>
                                         </div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                        <td width="*">&nbsp;</td>
-                    </tr>
-                </table>
-            [% ELSIF PageTitle == "Reset Password" %]
-                <br/>
-                <table border="0" cellpadding="0" cellspacing="0" class="header" align="center" width="100%">
-                    <tr>
-                        <td width="*">&nbsp;</td>
-                        <td>
-                            <table border="0" cellpadding="2" cellspacing="0" class="header" align="center">
-                                <tr>
-                                    <td align="center">
-                                        <div id="menutabs">
-                                            <input type="radio" id="loginmenuitem" pagecamelnavdestination='/user/login'/>
-                                            <label for="loginmenuitem">[% tr.trquote("Login") %]</label>
-                                            <input type="radio" id="pwresetmenuitem" checked="checked" pagecamelnavdestination='/user/pwreset'/>
-                                            <label for="pwresetmenuitem">[% tr.trquote("Password Reset") %]</label>
-                                            [% IF canRegisterUsers == 1 %]
-                                                <input type="radio" id="registermenuitem" pagecamelnavdestination='/user/register'/>
-                                                <label for="registermenuitem">[% tr.trquote("Register") %]</label>
-                                            [% END %]
-                                            <input type="radio" id="backmenuitem" pagecamelnavdestination='/'/>
-                                            <label for="backmenuitem">[% tr.trquote("Back") %]</label>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                        <td width="*">&nbsp;</td>
-                    </tr>
-                </table>
-            [% ELSIF PageTitle == "Register new account" %]
-                <br/>
-                <table border="0" cellpadding="0" cellspacing="0" class="header" align="center" width="100%">
-                    <tr>
-                        <td width="*">&nbsp;</td>
-                        <td>
-                            <table border="0" cellpadding="2" cellspacing="0" class="header" align="center">
-                                <tr>
-                                    <td align="center">
-                                        <div id="menutabs">
-                                            <input type="radio" id="loginmenuitem" pagecamelnavdestination='/user/login'/>
-                                            <label for="loginmenuitem">[% tr.trquote("Login") %]</label>
-                                            <input type="radio" id="pwresetmenuitem" pagecamelnavdestination='/user/pwreset'/>
-                                            <label for="pwresetmenuitem">[% tr.trquote("Password Reset") %]</label>
-                                            <input type="radio" id="registermenuitem" checked="checked"  pagecamelnavdestination='/user/register'/>
-                                            <label for="registermenuitem">[% tr.trquote("Register") %]</label>
-                                            <input type="radio" id="backmenuitem" pagecamelnavdestination='/'/>
-                                            <label for="backmenuitem">[% tr.trquote("Back") %]</label>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                        <td width="*">&nbsp;</td>
-                    </tr>
-                </table>
-            [% ELSIF PIMenuPublicUrl != "" && webpath == PIMenuPublicUrl %]
-                <br/>
-                <table border="0" cellpadding="0" cellspacing="0" class="header" align="center" width="100%">
-                    <tr>
-                        <td width="*">&nbsp;</td>
-                        <td>
-                            <table border="0" cellpadding="2" cellspacing="0" class="header" align="center">
-                                <tr>
-                                    <td align="center">
-                                        <div id="menutabs">
-                                            <input type="radio" id="loginmenuitem" pagecamelnavdestination='/user/login'/>
-                                            <label for="loginmenuitem">[% tr.trquote("Login") %]</label>
-                                            <input type="radio" id="pwresetmenuitem" pagecamelnavdestination='/user/pwreset'/>
-                                            <label for="pwresetmenuitem">[% tr.trquote("Password Reset") %]</label>
-                                            [% IF canRegisterUsers == 1 %]
-                                                <input type="radio" id="registermenuitem" pagecamelnavdestination='/user/register'/>
-                                                <label for="registermenuitem">[% tr.trquote("Register") %]</label>
-                                            [% END %]
-                                            <input type="radio" id="pimenuitem" checked="checked" pagecamelnavdestination='[% PIMenuPublicUrl %]'/>
-                                            <label for="pimenuitem">&Pi;</label>
-                                            <input type="radio" id="backmenuitem" pagecamelnavdestination='/'/>
-                                            <label for="backmenuitem">[% tr.trquote("Back") %]</label>
-                                        </div>
+                                    -->
                                     </td>
                                 </tr>
                             </table>
