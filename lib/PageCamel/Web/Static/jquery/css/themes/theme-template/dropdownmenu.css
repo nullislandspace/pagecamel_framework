@@ -1,0 +1,10 @@
+:root{
+	--dropdown-background-border: #324143;
+	--dropdown-hover-background:#24313C;
+	--dropdown-sidemenu-background: #E0E0E0;
+	--dropdown-sidemenu-hover-background: #26B3F7;
+	--dropdown-text: #EAFFED;
+	--dropdown-sidemenu-text: #000;
+	--dropdown-border-top-right: white;
+    --dropdown-hover-text: #000;
+}
