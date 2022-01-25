@@ -4,26 +4,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
         <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
-        <!--<link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>-->
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.structure.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery-ui.theme.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/dropdownmenu.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/dropdownmenu_top.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/dropdownmenu_side.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/select2.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/select2.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/jquery.datetimepicker.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/jquery.datetimepicker.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/pagecameldefaultlayout.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/codehighlight/styles/sunburst.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/datatables.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/datatables.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/jquery.timepicker.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/pwprogressbar.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/cursortrails.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/[% UIThemeName %]/pagecamelcustom.css[% URLReloadPostfix %]"></link>
-<link REL="stylesheet" TYPE="text/css" href="/static/jquery/css/themes/BASECSS/pagecamelcustom.css[% URLReloadPostfix %]"></link>
+        <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
 
         <link REL="stylesheet" TYPE="text/css" href="/layout/pagecamel_webgui.css[% URLReloadPostfix %]"></link>
 
