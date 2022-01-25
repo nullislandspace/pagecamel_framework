@@ -36,10 +36,11 @@ my %fontfamilies = (
     Console => '"Lucida Console", Monaco, monospace',
     #Typewriter => 'Typewriter1942',
     #CarbonCopy => 'carbontype',
-    #Clipboard => 'HerrVonMuellerhoff',
+    Clipboard => 'herrvonmuellerhoff',
     #Script  => "LeagueScript",
-    #Portcullion => 'Portcullion',
+    Portcullion => 'portcullion',
     SourceCode => 'SourceCodePro',
+    OpenDyslexic => 'opendyslexic',
     Anquietas => 'anquietas',
 );
 my @fontnames = sort keys %fontfamilies;

@@ -172,6 +172,21 @@ input.autoNumeric {
 	src: url("/static/fonts/anquietas.ttf");
 }
 
+@font-face {
+	font-family: "herrvonmuellerhoff";
+	src: url("/static/fonts/HerrVonMuellerhoff-Regular.otf");
+}
+
+@font-face {
+	font-family: "portcullion";
+	src: url("/static/fonts/Portcullion.ttf");
+}
+
+@font-face {
+	font-family: "opendyslexic";
+	src: url("/static/fonts/OpenDyslexic-Regular.otf");
+}
+
 /*
 @font-face {
 	font-family: "Typewriter1942";
@@ -184,19 +199,10 @@ input.autoNumeric {
 }
 
 @font-face {
-	font-family: "HerrVonMuellerhoff";
-	src: url("/static/fonts/HerrVonMuellerhoff-Regular.otf");
-}
-
-@font-face {
 	font-family: "LeagueScript";
 	src: url("/static/fonts/LeagueScript.otf");
 }
 
-@font-face {
-	font-family: "Portcullion";
-	src: url("/static/fonts/Portcullion.ttf");
-}
 */
 
 @font-face {
