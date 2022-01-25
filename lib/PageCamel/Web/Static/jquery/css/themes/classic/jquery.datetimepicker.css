@@ -1,12 +1,12 @@
 :root {
 	--datepicker-background-primary: rgb(255,255,255);
-	--datepicker-border: rgb(0, 0, 0);
-	--datepicker-text: rgb(255, 255, 255);
+	--datepicker-border: #aed0ea;
+	--datepicker-text: #2779aa;
 	--datepicker-text-month-year: rgb(0,0,0);
-	--datepicker-background-secondary: rgb(59, 59, 59);
+	--datepicker-background-secondary:#d7ebf9;
 	--datepicker-background-month-year: rgb(255, 255, 255);
-	--datepicker-background-days: rgb(0, 0, 0);
-	--datepicker-background-select-hover: hsla(214, 100%, 58%, 0.788);
-	--datepicker-background-selected: hsl(214, 100%, 50%);
-	--datepicker-scrollbar: rgb(100, 100, 100);
+	--datepicker-background-days: #d7ebf9;
+	--datepicker-background-select-hover: #aed0ea;
+	--datepicker-background-selected: #1ab740;
+	--datepicker-scrollbar: #2779aa;
 }
