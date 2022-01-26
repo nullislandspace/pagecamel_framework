@@ -41,7 +41,6 @@
     function extraOnLoad() {
         $('div[displayfont]').each(function() {
             var ff = $(this).attr('displayfont');
-            console.log('font: ' + ff);
             $(this).css('font-family', ff);
         });
     }
