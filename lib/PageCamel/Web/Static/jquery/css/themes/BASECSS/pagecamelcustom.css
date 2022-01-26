@@ -1,10 +1,23 @@
 table.dataTable tr.even { color: var(--pagecamelcustom-table-foreground-even); background-color: var(--pagecamelcustom-table-background-even); }
 table.dataTable tr.odd { color: var(--pagecamelcustom-table-foreground-odd); background-color: var(--pagecamelcustom-table-background-odd); }
 
-tr.staticeven { color: var(--pagecamelcustom-table-foreground-even); background-color: var(--pagecamelcustom-table-background-even); }
-tr.staticodd { color: var(--pagecamelcustom-table-foreground-odd); background-color: var(--pagecamelcustom-table-background-odd); }
-th.statichead { color: var(--pagecamelcustom-table-foreground-head); background-color: var(--pagecamelcustom-table-background-head); }
 
+
+.data tr:nth-child(even){
+    color: var(--pagecamelcustom-table-foreground-even); 
+    background-color: var(--pagecamelcustom-table-background-even);
+}
+.data tr:nth-child(odd){
+    color: var(--pagecamelcustom-table-foreground-odd); 
+    background-color: var(--pagecamelcustom-table-background-odd);
+}
+.data th {
+    color: var(--pagecamelcustom-table-foreground-head); 
+    background-color: var(--pagecamelcustom-table-background-head); 
+}
+.soft-slider td{
+    background-color: transparent !important; 
+}
 body {
     background-color:var(--pagecamelcustom-body-background);
     color: var(--pagecamelcustom-body-foreground);
