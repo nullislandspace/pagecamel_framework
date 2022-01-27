@@ -6,5 +6,5 @@
 	--dropdown-text: #EAFFED;
 	--dropdown-sidemenu-text: #000;
 	--dropdown-border-top-right: white;
-    --dropdown-hover-text: #000;
+    --dropdown-hover-text: rgb(255, 255, 255);
 }

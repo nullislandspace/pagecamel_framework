@@ -252,7 +252,7 @@
 .xdsoft_datetimepicker .xdsoft_label > .xdsoft_select.xdsoft_yearselect{ right: 2px }
 .xdsoft_datetimepicker .xdsoft_label > .xdsoft_select > div > .xdsoft_option:hover {
 	color: #fff;
-	background: #ff8000;
+	background: var(--datepicker-background-select-hover);
 }
 
 .xdsoft_datetimepicker .xdsoft_label > .xdsoft_select > div > .xdsoft_option {
@@ -261,7 +261,7 @@
 }
 
 .xdsoft_datetimepicker .xdsoft_label > .xdsoft_select > div > .xdsoft_option.xdsoft_current {
-	background: #33aaff;
+	background: var(--datepicker-background-selected);
 	box-shadow: #178fe5 0 1px 3px 0 inset;
 	color: #fff;
 	font-weight: 700;

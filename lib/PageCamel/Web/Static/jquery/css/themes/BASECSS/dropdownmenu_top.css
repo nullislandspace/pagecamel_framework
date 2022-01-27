@@ -11,6 +11,7 @@
 	#jsddm_top li a
 	{
 		background: var(--dropdown-background-border);
+		text-align: left;
 		text-decoration: none;
 		color: var(--dropdown-text);
 		white-space: nowrap;

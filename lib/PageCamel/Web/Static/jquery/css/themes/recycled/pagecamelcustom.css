@@ -10,4 +10,7 @@
     --pagecamelcustom-table-foreground-head: white;
     --pagecamelcustom-table-background-head: #377207;
     --pagecamelcustom-tocshowhide: #0000EE;
+    --pagecamelcustom-link: darkblue;
+    --pagecamelcustom-link-hover: #7b3eff;
+    --pagecamelcustom-link-active: #9d6fff;
 }
