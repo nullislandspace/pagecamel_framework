@@ -20,9 +20,7 @@
                     </td>
                     <td>[% tr.quote(FontFamily.name) %]</td>
                     <td>
-                        <div displayfont="[% FontFamily.style %]">
-                            The quick brown fox jumped over the lazy dog!
-                        </div>
+                        <div displayfont="[% FontFamily.style %]">[% tr.trquote("The quick brown fox jumps over the lazy dog!") %]</div>
                     </td>
                 </tr>
                 [% END %]
