@@ -7,7 +7,10 @@
     --pagecamelcustom-table-background-even: #E0E0F8;
     --pagecamelcustom-table-foreground-odd: black;
     --pagecamelcustom-table-background-odd: #F0F8F0;
-    --pagecamelcustom-table-foreground-head: black;
+    --pagecamelcustom-table-foreground-head: white;
     --pagecamelcustom-table-background-head: #C0C0C0;
     --pagecamelcustom-tocshowhide: #0000EE;
+    --pagecamelcustom-link: darkblue;
+    --pagecamelcustom-link-hover: #7b3eff;
+    --pagecamelcustom-link-active: #9d6fff;
 }

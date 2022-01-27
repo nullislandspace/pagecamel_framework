@@ -1,8 +1,6 @@
 table.dataTable tr.even { color: var(--pagecamelcustom-table-foreground-even); background-color: var(--pagecamelcustom-table-background-even); }
 table.dataTable tr.odd { color: var(--pagecamelcustom-table-foreground-odd); background-color: var(--pagecamelcustom-table-background-odd); }
 
-
-
 .data tr:nth-child(even){
     color: var(--pagecamelcustom-table-foreground-even); 
     background-color: var(--pagecamelcustom-table-background-even);
@@ -47,4 +45,17 @@ div.wikitoc {
 
 span.wikitocshowhide {
     color: var(--pagecamelcustom-tocshowhide);
+}
+
+#dataarea a:link{
+    color: var(--pagecamelcustom-link);
+}
+#dataarea a:visited{
+    color: var(--pagecamelcustom-link);
+}
+#dataarea a:hover{
+    color: var(--pagecamelcustom-link-hover);
+}
+#dataarea a:active{
+    color: var(--pagecamelcustom-link-active);
 }

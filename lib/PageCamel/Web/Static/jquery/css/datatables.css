@@ -384,7 +384,7 @@ table.dataTable td {
   border: 1px solid #aaa;
   border-radius: 3px;
   padding: 5px;
-  background-color: transparent;
+  background-color: white;
   padding: 4px;
 }
 .dataTables_wrapper .dataTables_filter {
@@ -395,7 +395,7 @@ table.dataTable td {
   border: 1px solid #aaa;
   border-radius: 3px;
   padding: 5px;
-  background-color: transparent;
+  background-color: white;
   margin-left: 3px;
 }
 .dataTables_wrapper .dataTables_info {
