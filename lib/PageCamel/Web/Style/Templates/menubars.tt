@@ -1,6 +1,6 @@
 <form name="translations" method="post" action="[% webpath %]"  id="MainFilterForm">
     <p align="center">    
-        <table class="data" align="center" id="MainFilterTable">
+        <table class="data" align="center" id="MainDataTable">
             <thead>
                 <tr class="tabheader">
                     <th></th>
@@ -23,7 +23,7 @@
                             [% tr.trquote(Menubar.name) %]
                         </td>
                         <td>
-                            <img src="[% tr.quote(Menubar.screenshot) %]" alt="Screenshot [% tr.trquote(Menubar.name) %]"  width="250px" height="175px">
+                            <img src="[% tr.quote(Menubar.screenshot) %]" alt="Screenshot [% tr.trquote(Menubar.name) %]"  width="250px" height="182px">
                         </td>
                         <td width="200px">
                             [% tr.trquote(Menubar.description) %]

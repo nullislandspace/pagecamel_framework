@@ -1,6 +1,6 @@
 <form name="translations" method="post" action="[% webpath %]"  id="MainFilterForm">
     <p align="center">    
-        <table class="data" align="center" id="MainFilterDisplayTable">
+        <table class="data" align="center" id="MainDataTable">
             <thead>
                 <tr class="tabheader">
                     <th></th>
