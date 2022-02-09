@@ -190,6 +190,8 @@ lib/PageCamel/Web/Images/mapbackground.xcf
 lib/PageCamel/Web/Images/mapmarker-computer.png
 lib/PageCamel/Web/Images/mapmarker-labelprinter.png
 lib/PageCamel/Web/Images/mapmarker-switch.png
+lib/PageCamel/Web/Images/menubar_sidebar.png
+lib/PageCamel/Web/Images/menubar_top.png
 lib/PageCamel/Web/Images/movemouse.gif
 lib/PageCamel/Web/Images/PageCamelFramework.png
 lib/PageCamel/Web/Images/PageCamelLogo.bmp
@@ -197,6 +199,13 @@ lib/PageCamel/Web/Images/rufzeichen.png
 lib/PageCamel/Web/Images/snow.gif
 lib/PageCamel/Web/Images/switch_OFF.png
 lib/PageCamel/Web/Images/switch_ON.png
+lib/PageCamel/Web/Images/theme_blacksilk.png
+lib/PageCamel/Web/Images/theme_bluegreen.png
+lib/PageCamel/Web/Images/theme_classic.png
+lib/PageCamel/Web/Images/theme_corporateugliness.png
+lib/PageCamel/Web/Images/theme_orange.png
+lib/PageCamel/Web/Images/theme_recycled.png
+lib/PageCamel/Web/Images/theme_space.png
 lib/PageCamel/Web/Images/xeyes.gif
 lib/PageCamel/Web/Images/yoda_aprilfools.gif
 lib/PageCamel/Web/Images/yoda_aprilfools.png
