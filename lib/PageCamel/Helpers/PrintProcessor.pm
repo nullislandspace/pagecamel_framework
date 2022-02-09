@@ -124,14 +124,36 @@ sub printAddTextLine {
     return $oldoffs;
 }
 
-sub printAddSmallTextLine {
-    my ($self, $line) = @_;
+sub printAddBoldTextLine {
+    my ($self, $line, $y) = @_;
     
     chomp $line;
     
-    $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
+    $line = encode_utf8($line);
+    my $oldoffs = $self->{imgoffs};
+    if(!defined($y)) {
+        $self->{img}->stringFT($self->{imgblack}, $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
+        
+        $self->{imgoffs} += 24;
+    } else {
+        $self->{img}->stringFT($self->{imgblack}, $self->{boldfont}, 20, 0, 10, $y + 10, $line);
+        $oldoffs = $y;
+    }
     
-    $self->{imgoffs} += 19;
+    return $oldoffs;
+}
+
+sub printAddSmallTextLine {
+    my ($self, $line, $x, $y) = @_;
+    
+    chomp $line;
+    
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 19;
+    }
     
     return;
 }
@@ -146,6 +168,25 @@ sub printAddBigTextLine {
     $self->{imgoffs} += 58;
     
     return;
+}
+
+sub printAddSingleLine {
+    my ($self, $line) = @_;
+    $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
+                                      $self->{imgoffs} + 1 + 5,
+                                      $self->{imgblack});
+    $self->{imgoffs} += 24;
+}
+
+sub printAddDoubleLine {
+    my ($self, $line) = @_;
+    $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
+                                      $self->{imgoffs} + 1 + 5,
+                                      $self->{imgblack});
+    $self->{img}->filledRectangle(0, $self->{imgoffs} + 12, $self->{width},
+                                      $self->{imgoffs} + 1 + 12,
+                                      $self->{imgblack});
+    $self->{imgoffs} += 24;
 }
 
 sub printAddImage {
@@ -205,9 +246,10 @@ sub printAddImage {
                               $w, $h, # SRC W H
                               );
     
+    my $oldimgoffs = $self->{imgoffs};
     $self->{imgoffs} += 10 + $desth;
     
-    return;
+    return $oldimgoffs;
 }
 
 sub printAddGreyscaleImage {
