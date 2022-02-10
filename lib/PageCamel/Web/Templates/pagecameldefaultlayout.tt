@@ -531,9 +531,9 @@
                         [% END %]
                     [% ELSE %]
                         [% IF IsAprilFoolsDay == "1" %]
-                            <div class="webgui_projectusername">The great and powerful [%userData.first_name %]&nbsp;/&nbsp;
+                            <div class="webgui_projectusername">The great and powerful [% userData.first_name %]&nbsp;/&nbsp;
                         [% ELSE %]
-                            <div class="webgui_projectusername">[% userData.first_name %] [%userData.last_name %]&nbsp;/&nbsp;
+                            <div class="webgui_projectusername">[% userData.first_name %] [% userData.last_name %][% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
                         [% END %]
                         <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a>
                         [% IF userData.hasrealuser == 1 %]
