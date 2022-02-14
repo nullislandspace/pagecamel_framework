@@ -59,3 +59,16 @@ span.wikitocshowhide {
 #dataarea a:active{
     color: var(--pagecamelcustom-link-active);
 }
+
+#linkarea a:link{
+    color: var(--pagecamelcustom-link);
+}
+#linkarea a:visited{
+    color: var(--pagecamelcustom-link);
+}
+#linkarea a:hover{
+    color: var(--pagecamelcustom-link-hover);
+}
+#linkarea a:active{
+    color: var(--pagecamelcustom-link-active);
+}
