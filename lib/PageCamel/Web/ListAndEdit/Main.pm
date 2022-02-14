@@ -1470,7 +1470,7 @@ sub get_lines { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $value = '<div style="background-color:' . $value . ';color:' . $contrast . ';">' . $value . '</div>';
             } elsif($type eq 'image') {
                 if($value ne '') {
-                    $value = '<img width="100px" src="data:image/png;base64,' . $value . '">';
+                    $value = '<img src="data:image/png;base64,' . $value . '">';
                 }
             } else {
                 $value = encode_entities($value, "'<>&\"");
