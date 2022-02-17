@@ -257,6 +257,11 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
 
 sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
     my ($self, $header, $debugmessage) = @_;
+
+    if($debugmessage !~ /exit\(0\)/) {
+        print STDERR "EVAL ERROR: ", $debugmessage, "\n";
+    }
+
     kill 'USR1', $header->{pid}; # Notify frontend that we are done
     #exit(0);
 
