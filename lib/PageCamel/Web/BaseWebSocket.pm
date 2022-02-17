@@ -415,7 +415,6 @@ sub sockethandler {
                     last;
                 }
 
-                print STDERR "GOT TYPE ", $realmsg->{type}, "\n";
                 if($realmsg->{type} eq 'PING') {
                     $timeout = time + $settings{client_disconnect_timeout};
                     my %msg = (
