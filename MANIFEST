@@ -277,6 +277,16 @@ lib/PageCamel/Web/Static/canvasjs/canvasbuttons.js
 lib/PageCamel/Web/Static/canvasjs/canvashelpers.js
 lib/PageCamel/Web/Static/canvasjs/canvasitemlist.js
 lib/PageCamel/Web/Static/canvasjs/canvastouchitemlist.js
+lib/PageCamel/Web/Static/canvasuijs/canvashelpers.js
+lib/PageCamel/Web/Static/canvasuijs/uiarrow.js
+lib/PageCamel/Web/Static/canvasuijs/uibutton.js
+lib/PageCamel/Web/Static/canvasuijs/uiline.js
+lib/PageCamel/Web/Static/canvasuijs/uilist.js
+lib/PageCamel/Web/Static/canvasuijs/uinumpad.js
+lib/PageCamel/Web/Static/canvasuijs/uipaylist.js
+lib/PageCamel/Web/Static/canvasuijs/uitext.js
+lib/PageCamel/Web/Static/canvasuijs/uitextbox.js
+lib/PageCamel/Web/Static/canvasuijs/uiview.js
 lib/PageCamel/Web/Static/Chart.bundle.js
 lib/PageCamel/Web/Static/codehighlight/CHANGES.md
 lib/PageCamel/Web/Static/codehighlight/highlight.pack.js
