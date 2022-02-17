@@ -47,28 +47,15 @@ span.wikitocshowhide {
     color: var(--pagecamelcustom-tocshowhide);
 }
 
-#dataarea a:link{
+a:link{
     color: var(--pagecamelcustom-link);
 }
-#dataarea a:visited{
+a:visited{
     color: var(--pagecamelcustom-link);
 }
-#dataarea a:hover{
+a:hover{
     color: var(--pagecamelcustom-link-hover);
 }
-#dataarea a:active{
-    color: var(--pagecamelcustom-link-active);
-}
-
-#linkarea a:link{
-    color: var(--pagecamelcustom-link);
-}
-#linkarea a:visited{
-    color: var(--pagecamelcustom-link);
-}
-#linkarea a:hover{
-    color: var(--pagecamelcustom-link-hover);
-}
-#linkarea a:active{
+a:active{
     color: var(--pagecamelcustom-link-active);
 }
