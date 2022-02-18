@@ -70,9 +70,6 @@ __DATA__
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.css
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.structure.css
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.theme.css
-jquery/css/themes/XXUIThemeNameXX/dropdownmenu.css
-jquery/css/themes/BASECSS/dropdownmenu_top.css
-jquery/css/themes/BASECSS/dropdownmenu_side.css
 jquery/css/themes/XXUIThemeNameXX/select2.css
 jquery/css/themes/BASECSS/select2.css
 jquery/css/themes/XXUIThemeNameXX/jquery.datetimepicker.css
@@ -86,3 +83,4 @@ jquery/css/pwprogressbar.css
 jquery/css/cursortrails.css
 jquery/css/themes/XXUIThemeNameXX/pagecamelcustom.css
 jquery/css/themes/BASECSS/pagecamelcustom.css
+jquery/css/top_menu.css
