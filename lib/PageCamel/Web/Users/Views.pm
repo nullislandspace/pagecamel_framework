@@ -56,7 +56,7 @@ sub iterateCheckViews {
 
     foreach my $view (@{$checkview}) {
         my $ok = 1;
-        foreach my $required (qw[display level]) {
+        foreach my $required (qw[display]) {
             if(!defined($view->{$required})) {
                 print STDERR "View does not define property $required!\n";
                 $ok = 0;
@@ -70,7 +70,7 @@ sub iterateCheckViews {
             next;
         }
 
-        foreach my $required (qw[startpage]) {
+        foreach my $required (qw[startpage level]) {
             if(!defined($view->{$required})) {
                 print STDERR "View does not define property $required!\n";
                 $ok = 0;
@@ -243,7 +243,7 @@ sub iterateViews {
     my ($self, $webdata, $dropdownmenu, $activeview, $rights, $activeURL, $viewlist) = @_;
 
     foreach my $view (@{$viewlist}) {
-        next if(!contains($view->{level}, $rights));
+        next if(defined($view->{level}) && !contains($view->{level}, $rights));
 
         if(defined($view->{type}) && $view->{type} eq 'submenu') {
             my %startitem = (
