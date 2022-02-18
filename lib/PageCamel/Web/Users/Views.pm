@@ -228,8 +228,6 @@ sub get_late_defaultwebdata {
     my @dropdownmenu;
     my @activeview;
 
-    print STDERR Dumper($self->{views}->{view});
-
     $self->iterateViews($webdata, \@dropdownmenu, \@activeview, \@rights, $activeURL, $self->{views}->{view});
 
     $webdata->{DropDownMenu} = \@dropdownmenu;
@@ -255,7 +253,13 @@ sub iterateViews {
             );
             push @{$dropdownmenu}, \%startitem;
             $self->iterateViews($webdata, $dropdownmenu, $activeview, $rights, $activeURL, $view->{view});
-            push @{$dropdownmenu}, \%enditem;
+
+            if(defined($dropdownmenu->[-1]->{type}) && $dropdownmenu->[-1]->{type} eq 'submenustart') {
+                # Ok, empty (sub) menu, pop it back out
+                pop @{$dropdownmenu};
+            } else {
+                push @{$dropdownmenu}, \%enditem;
+            }
 
             next;
         }
