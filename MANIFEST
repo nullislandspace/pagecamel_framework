@@ -1394,13 +1394,10 @@ lib/PageCamel/Web/Static/jquery/css/datatables.css
 lib/PageCamel/Web/Static/jquery/css/jquery.timepicker.css
 lib/PageCamel/Web/Static/jquery/css/pbar-ani.gif
 lib/PageCamel/Web/Static/jquery/css/pwprogressbar.css
-lib/PageCamel/Web/Static/jquery/css/themes/BASECSS/dropdownmenu_side.css
-lib/PageCamel/Web/Static/jquery/css/themes/BASECSS/dropdownmenu_top.css
 lib/PageCamel/Web/Static/jquery/css/themes/BASECSS/jquery.datetimepicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/BASECSS/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/BASECSS/select2.css
 lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/datatables.css
-lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/dropdownmenu.css
 lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/images/ui-bg_flat_30_949494_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/images/ui-bg_flat_50_5c5c5c_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/images/ui-bg_highlight-hard_20_0972a5_1x100.png
@@ -1422,7 +1419,6 @@ lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/jquery.datetimepicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/blacksilk/select2.css
 lib/PageCamel/Web/Static/jquery/css/themes/bluegreen/datatables.css
-lib/PageCamel/Web/Static/jquery/css/themes/bluegreen/dropdownmenu.css
 lib/PageCamel/Web/Static/jquery/css/themes/bluegreen/images/ui-bg_flat_55_999999_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/bluegreen/images/ui-bg_flat_75_aaaaaa_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/bluegreen/images/ui-bg_glass_45_0078ae_1x400.png
@@ -1446,7 +1442,6 @@ lib/PageCamel/Web/Static/jquery/css/themes/bluegreen/jquery.datetimepicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/bluegreen/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/bluegreen/select2.css
 lib/PageCamel/Web/Static/jquery/css/themes/classic/datatables.css
-lib/PageCamel/Web/Static/jquery/css/themes/classic/dropdownmenu.css
 lib/PageCamel/Web/Static/jquery/css/themes/classic/images/ui-bg_diagonals-thick_90_eeeeee_40x40.png
 lib/PageCamel/Web/Static/jquery/css/themes/classic/images/ui-bg_flat_15_cd0a0a_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/classic/images/ui-bg_glass_100_e4f1fb_1x400.png
@@ -1468,7 +1463,6 @@ lib/PageCamel/Web/Static/jquery/css/themes/classic/jquery.datetimepicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/classic/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/classic/select2.css
 lib/PageCamel/Web/Static/jquery/css/themes/corporateugliness/datatables.css
-lib/PageCamel/Web/Static/jquery/css/themes/corporateugliness/dropdownmenu.css
 lib/PageCamel/Web/Static/jquery/css/themes/corporateugliness/images/ui-bg_flat_0_aaaaaa_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/corporateugliness/images/ui-bg_flat_0_eeeeee_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/corporateugliness/images/ui-bg_flat_30_606162_40x100.png
@@ -1491,7 +1485,6 @@ lib/PageCamel/Web/Static/jquery/css/themes/corporateugliness/jquery.datetimepick
 lib/PageCamel/Web/Static/jquery/css/themes/corporateugliness/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/corporateugliness/select2.css
 lib/PageCamel/Web/Static/jquery/css/themes/orange/datatables.css
-lib/PageCamel/Web/Static/jquery/css/themes/orange/dropdownmenu.css
 lib/PageCamel/Web/Static/jquery/css/themes/orange/images/ui-bg_diagonals-medium_20_d34d17_40x40.png
 lib/PageCamel/Web/Static/jquery/css/themes/orange/images/ui-bg_flat_30_cccccc_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/orange/images/ui-bg_flat_50_5c5c5c_40x100.png
@@ -1515,7 +1508,6 @@ lib/PageCamel/Web/Static/jquery/css/themes/orange/jquery.datetimepicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/orange/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/orange/select2.css
 lib/PageCamel/Web/Static/jquery/css/themes/recycled/datatables.css
-lib/PageCamel/Web/Static/jquery/css/themes/recycled/dropdownmenu.css
 lib/PageCamel/Web/Static/jquery/css/themes/recycled/images/ui-bg_diagonals-small_0_aaaaaa_40x40.png
 lib/PageCamel/Web/Static/jquery/css/themes/recycled/images/ui-bg_diagonals-thick_15_444444_40x40.png
 lib/PageCamel/Web/Static/jquery/css/themes/recycled/images/ui-bg_diagonals-thick_95_ffdc2e_40x40.png
@@ -1536,7 +1528,6 @@ lib/PageCamel/Web/Static/jquery/css/themes/recycled/jquery.datetimepicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/recycled/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/recycled/select2.css
 lib/PageCamel/Web/Static/jquery/css/themes/space/datatables.css
-lib/PageCamel/Web/Static/jquery/css/themes/space/dropdownmenu.css
 lib/PageCamel/Web/Static/jquery/css/themes/space/images/ui-bg_flat_30_949494_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/space/images/ui-bg_flat_50_5c5c5c_40x100.png
 lib/PageCamel/Web/Static/jquery/css/themes/space/images/ui-bg_highlight-hard_20_0972a5_1x100.png
@@ -1558,11 +1549,11 @@ lib/PageCamel/Web/Static/jquery/css/themes/space/jquery.datetimepicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/space/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/space/select2.css
 lib/PageCamel/Web/Static/jquery/css/themes/theme-template/datatables.css
-lib/PageCamel/Web/Static/jquery/css/themes/theme-template/dropdownmenu.css
 lib/PageCamel/Web/Static/jquery/css/themes/theme-template/jquery.datetimepicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/theme-template/jquery.datetimpicker.css
 lib/PageCamel/Web/Static/jquery/css/themes/theme-template/pagecamelcustom.css
 lib/PageCamel/Web/Static/jquery/css/themes/theme-template/select2.css
+lib/PageCamel/Web/Static/jquery/css/top_menu.css
 lib/PageCamel/Web/Static/jquery/html/menu.html
 lib/PageCamel/Web/Static/jquery/images/back_disabled.jpg
 lib/PageCamel/Web/Static/jquery/images/back_disabled.png
@@ -1580,7 +1571,6 @@ lib/PageCamel/Web/Static/jquery/images/sort_both.png
 lib/PageCamel/Web/Static/jquery/images/sort_desc.png
 lib/PageCamel/Web/Static/jquery/images/sort_desc_disabled.png
 lib/PageCamel/Web/Static/jquery/js/cavaclogo.js
-lib/PageCamel/Web/Static/jquery/js/dropdownmenu.js
 lib/PageCamel/Web/Static/jquery/js/jquery-3.6.0.js
 lib/PageCamel/Web/Static/jquery/js/jquery-migrate-3.3.2.js
 lib/PageCamel/Web/Static/jquery/js/jquery-ui.min.js
