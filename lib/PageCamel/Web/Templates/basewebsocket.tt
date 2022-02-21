@@ -14,6 +14,7 @@
     [% END %]
     data-trquote-wsconnecting="[% tr.trquote("Starting WebSocket...") %]"
     data-trquote-wsclosed="[% tr.trquote("Connection to websocket closed!") %]"
+    data-trquote-wsreconnecting="[% tr.trquote("Connection to websocket closed, reconnecting...") %]"
     data-trquote-wslost="[% tr.trquote("Lost connection to websocket!") %]"
     data-trquote-wsfailed="[% tr.trquote("Connection to websocket failed!") %]"
     data-websocketurl="[% WSURL %]"
@@ -83,7 +84,11 @@
         ws.onclose = function(ev) {
             console.log("Websocket disconnected");
             if(ttvars.blockui == "1") {
-                $('#dataarea').block({ message: ttvars.trquote.Wsclosed });
+                if(ttvars.reconnect == "1") {
+                    $('#dataarea').block({ message: ttvars.trquote.Wsreconnecting });
+                } else {
+                    $('#dataarea').block({ message: ttvars.trquote.Wsclosed });
+                }
             }
             wsconnected = 0;
             if(window.websocketmaskOnSocketClose) {
