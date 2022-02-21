@@ -25,7 +25,7 @@ my $BASE = "./lib/PageCamel/Web/Static/";
 
 my @files = <DATA>;
 
-my @themes = qw[blacksilk bluegreen classic corporateugliness orange recycled space];
+my @themes = qw[blacksilk bluegreen classic corporateugliness orange recycled space darkmode];
 
 foreach my $theme (@themes) {
     unlink($BASE . "jquery.compiled_" . $theme . ".css");
@@ -39,7 +39,7 @@ foreach my $theme (@themes) {
         $filex =~ s/XXUIThemeNameXX/$theme/g;
 
         if(!-f $BASE . $filex) {
-            warn("File $filex not found!");
+            croak("File $filex not found!");
             next;
         }
         my $cmd = "cat " . $BASE . $filex . " >> " . $BASE . "jquery.compiled_" . $theme . ".css";

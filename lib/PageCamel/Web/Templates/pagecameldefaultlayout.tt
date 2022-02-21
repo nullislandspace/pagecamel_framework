@@ -857,5 +857,7 @@
         <div id="pagecamelpagefooter" class="pagecamelpagefooter_[% PAGECAMELPAGEFOOTERCOLOR %]">[% PAGECAMELPAGEFOOTERTEXT %]</div>
     [% END%]
 
+    <div class="stars"></div>
+    <div class="twinkling"></div>
     </body>
 </html>

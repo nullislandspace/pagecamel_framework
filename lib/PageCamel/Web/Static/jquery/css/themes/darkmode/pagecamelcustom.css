@@ -1,0 +1,16 @@
+:root{
+    --pagecamelcustom-body-background:#000000;
+    --pagecamelcustom-body-foreground:#FFFFFF;
+    --pagecamelcustom-toc-border:#d7d9dd;
+    --pagecamelcustom-toc-background:#404040;
+    --pagecamelcustom-table-foreground-even:white;
+    --pagecamelcustom-table-background-even:#474747;
+    --pagecamelcustom-table-foreground-odd:white;
+    --pagecamelcustom-table-background-odd: black;
+    --pagecamelcustom-table-foreground-head: white;
+    --pagecamelcustom-table-background-head:#808080 ;
+    --pagecamelcustom-tocshowhide:  #A0A0FF ;
+    --pagecamelcustom-link: rgb(255, 153, 0);
+    --pagecamelcustom-link-hover: #b35700;
+    --pagecamelcustom-link-active: #ffbc6f;
+}
