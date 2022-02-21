@@ -49,13 +49,17 @@ span.wikitocshowhide {
 
 a:link{
     color: var(--pagecamelcustom-link);
+    text-decoration: none;
 }
 a:visited{
     color: var(--pagecamelcustom-link);
+    text-decoration: none;
 }
 a:hover{
     color: var(--pagecamelcustom-link-hover);
+    text-decoration: none;
 }
 a:active{
     color: var(--pagecamelcustom-link-active);
+    text-decoration: none;
 }

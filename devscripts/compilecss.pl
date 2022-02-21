@@ -19,6 +19,7 @@ use PageCamel::Helpers::UTF;
 
 use CSS::Minifier::XS qw(minify);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile writeBinFile);
+use Carp;
 
 my $BASE = "./lib/PageCamel/Web/Static/";
 
@@ -38,7 +39,8 @@ foreach my $theme (@themes) {
         $filex =~ s/XXUIThemeNameXX/$theme/g;
 
         if(!-f $BASE . $filex) {
-            die("File $filex not found!");
+            warn("File $filex not found!");
+            next;
         }
         my $cmd = "cat " . $BASE . $filex . " >> " . $BASE . "jquery.compiled_" . $theme . ".css";
         print "$cmd\n";
@@ -83,4 +85,5 @@ jquery/css/pwprogressbar.css
 jquery/css/cursortrails.css
 jquery/css/themes/XXUIThemeNameXX/pagecamelcustom.css
 jquery/css/themes/BASECSS/pagecamelcustom.css
-jquery/css/top_menu.css
+jquery/css/themes/XXUIThemeNameXX/menubars.css
+jquery/css/themes/BASECSS/menubars.css

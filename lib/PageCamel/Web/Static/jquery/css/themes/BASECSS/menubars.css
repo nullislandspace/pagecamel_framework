@@ -1,0 +1,42 @@
+#top_menu {
+  //position: fixed;
+  //top: 0;
+  //left: 0;
+  //width: 100%;
+}
+
+/* Make jQuery UI Menu into a horizontal menubar with vertical dropdown */
+#top_menu > li { /* Menubar buttons */
+  display: inline-block;
+  white-space: nowrap;
+}
+#top_menu > li > ul > li { /* Menubar buttons inside dropdown */
+  display: block;
+  white-space: nowrap;
+}
+
+/* Change dropdown carets to correct direction and color */
+#top_menu > li > div > span.ui-icon-caret-1-e {
+  /* Caret on menubar */
+  background:var(--pagecamelmenubars-downarrow);
+}
+#top_menu ul li div span.ui-icon-caret-1-e {
+  /* Caret on dropdowns */
+  background:var(--pagecamelmenubars-leftarrow);
+}
+#sidebar_menu > li > div > span.ui-icon-caret-1-e {
+  /* Caret on menubar */
+  background:var(--pagecamelmenubars-leftarrow);
+}
+#sidebar_menu ul li div span.ui-icon-caret-1-e {
+  /* Caret on dropdowns */
+  background:var(--pagecamelmenubars-leftarrow);
+}
+
+#sidebar_menu > li { /* Menubar buttons */
+  white-space: nowrap;
+}
+#sidebar_menu > li > ul > li { /* Menubar buttons inside dropdown */
+  white-space: nowrap;
+}
+
