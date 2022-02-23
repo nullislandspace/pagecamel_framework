@@ -3,7 +3,9 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
-        <script type="text/javascript" src="/static/remoteconsolelog.js[% URLReloadPostfix %]"></script>
+        [%IF EnableRemoteConsoleLog == "1" %]
+            <script type="text/javascript" src="/static/remoteconsolelog.js[% URLReloadPostfix %]"></script>
+        [% END %]
 
         <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
         <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
@@ -52,8 +54,6 @@
             ttvars['json'] = new Object;
 
             $(document).ready(function(){
-
-
                 // auto-uninline onfoo html tags to JS file
                 XX_ON_EVENT_HANDLERS_XX
 
@@ -63,6 +63,8 @@
                 loadTTVars('#submasktemplatedataset');
                 loadTTVars('#websocketmasktemplatedataset');
                 loadTTVars('#autodialogstemplatedataset');
+
+                console.log("PageCamel Version " + ttvars.pagecamelversion);
 
                 $('#mobiledesktopselect_mobile').on('click', function() {
                     document.cookie = "clientMode=mobile; path=/;";
@@ -466,6 +468,7 @@
     <body>
         <!-- master template TT vars dataset -->
         <span id="mastertemplatedataset"
+            data-pagecamelversion="[% PageCamelVersion %]"
             data-isaprilfoolsday="[% IsAprilFoolsDay %]"
             data-urlreloadpostfix="[% URLReloadPostfix %]"
             data-webappshoweyes="[% WebAppShowEyes %]"
