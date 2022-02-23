@@ -268,9 +268,12 @@ sub get {
     );
     
     $self->wsmaskget($ua, \%settings, \%webdata);
-    
+
     my $subtemplate = $th->render_partials($self->{template}, %webdata);
-    return (status  =>  404) unless $subtemplate;
+    if(!defined($subtemplate)) {
+        print STDERR "Error rendering subtemplate ", $self->{template}, " for BaseWebSocket: ";
+        return (status  =>  404);
+    }
     $webdata{WEBSOCKETMASK} = $subtemplate;
 
     my $template = $th->get("basewebsocket", 1, %webdata);

@@ -3,6 +3,8 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
+        <script type="text/javascript" src="/static/remoteconsolelog.js[% URLReloadPostfix %]"></script>
+
         <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
         <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
 
@@ -50,6 +52,7 @@
             ttvars['json'] = new Object;
 
             $(document).ready(function(){
+
 
                 // auto-uninline onfoo html tags to JS file
                 XX_ON_EVENT_HANDLERS_XX
