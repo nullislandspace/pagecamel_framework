@@ -738,7 +738,10 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
 
     finishreload:
 
-    croak("Can't initialize module " . $self->{modname} . " due to config errors!") unless($ok);
+    if(!$ok) {
+        #print Dumper($self);
+        croak("Can't initialize module " . $self->{modname} . " due to config errors!");
+    }
 
     return;
 }
