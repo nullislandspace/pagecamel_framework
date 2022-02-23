@@ -116,7 +116,7 @@
             };
             ws.send(JSON.stringify(updateoutmsg));
             paintCanvas();
-            $('#kaffeesimcanvas').click(canvasClicks);
+            $('#kaffeesimcanvas').on('click',canvasClicks);
         };
 
         ws.onmessage = function(ev) {
