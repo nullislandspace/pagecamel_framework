@@ -19,12 +19,13 @@ use PageCamel::Helpers::UTF;
 
 use CSS::Minifier::XS qw(minify);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile writeBinFile);
+use Carp;
 
 my $BASE = "./lib/PageCamel/Web/Static/";
 
 my @files = <DATA>;
 
-my @themes = qw[blacksilk bluegreen classic corporateugliness orange recycled space];
+my @themes = qw[blacksilk bluegreen classic corporateugliness orange recycled space darkmode];
 
 foreach my $theme (@themes) {
     unlink($BASE . "jquery.compiled_" . $theme . ".css");
@@ -38,7 +39,8 @@ foreach my $theme (@themes) {
         $filex =~ s/XXUIThemeNameXX/$theme/g;
 
         if(!-f $BASE . $filex) {
-            die("File $filex not found!");
+            croak("File $filex not found!");
+            next;
         }
         my $cmd = "cat " . $BASE . $filex . " >> " . $BASE . "jquery.compiled_" . $theme . ".css";
         print "$cmd\n";
@@ -70,9 +72,6 @@ __DATA__
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.css
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.structure.css
 jquery/css/themes/XXUIThemeNameXX/jquery-ui.theme.css
-jquery/css/themes/XXUIThemeNameXX/dropdownmenu.css
-jquery/css/themes/BASECSS/dropdownmenu_top.css
-jquery/css/themes/BASECSS/dropdownmenu_side.css
 jquery/css/themes/XXUIThemeNameXX/select2.css
 jquery/css/themes/BASECSS/select2.css
 jquery/css/themes/XXUIThemeNameXX/jquery.datetimepicker.css
@@ -86,3 +85,5 @@ jquery/css/pwprogressbar.css
 jquery/css/cursortrails.css
 jquery/css/themes/XXUIThemeNameXX/pagecamelcustom.css
 jquery/css/themes/BASECSS/pagecamelcustom.css
+jquery/css/themes/XXUIThemeNameXX/menubars.css
+jquery/css/themes/BASECSS/menubars.css

@@ -3,6 +3,10 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
+        [%IF EnableRemoteConsoleLog == "1" %]
+            <script type="text/javascript" src="/static/remoteconsolelog.js[% URLReloadPostfix %]"></script>
+        [% END %]
+
         <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
         <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
 
@@ -50,7 +54,6 @@
             ttvars['json'] = new Object;
 
             $(document).ready(function(){
-
                 // auto-uninline onfoo html tags to JS file
                 XX_ON_EVENT_HANDLERS_XX
 
@@ -60,6 +63,8 @@
                 loadTTVars('#submasktemplatedataset');
                 loadTTVars('#websocketmasktemplatedataset');
                 loadTTVars('#autodialogstemplatedataset');
+
+                console.log("PageCamel Version " + ttvars.pagecamelversion);
 
                 $('#mobiledesktopselect_mobile').on('click', function() {
                     document.cookie = "clientMode=mobile; path=/;";
@@ -71,21 +76,14 @@
                     _init_pagecamel_pageviewstats();
                 }
 
-                
+                // register all "pagecamelnavdestination onclick events
                 $('[pagecamelnavdestination]').each(function() {
                     var mndest = $(this).attr('pagecamelnavdestination');
                     $(this).on('click', function() {
                         location.href=mndest;
                     });
                 });
-                /*
-                $('[pagedestinationpath]').each(function() {
-                    var href = $(this).attr('pagecamelnavdestination');
-                    if ($(this).prop('href') == window.location.href){
-                        $(this).addClass('active');
-                    }
-                });
-                */
+
                 $("select[searchable!='1']").selectmenu({
                     width: 400
                 });
@@ -105,11 +103,11 @@
                     image_unchecked:'/pics/checkbox_classic_OFF.png',
                     image_checked_delete:'/pics/checkbox_classic_DELETE.png'
                 });
-                   
+
                 $("input[displaytype=dateandtime]").datetimepicker({
                     format: 'Y-m-d H:i:s',
                     mask:true,
-                }); 
+                });
 
                 $("input[displaytype=dateonly]").datepicker({
                     dateFormat: 'yy-mm-dd',
@@ -299,10 +297,24 @@
                 document.getElementById('pagecamelPageContent').style.display = 'block';
                 document.getElementById('pagecamelFooterContent').style.display = 'block';
 
-                $('#jsddm_top > li').on('mouseover', jsddm_open);
-                $('#jsddm_top > li').on('mouseout',  jsddm_timer);
-                $('#jsddm_side > li').on('mouseover', jsddm_open);
-                $('#jsddm_side > li').on('mouseout',  jsddm_timer);
+
+                $('#sidebar_menu').menu();
+
+                $('#top_menu').menu();
+                  
+                $('#top_menu').menu({
+                    position: { my: 'left top', at: 'left bottom' },
+                    blur: function() {
+                        $(this).menu('option', 'position', { my: 'left top', at: 'left bottom' });
+                    },
+                    focus: function(e, ui) {
+                        if ($('#top_menu').get(0) !== $(ui).get(0).item.parent().get(0)) {
+                            $(this).menu('option', 'position', { my: 'left top', at: 'right top' });
+                        }
+                    },
+                });
+
+
 
                 // If appropriate, start the computer map
                 if(window.startMap) {
@@ -456,6 +468,7 @@
     <body>
         <!-- master template TT vars dataset -->
         <span id="mastertemplatedataset"
+            data-pagecamelversion="[% PageCamelVersion %]"
             data-isaprilfoolsday="[% IsAprilFoolsDay %]"
             data-urlreloadpostfix="[% URLReloadPostfix %]"
             data-webappshoweyes="[% WebAppShowEyes %]"
@@ -624,15 +637,23 @@
                         <tr align="center">
                             <td valign="top" align="center">
                                 <!-- **** DROP DOWN MENU *** -->
-                                <ul id="jsddm_top">
+                                <ul id="top_menu">
                                     [% FOREACH menu IN DropDownMenu %]
-                                        <li><div><a href="[% menu.defaultpath %]">[% tr.trquote(menu.title) %]</a></div>
-                                            <ul>
-                                                [% FOREACH menuitem IN menu.items %]
-                                                    <li><a href="[% menuitem.path %]">[% tr.trquote(menuitem.title) %]</a></li>
-                                                [% END %]
-                                            </ul>
-                                        </li>
+                                        [% IF menu.type == "submenustart" %]
+                                            <li align="left"><div>[% tr.trquote(menu.title) %]</div>
+                                                <ul>
+                                        [% ELSIF menu.type == "submenuend" %]
+                                                </ul>
+                                             </li>
+                                        [% ELSE %]
+                                             <li><div align="left"><!--<a href="[% menu.defaultpath %]">-->[% tr.trquote(menu.title) %]<!--</a>--></div>
+                                                <ul>
+                                                    [% FOREACH menuitem IN menu.items %]
+                                                        <li align="left"><a href="[% menuitem.path %]">[% tr.trquote(menuitem.title) %]</a></li>
+                                                    [% END %]
+                                                </ul>
+                                            </li>
+                                        [% END %]
                                     [% END %]
                                 </ul>
                             </td>
@@ -682,17 +703,26 @@
                         <table border="0"  align="center" cellpadding="10" width="100%">
                             <tr>
                                 <td width="100px" valign="top">
-                                    <ul id="jsddm_side">
+                                    <ul id="sidebar_menu">
                                         [% FOREACH menu IN DropDownMenu %]
-                                            <li><div><a href="[% menu.defaultpath %]">[% tr.trquote(menu.title) %]</a><br/></div>
+                                            [% IF menu.type == "submenustart" %]
+                                                <li><div>[% tr.trquote(menu.title) %]</div>
+                                                    <ul>
+                                            [% ELSIF menu.type == "submenuend" %]
+                                                    </ul>
+                                                 </li>
+                                            [% ELSE %]
 
-                                                <ul>
-                                                    [% FOREACH menuitem IN menu.items %]
-                                                        <li><a href="[% menuitem.path %]">[% tr.trquote(menuitem.title) %]</a></li>
-                                                    [% END %]
-                                                </ul>
+                                                <li><div><!--<a href="[% menu.defaultpath %]">-->[% tr.trquote(menu.title) %]<!--</a>--><br/></div>
 
-                                            </li>
+                                                    <ul>
+                                                        [% FOREACH menuitem IN menu.items %]
+                                                            <li><a href="[% menuitem.path %]">[% tr.trquote(menuitem.title) %]</a></li>
+                                                        [% END %]
+                                                    </ul>
+
+                                                </li>
+                                            [% END %]
                                         [% END %]
                                     </ul>
                                 </td>
@@ -826,5 +856,7 @@
         <div id="pagecamelpagefooter" class="pagecamelpagefooter_[% PAGECAMELPAGEFOOTERCOLOR %]">[% PAGECAMELPAGEFOOTERTEXT %]</div>
     [% END%]
 
+    <div class="stars"></div>
+    <div class="twinkling"></div>
     </body>
 </html>

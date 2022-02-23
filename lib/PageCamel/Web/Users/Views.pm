@@ -44,15 +44,33 @@ sub register {
 
 sub reload {
     my ($self) = @_;
-    # We don't load anything, but we use the opportunity to update our redirect
-    # links for our views
-    #
-    # This can't be done on "new" because at that time not all modules are
-    # configured yet. On the other hand, this doesn't change on a regular basis,
-    # so completly dynamic handling is not needed
-    foreach my $view (@{$self->{views}->{view}}) {
+
+
+    $self->iterateCheckViews($self->{views}->{view});
+
+    return;
+}
+
+sub iterateCheckViews {
+    my ($self, $checkview) = @_;
+
+    foreach my $view (@{$checkview}) {
         my $ok = 1;
-        foreach my $required (qw[display startpage level]) {
+        foreach my $required (qw[display]) {
+            if(!defined($view->{$required})) {
+                print STDERR "View does not define property $required!\n";
+                $ok = 0;
+            }
+        }
+        croak("Config errors detected!") unless $ok;
+
+        if(defined($view->{type}) && $view->{type} eq 'submenu') {
+            # This is a submenu, need to recursively check it
+            $self->iterateCheckViews($view->{view});
+            next;
+        }
+
+        foreach my $required (qw[startpage level]) {
             if(!defined($view->{$required})) {
                 print STDERR "View does not define property $required!\n";
                 $ok = 0;
@@ -210,8 +228,41 @@ sub get_late_defaultwebdata {
     my @dropdownmenu;
     my @activeview;
 
-    foreach my $view (@{$self->{views}->{view}}) {
-        next if(!contains($view->{level}, \@rights));
+    $self->iterateViews($webdata, \@dropdownmenu, \@activeview, \@rights, $activeURL, $self->{views}->{view});
+
+    $webdata->{DropDownMenu} = \@dropdownmenu;
+    $webdata->{DropDownMenuCount} = scalar @dropdownmenu;
+    $webdata->{QuickNavBar} = \@activeview;
+
+    return;
+}
+
+sub iterateViews {
+    my ($self, $webdata, $dropdownmenu, $activeview, $rights, $activeURL, $viewlist) = @_;
+
+    foreach my $view (@{$viewlist}) {
+        next if(defined($view->{level}) && !contains($view->{level}, $rights));
+
+        if(defined($view->{type}) && $view->{type} eq 'submenu') {
+            my %startitem = (
+                title => $view->{display},
+                type => 'submenustart',
+            );
+            my %enditem = (
+                type => 'submenuend',
+            );
+            push @{$dropdownmenu}, \%startitem;
+            $self->iterateViews($webdata, $dropdownmenu, $activeview, $rights, $activeURL, $view->{view});
+
+            if(defined($dropdownmenu->[-1]->{type}) && $dropdownmenu->[-1]->{type} eq 'submenustart') {
+                # Ok, empty (sub) menu, pop it back out
+                pop @{$dropdownmenu};
+            } else {
+                push @{$dropdownmenu}, \%enditem;
+            }
+
+            next;
+        }
 
         my $thisactive = 0;
 
@@ -240,7 +291,7 @@ sub get_late_defaultwebdata {
             items   => \@items,
             defaultpath => $defaultpath,
         );
-        push @dropdownmenu, \%mainitem;
+        push @{$dropdownmenu}, \%mainitem;
 
 
         if($thisactive) {
@@ -266,18 +317,15 @@ sub get_late_defaultwebdata {
                     }
                 }
 
-                push @activeview, \%item;
+                push @{$activeview}, \%item;
             }
         }
 
     }
 
-    $webdata->{DropDownMenu} = \@dropdownmenu;
-    $webdata->{DropDownMenuCount} = scalar @dropdownmenu;
-    $webdata->{QuickNavBar} = \@activeview;
-
     return;
 }
+
 
 
 1;

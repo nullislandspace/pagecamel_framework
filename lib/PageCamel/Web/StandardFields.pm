@@ -134,6 +134,7 @@ sub get_defaultwebdata {
 
     $webdata->{CurrentTime} = PageCamel::Helpers::DateStrings::getISODate();
     $webdata->{IsAprilFoolsDayRNG} = int(rand(1000));
+    $webdata->{PageCamelVersion} = $VERSION;
 
     { # Check the enable_april_fools flag
         my ($ok, $data) = $sysh->get($self->{modname}, 'enable_april_fools');

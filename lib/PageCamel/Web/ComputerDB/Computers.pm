@@ -570,8 +570,15 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         my @tmp;
         $webdata{HeadExtraCSS} = \@tmp;
     }
-    push @{$webdata{HeadExtraScripts}}, $self->{jspath};
-    push @{$webdata{HeadExtraCSS}}, $self->{csspath};
+
+    if(defined($self->{jspath})) {
+        push @{$webdata{HeadExtraScripts}}, $self->{jspath};
+    }
+    if(defined($self->{csspath})) {
+        push @{$webdata{HeadExtraCSS}}, $self->{csspath};
+    }
+
+    print Dumper($webdata{HeadExtraCSS});
     
     # -- CVCEditor stuff --
     push @{$webdata{HeadExtraScripts}}, (

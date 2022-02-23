@@ -105,7 +105,7 @@
         });
         speedbiastargetbar.progressbar("value", 500);
         
-        $("#startbutton").click(function() {
+        $("#startbutton").on('click',function() {
             var outmsg = {
                 type: 'START',
             };
@@ -113,14 +113,14 @@
             ws.send(JSON.stringify(outmsg));
         });
 
-        $("#stopbutton").click(function() {
+        $("#stopbutton").on('click',function() {
             var outmsg = {
                 type: 'STOP',
             };
             ws.send(JSON.stringify(outmsg));
         });
 
-        $("#echoonbutton").click(function() {
+        $("#echoonbutton").on('click',function() {
             if(wsconnected != 1) {
                 console.log("NOT CONNECTED!");
             } else {
@@ -132,7 +132,7 @@
             }
         });
 
-        $("#echooffbutton").click(function() {
+        $("#echooffbutton").on('click',function() {
             if(wsconnected != 1) {
                 console.log("NOT CONNECTED!");
             } else {
@@ -144,7 +144,7 @@
             }
         });
         
-        $("#vocoderonbutton").click(function() {
+        $("#vocoderonbutton").on('click',function() {
             if(wsconnected != 1) {
                 console.log("NOT CONNECTED!");
             } else {
@@ -156,7 +156,7 @@
             }
         });
         
-        $("#vocoderoffbutton").click(function() {
+        $("#vocoderoffbutton").on('click',function() {
             if(wsconnected != 1) {
                 console.log("NOT CONNECTED!");
             } else {
@@ -168,7 +168,7 @@
             }
         });
     
-        $("#playbackbutton").click(function() {
+        $("#playbackbutton").on('click',function() {
             if(isrecording != 1) {
                 console.log("NOT RECORDING!");
             } else if(wsconnected != 1) {
@@ -181,7 +181,7 @@
                 ws.send(JSON.stringify(outmsg));
             }
         });
-        $("#playbackbutton_winamp").click(function() {
+        $("#playbackbutton_winamp").on('click',function() {
             if(isrecording != 1) {
                 console.log("NOT RECORDING!");
             } else if(wsconnected != 1) {
@@ -194,7 +194,7 @@
                 ws.send(JSON.stringify(outmsg));
             }
         });
-        $("#playbackbutton_sultans").click(function() {
+        $("#playbackbutton_sultans").on('click',function() {
             if(isrecording != 1) {
                 console.log("NOT RECORDING!");
             } else if(wsconnected != 1) {
@@ -207,7 +207,7 @@
                 ws.send(JSON.stringify(outmsg));
             }
         });
-        $("#playbackbutton_walk").click(function() {
+        $("#playbackbutton_walk").on('click',function() {
             if(isrecording != 1) {
                 console.log("NOT RECORDING!");
             } else if(wsconnected != 1) {
@@ -220,7 +220,7 @@
                 ws.send(JSON.stringify(outmsg));
             }
         });
-        $("#playbackbutton_brothers").click(function() {
+        $("#playbackbutton_brothers").on('click',function() {
             if(isrecording != 1) {
                 console.log("NOT RECORDING!");
             } else if(wsconnected != 1) {
@@ -233,7 +233,7 @@
                 ws.send(JSON.stringify(outmsg));
             }
         });
-        $("#playbackbutton_tropico").click(function() {
+        $("#playbackbutton_tropico").on('click',function() {
             if(isrecording != 1) {
                 console.log("NOT RECORDING!");
             } else if(wsconnected != 1) {

@@ -1,0 +1,58 @@
+<p align="left">
+    <textarea name="consolelog" id="jsondatax" cols="130" rows="40" displaytype="scripteditor" align="left"></textarea>
+</p>
+[% tr.trquote("Enable updates") %]: <input type="checkbox" name="enableUpdate" checked="checked"><br/>
+
+<script>    
+    var codemirrors = {};
+    function websocketmaskOnload() {
+        // Scripteditor                     
+        $("textarea[displaytype='scripteditor']").each(function(index) {
+            // Slight problem here. Our textarea has width and height in characters, we want to fit
+            // a similar amount of characters as set in the original textarea config.
+            // So we need to get current size of textarea, replace it with a codemirror editor, then
+            // set the size of the new element multiplied by 2 (font looks about twice as big) to the original one.
+            // The mapping from characters to pixels wont be perfect, but good enough
+            // for consistency in the config files.
+            var elemname = $(this).attr('name');
+            var tempwidth = Math.floor($(this).width() * 1.5);
+            var tempheight = Math.floor($(this).height() * 1.5);
+            var codeelement = CodeMirror.fromTextArea(this, {
+                lineNumbers: true,          
+                matchBrackets: true,            
+                autoCloseBrackets: true,            
+                continueComments: "Enter",              
+                indentUnit: 4,                      
+                theme: "3024-night",                
+                extraKeys: {"Ctrl-Q": "toggleComment",
+                            "Ctrl-F": "findPersistent",
+                            }  
+            });                             
+            codeelement.setSize(tempwidth, tempheight);
+            codemirrors[elemname] = codeelement;
+        }); 
+
+    }
+
+
+    function handleMessage(msg) {                
+        if(msg.type === "LOGDATA") {
+            
+            if(getEnableStatus()) {
+                console.log("Got Logdata");
+                codemirrors['consolelog'].setValue(msg.logdata);
+            }
+            
+            return;
+        }
+        
+    }
+    
+    function getEnableStatus() {
+        var myval = $('input[name="enableUpdate"]').val();
+        if(myval != 'on') {
+            return false;
+        }
+        return true;
+    }    
+</script>

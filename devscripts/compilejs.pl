@@ -88,7 +88,6 @@ jquery/js/jquery.complexify.banlist.js
 jquery/js/jquery.complexify.js
 jquery/js/jquery.blockUI.js
 jquery/js/jquery.datetimepicker.js
-jquery/js/dropdownmenu.js
 jquery/js/jquery.insertatcaret.js
 jquery/js/jquery.xeyes-2.0.js
 jquery/js/jquery.transit.min.0.9.12.js

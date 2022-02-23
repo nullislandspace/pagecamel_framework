@@ -1,0 +1,4 @@
+:root{
+    --pagecamelmenubars-downarrow: url(/static/jquery/css/themes/blacksilk/images/ui-icons_ffffff_256x240.png) no-repeat -64px -16px !important;
+    --pagecamelmenubars-leftarrow: url(/static/jquery/css/themes/blacksilk/images/ui-icons_ffffff_256x240.png) no-repeat -32px -16px !important;
+}

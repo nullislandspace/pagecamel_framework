@@ -105,7 +105,14 @@ sub run {
     # Let STDOUT/STDERR settle down first
     sleep(0.1);
 
-    $self->{nameserver}->run(@{$self->{runargs}});
+    my $ok = 0;
+    eval {
+        $self->{nameserver}->run(@{$self->{runargs}});
+        $ok = 1;
+    };
+    if(!$ok) {
+        print STDERR "ERROR: ", $EVAL_ERROR, "\n";
+    }
     return;
 }
 
