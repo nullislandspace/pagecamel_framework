@@ -185,6 +185,22 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     my $permablocksel = $dbh->prepare_cached("SELECT DISTINCT ip_addr FROM firewall_permablock")
             or croak($dbh->errstr);
 
+    my $countryshitlistsel = $dbh->prepare_cached("SELECT * FROM firewall_country_shitlist ORDER BY country_code")
+            or croak($dbh->errstr);
+
+    if(!$countryshitlistsel->execute) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return;
+    }
+
+    my @blockedcountries;
+    while((my $line = $countryshitlistsel->fetchrow_hashref)) {
+        push @blockedcountries, $line->{country_code};
+    }
+    $countryshitlistsel->finish;
+    my $geoipblock = join(',', @blockedcountries);
+
     if(!$dnsipsel->execute) {
         $reph->debuglog($dbh->errstr);
         $dbh->rollback;
@@ -441,6 +457,7 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
                 print $ofh "# **** End pagecamel-generated rules ****\n";
                 next;
             } else {
+                $line =~ s/XXXGEOIPBLOCKSXXX/$geoipblock/g;
                 print $ofh $line;
             }
         }
@@ -474,6 +491,7 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
                 print $ofh "# **** End pagecamel-generated rules ****\n";
                 next;
             } else {
+                $line =~ s/XXXGEOIPBLOCKSXXX/$geoipblock/g;
                 print $ofh $line;
             }
         }
