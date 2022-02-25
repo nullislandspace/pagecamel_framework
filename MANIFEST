@@ -3,6 +3,7 @@ database/0001_remoteconsolelog.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
+devscripts/compilecanvasuijs.pl
 devscripts/compilecss.pl
 devscripts/compilejs.pl
 devscripts/debuginject.pl
@@ -281,6 +282,8 @@ lib/PageCamel/Web/Static/canvasjs/canvasbuttons.js
 lib/PageCamel/Web/Static/canvasjs/canvashelpers.js
 lib/PageCamel/Web/Static/canvasjs/canvasitemlist.js
 lib/PageCamel/Web/Static/canvasjs/canvastouchitemlist.js
+lib/PageCamel/Web/Static/canvasuijs.compiled-min.js
+lib/PageCamel/Web/Static/canvasuijs.compiled.js
 lib/PageCamel/Web/Static/canvasuijs/canvashelpers.js
 lib/PageCamel/Web/Static/canvasuijs/uiarrowbutton.js
 lib/PageCamel/Web/Static/canvasuijs/uibutton.js
