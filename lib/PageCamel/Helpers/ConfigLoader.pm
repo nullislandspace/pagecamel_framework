@@ -57,7 +57,7 @@ sub LoadConfig {
     }
 
     if(!defined($filedata) || $filedata eq "") {
-        croak("Can't load config file: Not found or empty!");
+        croak("Can't load config file $fname: Not found or empty!");
     }
 
     print "------- Parsing config file $fname ------\n";
