@@ -20,6 +20,7 @@ devscripts/tabs2spaces.pl
 devscripts/testserver.pl
 devscripts/updateClasses.pl
 devscripts/useEnglish.pl
+lib/PageCamel/CMDLine/DHCP.pm
 lib/PageCamel/CMDLine/DNS.pm
 lib/PageCamel/CMDLine/Legacy/LetsEncrypt.pm
 lib/PageCamel/CMDLine/LetsEncrypt.pm
