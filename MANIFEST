@@ -3,6 +3,7 @@ database/0001_remoteconsolelog.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
+devscripts/compilecanvasuijs.pl
 devscripts/compilecss.pl
 devscripts/compilejs.pl
 devscripts/debuginject.pl
@@ -19,6 +20,7 @@ devscripts/tabs2spaces.pl
 devscripts/testserver.pl
 devscripts/updateClasses.pl
 devscripts/useEnglish.pl
+lib/PageCamel/CMDLine/DHCP.pm
 lib/PageCamel/CMDLine/DNS.pm
 lib/PageCamel/CMDLine/Legacy/LetsEncrypt.pm
 lib/PageCamel/CMDLine/LetsEncrypt.pm
@@ -281,11 +283,15 @@ lib/PageCamel/Web/Static/canvasjs/canvasbuttons.js
 lib/PageCamel/Web/Static/canvasjs/canvashelpers.js
 lib/PageCamel/Web/Static/canvasjs/canvasitemlist.js
 lib/PageCamel/Web/Static/canvasjs/canvastouchitemlist.js
+lib/PageCamel/Web/Static/canvasuijs.compiled-min.js
+lib/PageCamel/Web/Static/canvasuijs.compiled.js
 lib/PageCamel/Web/Static/canvasuijs/canvashelpers.js
-lib/PageCamel/Web/Static/canvasuijs/uiarrow.js
+lib/PageCamel/Web/Static/canvasuijs/uiarrowbutton.js
 lib/PageCamel/Web/Static/canvasuijs/uibutton.js
+lib/PageCamel/Web/Static/canvasuijs/uidragndrop.js
 lib/PageCamel/Web/Static/canvasuijs/uiline.js
 lib/PageCamel/Web/Static/canvasuijs/uilist.js
+lib/PageCamel/Web/Static/canvasuijs/uilistitem.js
 lib/PageCamel/Web/Static/canvasuijs/uinumpad.js
 lib/PageCamel/Web/Static/canvasuijs/uipaylist.js
 lib/PageCamel/Web/Static/canvasuijs/uitext.js
