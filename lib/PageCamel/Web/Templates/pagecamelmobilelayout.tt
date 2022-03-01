@@ -233,12 +233,14 @@
             <div class="webgui_projectmottotext">[% ProjectMotto %]</div>
         </div>
 
+        <!--
         <div class="pagecamelmobiledesktopselectorbox">
             <div class="pagecamelmobiledesktopselectorboxtext">
                 [% tr.trquote('You are viewing the (limited) mobile version of this site.') %]
                 <a href="" id="mobiledesktopselect_desktop">[% tr.trquote("Click here to select the desktop version.") %]</a>
             </div>
         </div>
+        -->
 
 
     <div id="pagecamelPageContent" class="pagecamelPageContent" width="100%" align="center" valign="top" border="0">
