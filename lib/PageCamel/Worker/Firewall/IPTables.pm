@@ -338,9 +338,9 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @honeypotsix, "#    Block access to honeypot";
     foreach my $ip (@honeypotips) {
         if($ip =~ /\./) {
-            push @honeypotfour, "-A INPUT -s $ip -p tcp --dport 22 -j DROP";
+            push @honeypotfour, "-A INPUT -s $ip -p tcp --dport 22 -j REJECT";
         } else {
-            push @honeypotsix, "-A INPUT -s $ip -p tcp --dport 22 -j DROP";
+            push @honeypotsix, "-A INPUT -s $ip -p tcp --dport 22 -j REJECT";
         }
     }
 
@@ -348,9 +348,9 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @six, "#    PermaBlock";
     foreach my $ip (@permablockips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -j DROP";
+            push @four, "-A INPUT -s $ip -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -j DROP";
+            push @six, "-A INPUT -s $ip -j REJECT";
         }
     }
     
@@ -358,18 +358,18 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @four, "#    DNS Hostname";
     foreach my $host (@dnshosts) {
         next if(!defined($host) || $host eq '');
-        push @four, '-A INPUT -p udp --dport 53 -m string --hex-string "' . $host . '" --algo bm -j DROP';
+        push @four, '-A INPUT -p udp --dport 53 -m string --hex-string "' . $host . '" --algo bm -j REJECT';
     }
 
     push @four, "#    DNS IP";
     push @six, "#    DNS IP";
     foreach my $ip (@dnsips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p udp --dport 53 -j DROP";
-            push @four, "-A INPUT -s $ip -p tcp --dport 53 -j DROP";
+            push @four, "-A INPUT -s $ip -p udp --dport 53 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 53 -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -p udp --dport 53 -j DROP";
-            push @six, "-A INPUT -s $ip -p tcp --dport 53 -j DROP";
+            push @six, "-A INPUT -s $ip -p udp --dport 53 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 53 -j REJECT";
         }
     }
 
@@ -377,9 +377,9 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @six, "#    SSH";
     foreach my $ip (@sships) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 22 -j DROP";
+            push @four, "-A INPUT -s $ip -p tcp --dport 22 -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 22 -j DROP";
+            push @six, "-A INPUT -s $ip -p tcp --dport 22 -j REJECT";
         }
     }
 
@@ -387,11 +387,11 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @six, "#    IMAP/Dovecot";
     foreach my $ip (@dovecotips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 143 -j DROP";
-            push @four, "-A INPUT -s $ip -p tcp --dport 993 -j DROP";
+            push @four, "-A INPUT -s $ip -p tcp --dport 143 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 993 -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 143 -j DROP";
-            push @six, "-A INPUT -s $ip -p tcp --dport 993 -j DROP";
+            push @six, "-A INPUT -s $ip -p tcp --dport 143 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 993 -j REJECT";
         }
     }
 
@@ -399,11 +399,11 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @six, "#    IMAP/Postfix";
     foreach my $ip (@postfixips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 25 -j DROP";
-            push @four, "-A INPUT -s $ip -p tcp --dport 587 -j DROP";
+            push @four, "-A INPUT -s $ip -p tcp --dport 25 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 587 -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 25 -j DROP";
-            push @six, "-A INPUT -s $ip -p tcp --dport 587 -j DROP";
+            push @six, "-A INPUT -s $ip -p tcp --dport 25 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 587 -j REJECT";
         }
     }
 
@@ -411,11 +411,11 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @six, "#    Web/IP";
     foreach my $ip (@webips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 80 -j DROP";
-            push @four, "-A INPUT -s $ip -p tcp --dport 443 -j DROP";
+            push @four, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 80 -j DROP";
-            push @six, "-A INPUT -s $ip -p tcp --dport 443 -j DROP";
+            push @six, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
         }
     }
 
@@ -423,11 +423,11 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @six, "#    Web/CIDR";
     foreach my $cidr (@webcidrs) {
         if($cidr =~ /\./) {
-            push @four, "-A INPUT -s $cidr -p tcp --dport 80 -j DROP";
-            push @four, "-A INPUT -s $cidr -p tcp --dport 443 -j DROP";
+            push @four, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
+            push @four, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
         } else {
-            push @six, "-A INPUT -s $cidr -p tcp --dport 80 -j DROP";
-            push @six, "-A INPUT -s $cidr -p tcp --dport 443 -j DROP";
+            push @six, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
+            push @six, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
         }
     }
 
