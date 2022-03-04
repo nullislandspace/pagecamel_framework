@@ -117,7 +117,7 @@ sub work {
             my $ok = 1;
             foreach my $required (qw[SRC DPT]) {
                 if(!defined($parsed{$required})) {
-                    $reph-debuglog("GEOIP Parsing failed: ", $logtext);
+                    $reph->debuglog("GEOIP Parsing failed: ", $logtext);
                     $ok = 0;
                     last;
                 }
