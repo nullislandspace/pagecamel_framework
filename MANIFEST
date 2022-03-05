@@ -1402,6 +1402,7 @@ lib/PageCamel/Web/Static/jquery.compiled-min_recycled.css
 lib/PageCamel/Web/Static/jquery.compiled-min_space.css
 lib/PageCamel/Web/Static/jquery/css/cursortrails.css
 lib/PageCamel/Web/Static/jquery/css/datatables.css
+lib/PageCamel/Web/Static/jquery/css/jquery.jqplot.css
 lib/PageCamel/Web/Static/jquery/css/jquery.timepicker.css
 lib/PageCamel/Web/Static/jquery/css/pbar-ani.gif
 lib/PageCamel/Web/Static/jquery/css/pwprogressbar.css
@@ -1633,6 +1634,7 @@ lib/PageCamel/Web/Static/jquery/js/jquery.gotobutton.js
 lib/PageCamel/Web/Static/jquery/js/jquery.hashmask.js
 lib/PageCamel/Web/Static/jquery/js/jquery.iframe-transport.js
 lib/PageCamel/Web/Static/jquery/js/jquery.insertatcaret.js
+lib/PageCamel/Web/Static/jquery/js/jquery.jqplot.js
 lib/PageCamel/Web/Static/jquery/js/jquery.json-2.3.js
 lib/PageCamel/Web/Static/jquery/js/jquery.metadata.js
 lib/PageCamel/Web/Static/jquery/js/jquery.sha1.js
