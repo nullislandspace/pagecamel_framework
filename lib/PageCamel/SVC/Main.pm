@@ -316,7 +316,7 @@ sub work {
         my $newstate = 0;
         my $running = defined($app->{handle});
         my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
-        my $
+
         if($running) {
             $self->{clacks}->setAndStore($app->{clacks_name}, 1);
             $newstate = 1;
