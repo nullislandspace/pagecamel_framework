@@ -217,7 +217,8 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
         $retrycount--;
 
         if($retrycount) {
-            sleep(0.2);
+            my $sleeptime = (rand(30) / 100) + 0.02;
+            sleep($sleeptime);
         }
     }
 
