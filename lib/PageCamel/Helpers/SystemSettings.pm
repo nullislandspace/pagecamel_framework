@@ -17,6 +17,7 @@ use PageCamel::Helpers::UTF;
 
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize qw[dbfreeze dbthaw dbderef];
+use Time::HiRes qw[sleep];
 
 sub createNumber {
     my ($self, %setting) = @_;
@@ -199,14 +200,31 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
     $value = encode_utf8($value);
 
     my $upsth = $dbh->prepare_cached("SELECT merge_system_settings(?, ?, ?)")
-            or return;
-    if(!$upsth->execute($modulename, $settingname, $value)) {
+            or return 0;
+
+    # Retry for up to 2 seconds to avoid sporadic failures due to concurrency
+    my $retrycount = 10;
+    my $ok = 0;
+    while($retrycount) {
+        if($upsth->execute($modulename, $settingname, $value)) {
+            $ok = 1;
+            $upsth->finish;
+            $dbh->commit;
+            last;
+        }
+
         $dbh->rollback();
+        $retrycount--;
+
+        if($retrycount) {
+            sleep(0.2);
+        }
+    }
+
+    if(!$ok) {
         return 0;
     }
 
-    $upsth->finish;
-    $dbh->commit;
 
     # Now, reload complete data set and also push it into memcached
     my $sth = $dbh->prepare_cached("SELECT * FROM system_settings " .
