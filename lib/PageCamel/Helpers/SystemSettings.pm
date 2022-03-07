@@ -213,8 +213,10 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
                             "WHERE modulename = ? AND settingname = ?")
                     or croak($dbh->errstr);
 
-    $sth->execute($modulename, $settingname)
-            or croak($dbh->errstr);
+    if(!$sth->execute($modulename, $settingname)) {
+        $dbh->rollback();
+        return 0;
+    }
 
     if((my $row = $sth->fetchrow_hashref)) {
         $memh->set($memhname, $row);
