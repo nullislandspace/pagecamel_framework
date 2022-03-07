@@ -32,314 +32,329 @@ sub simplifyUA { ## no critic (Subroutines::ProhibitExcessComplexity)
 
     if($useragentname eq '' || $useragentname eq "''") { ## no critic (ControlStructures::ProhibitCascadingIfElse)
         $useragentname = '--unknown--';
-    } elsif($useragentname =~ /CC Client\/(\d+)/) {
+    } elsif($useragentname =~ /CC Client\/(\d+)/o) {
         $simpleUserAgent = "CC Client/$1";
     } elsif($useragentname eq "CCOld Bot") {
         $simpleUserAgent = "CC Client/1";
     } elsif($useragentname eq "--unknown--" ) {
         $simpleUserAgent = "NONE";
-    } elsif($useragentname =~ /XML\-RPC/) {
+    } elsif($useragentname =~ /XML\-RPC/o) {
         $simpleUserAgent = "XML-RPC";
-    } elsif($useragentname =~ /Scarecrow\/(\d+)/) {
+    } elsif($useragentname =~ /Scarecrow\/(\d+)/o) {
         $simpleUserAgent = "Scarecrow/$1";
-    } elsif($useragentname =~ /RBSDirect\/(.*)/) {
+    } elsif($useragentname =~ /RBSDirect\/(.*)/o) {
         $simpleUserAgent = "RBSDirect/$1";
-    } elsif($useragentname =~ /PonyExpress\/(\d+)/) {
+    } elsif($useragentname =~ /PonyExpress\/(\d+)/o) {
         $simpleUserAgent = "PonyExpress/$1";
-    } elsif($useragentname =~ /PageCamel LetsEncrypt\/(\d+)/) {
+    } elsif($useragentname =~ /PageCamel LetsEncrypt\/(\d+)/o) {
         $simpleUserAgent = "PageCamel LetsEncrypt/$1";
-    } elsif($useragentname =~ /PTouch\/(\d+)/) {
+    } elsif($useragentname =~ /PTouch\/(\d+)/o) {
         $simpleUserAgent = "PTouch/$1";
-    } elsif($useragentname =~ /mercurial\/proto-(\d+)/) {
+    } elsif($useragentname =~ /mercurial\/proto-(\d+)/o) {
         $simpleUserAgent = "Mercurial/Proto $1";
-    } elsif($useragentname =~ /Microsoft\ Office\ (.*)\ Discovery/) {
+    } elsif($useragentname =~ /Microsoft\ Office\ (.*)\ Discovery/o) {
         $simpleUserAgent = "MSOffice $1 Discovery";
-    } elsif($useragentname =~ /WWW\-Mechanize\/(\d+)/i) {
+    } elsif($useragentname =~ /WWW\-Mechanize\/(\d+)/io) {
         $simpleUserAgent = "Mechanize/$1";
-    } elsif($useragentname =~ /Java.*SDK/i) {
+    } elsif($useragentname =~ /Java.*SDK/io) {
         $simpleUserAgent = "JAVA SDK";
-    } elsif($useragentname =~ /Java\/.*/i) {
+    } elsif($useragentname =~ /Java\/.*/io) {
         $simpleUserAgent = "JAVA";
-    } elsif($useragentname =~ /ssllabs\.com/i) {
+    } elsif($useragentname =~ /ssllabs\.com/io) {
         $simpleUserAgent = "SSL Labs Checker";
-    } elsif($useragentname =~ /mostly.*cavac.at/i) {
+    } elsif($useragentname =~ /mostly.*cavac.at/io) {
         $simpleUserAgent = "cavac";
-    } elsif($useragentname =~ /(DavClnt)/i) {
+    } elsif($useragentname =~ /(DavClnt)/io) {
         $simpleUserAgent = "Potential_Virus/" . lc($1);
-    } elsif($useragentname =~ /Discordbot/i) {
+    } elsif($useragentname =~ /Discordbot/io) {
         $simpleUserAgent = "DiscordBot";
-    } elsif($useragentname =~ /(ZmEu|Morfeus|Comodo\ ssl\ checker)/i) {
+    } elsif($useragentname =~ /(ZmEu|Morfeus|Comodo\ ssl\ checker)/io) {
         $simpleUserAgent = "Virus/" . lc($1);
         $denyAccess = 1;
-    } elsif($useragentname =~ /(bingbot|googlebot|pagesinventory|feedfetcher\-google|plukkie|msnbot|yandex|google\-desktop|seznambot|turnitinbot|baidu|yahoo\!\ slurp|nerdybot|orangebot|twitterbot|paperlibot|duckduckgo|qwantify)/i) {
+    } elsif($useragentname =~ /(bingbot|googlebot|pagesinventory|feedfetcher\-google|plukkie|msnbot|yandex|google\-desktop|seznambot|turnitinbot|baidu|yahoo\!\ slurp|nerdybot|orangebot|twitterbot|paperlibot|duckduckgo|qwantify|xforce\-security\.com)/io) {
         $simpleUserAgent = "Webspider_good/" . lc($1);
-    } elsif($useragentname =~ /(netcraft.*survey|synapse|phpcrawl|wotbox|yacybot|zend_http_client|mail.ru\_bot|spbot|crazywebcrawler|go.*package\ http)/i) {
+    } elsif($useragentname =~ /(netcraft.*survey|synapse|phpcrawl|wotbox|yacybot|zend_http_client|mail.ru\_bot|spbot|crazywebcrawler|go.*package\ http)/io) {
         $simpleUserAgent = "Webspider_undecided/" . lc($1);
-    } elsif($useragentname =~ /(seokicks|indy\ library|ezooms|mj12bot|wbsearchbot|webcollage|dotbot|exabot|meanpathbot|binaryedge)/i) {
+    } elsif($useragentname =~ /(indy\ library|ezooms|mj12bot|wbsearchbot|webcollage|dotbot|exabot|meanpathbot|binaryedge)/io) {
         $simpleUserAgent = "Webspider_probation/" . lc($1);
         $denyAccess = 0;
-    } elsif($useragentname =~ /(x00_-gawa.sa.pilipinas.2015|blexbot|ahrefsbot|seostats)/i) {
+    } elsif($useragentname =~ /^axios\//io) {
+        $simpleUserAgent = "nodejs/axios";
+    } elsif($useragentname =~ /(x00_-gawa.sa.pilipinas.2015|blexbot|ahrefsbot|seostats|seokicks|seostar\.co|dataforseo\.com|censys\.io|paloaltonetworks\.com|expanseinc\.com)/io) {
         $simpleUserAgent = "Webspider_bad/" . lc($1);
         $denyAccess = 1;
-    } elsif($useragentname =~ /nmap\ scripting\ engine/i) {
+    } elsif($useragentname =~ /(alittle\ client|hello\, world|dataprovider\.com)/io) {
+        $simpleUserAgent = "Webspider_bad/" . lc($1);
+        $denyAccess = 1;
+    } elsif($useragentname =~ /nmap\ scripting\ engine/io) {
         $simpleUserAgent = "Hacker/NMAP";
         $denyAccess = 1;
-    } elsif($useragentname =~ /(monitis)/i) {
+    } elsif($useragentname =~ /(monitis)/io) {
         $simpleUserAgent = "DOS_ATTACK/" . lc($1);
         $denyAccess = 1;
-    } elsif($useragentname =~ /CPAN\:\:MINI/i) {
+    } elsif($useragentname =~ /CPAN\:\:MINI/io) {
         $simpleUserAgent = "CPAN-MINI";
-    } elsif($useragentname =~ /LWP\:\:Simple/i) {
+    } elsif($useragentname =~ /AdsTxtCrawler/o) {
+        $simpleUserAgent = "AdsTxtCrawler/ads.txt";
+    } elsif($useragentname =~ /miniflux\.app/io) {
+        $simpleUserAgent = "FeedReader/MiniFlux";
+    } elsif($useragentname =~ /NextCloud\-News/io) {
+        $simpleUserAgent = "FeedReader/NextCloud-News";
+    } elsif($useragentname =~ /entferbot/io) {
+        $simpleUserAgent = "SearchEngine/EntferBot";
+    } elsif($useragentname =~ /LWP\:\:Simple/io) {
         $simpleUserAgent = "LWP-Simple";
-    } elsif($useragentname =~ /ISOCIPv6Bot/i) {
+    } elsif($useragentname =~ /ISOCIPv6Bot/io) {
         $simpleUserAgent = "IPv6 Checker Bot";
-    } elsif($useragentname =~ /Magic\ Browser/i) {
+    } elsif($useragentname =~ /Magic\ Browser/io) {
         $simpleUserAgent = "Magic Browser";
-    } elsif($useragentname =~ /Fritz.Box/i) {
+    } elsif($useragentname =~ /Fritz.Box/io) {
         $simpleUserAgent = "Fritz!Box";
-    } elsif($useragentname =~ /(?:libwww-perl|LWP)/i) {
+    } elsif($useragentname =~ /(?:libwww-perl|LWP)/io) {
         $simpleUserAgent = "LWP";
-    } elsif($useragentname =~ /wget/i) {
+    } elsif($useragentname =~ /wget/io) {
         $simpleUserAgent = "wget";
-    } elsif($useragentname =~ /curl/i) {
+    } elsif($useragentname =~ /curl/io) {
         $simpleUserAgent = "curl";
-    } elsif($useragentname =~ /python\-requests/i) {
+    } elsif($useragentname =~ /python\-requests/io) {
         $simpleUserAgent = "python";
-    } elsif($useragentname =~ /Microsoft-WebDAV-MiniRedir/i) {
+    } elsif($useragentname =~ /Microsoft-WebDAV-MiniRedir/io) {
         $simpleUserAgent = "Microsoft WebDAV";
-    } elsif($useragentname =~ /facebookexternalhit/i || $useragentname =~ /facebook.*externalhit/) {
+    } elsif($useragentname =~ /facebookexternalhit/io || $useragentname =~ /facebook.*externalhit/o) {
         $simpleUserAgent = "Facebook";
-    } elsif($useragentname =~ /bitlybot\/(.*?)\ /) {
+    } elsif($useragentname =~ /bitlybot\/(.*?)\ /o) {
         $simpleUserAgent = "Bit.ly/$1";
-    } elsif($useragentname =~ /Cliqzbot\/(.*?)\ /i) {
+    } elsif($useragentname =~ /Cliqzbot\/(.*?)\ /io) {
         $simpleUserAgent = "Cliqz.com/$1";
-    } elsif($useragentname =~ /redditbot\/(.*?)\;/) {
+    } elsif($useragentname =~ /redditbot\/(.*?)\;/o) {
         $simpleUserAgent = "RedditBot/$1";
-    } elsif($useragentname =~ /^newspaper\//) {
+    } elsif($useragentname =~ /^newspaper\//o) {
         $simpleUserAgent = "Python/Newspaperlib";
-    } elsif($useragentname =~ /^python\-urllib/i) {
+    } elsif($useragentname =~ /^python\-urllib/io) {
         $simpleUserAgent = "Python/urllib";
-    } elsif($useragentname =~ /^Ruby$/) {
+    } elsif($useragentname =~ /^python.*aiohttp/io) {
+        $simpleUserAgent = "Python/aiohttp";
+    } elsif($useragentname =~ /^Ruby$/o) {
         $simpleUserAgent = "Ruby";
-    } elsif($useragentname =~ /^okhttp\//) {
+    } elsif($useragentname =~ /^okhttp\//o) {
         $simpleUserAgent = "Java/okhttplib";
-    } elsif($useragentname =~ /^slackbot\-linkexpanding\ (.*?)\ /i || $useragentname =~ /^Slackbot\ (.*?)\ /i) {
+    } elsif($useragentname =~ /^slackbot\-linkexpanding\ (.*?)\ /i || $useragentname =~ /^Slackbot\ (.*?)\ /io) {
         $simpleUserAgent = "Slackbot/$1";
-    } elsif($useragentname =~ /^AlienBlue/) {
+    } elsif($useragentname =~ /^AlienBlue/o) {
         $simpleUserAgent = "AlienBlue-Browser";
-    } elsif($useragentname =~ /^SafeDNSBot/) {
+    } elsif($useragentname =~ /^SafeDNSBot/o) {
         $simpleUserAgent = "SafeDNS/ContentBlocker"; # Used by families and companies to only allow specific categories of content
-    } elsif($useragentname =~ /^Dillo\//) {
+    } elsif($useragentname =~ /^Dillo\//o) {
         $simpleUserAgent = "Dillo-Browser";
-    } elsif($useragentname =~ /go\-http\-client\/(.*?)/i) {
+    } elsif($useragentname =~ /go\-http\-client\/(.*?)/io) {
         $simpleUserAgent = "GO-HTTP/$1";
-    } elsif($useragentname =~ /windows\-media\-player\/(.*?)/i) {
+    } elsif($useragentname =~ /windows\-media\-player\/(.*?)/io) {
         $simpleUserAgent = "MS/MediaPlayer/$1";
-    } elsif($useragentname =~ /www\.karriere\.at/) {
+    } elsif($useragentname =~ /www\.karriere\.at/o) {
         $simpleUserAgent = "Jobs/karriere.at";
-    } elsif($useragentname =~ /www\.metajob\.at/) {
+    } elsif($useragentname =~ /www\.metajob\.at/o) {
         $simpleUserAgent = "Jobs/metajob.at";
-    } elsif($useragentname =~ /^com\.google\.GoogleMobile/i) {
+    } elsif($useragentname =~ /^com\.google\.GoogleMobile/io) {
         $simpleUserAgent = "GoogleBot/Mobile";
-    } elsif($useragentname =~ /Google\-Site\-Verification/i) {
+    } elsif($useragentname =~ /Google\-Site\-Verification/io) {
         $simpleUserAgent = "GoogleBot/Site-Verification";
-    } elsif($useragentname =~ /alexa\ site\ audit/i) {
+    } elsif($useragentname =~ /alexa\ site\ audit/io) {
         $simpleUserAgent = "AlexaBot";
-    } elsif($useragentname =~ /^archive\.org/i || $useragentname =~ /wayback\ machine/i || $useragentname =~ /www\.archive\.org/i) {
+    } elsif($useragentname =~ /^archive\.org/io || $useragentname =~ /wayback\ machine/io || $useragentname =~ /www\.archive\.org/io) {
         $simpleUserAgent = "Archive.org";
-    } elsif($useragentname =~ /coccocbot\-web/) {
+    } elsif($useragentname =~ /coccocbot\-web/o) {
         $simpleUserAgent = "Coccoc.co/Web (Vietnam)";
-    } elsif($useragentname =~ /coccocbot\-image/) {
+    } elsif($useragentname =~ /coccocbot\-image/o) {
         $simpleUserAgent = "Coccoc.co/Image (Vietnam)";
-    } elsif($useragentname =~ /^GarlikCrawler/) {
+    } elsif($useragentname =~ /^GarlikCrawler/o) {
         $simpleUserAgent = "Garlik.com";
-    } elsif($useragentname =~ /Uptimebot/ || $useragentname =~ /Uptime\.com/) {
+    } elsif($useragentname =~ /Uptimebot/o || $useragentname =~ /Uptime\.com/o) {
         $simpleUserAgent = "Uptime.com"; # Seems useful, more or less
-    } elsif($useragentname =~ /soup\.io/) {
+    } elsif($useragentname =~ /soup\.io/o) {
         $simpleUserAgent = "Soup.IO";
-    } elsif($useragentname =~ /^BUbiNG/) {
+    } elsif($useragentname =~ /^BUbiNG/o) {
         $simpleUserAgent = "BUbiNG"; # Some university experimental crawler. Let it in for now
-    } elsif($useragentname =~ /^WizeNoze\ Discovery\ Crawler/i) {
+    } elsif($useragentname =~ /^WizeNoze\ Discovery\ Crawler/io) {
         $simpleUserAgent = "Wizenoze.com"; # Some child learning thingamabobcrawler. Let it in for now
-    } elsif($useragentname =~ /^CSS\ Certificate\ Spider\ /) {
+    } elsif($useragentname =~ /^CSS\ Certificate\ Spider\ /o) {
         $simpleUserAgent = "CertChecker"; # Seems to check/cache SSL public certs, seems legit
-    } elsif($useragentname =~ /^Nuzzel$/) {
+    } elsif($useragentname =~ /^Nuzzel$/o) {
         $simpleUserAgent = "Nuzzel/NewsCollector"; # Seems legit
-    } elsif($useragentname =~ /researchscan\.comsys\.rwth\-aachen\.de/i) {
+    } elsif($useragentname =~ /researchscan\.comsys\.rwth\-aachen\.de/io) {
         # Some university security research
         $simpleUserAgent = "Research/RWTH_Achen_Uni";
-    } elsif($useragentname =~ /netsystemsresearch\.com/i) {
+    } elsif($useragentname =~ /netsystemsresearch\.com/io) {
         # Some IoT security research
         $simpleUserAgent = "Research/IoT";
-    } elsif($useragentname =~ /Akregator/i) {
+    } elsif($useragentname =~ /Akregator/io) {
         # Part of KDE it seems
         $simpleUserAgent = "KDE/Akregator";
-    } elsif($useragentname =~ /CakePHP/i) {
+    } elsif($useragentname =~ /CakePHP/io) {
         # CakePHP
         $simpleUserAgent = "CakePHP";
-    } elsif($useragentname =~ /com\.google\.android\.apps\.searchlite/i) {
+    } elsif($useragentname =~ /com\.google\.android\.apps\.searchlite/io) {
         # Google Go?
         $simpleUserAgent = "Google Go/searchlite";
-    } elsif($useragentname =~ /mindup\.de/i) {
+    } elsif($useragentname =~ /mindup\.de/io) {
         # mindup.de "Marketing using artificial intelligence"
         $simpleUserAgent = "Marketing/mindup.de";
         $denyAccess = 1;
-    } elsif($useragentname =~ /facebook.*externalhit/i) {
+    } elsif($useragentname =~ /facebook.*externalhit/io) {
         # Facebook
         $simpleUserAgent = "Facebook";
-    } elsif($useragentname =~ /di\-cloud\-parser/i) {
+    } elsif($useragentname =~ /di\-cloud\-parser/io) {
         # I have NO idea what that is supposed to be. For now, let it in
         $simpleUserAgent = "di-cloud-parser";
-    } elsif($useragentname =~ /security\.ipip\.net/i) {
+    } elsif($useragentname =~ /security\.ipip\.net/io) {
         # Chinese "Security" site that collects data on http headers and open ports. Block it
         $simpleUserAgent = "Suspicious/security.ipip.net";
         $denyAccess = 1;
-    } elsif($useragentname =~ /^m$/i) {
+    } elsif($useragentname =~ /^m$/io) {
         # Whatever the hell this is, is highly strange. Let's just block it. As far as i can see, it's some kind of crawler
         $simpleUserAgent = "Suspicious/M";
         $denyAccess = 1;
-    } elsif($useragentname =~ /mediatoolkit\.com/i) {
+    } elsif($useragentname =~ /mediatoolkit\.com/io) {
         # Another of those strange "brand protection" crawlers. Go to hell
         $simpleUserAgent = "BrandProtection/mediatoolkit.com";
         $denyAccess = 1;
-    } elsif($useragentname =~ /domainsono\.com/i) {
+    } elsif($useragentname =~ /domainsono\.com/io) {
         # Crawler, but the domain is currently "for sale". Block it
         $simpleUserAgent = "Suspicious/domainsono.com";
         $denyAccess = 1;
-    } elsif($useragentname =~ /crawler\@alexa\.com/i) {
+    } elsif($useragentname =~ /crawler\@alexa\.com/io) {
         # Alexa crawler
         $simpleUserAgent = "Alexa";
-    } elsif($useragentname =~ /cloudsystemnetworks\.com/i) {
+    } elsif($useragentname =~ /cloudsystemnetworks\.com/io) {
         # Crawler without good description. Or any described purpose at all. Block it
         $simpleUserAgent = "Suspicious/cloudsystemnetworks.com";
         $denyAccess = 1;
-    } elsif($useragentname =~ /trendsmapresolver/i) {
+    } elsif($useragentname =~ /trendsmapresolver/io) {
         # Strange crawler, can't find anything concrete about it. Make it go away
         $simpleUserAgent = "Suspicious/trendsmapresolver";
         $denyAccess = 1;
-    } elsif($useragentname =~ /vebidoobot/i) {
+    } elsif($useragentname =~ /vebidoobot/io) {
         # "person search crawler". In my opinion, this violates the EU General Data Protection Regulation, so block it
         $simpleUserAgent = "GDPR violation/vebidoobot";
         $denyAccess = 1;
-    } elsif($useragentname =~ /wappalyzer/i) {
+    } elsif($useragentname =~ /wappalyzer/io) {
         # Strange crawler that analyses technology used by a website. Accept it, at least for now
         $simpleUserAgent = "Suspicious/Wappalyzer";
-    } elsif($useragentname =~ /linkfluence\.com/i) {
+    } elsif($useragentname =~ /linkfluence\.com/io) {
         # Strange crawler that does "social data research". Block it
         $simpleUserAgent = "Suspicious/linkfluence.com";
         $denyAccess = 1;
-    } elsif($useragentname =~ /pleskbot/i) {
+    } elsif($useragentname =~ /pleskbot/io) {
         # "Server DDOS protection". I don't use it, so deny access
         $simpleUserAgent = "Suspicious/PleskBot";
         $denyAccess = 1;
-    } elsif($useragentname =~ /getpocket\.com/i) {
+    } elsif($useragentname =~ /getpocket\.com/io) {
         # Website aggregation tool. Accept it.... for now
         $simpleUserAgent = "Aggregation/getpocket.com";
-    } elsif($useragentname =~ /sogou\.com/i) {
+    } elsif($useragentname =~ /sogou\.com/io) {
         # Chinese search engine
         $simpleUserAgent = "Search/Chinese/sogou";
-    } elsif($useragentname =~ /researchbot/i) {
+    } elsif($useragentname =~ /researchbot/io) {
         # unknown crawler with the name "researchbot". This is too generic a name to block.
         $simpleUserAgent = "Suspicious/ResearchBot";
-    } elsif($useragentname =~ /symfony\ browserkit/i) {
+    } elsif($useragentname =~ /symfony\ browserkit/io) {
         # Generic toolkit/library for web automation. As far as i can see, similar to www::mechanize and stuff. Accept it for now
         $simpleUserAgent = "Suspicious/Symfony BrowserKit";
-    } elsif($useragentname =~ /petalsearch\.com/i) {
+    } elsif($useragentname =~ /petalsearch\.com/io) {
         # Aggressive search engine
         $simpleUserAgent = "Suspicious/Petalbot";
         $denyAccess = 1;
-    } elsif($useragentname =~ /thither\.direct/i) {
+    } elsif($useragentname =~ /thither\.direct/io) {
         #  Not sure, seems to be marketing. Block it.
         $simpleUserAgent = "Suspicious/Thither.Direct";
         $denyAccess = 1;
-    } elsif($useragentname =~ /MauiBot/i) {
+    } elsif($useragentname =~ /MauiBot/io) {
         # Seems kind of a new bot, not much info, but according to forums at least tries to comply to robots.txt
         $simpleUserAgent = "MauiBot";
-    } elsif($useragentname =~ /datenbutler\.de/i) {
+    } elsif($useragentname =~ /datenbutler\.de/io) {
         # Seems to sell access for searching webshops and blogs. Block it.
         $simpleUserAgent = "Suspicious/datenbutler.de";
         $denyAccess = 1;
-    } elsif($useragentname =~ /nlpproject\.info/i) {
+    } elsif($useragentname =~ /nlpproject\.info/io) {
         # Crawler that doesn't provide ANY info (website down)
         $simpleUserAgent = "Suspicious/nlpproject.info";
         $denyAccess = 1;
-    } elsif($useragentname =~ /tracemyfile\.com/i) {
+    } elsif($useragentname =~ /tracemyfile\.com/io) {
         # See who copied whos images. Seems kinda useful
         $simpleUserAgent = "tracemyfile.com";
-    } elsif($useragentname =~ /backlinktest\.com/i) {
+    } elsif($useragentname =~ /backlinktest\.com/io) {
         # Some german backlink tester. Seem like a genuine (private) research project
         $simpleUserAgent = "BacklinkCrawler";
-    } elsif($useragentname =~ /istellabot\//i) {
+    } elsif($useragentname =~ /istellabot\//io) {
         # Some italian ISP search engine
         $simpleUserAgent = "ISP/istellabot";
-    } elsif($useragentname =~ /commoncrawl\.org/i) {
+    } elsif($useragentname =~ /commoncrawl\.org/io) {
         # provides "copies of the internet for research". Ugh...
         $simpleUserAgent = "CommonCrawl scraper";
         $denyAccess = 1;
-    } elsif($useragentname =~ /re\-re\.ru/i) {
+    } elsif($useragentname =~ /re\-re\.ru/io) {
         # Soem online flash tool. Didn't look any further than that, let it die.
         $simpleUserAgent = "Re-Re Studio";
         $denyAccess = 1;
-    } elsif($useragentname =~ /ltx71/i) {
+    } elsif($useragentname =~ /ltx71/io) {
         # LTX71 "crawling the net for research purposes" without giving a hint what the research is about.
         # Yeah, right, fuck you.
         $simpleUserAgent = "LTX71/unknown";
         $denyAccess = 1;
-    } elsif($useragentname =~ /findxbot/i) {
+    } elsif($useragentname =~ /findxbot/io) {
         $simpleUserAgent = "FindXBot/spambot";
         $denyAccess = 1;
-    } elsif($useragentname =~ /daum\.net/i) {
+    } elsif($useragentname =~ /daum\.net/io) {
         $simpleUserAgent = "Daum/webscraper";
         $denyAccess = 1;
-    } elsif($useragentname =~ /gluten\ free\ crawler/i) {
+    } elsif($useragentname =~ /gluten\ free\ crawler/io) {
         # Strange crawler, missing privacy clauses and no hint how the data gets used
         $simpleUserAgent = "GlutenFree/suspicious";
         $denyAccess = 1;
-    } elsif($useragentname =~ /^web\ fire\ spider/i) {
+    } elsif($useragentname =~ /^web\ fire\ spider/io) {
         # SEO garbage
         $simpleUserAgent = "WebFire.com/SEO";
         $denyAccess = 1;
-    } elsif($useragentname =~ /Nutch\-/i) {
+    } elsif($useragentname =~ /Nutch\-/io) {
         # SEO garbage
         $simpleUserAgent = "Nutch/SEO";
         $denyAccess = 1;
-    } elsif($useragentname =~ /linkdex\.com/i) {
+    } elsif($useragentname =~ /linkdex\.com/io) {
         # SEO garbage
         $simpleUserAgent = "Linkdex/SEO";
         $denyAccess = 1;
-    } elsif($useragentname =~ /SemrushBot/i) {
+    } elsif($useragentname =~ /SemrushBot/io) {
         # "SEO consulting"
         $simpleUserAgent = "Semrush/SEO";
         $denyAccess = 1;
-    } elsif($useragentname =~ /ubermetrics\-technologies\.com/i) {
+    } elsif($useragentname =~ /ubermetrics\-technologies\.com/io) {
         # Data reseller? SEO? Who cares?
         $simpleUserAgent = "Ubermetrics/SEO";
         $denyAccess = 1;
-    } elsif($useragentname =~ /^masscan\//i) {
+    } elsif($useragentname =~ /^masscan\//io) {
         # Portscanner. Don't need it
         $simpleUserAgent = "masscan/portsca";
         $denyAccess = 1;
-    } elsif($useragentname =~ /adscanner\//i) {
+    } elsif($useragentname =~ /adscanner\//io) {
         # Portscanner. Don't need it
         $simpleUserAgent = "Adscanner";
         $denyAccess = 1;
-    } elsif($useragentname =~ /megaindex/i) {
+    } elsif($useragentname =~ /megaindex/io) {
         # bandwidth wasting crawler
         $simpleUserAgent = "MegaIndex";
         $denyAccess = 1;
-    } elsif($useragentname =~ /7ooo\.ru/i) {
+    } elsif($useragentname =~ /7ooo\.ru/io) {
         # very strange russion site, let's block its crawler
         $simpleUserAgent = "7ooo.ru";
         $denyAccess = 1;
-    } elsif($useragentname =~ /A6\-Indexer/i) {
+    } elsif($useragentname =~ /A6\-Indexer/io) {
         # Web scraper hosted in Amazon cloud
         $simpleUserAgent = "A6-Indexer";
         $denyAccess = 1;
-    } elsif($useragentname =~ /Barkrowler/i || $useragentname =~ /exensa\.com/) {
+    } elsif($useragentname =~ /Barkrowler/io || $useragentname =~ /exensa\.com/o) {
         # "Big data analysis", yeah, right, go fuck yourself
         $simpleUserAgent = "Barkrowler";
         $denyAccess = 1;
-    } elsif($useragentname =~ /bot\.myoha\.at/i) {
+    } elsif($useragentname =~ /bot\.myoha\.at/io) {
         # scrapes email anmd postal adresses
         $simpleUserAgent = "myoha adress scraper";
         $denyAccess = 1;
