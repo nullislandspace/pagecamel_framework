@@ -112,7 +112,7 @@ sub work {
                                         FROM accesslog
                                         WHERE (useragent_simplified IS NULL
                                         OR useragent_simplified = 'UNKNOWN')
-                                        LIMIT 20000")
+                                        LIMIT 20000 FOR UPDATE SKIP LOCKED")
             or croak($dbh->errstr);
 
     my $upsth = $dbh->prepare_cached("UPDATE accesslog
@@ -122,7 +122,7 @@ sub work {
 
     $selsth->execute() or croak($dbh->errstr);
     while((my $line = $selsth->fetchrow_hashref)) {
-        if(($workCount % 1000) == 0) {
+        if(($workCount % 10) == 0) {
             $memh->refresh_lifetick;
             if($workCount == 0) {
                 $reph->debuglog("   Logid " . $line->{logid} . "  ($workCount)");
