@@ -32,7 +32,7 @@ sub createNumber {
     }
 
 
-    my ($ok, $data) = $self->get($setting{modulename}, $setting{settingname});
+    my ($ok, $data) = $self->get($setting{modulename}, $setting{settingname}, 1);
     if($ok) {
         return ($self->updateProcessinghints($setting{modulename}, $setting{settingname}, $setting{processinghints}) &&
                     $self->updateMinMax($setting{modulename}, $setting{settingname}, $setting{value_min}, $setting{value_max}));
