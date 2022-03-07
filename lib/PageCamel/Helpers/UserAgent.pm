@@ -75,12 +75,12 @@ sub simplifyUA { ## no critic (Subroutines::ProhibitExcessComplexity)
         $simpleUserAgent = "Webspider_good/" . lc($1);
     } elsif($useragentname =~ /(netcraft.*survey|synapse|phpcrawl|wotbox|yacybot|zend_http_client|mail.ru\_bot|spbot|crazywebcrawler|go.*package\ http)/io) {
         $simpleUserAgent = "Webspider_undecided/" . lc($1);
-    } elsif($useragentname =~ /(indy\ library|ezooms|mj12bot|wbsearchbot|webcollage|dotbot|exabot|meanpathbot|binaryedge)/io) {
+    } elsif($useragentname =~ /(indy\ library|ezooms|mj12bot|wbsearchbot|webcollage|exabot|meanpathbot|binaryedge)/io) {
         $simpleUserAgent = "Webspider_probation/" . lc($1);
         $denyAccess = 0;
     } elsif($useragentname =~ /^axios\//io) {
         $simpleUserAgent = "nodejs/axios";
-    } elsif($useragentname =~ /(x00_-gawa.sa.pilipinas.2015|blexbot|ahrefsbot|seostats|seokicks|seostar\.co|dataforseo\.com|censys\.io|paloaltonetworks\.com|expanseinc\.com)/io) {
+    } elsif($useragentname =~ /(x00_-gawa.sa.pilipinas.2015|blexbot|ahrefsbot|seostats|seokicks|seostar\.co|dataforseo\.com|censys\.io|paloaltonetworks\.com|expanseinc\.com|dotbot)/io) {
         $simpleUserAgent = "Webspider_bad/" . lc($1);
         $denyAccess = 1;
     } elsif($useragentname =~ /(alittle\ client|hello\, world|dataprovider\.com)/io) {
@@ -261,7 +261,7 @@ sub simplifyUA { ## no critic (Subroutines::ProhibitExcessComplexity)
         $simpleUserAgent = "Suspicious/Symfony BrowserKit";
     } elsif($useragentname =~ /petalsearch\.com/io) {
         # Aggressive search engine
-        $simpleUserAgent = "Suspicious/Petalbot";
+        $simpleUserAgent = "Webspider_bad/Petalbot";
         $denyAccess = 1;
     } elsif($useragentname =~ /thither\.direct/io) {
         #  Not sure, seems to be marketing. Block it.
@@ -272,7 +272,7 @@ sub simplifyUA { ## no critic (Subroutines::ProhibitExcessComplexity)
         $simpleUserAgent = "MauiBot";
     } elsif($useragentname =~ /datenbutler\.de/io) {
         # Seems to sell access for searching webshops and blogs. Block it.
-        $simpleUserAgent = "Suspicious/datenbutler.de";
+        $simpleUserAgent = "Webspider_bad/datenbutler.de";
         $denyAccess = 1;
     } elsif($useragentname =~ /nlpproject\.info/io) {
         # Crawler that doesn't provide ANY info (website down)
