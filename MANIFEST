@@ -289,12 +289,14 @@ lib/PageCamel/Web/Static/canvasuijs.compiled.js
 lib/PageCamel/Web/Static/canvasuijs/canvashelpers.js
 lib/PageCamel/Web/Static/canvasuijs/uiarrowbutton.js
 lib/PageCamel/Web/Static/canvasuijs/uibutton.js
+lib/PageCamel/Web/Static/canvasuijs/uicircle.js
 lib/PageCamel/Web/Static/canvasuijs/uidragndrop.js
 lib/PageCamel/Web/Static/canvasuijs/uiline.js
 lib/PageCamel/Web/Static/canvasuijs/uilist.js
 lib/PageCamel/Web/Static/canvasuijs/uilistitem.js
 lib/PageCamel/Web/Static/canvasuijs/uinumpad.js
 lib/PageCamel/Web/Static/canvasuijs/uipaylist.js
+lib/PageCamel/Web/Static/canvasuijs/uitableplan.js
 lib/PageCamel/Web/Static/canvasuijs/uitext.js
 lib/PageCamel/Web/Static/canvasuijs/uitextbox.js
 lib/PageCamel/Web/Static/canvasuijs/uiview.js
