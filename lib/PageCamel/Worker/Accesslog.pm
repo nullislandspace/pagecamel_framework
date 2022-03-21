@@ -112,17 +112,22 @@ sub work {
                                         FROM accesslog
                                         WHERE (useragent_simplified IS NULL
                                         OR useragent_simplified = 'UNKNOWN')
-                                        LIMIT 20000")
+                                        LIMIT 20000 FOR UPDATE SKIP LOCKED")
             or croak($dbh->errstr);
 
     my $upsth = $dbh->prepare_cached("UPDATE accesslog
                                      SET useragent_simplified = ?
-                                     WHERE logid = ?")
+                                     WHERE useragent = ? AND 
+                                     (
+                                        useragent_simplified IS NULL
+                                        OR useragent_simplified = 'UNKNOWN'
+                                     )")
             or croak($dbh->errstr);
 
     $selsth->execute() or croak($dbh->errstr);
+    my %processed;
     while((my $line = $selsth->fetchrow_hashref)) {
-        if(($workCount % 1000) == 0) {
+        if(($workCount % 10) == 0) {
             $memh->refresh_lifetick;
             if($workCount == 0) {
                 $reph->debuglog("   Logid " . $line->{logid} . "  ($workCount)");
@@ -132,12 +137,17 @@ sub work {
         }
         $workCount++;
 
+        if(defined($processed{$line->{useragent}})) {
+            next;
+        }
+        $processed{$line->{useragent}} = 1;
+
         my ($simpleUserAgent, $badBot) = simplifyUA($line->{useragent});
         if($simpleUserAgent eq 'REALLY_UNKNOWN') {
             $reph->debuglog("'Unknown UA: " . $line->{useragent});
         }
 
-        if(!$upsth->execute($simpleUserAgent, $line->{logid})) {
+        if(!$upsth->execute($simpleUserAgent, $line->{useragent})) {
             $selsth->finish;
             $dbh->rollback;
             $reph->debuglog("Failed to update " . $line->{logid});

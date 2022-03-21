@@ -17,6 +17,7 @@ use PageCamel::Helpers::UTF;
 
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize qw[dbfreeze dbthaw dbderef];
+use Time::HiRes qw[sleep];
 
 sub createNumber {
     my ($self, %setting) = @_;
@@ -31,7 +32,7 @@ sub createNumber {
     }
 
 
-    my ($ok, $data) = $self->get($setting{modulename}, $setting{settingname});
+    my ($ok, $data) = $self->get($setting{modulename}, $setting{settingname}, 1);
     if($ok) {
         return ($self->updateProcessinghints($setting{modulename}, $setting{settingname}, $setting{processinghints}) &&
                     $self->updateMinMax($setting{modulename}, $setting{settingname}, $setting{value_min}, $setting{value_max}));
@@ -199,22 +200,42 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
     $value = encode_utf8($value);
 
     my $upsth = $dbh->prepare_cached("SELECT merge_system_settings(?, ?, ?)")
-            or return;
-    if(!$upsth->execute($modulename, $settingname, $value)) {
+            or return 0;
+
+    # Retry for up to 2 seconds to avoid sporadic failures due to concurrency
+    my $retrycount = 10;
+    my $ok = 0;
+    while($retrycount) {
+        if($upsth->execute($modulename, $settingname, $value)) {
+            $ok = 1;
+            $upsth->finish;
+            $dbh->commit;
+            last;
+        }
+
         $dbh->rollback();
+        $retrycount--;
+
+        if($retrycount) {
+            my $sleeptime = (rand(30) / 100) + 0.02;
+            sleep($sleeptime);
+        }
+    }
+
+    if(!$ok) {
         return 0;
     }
 
-    $upsth->finish;
-    $dbh->commit;
 
     # Now, reload complete data set and also push it into memcached
     my $sth = $dbh->prepare_cached("SELECT * FROM system_settings " .
                             "WHERE modulename = ? AND settingname = ?")
                     or croak($dbh->errstr);
 
-    $sth->execute($modulename, $settingname)
-            or croak($dbh->errstr);
+    if(!$sth->execute($modulename, $settingname)) {
+        $dbh->rollback();
+        return 0;
+    }
 
     if((my $row = $sth->fetchrow_hashref)) {
         $memh->set($memhname, $row);

@@ -68,3 +68,6 @@ canvasuijs/uitextbox.js
 canvasuijs/uipaylist.js
 canvasuijs/uilistitem.js
 canvasuijs/uidragndrop.js
+canvasuijs/uicircle.js
+canvasuijs/uilistitem.js
+canvasuijs/uitableplan.js

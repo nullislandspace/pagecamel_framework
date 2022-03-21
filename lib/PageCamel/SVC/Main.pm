@@ -270,45 +270,69 @@ sub startup {
     }
     print "Initial startup complete\n";
     $self->{shutdown_complete} = 0;
+
     return;
 }
 
+# Rewrote work() to cycle through the apps, only working on ONE per workcycle. It cycles through the
+# apps in a round-robin fashion, so a single always-crashing app doesn't stop "later" apps from getting proper
+# treatment.
+# This should also allow better interactivity during startup. 
 sub work {
     my ($self) = @_;
 
     my $workCount = 0;
 
-    $self->{clacks}->ping();
+    if(!defined($self->{nextappindex})) {
+        $self->{nextappindex} = 0;
+    }
 
-    foreach my $app (@{$self->{apps}}) {
+    $self->{clacks}->ping();
+    $self->{clacks}->doNetwork();
+    $workCount += $self->handleClacksCommands();
+
+    {
+        my $app = $self->{apps}->[$self->{nextappindex}];
+        $self->{nextappindex}++;
+        if($self->{nextappindex} == scalar @{$self->{apps}}) {
+            $self->{nextappindex} = 0;
+        }
+
         my $didwork = $self->check_app($app);
         $self->{clacks}->doNetwork();
 
-        $workCount++;
-
-        $workCount += $self->handleClacksCommands();
-
         if($didwork) {
-            # Update ALL app states
-            foreach my $app (@{$self->{apps}}) {
-                my $running = defined($app->{handle});
-                my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
-                if($running) {
-                    $self->{clacks}->set($app->{clacks_name}, 1);
-                } elsif($ok && $refshouldrun->{settingvalue}) {
-                    $self->{clacks}->set($app->{clacks_name}, 2);
-                } else {
-                    $self->{clacks}->set($app->{clacks_name}, 0);
-                }
-                $self->{clacks}->set($app->{clacks_name}, defined($app->{handle}));
-            }
-            $self->{clacks}->ping();
-            $self->{clacks}->doNetwork();
-
-            ## Only handle ONE app startup/shutdown per cycle
-            #last;
+            $workCount++;
         }
     }
+
+
+    # Update ALL app states (only write if status actually changed)
+    foreach my $app (@{$self->{apps}}) {
+        my $oldstate = $self->{clacks}->retrieve($app->{clacks_name});
+        if(!defined($oldstate)) {
+            $oldstate = -1;
+        }
+        my $newstate = 0;
+        my $running = defined($app->{handle});
+        my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
+
+        if($running) {
+            $self->{clacks}->setAndStore($app->{clacks_name}, 1);
+            $newstate = 1;
+        } elsif($ok && $refshouldrun->{settingvalue}) {
+            $self->{clacks}->setAndStore($app->{clacks_name}, 2);
+            $newstate = 2;
+        } else {
+            $self->{clacks}->setAndStore($app->{clacks_name}, 0);
+            $newstate = 0;
+        }
+        if($newstate != $oldstate) {
+            $self->{clacks}->setAndStore($app->{clacks_name}, $newstate);
+        }
+    }
+    $self->{clacks}->ping();
+    $self->{clacks}->doNetwork();
 
     return $workCount;
 }
@@ -325,6 +349,8 @@ sub handleClacksCommands {
         $self->{clacks}->doNetwork();
         $self->{nextkeepalive} = $now + 10;
     }
+
+    $self->{clacks}->doNetwork();
 
     while(1) {
         my $command = $self->{clacks}->getNext();
@@ -470,13 +496,11 @@ sub check_app {
 
 
     my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
-    my $shouldrun;
     if(!$ok) {
-        # Default on error: Run service (same as on old system)
-        $shouldrun = 1;
-    } else {
-        $shouldrun = $refshouldrun->{settingvalue};
+        # Oh well, something happened. Ignore this $app until the next cycle
+        return 0;
     }
+    my $shouldrun = $refshouldrun->{settingvalue};
 
     if($shouldrun && !defined($app->{handle})) {
 

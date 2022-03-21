@@ -1,5 +1,6 @@
 Changes
 database/0001_remoteconsolelog.sql
+database/0002_database_tuning.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
@@ -20,6 +21,7 @@ devscripts/tabs2spaces.pl
 devscripts/testserver.pl
 devscripts/updateClasses.pl
 devscripts/useEnglish.pl
+lib/PageCamel/CMDLine/DHCP.pm
 lib/PageCamel/CMDLine/DNS.pm
 lib/PageCamel/CMDLine/Legacy/LetsEncrypt.pm
 lib/PageCamel/CMDLine/LetsEncrypt.pm
@@ -287,12 +289,14 @@ lib/PageCamel/Web/Static/canvasuijs.compiled.js
 lib/PageCamel/Web/Static/canvasuijs/canvashelpers.js
 lib/PageCamel/Web/Static/canvasuijs/uiarrowbutton.js
 lib/PageCamel/Web/Static/canvasuijs/uibutton.js
+lib/PageCamel/Web/Static/canvasuijs/uicircle.js
 lib/PageCamel/Web/Static/canvasuijs/uidragndrop.js
 lib/PageCamel/Web/Static/canvasuijs/uiline.js
 lib/PageCamel/Web/Static/canvasuijs/uilist.js
 lib/PageCamel/Web/Static/canvasuijs/uilistitem.js
 lib/PageCamel/Web/Static/canvasuijs/uinumpad.js
 lib/PageCamel/Web/Static/canvasuijs/uipaylist.js
+lib/PageCamel/Web/Static/canvasuijs/uitableplan.js
 lib/PageCamel/Web/Static/canvasuijs/uitext.js
 lib/PageCamel/Web/Static/canvasuijs/uitextbox.js
 lib/PageCamel/Web/Static/canvasuijs/uiview.js
@@ -1401,6 +1405,7 @@ lib/PageCamel/Web/Static/jquery.compiled-min_recycled.css
 lib/PageCamel/Web/Static/jquery.compiled-min_space.css
 lib/PageCamel/Web/Static/jquery/css/cursortrails.css
 lib/PageCamel/Web/Static/jquery/css/datatables.css
+lib/PageCamel/Web/Static/jquery/css/jquery.jqplot.css
 lib/PageCamel/Web/Static/jquery/css/jquery.timepicker.css
 lib/PageCamel/Web/Static/jquery/css/pbar-ani.gif
 lib/PageCamel/Web/Static/jquery/css/pwprogressbar.css
@@ -1632,6 +1637,7 @@ lib/PageCamel/Web/Static/jquery/js/jquery.gotobutton.js
 lib/PageCamel/Web/Static/jquery/js/jquery.hashmask.js
 lib/PageCamel/Web/Static/jquery/js/jquery.iframe-transport.js
 lib/PageCamel/Web/Static/jquery/js/jquery.insertatcaret.js
+lib/PageCamel/Web/Static/jquery/js/jquery.jqplot.js
 lib/PageCamel/Web/Static/jquery/js/jquery.json-2.3.js
 lib/PageCamel/Web/Static/jquery/js/jquery.metadata.js
 lib/PageCamel/Web/Static/jquery/js/jquery.sha1.js
@@ -2487,6 +2493,7 @@ lib/PageCamel/Worker/Firewall/BlockCIDRWhois.pm
 lib/PageCamel/Worker/Firewall/DNS.pm
 lib/PageCamel/Worker/Firewall/Dovecot.pm
 lib/PageCamel/Worker/Firewall/Floodcheck.pm
+lib/PageCamel/Worker/Firewall/GeoIPLog.pm
 lib/PageCamel/Worker/Firewall/Honeypot.pm
 lib/PageCamel/Worker/Firewall/IPTables.pm
 lib/PageCamel/Worker/Firewall/PermaBlock.pm

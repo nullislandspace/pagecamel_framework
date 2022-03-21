@@ -44,7 +44,7 @@ sub work {
 
     my $workCount = 0;
 
-    $reph->debuglog("Hello World");
+    #$reph->debuglog("Hello World");
 
     return $workCount;
 }

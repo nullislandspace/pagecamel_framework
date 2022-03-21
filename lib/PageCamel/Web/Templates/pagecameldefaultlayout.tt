@@ -559,12 +559,14 @@
         </div>
 
         [% IF MobileDesktopClientMode != '' %]
+            <!--
             <div class="pagecamelmobiledesktopselectorbox">
                 [% IF MobileDesktopClientMode == 'desktop' %]
                     [% tr.trquote('You are viewing the desktop version of this site.') %]
                     <a href="" id="mobiledesktopselect_mobile">[% tr.trquote("Click here to select the mobile version.") %]</a>
                 [% END %]
             </div>
+            -->
         [% END %]
 
 

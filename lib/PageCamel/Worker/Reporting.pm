@@ -18,7 +18,9 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Worker::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use Net::Clacks::Client;
+use PageCamel::Helpers::Padding qw(doSpacePad);
 
+use IO::Handle;
 
 sub new {
     my ($proto, %config) = @_;
@@ -32,6 +34,8 @@ sub new {
     if(!$self->{isDebugging}) {
         $self->{stdout} = 0;
     }
+    STDOUT->autoflush(1);
+    $self->{lastlinelen} = 0;
 
     return $self;
 }
@@ -108,7 +112,9 @@ sub debuglog {
     $memh->clacks_set($name, $line);
 
     if($self->{std_out}) {
-        print "$line\n";
+        print "\n$line";
+        $self->{lastlinelen} = length($line);
+
     }
 
     return;
@@ -132,7 +138,14 @@ sub debuglog_overwrite {
     $memh->clacks_set($name, $line);
 
     if($self->{std_out}) {
-        print "$line\n";
+        if(length($line) < $self->{lastlinelen}) {
+            my $newlinelen = length($line);
+            $line = doSpacePad($line, $self->{lastlinelen});
+            $self->{lastlinelen} = $newlinelen;
+        } else {
+            $self->{lastlinelen} = length($line);
+        }
+        print "\r$line";
     }
 
     return;

@@ -108,6 +108,7 @@ use PageCamel::Web::Tools::Debuglog;
 use PageCamel::Web::Tools::HostnameRedirect;
 use PageCamel::Web::Tools::KaffeeSim;
 use PageCamel::Web::Tools::PIMenu;
+use PageCamel::Web::Tools::RemoteConsoleLog;
 use PageCamel::Web::Tools::RemoteLog;
 use PageCamel::Web::Tools::SQLJS;
 use PageCamel::Web::Tools::ShortURL;

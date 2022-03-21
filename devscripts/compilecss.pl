@@ -83,6 +83,7 @@ jquery/css/datatables.css
 jquery/css/jquery.timepicker.css
 jquery/css/pwprogressbar.css
 jquery/css/cursortrails.css
+jquery/css/jquery.jqplot.css
 jquery/css/themes/XXUIThemeNameXX/pagecamelcustom.css
 jquery/css/themes/BASECSS/pagecamelcustom.css
 jquery/css/themes/XXUIThemeNameXX/menubars.css
