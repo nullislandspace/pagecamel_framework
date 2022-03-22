@@ -74,7 +74,7 @@ sub work {
 
     foreach my $device (@devices) {
         my $ok = 0;
-        if($pinger->ping($device->{ip_address}), 2) {
+        if($pinger->ping($device->{ip_address}, 2)) {
             $ok = 1;
             $reph->debuglog("Device ", $device->{device_name}, " at IP ", $device->{ip_address}, " is reachable.");
         } else {
