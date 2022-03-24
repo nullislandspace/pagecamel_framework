@@ -137,7 +137,7 @@ sub get {
         $socket->send($ua->{postdata});
     }
     my %retpage;
-    my $statusline = $self->readsocketline($socket, 30);
+    my $statusline = $self->readsocketline($socket, 90);
     if(!defined($statusline)) {
         print STDERR "###########   Can't read status line (timeout?)\n";
         return(status => 500);
@@ -148,7 +148,7 @@ sub get {
     $retpage{statustext} = $statusparts[2];
 
     while(1) {
-        my $headerline = $self->readsocketline($socket, 10);
+        my $headerline = $self->readsocketline($socket, 30);
         if(!defined($headerline)) {
             print STDERR "###########   Can't read header line (timeout?)\n";
             return(status => 500);
@@ -171,7 +171,7 @@ sub get {
         }
         delete $retpage{'Transfer-Encoding'};
     } elsif(defined($retpage{'Content-Length'})) {
-        $content = $self->readPlain($socket, $retpage{'Content-Length'}, 60);
+        $content = $self->readPlain($socket, $retpage{'Content-Length'}, 120);
         if(!defined($content)) {
             print STDERR "###########   Can't read plain content (timeout?)\n";
             return(status => 500);
@@ -228,15 +228,15 @@ sub readChunked {
 
     my $content = '';
     while(1) {
-        my $chunklen = $self->readsocketline($socket, 30);
+        my $chunklen = $self->readsocketline($socket, 60);
         if(!defined($chunklen)) {
             return;
         }
         $chunklen = hex($chunklen);
         last unless $chunklen;
-        my $partial = $self->readPlain($socket, $chunklen, 60);
+        my $partial = $self->readPlain($socket, $chunklen, 120);
         $content .= $partial;
-        my $dummycrlf = $self->readsocketline($socket, 10);
+        my $dummycrlf = $self->readsocketline($socket, 60);
     }
 
     return $content;

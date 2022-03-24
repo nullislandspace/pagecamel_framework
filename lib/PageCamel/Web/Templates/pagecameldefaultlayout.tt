@@ -424,6 +424,7 @@
             }
 
             var pagecameldb;
+            var pagecameldbloaded = 0;
 
             function pagecamelDBInit() {
 
@@ -444,8 +445,8 @@
                         pagecameldb = new SQL.Database();
                         pagecamelDBSave();
                     }
-                    
-
+                    pagecameldbloaded = 1;
+                    console.log("Database loaded");
                 });
             }
 
