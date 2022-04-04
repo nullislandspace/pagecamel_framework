@@ -32,6 +32,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::ENVResetHelper;
 use PageCamel::Helpers::FTPSync;
 use PageCamel::Helpers::FileSlurp;
+use PageCamel::Helpers::JavaScript;
 use PageCamel::Helpers::Logging::Graphs;
 use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::Mod43Checksum;

@@ -48,6 +48,7 @@ lib/PageCamel/Helpers/DBSerialize.pm
 lib/PageCamel/Helpers/ENVResetHelper.pm
 lib/PageCamel/Helpers/FileSlurp.pm
 lib/PageCamel/Helpers/FTPSync.pm
+lib/PageCamel/Helpers/JavaScript.pm
 lib/PageCamel/Helpers/Logging/Graphs.pm
 lib/PageCamel/Helpers/Logo.pm
 lib/PageCamel/Helpers/Mod43Checksum.pm
