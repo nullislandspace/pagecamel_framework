@@ -16,11 +16,10 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 BEGIN {
-    #mkdir '/tmp/pagecamel_helpers_javascript_inline';
+    mkdir '/tmp/pagecamel_helpers_javascript_inline';
     $ENV{PERL_INLINE_DIRECTORY} = '/tmp/pagecamel_helpers_javascript_inline';
-    use JavaScript::Duktape;
 };
-
+use JavaScript::Duktape;
 use JSON::XS;
 
 sub new {
