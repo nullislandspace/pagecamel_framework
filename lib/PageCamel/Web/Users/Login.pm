@@ -62,6 +62,10 @@ sub new {
         $self->{disable_mousecheck} = 1;
     }
 
+    if(!defined($self->{forcelowercase})) {
+        $self->{forcelowercase} = 1;
+    }
+
     return $self;
 }
 
@@ -187,7 +191,9 @@ sub get_login {
     );
 
     # Force lowercase username
-    $webdata{username} = lc $webdata{username};
+    if($self->{forcelowercase}) {
+        $webdata{username} = lc $webdata{username};
+    }
 
     my $mode = $ua->{postparams}->{'mode'} || 'username';
     my $host_addr = $ua->{remote_addr};

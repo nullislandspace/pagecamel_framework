@@ -24,6 +24,10 @@ use PageCamel::Helpers::URI qw(encode_uri_path);
 sub register {
     my $self = shift;
 
+    if(!defined($self->{forcelowercase})) {
+        $self->{forcelowercase} = 1;
+    }
+
     if(!defined($self->{switchtouser})) {
         $self->{switchtouser} = '';
     }
@@ -157,7 +161,9 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
     }
 
     my $origcaseusername = $username;
-    $username = lc $username;
+    if($self->{forcelowercase}) {
+        $username = lc $username;
+    }
 
     if($mode eq "delete") {
         $username = $ua->{postparams}->{'oldusername'} || '';
@@ -177,8 +183,10 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
     } elsif($mode eq "edit") {
         my @auditdata;
         $username = $ua->{postparams}->{'oldusername'} || '';
-        my $newusername = lc $ua->{postparams}->{'username'} || '';
-        $newusername = lc $newusername;
+        my $newusername = $ua->{postparams}->{'username'} || '';
+        if($self->{forcelowercase}) {
+            $newusername = lc $newusername;
+        }
 
         break if($username eq '' || $newusername eq '');
         if($username ne $newusername) {
@@ -286,7 +294,9 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
     } elsif($mode eq "create") {
         my @auditdata;
         $username = $ua->{postparams}->{'username'} || '';
-        $username = lc $username;
+        if($self->{forcelowercase}) {
+            $username = lc $username;
+        }
         my $company = $ua->{postparams}->{'company_name'} || '';
 
         push @auditdata, "Company: $company";
@@ -374,7 +384,9 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
     # handle "select": Turn it into "edit" after skipping updating data in database
     if($mode eq "select") {
         $username = $ua->{postparams}->{'username'} || '';
-        $username = lc $username;
+        if($self->{forcelowercase}) {
+            $username = lc $username;
+        }
         if(defined($forceUsername)) {
             $username = $forceUsername;
         }
@@ -452,6 +464,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
     }
     $webdata{mode} = $mode;
+    $webdata{forcelowercase} = $self->{forcelowercase};
 
     my $template = $th->get("users/useredit", 1, %webdata);
     return (status  =>  404) unless $template;

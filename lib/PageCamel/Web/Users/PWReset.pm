@@ -40,6 +40,10 @@ sub new {
         $self->{extrainfo} = '';
     }
 
+    if(!defined($self->{forcelowercase})) {
+        $self->{forcelowercase} = 1;
+    }
+
     return $self;
 }
 
@@ -99,7 +103,9 @@ sub get_request {
     if($mode eq 'request') {
         my $user = $ua->{postparams}->{'username'} || '';
         my $email = $ua->{postparams}->{'email'} || '';
-        $user = lc $user;
+        if($self->{forcelowercase}) {
+            $user = lc $user;
+        }
         $email = lc $email;
         if($user eq '' || $email eq '') {
             $webdata{statustext} = 'You must fill on all fields!';
