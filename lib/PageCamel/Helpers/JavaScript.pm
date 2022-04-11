@@ -27,11 +27,11 @@ sub new {
     my $self = bless \%config, $class;
 
     if(!defined($self->{reph})) {
-        croak('JavaScript::Duktape needs reph reporting handler');
+        croak('PageCamel::Helpers::JavaScript needs reph reporting handler');
     }
 
     if(!defined($self->{timeout})) {
-        croak('JavaScript::Duktape needs timeout (default timeout value)');
+        croak('PageCamel::Helpers::JavaScript needs timeout (default timeout value)');
     }
 
     my $js = JavaScript::Duktape->new(timeout => $self->{timeout});
