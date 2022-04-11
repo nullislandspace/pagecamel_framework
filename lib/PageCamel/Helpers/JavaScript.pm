@@ -23,8 +23,8 @@ use JavaScript::Duktape;
 use JSON::XS;
 
 sub new {
-    my $class = shift;
-    my $self = bless {}, $class;
+    my ($class, %config) = @_;
+    my $self = bless \%config, $class;
 
     if(!defined($self->{reph})) {
         croak('JavaScript::Duktape needs reph reporting handler');
