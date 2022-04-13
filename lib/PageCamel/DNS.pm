@@ -60,42 +60,6 @@ sub doConfig {
         $self->child_init_hook();
     }
 
-    # Preload the forcenx list (needs service restart to update)
-    print "Preloading ForceNX list...\n";
-    my @forcenx;
-    my @forcenxraw;
-    my @forcenxstringmatch;
-    my $dbh = DBI->connect($dbconf->{dburl}, $dbconf->{dbuser}, $dbconf->{dbpassword}, {AutoCommit => 0, RaiseError => 0})
-            or croak("Can't connect to database: $ERRNO");
-
-    my $forcenxsth = $dbh->prepare_cached("SELECT * FROM nameserver_forcenxdomain")
-            or croak($dbh->errstr);
-
-    if(!$forcenxsth->execute()) {
-        print STDERR $dbh->errstr, "\n";
-        $dbh->rollback;
-    } else {
-        while((my $line = $forcenxsth->fetchrow_hashref)) {
-            if($line->{is_regex}) {
-                push @forcenxraw, $line->{domain_match};
-            } else {
-                push @forcenxstringmatch, $line->{domain_match};
-            }
-        }
-        $forcenxsth->finish;
-        $dbh->commit;
-    }
-
-    print "Precompiling ForceNX regex list...\n";
-    foreach my $rex (@forcenxraw) {
-        push @forcenx, qr/$rex/;
-    }
-
-    $self->{forcenxraw} = \@forcenxraw;
-    $self->{forcenx} = \@forcenx;
-    $self->{forcenxstringmatch} = \@forcenxstringmatch;
-    $dbh->disconnect;
-    print STDERR "Done preloading...\n";
     return;
 }
 
@@ -269,6 +233,9 @@ sub child_init_hook {
     $self->{axfrmaster} = $dbh->prepare_cached("SELECT is_axfr_master, axfr_slave from nameserver_domain
                                                     WHERE domain_fqdn = ?
                                                     LIMIT 1")
+            or croak($dbh->errstr);
+
+    $self->{forcenxcheck} = $dbh->prepare_cached("SELECT nameserver_isforcenx(?) AS forcenxflag")
             or croak($dbh->errstr);
 
 
@@ -1160,29 +1127,18 @@ sub compile_reply { ## no critic (Subroutines::ProhibitExcessComplexity)
 
         if(!$owndomain) {
 
-            # Handle ForceNX string matches
-            foreach my $matcher (@{$self->{forcenxstringmatch}}) {
-                if($qname eq $matcher) {
-                    $self->debuglog("Blocked by string match ForceNX rule");
-                    $extrainfo = "ForceNX stringmatch";
-                    $rcode = "FORCENX";
-                    last;
-                }
+            if(!$self->{forcenxcheck}->execute($qname)) {
+                $self->debuglog("   ", $dbh->errstr);
+                $dbh->rollback;
+                return;
             }
+            my $fnxline = $self->{forcenxcheck}->fetchrow_hashref;
+            $self->{forcenxcheck}->finish;
+            $dbh->commit;
 
-            # Handle ForceNX (forbidden) regex matched domains
-            if($rcode ne 'FORCENX') {
-                my $offs = -1;
-                foreach my $matcher (@{$self->{forcenx}}) {
-                    $offs++;
-                    if($qname =~ $matcher) {
-                        my $rawmatcher = $self->{forcenxraw}->[$offs];
-                        $self->debuglog("Blocked by ForceNX rule $rawmatcher");
-                        $extrainfo = $rawmatcher;
-                        $rcode = 'FORCENX';
-                        last;
-                    }
-                }
+            if(defined($fnxline) && defined($fnxline->{forcenxflag}) && $fnxline->{forcenxflag}) {
+                $extrainfo = "ForceNX blacklisting";
+                $rcode = "FORCENX";
             }
 
             if($rcode ne 'FORCENX') {
