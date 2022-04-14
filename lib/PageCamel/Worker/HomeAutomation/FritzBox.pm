@@ -56,8 +56,13 @@ sub register {
 sub reload {
     my ($self) = @_;
 
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    $reph->debuglog("Connecting to Fritz!Box");
     my $fritz = AHA->new({host => $self->{hostname}, user => $self->{username}, password => $self->{password}})
             or croak("Can't connect to Fritz!Box");
+    $reph->debuglog("Connected to Fritz!Box");
+
     $self->{fritz} = $fritz;
 
     return;
@@ -148,9 +153,11 @@ sub work {
         return $workCount;
     }
 
+    $reph->debuglog("Loading list of switches...");
     my $switches = $self->{fritz}->list;
     foreach my $switch (@{$switches}) {
         my $sname = $switch->name();
+        $reph->debuglog("Working on switch ", $sname);
         next unless defined($self->{switches}->{$sname});
         if(!$switch->is_present) {
             $reph->debuglog("Switch $sname NOT PRESENT!");
