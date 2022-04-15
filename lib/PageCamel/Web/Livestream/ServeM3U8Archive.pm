@@ -1,6 +1,6 @@
 package PageCamel::Web::Livestream::ServeM3U8Archive;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;

@@ -1,6 +1,6 @@
 package PageCamel::Web::Logging::Devices;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;

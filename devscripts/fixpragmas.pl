@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -83,7 +83,7 @@ foreach my $file (@files) {
         }
         if($line =~ /^package\ / || $line =~ /^\#\!/) {
             print $ofh "#---AUTOPRAGMASTART---\n";
-            print $ofh "use 5.030;\n";
+            print $ofh "use 5.032;\n";
             print $ofh "use strict;\n";
             print $ofh "use warnings;\n";
             print $ofh "use diagnostics;\n";

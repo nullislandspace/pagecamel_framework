@@ -1,6 +1,6 @@
 package PageCamel::Web::Firewall::EC2Attack;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
