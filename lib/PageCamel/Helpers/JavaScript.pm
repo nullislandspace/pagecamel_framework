@@ -68,9 +68,9 @@ sub new {
         
     });
 
-    if(defined($self->{code})) {
-        $self->load();
-    }
+#    if(defined($self->{code})) {
+#        $self->load();
+#    }
 
 
     return $self;
@@ -84,12 +84,14 @@ sub _logfromjs {
     return;
 }
 
-sub load {
+sub loadCode {
     my ($self, $code) = @_;
 
-    if(defined($code)) {
-        $self->{code} = $code;
+    if(!defined($code)) {
+        croak("JS code undefined!");
     }
+
+    $self->{code} = $code;
  
     $self->{js}->eval($self->{code});
 
