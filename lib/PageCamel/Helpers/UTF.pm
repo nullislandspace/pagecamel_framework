@@ -12,6 +12,8 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use Encode qw(encode decode);
