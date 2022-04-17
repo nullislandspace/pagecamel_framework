@@ -117,6 +117,8 @@ sub save($self) {
 # Default is NOT to call any memory initialization/memory update functions. You can either specifiy a function name or use INIT
 # to call the default memory init function
 sub update($self, $newcode, $memoryupdatefunction = '') {
+    my $dbh = $self->{dbh};
+
     if(!defined($self->{id})) {
         croak("ID not defined for update()");
     }
