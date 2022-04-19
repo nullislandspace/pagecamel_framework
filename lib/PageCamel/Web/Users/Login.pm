@@ -1283,7 +1283,7 @@ sub get_sessionrefresh {
     );
 }
 
-sub firewall_log_loginfailure() {
+sub firewall_log_loginfailure {
     my ($self, $ua) = @_;
 
     if($self->{disable_firewall}) {
@@ -1303,7 +1303,7 @@ sub firewall_log_loginfailure() {
 
 }
 
-sub firewall_check_loginfailure() {
+sub firewall_check_loginfailure {
     my ($self, $ua) = @_;
 
     if($self->{disable_firewall}) {
