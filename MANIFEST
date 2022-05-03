@@ -286,13 +286,17 @@ lib/PageCamel/Web/Static/canvasjs/canvasbuttons.js
 lib/PageCamel/Web/Static/canvasjs/canvashelpers.js
 lib/PageCamel/Web/Static/canvasjs/canvasitemlist.js
 lib/PageCamel/Web/Static/canvasjs/canvastouchitemlist.js
-lib/PageCamel/Web/Static/canvasuijs.compiled-min.js
-lib/PageCamel/Web/Static/canvasuijs.compiled.js
 lib/PageCamel/Web/Static/canvasuijs/canvashelpers.js
+lib/PageCamel/Web/Static/canvasuijs/trhelper.js
 lib/PageCamel/Web/Static/canvasuijs/uiarrowbutton.js
 lib/PageCamel/Web/Static/canvasuijs/uibutton.js
+lib/PageCamel/Web/Static/canvasuijs/uibuttonrow.js
+lib/PageCamel/Web/Static/canvasuijs/uicheckbox.js
 lib/PageCamel/Web/Static/canvasuijs/uicircle.js
+lib/PageCamel/Web/Static/canvasuijs/uicolorpalet.js
+lib/PageCamel/Web/Static/canvasuijs/uidialog.js
 lib/PageCamel/Web/Static/canvasuijs/uidragndrop.js
+lib/PageCamel/Web/Static/canvasuijs/uiimage.js
 lib/PageCamel/Web/Static/canvasuijs/uiline.js
 lib/PageCamel/Web/Static/canvasuijs/uilist.js
 lib/PageCamel/Web/Static/canvasuijs/uilistitem.js
@@ -301,6 +305,7 @@ lib/PageCamel/Web/Static/canvasuijs/uipaylist.js
 lib/PageCamel/Web/Static/canvasuijs/uitableplan.js
 lib/PageCamel/Web/Static/canvasuijs/uitext.js
 lib/PageCamel/Web/Static/canvasuijs/uitextbox.js
+lib/PageCamel/Web/Static/canvasuijs/uitextinput.js
 lib/PageCamel/Web/Static/canvasuijs/uiview.js
 lib/PageCamel/Web/Static/Chart.bundle.js
 lib/PageCamel/Web/Static/codehighlight/CHANGES.md
@@ -2378,6 +2383,7 @@ lib/PageCamel/Web/Templates/accesslogdetail.tt
 lib/PageCamel/Web/Templates/auditlogdetail.tt
 lib/PageCamel/Web/Templates/basewebsocket.tt
 lib/PageCamel/Web/Templates/browserworkarounds_redirect.tt
+lib/PageCamel/Web/Templates/canvasuijs.js.tt
 lib/PageCamel/Web/Templates/commandqueue_admin.tt
 lib/PageCamel/Web/Templates/dircleaner.tt
 lib/PageCamel/Web/Templates/errors.tt
