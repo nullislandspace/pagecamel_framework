@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -13,13 +13,14 @@ use Array::Contains;
 use utf8;
 use Data::Dumper;
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 # PAGECAMEL  (C) 2008-2020 Rene Schickbauer
 # Developed under Artistic license
 
 use CSS::Minifier::XS qw(minify);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile writeBinFile);
-use Carp;
 
 my $BASE = "./lib/PageCamel/Web/Static/";
 

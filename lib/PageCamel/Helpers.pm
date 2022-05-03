@@ -1,6 +1,6 @@
 package PageCamel::Helpers;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -13,6 +13,8 @@ use Array::Contains;
 use utf8;
 use Data::Dumper;
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(Exporter);
@@ -32,6 +34,8 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::ENVResetHelper;
 use PageCamel::Helpers::FTPSync;
 use PageCamel::Helpers::FileSlurp;
+use PageCamel::Helpers::JavaScript;
+use PageCamel::Helpers::JavaScriptDB;
 use PageCamel::Helpers::Logging::Graphs;
 use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::Mod43Checksum;

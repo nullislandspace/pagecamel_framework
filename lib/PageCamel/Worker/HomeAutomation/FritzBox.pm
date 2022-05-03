@@ -1,6 +1,6 @@
 package PageCamel::Worker::HomeAutomation::FritzBox;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -13,6 +13,8 @@ use Array::Contains;
 use utf8;
 use Data::Dumper;
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # Do some updates and advanced parsing for accesslog. Run at once an hour. The
@@ -56,8 +58,13 @@ sub register {
 sub reload {
     my ($self) = @_;
 
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    $reph->debuglog("Connecting to Fritz!Box");
     my $fritz = AHA->new({host => $self->{hostname}, user => $self->{username}, password => $self->{password}})
             or croak("Can't connect to Fritz!Box");
+    $reph->debuglog("Connected to Fritz!Box");
+
     $self->{fritz} = $fritz;
 
     return;
@@ -148,9 +155,11 @@ sub work {
         return $workCount;
     }
 
+    $reph->debuglog("Loading list of switches...");
     my $switches = $self->{fritz}->list;
     foreach my $switch (@{$switches}) {
         my $sname = $switch->name();
+        $reph->debuglog("Working on switch ", $sname);
         next unless defined($self->{switches}->{$sname});
         if(!$switch->is_present) {
             $reph->debuglog("Switch $sname NOT PRESENT!");

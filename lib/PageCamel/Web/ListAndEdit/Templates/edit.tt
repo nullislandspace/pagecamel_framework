@@ -103,6 +103,8 @@
                                                 <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]"><br/>
                                                 [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
                                                 <input type="file" name="[% tr.quote(column.columnname) %]___new" id="[% tr.quote(column.columnname) %]___new_id">
+                                            [% ELSIF column.displaytype == "imagedisplay" %]
+                                                [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
                                             [% ELSIF column.displaytype == "checkbox" %]
                                                 <input type="checkbox" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id"
                                                     [% IF column.columnvalue == 1 %]

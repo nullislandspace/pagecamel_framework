@@ -1,6 +1,6 @@
 package PageCamel::Web::Users::Login;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -13,6 +13,8 @@ use Array::Contains;
 use utf8;
 use Data::Dumper;
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -60,6 +62,10 @@ sub new {
 
     if(!defined($self->{disable_mousecheck})) {
         $self->{disable_mousecheck} = 1;
+    }
+
+    if(!defined($self->{forcelowercase})) {
+        $self->{forcelowercase} = 1;
     }
 
     return $self;
@@ -187,7 +193,9 @@ sub get_login {
     );
 
     # Force lowercase username
-    $webdata{username} = lc $webdata{username};
+    if($self->{forcelowercase}) {
+        $webdata{username} = lc $webdata{username};
+    }
 
     my $mode = $ua->{postparams}->{'mode'} || 'username';
     my $host_addr = $ua->{remote_addr};
@@ -1275,7 +1283,7 @@ sub get_sessionrefresh {
     );
 }
 
-sub firewall_log_loginfailure() {
+sub firewall_log_loginfailure {
     my ($self, $ua) = @_;
 
     if($self->{disable_firewall}) {
@@ -1295,7 +1303,7 @@ sub firewall_log_loginfailure() {
 
 }
 
-sub firewall_check_loginfailure() {
+sub firewall_check_loginfailure {
     my ($self, $ua) = @_;
 
     if($self->{disable_firewall}) {

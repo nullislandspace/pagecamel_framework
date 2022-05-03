@@ -1,6 +1,6 @@
 package PageCamel::Web::ListAndEdit::Main;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -13,6 +13,8 @@ use Array::Contains;
 use utf8;
 use Data::Dumper;
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -429,8 +431,8 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
     my %editcolumntypes;
     my %editcolumnnullable;
     my @gotocolumns;
-    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image];
-    my @readonlytypes = qw[textarea-readonly led display codedisplay];
+    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay];
+    my @readonlytypes = qw[textarea-readonly led display codedisplay imagedisplay];
     $self->{needcvceditor} = 0;
     $self->{needscripteditor} = 0;
     $self->{usetabs} = 0;
@@ -506,7 +508,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
         my %testtypes = (
             array   => [qw[array]],
             boolean => [qw[led switch checkbox]],
-            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum display hidden colorpicker image]],
+            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum display hidden colorpicker image imagedisplay]],
             integer => [qw[number enum subenum display slider]],
             bigint => [qw[number enum subenum display slider]],
             real => [qw[number enum subenum display]],
@@ -1196,7 +1198,11 @@ sub get_lines { ## no critic (Subroutines::ProhibitExcessComplexity)
             if($where ne '') {
                 $where .= ' AND ';
             }
-            $where .= $clauseitem->{column} . ' = ' . $dbh->quote($vtmp) . ' ';
+            my $comparator = '=';
+            if(defined($clauseitem->{negate}) && $clauseitem->{negate}) {
+                $comparator = '!=';
+            }
+            $where .= $clauseitem->{column} . ' ' . $comparator . ' ' . $dbh->quote($vtmp) . ' ';
         }
     }
 
@@ -2083,6 +2089,15 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
         }
         
         if($column{displaytype} eq 'image') {
+            #$column{displaytype} = 'text';
+            if($column{columnvalue} ne '') {
+                $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};
+            } else {
+                $column{imagedata} = '';
+            }
+        }
+
+        if($column{displaytype} eq 'imagedisplay') {
             #$column{displaytype} = 'text';
             if($column{columnvalue} ne '') {
                 $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};

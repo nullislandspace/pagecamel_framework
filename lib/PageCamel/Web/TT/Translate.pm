@@ -1,6 +1,6 @@
 package PageCamel::Web::TT::Translate;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -13,6 +13,8 @@ use Array::Contains;
 use utf8;
 use Data::Dumper;
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # WARNING: Template-Toolkit seems to have a special problem with Perl::Critic,

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -13,6 +13,8 @@ use Array::Contains;
 use utf8;
 use Data::Dumper;
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # PAGECAMEL  (C) 2008-2020 Rene Schickbauer
@@ -64,9 +66,14 @@ foreach my $file (@files) {
             next;
         }
 
-       if($line =~ /^\#\-\-\-AUTOPRAGMA/) {
+        # Handle sub "signatures"
+        if($line =~ /^use\ feature\ \'signatures\'/ || $line =~ /^no\ warnings\ .*experimental\:\:signatures/) {
+            next;
+        }
+
+        if($line =~ /^\#\-\-\-AUTOPRAGMA/) {
            next;
-       }
+        }
 
         print $ofh $line;
 
@@ -76,7 +83,7 @@ foreach my $file (@files) {
         }
         if($line =~ /^package\ / || $line =~ /^\#\!/) {
             print $ofh "#---AUTOPRAGMASTART---\n";
-            print $ofh "use 5.030;\n";
+            print $ofh "use 5.032;\n";
             print $ofh "use strict;\n";
             print $ofh "use warnings;\n";
             print $ofh "use diagnostics;\n";
@@ -91,6 +98,8 @@ foreach my $file (@files) {
             if($file !~ /Helpers\/UTF\.pm$/) {
                 print $ofh "use PageCamel::Helpers::UTF;\n";
             }
+            print $ofh "use feature 'signatures';\n";
+            print $ofh "no warnings qw(experimental::signatures);\n";
             print $ofh "#---AUTOPRAGMAEND---\n";
             $inserted = 1;
         }
@@ -102,8 +111,7 @@ exit(0);
 
 
 
-sub find_pm {
-    my ($workDir) = @_;
+sub find_pm($workDir) {
 
     my @files;
     opendir(my $dfh, $workDir) or die($ERRNO);

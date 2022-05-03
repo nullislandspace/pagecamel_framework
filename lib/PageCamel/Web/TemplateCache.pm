@@ -1,6 +1,6 @@
 package PageCamel::Web::TemplateCache;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -13,6 +13,8 @@ use Array::Contains;
 use utf8;
 use Data::Dumper;
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -174,7 +176,7 @@ sub load_dir {
         my $kname = $base . '/' . $fname;
         $kname =~ s/^\///o;
         $kname =~s /\.tt$//g;
-        my $data = slurpBinFile($nfname);
+        my $data = decode_utf8(slurpBinFile($nfname));
         $data = $self->do_uninline($data, $kname, $nfname);
         $files->{$kname} = $data;
     }
@@ -512,7 +514,8 @@ sub do_uninline {
                 $jsdata = $minified;
             }
         }
-        my $etag = sha1_hex(getFileDate() . sha1_hex($jsdata));
+        $jsdata = encode_utf8($jsdata);
+        my $etag = sha1_hex(getFileDate() . $jsdata);
         
         my $lastmodified = getLastModifiedWebdate($fname);
         my $tmp = parseWebdate($lastmodified);

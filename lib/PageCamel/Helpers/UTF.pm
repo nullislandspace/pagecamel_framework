@@ -1,6 +1,6 @@
 package PageCamel::Helpers::UTF;
 #---AUTOPRAGMASTART---
-use 5.030;
+use 5.032;
 use strict;
 use warnings;
 use diagnostics;
@@ -12,6 +12,8 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use Encode qw(encode decode);

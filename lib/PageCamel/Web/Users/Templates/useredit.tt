@@ -125,6 +125,7 @@
 <span id="masktemplatedataset"
     data-accountlocked="[% account_locked %]"
     data-trquote-encryptingpassword="[% tr.trquote("Encrypting password...") %]"
+    data-forcelowercase="[% forcelowercase %]"
 ></span>
 
 <script>
@@ -174,7 +175,7 @@
     
     function checkUsername() {
         var uname= $('input[name="username"]').val();
-        if(uname != uname.toLowerCase()) {
+        if(ttvars.forcelowercase == "1" && uname != uname.toLowerCase()) {
             console.log("Auto-Lowercasing the username!");
             uname = uname.toLowerCase();
             $('input[name="username"]').val(uname);
