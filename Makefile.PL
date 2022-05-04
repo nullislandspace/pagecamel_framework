@@ -60,6 +60,7 @@ WriteMakefile(
         'IO::Socket::INET' => 0,
         'IO::Socket::INET6' => 0,
         'IO::Socket::IP' => 0,
+        'JavaScript::Duktape' => 0,
         'JavaScript::Minifier' => 0,
         'JSON::RPC::Legacy::Client' => 0,
         'JSON::XS' => 0,
