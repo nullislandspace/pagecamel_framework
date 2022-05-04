@@ -860,6 +860,6 @@
     [% END%]
 
     <div class="stars"></div>
-    <div class="twinkling"></div>
+    <!--<div class="twinkling"></div>-->
     </body>
 </html>
