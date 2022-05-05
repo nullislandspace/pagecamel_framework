@@ -46,7 +46,7 @@ foreach my $file (@files) {
     while((my $line = <$ifh>)) {
         if($line =~ /\_trquote/) {
             #print "< ", $line;
-            $line =~ s/\_trquote\((.+?)\)/\"\[\% tr.trquote\($1\) \%\]\"/;
+            $line =~ s/\_trquote\((.+?)\)/\"\[\% tr.trquote\($1\) \%\]\"/g;
             #print "> ", $line;
         }
         print $ofh $line;
@@ -65,6 +65,7 @@ close $mifh;
 close $mofh;
 print "Done.\n";
 
+#`cp $tmpfile $minified`;
 unlink($tmpfile);
 
 print "For development, use the following lines:\n";
