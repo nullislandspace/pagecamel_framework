@@ -100,6 +100,10 @@ sub debuglog {
 
     my $line = '';
     foreach my $part (@parts) {
+        #if(!defined($part)) {
+        #    croak("debuglog called with undefined part");
+        #}
+        next unless(defined($part));
         chomp $part;
         $line .= $part;
     }
