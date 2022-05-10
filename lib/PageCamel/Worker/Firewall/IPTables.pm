@@ -427,9 +427,13 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     push @six, "#    External Projects";
     foreach my $ip (@externalprojectips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -j REJECT";
+            #push @four, "-A INPUT -s $ip -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -j REJECT";
+            #push @six, "-A INPUT -s $ip -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
         }
     }
 
