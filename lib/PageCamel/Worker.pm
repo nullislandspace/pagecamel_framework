@@ -43,6 +43,7 @@ use PageCamel::Worker::Firewall::BadBot;
 use PageCamel::Worker::Firewall::BlockCIDRWhois;
 use PageCamel::Worker::Firewall::DNS;
 use PageCamel::Worker::Firewall::Dovecot;
+use PageCamel::Worker::Firewall::ExternalProject;
 use PageCamel::Worker::Firewall::Floodcheck;
 use PageCamel::Worker::Firewall::GeoIPLog;
 use PageCamel::Worker::Firewall::Honeypot;
