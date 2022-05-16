@@ -295,7 +295,7 @@ sub getWebdate {
 sub parseWebdate {
     my ($str) = @_;
 
-    if($str =~ /^([+-])(\d+)(\w)/) {
+    if($str =~ /^([+-])(\d+(\.\d+)?)(\w)/) {
         my %multipliers = (
             s   => 1,
             m   => 60,
@@ -305,14 +305,21 @@ sub parseWebdate {
             M   => 60*60*24*30,
             y   => 60*60*24*365,
         );
-        my ($direction, $amount, $multiplier) = ($1, $2, $3);
+        my ($direction, $amount, $multiplier, $extra) = ($1, $2, $3, $4);
+        if(defined($extra)) {
+            #print STDERR "Webdate has comma, this will result in rounded values!\n";
+            #print STDERR "$direction, $amount, $multiplier, $extra\n";
+            $multiplier = $extra;
+            #print STDERR "$direction, $amount, $multiplier\n";
+
+        }
         if(!defined($multipliers{$multiplier})) {
             croak("Undefined delta time multiplier $multiplier");
         }
         if($direction eq '-') {
             $amount = $amount * -1;
         }
-        return time() + ($amount * $multipliers{$multiplier});
+        return time() + int($amount * $multipliers{$multiplier});
     }
 
     # normal time string
