@@ -76,7 +76,7 @@ sub work {
             or croak($dbh->errstr);
 
     my $upsth = $dbh->prepare_cached("UPDATE sessions
-                                   SET valid_until = (now() + interval '10 minutes')
+                                   SET valid_until = (now() + valid_interval)
                                    WHERE sid = ?")
             or croak($dbh->errstr);
 

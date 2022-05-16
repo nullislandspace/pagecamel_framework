@@ -69,9 +69,12 @@ sub get_pwchange {
         pwnew1    =>  $ua->{postparams}->{'pwnew1'} || '',
         pwnew2    =>  $ua->{postparams}->{'pwnew1'} || '',
         PostLink    =>  $self->{webpath},
-        ResetLink    =>  $self->{resetpath},
         showads => $self->{showads},
     );
+
+    if(defined($self->{server}->{modules}->{pwreset})) {
+        $webdata{ResetLink} = $self->{resetpath};
+    }
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
     if($mode eq "changepw") {
