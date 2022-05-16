@@ -17,12 +17,14 @@ use feature 'signatures';
 no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
-use PageCamel::Helpers::Passwords qw[verify_password];
+use PageCamel::Helpers::Passwords;
 use DBI;
 
 sub new {
     my ($class) = @_;
     my $self = bless {}, $class;
+
+    croak("This module needs a rewrite for new Passwords handling code (see Helpers::Passwords)");
 
     return $self;
 }

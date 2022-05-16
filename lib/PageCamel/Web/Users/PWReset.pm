@@ -46,6 +46,19 @@ sub new {
         $self->{forcelowercase} = 1;
     }
 
+    my $ok = 1;
+    # Required settings
+    foreach my $key (qw[systemsettings]) {
+        if(!defined($self->{$key})) {
+            print STDERR "PWReset.pm: Setting $key is required but not set!\n";
+            $ok = 0;
+        }
+    }
+
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
+    }
+
     return $self;
 }
 
@@ -101,6 +114,9 @@ sub get_request {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     if($mode eq 'request') {
         my $user = $ua->{postparams}->{'username'} || '';
@@ -137,7 +153,7 @@ sub get_request {
             goto showform;
         }
 
-        my $resetkey = PageCamel::Helpers::Passwords::gen_textsalt();
+        my $resetkey = $pwh->gen_textsalt();
         $delsth->execute($user) or croak($dbh->errstr);
         $insth->execute($user, $resetkey) or croak($dbh->errstr);
         $dbh->commit;
@@ -211,6 +227,9 @@ sub get_execute {
     my $mode = $ua->{postparams}->{'mode'} || 'view';
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     # clean old resetkeys
     my $oldsth = $dbh->prepare_cached("DELETE FROM users_passwordreset
@@ -248,7 +267,7 @@ sub get_execute {
                                               WHERE resetkey = ?")
                     or croak($dbh->errstr);
 
-            if(update_password($dbh, $user, $pwnew1) && $delsth->execute($resetkey)) {
+            if($pwh->update_password($user, $pwnew1) && $delsth->execute($resetkey)) {
                 $dbh->commit;
                 $webdata{statuscolor} = "oktext";
                 $reph->auditlog($self->{modname}, "Password reset complete for $user", $webdata{userData}->{user});

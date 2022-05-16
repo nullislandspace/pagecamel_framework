@@ -36,6 +36,20 @@ sub new {
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
+   
+    my $ok = 1;
+    # Required settings
+    foreach my $key (qw[systemsettings]) {
+        if(!defined($self->{$key})) {
+            print STDERR "PWChange.pm: Setting $key is required but not set!\n";
+            $ok = 0;
+        }
+    }
+
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
+    }
+
 
     return $self;
 }
@@ -61,6 +75,9 @@ sub get_pwchange {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $auth = $self->{server}->{modules}->{$self->{authentification}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
@@ -84,7 +101,7 @@ sub get_pwchange {
                 $webdata{statuscolor} = "errortext";
                 $webdata{FocusOnField} = "pwnew1";
             } else {
-                my $oldpwok = verify_password($dbh, $webdata{userData}->{user}, $webdata{pwold});
+                my $oldpwok = $pwh->verify_password($webdata{userData}->{user}, $webdata{pwold});
 
                 if(!$oldpwok) {
                     $webdata{statustext} = "Old password incorrect!";
@@ -92,7 +109,7 @@ sub get_pwchange {
                     $webdata{FocusOnField} = "pwold";
                     $dbh->rollback;
                 } else {
-                    if(update_password($dbh, $webdata{userData}->{user}, $webdata{pwnew1})) {
+                    if($pwh->update_password($webdata{userData}->{user}, $webdata{pwnew1})) {
                         $webdata{statustext} = "Password changed!";
                         $webdata{statuscolor} = "oktext";
                         $webdata{userData}->{require_password_change} = 0;

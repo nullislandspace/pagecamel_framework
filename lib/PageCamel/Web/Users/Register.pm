@@ -38,6 +38,19 @@ sub new {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    my $ok = 1;
+    # Required settings
+    foreach my $key (qw[systemsettings reporting]) {
+        if(!defined($self->{$key})) {
+            print STDERR "PWReset.pm: Setting $key is required but not set!\n";
+            $ok = 0;
+        }
+    }
+
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
+    }
+
     return $self;
 }
 
@@ -190,6 +203,13 @@ sub validateEmail {
 sub get_request {
     my ($self, $ua) = @_;
 
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
+
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
@@ -200,10 +220,6 @@ sub get_request {
     );
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
-
-    # Verify user/password combination
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
 
     if($mode eq 'request') {
         my $user = $ua->{postparams}->{'username'} || '';
@@ -247,7 +263,7 @@ sub get_request {
                 or croak($dbh->errstr);
 
 
-        my $registerkey = PageCamel::Helpers::Passwords::gen_textsalt();
+        my $registerkey = $pwh->gen_textsalt();
         $insth->execute($user, $registerkey, $firstname, $lastname, $email) or croak($dbh->errstr);
         $dbh->commit;
 
@@ -304,6 +320,13 @@ END
 sub get_execute {
     my ($self, $ua, $registerkey) = @_;
 
+    my $mode = $ua->{postparams}->{'mode'} || 'view';
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
+
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
@@ -312,8 +335,6 @@ sub get_execute {
         showads => $self->{showads},
     );
 
-    my $mode = $ua->{postparams}->{'mode'} || 'view';
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # clean old registerkeys
     my $oldsth = $dbh->prepare_cached("DELETE FROM users_register
@@ -357,7 +378,7 @@ sub get_execute {
                     or croak($dbh->errstr);
 
             if($createsth->execute($user, $email, $firstname, $lastname, $self->{company}) &&
-                    update_password($dbh, $user, $pwnew1) &&
+                    $pwh->update_password($user, $pwnew1) &&
                     $delsth->execute($registerkey) && $self->addUserRights($user)) {
                 $dbh->commit;
                 $webdata{statuscolor} = "oktext";

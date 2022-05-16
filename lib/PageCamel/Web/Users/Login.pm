@@ -22,7 +22,7 @@ use base qw(PageCamel::Web::BaseModule);
 use Crypt::Digest::SHA256 qw[sha256_hex];
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
-use PageCamel::Helpers::Passwords qw(verify_password gen_textsalt);
+use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 use PageCamel::Helpers::URI qw[decode_uri_path];
 use MIME::Base64;
@@ -41,9 +41,6 @@ sub new {
     #$self->{password_prefix} = "CARNIVORE::";
     #$self->{password_postfix} = "# or 1984";
 
-    $self->{basicauth_prefix_salt} = gen_textsalt();
-    $self->{basicauth_middle_salt} = gen_textsalt();
-    $self->{basicauth_postfix_salt} = gen_textsalt();
 
     my %paths;
     $self->{paths} = \%paths;
@@ -181,6 +178,12 @@ sub reload {
         croak("pagecamel.sessions column valid_interval has wrong type. Should be 'interval' but is $type");
     }
 
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
+
+    $self->{basicauth_prefix_salt} = $pwh->gen_textsalt();
+    $self->{basicauth_middle_salt} = $pwh->gen_textsalt();
+    $self->{basicauth_postfix_salt} = $pwh->gen_textsalt();
+
     return;
 }
 
@@ -271,10 +274,13 @@ sub get_login {
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $viewh = $self->{server}->{modules}->{$self->{views}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     if($webdata{username} ne '' && $webdata{password} ne '') {
 
-        my $pwok = verify_password($dbh, $webdata{username}, $webdata{password});
+        my $pwok = $pwh->verify_password($webdata{username}, $webdata{password});
 
         my $clidmsg = '';
 
@@ -456,8 +462,8 @@ sub get_login {
     if(!$self->{disable_mousecheck}) {
         my @extrascripts = ('/static/sha256.js');
         $webdata{HeadExtraScripts} = \@extrascripts;
-        $webdata{tempsessionid} = PageCamel::Helpers::Passwords::gen_textsalt();
-        $webdata{tempclientid} = PageCamel::Helpers::Passwords::gen_textsalt();
+        $webdata{tempsessionid} = $pwh->gen_textsalt();
+        $webdata{tempclientid} = $pwh->gen_textsalt();
     }
 
     my $template;
@@ -1000,6 +1006,9 @@ sub do_basic_auth {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     if(!defined($ua->{headers}->{Authorization}) || $ua->{headers}->{Authorization} !~ /^Basic\ /) {
         return $self->genBasicAuthRequest($realm);
@@ -1039,7 +1048,7 @@ sub do_basic_auth {
     }
 
     if(!$pwok) {
-        $pwok = verify_password($dbh, $dynuser, $dynpass);
+        $pwok = $pwh->verify_password($dynuser, $dynpass);
 
         if($pwok) {
             if($cacheinsth->execute($authcookie)) {

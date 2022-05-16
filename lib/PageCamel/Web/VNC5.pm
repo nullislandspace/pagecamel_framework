@@ -37,6 +37,19 @@ sub new {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    my $ok = 1;
+    # Required settings
+    foreach my $key (qw[systemsettings reporting]) {
+        if(!defined($self->{$key})) {
+            print STDERR "PWReset.pm: Setting $key is required but not set!\n";
+            $ok = 0;
+        }
+    }
+
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
+    }
+
     return $self;
 }
 
@@ -223,6 +236,9 @@ sub get_select {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     my ($ok1, $usagehint) = $sysh->get($self->{modname}, 'usage_hint');
 
@@ -353,7 +369,7 @@ sub get_vnc {
 
 
 
-    my $sockid = PageCamel::Helpers::Passwords::gen_textsalt();
+    my $sockid = $pwh->gen_textsalt();
     # Construct the socket path from WSPath
     #my $socketpath = 'ws';
     #if($self->{usessl}) {
