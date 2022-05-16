@@ -210,13 +210,17 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
     }
 
     if($allowclient) {
-        $ok = 0;
-        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        if($self->{isDebugging}) {
             $self->{webserver}->process_request($client, $header);
-            $ok = 1;
-        };
-        if(!$ok) {
-            $self->endprogram($header, "!!!!! FAILED process_request $EVAL_ERROR");
+        } else {
+            $ok = 0;
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                $self->{webserver}->process_request($client, $header);
+                $ok = 1;
+            };
+            if(!$ok) {
+                $self->endprogram($header, "!!!!! FAILED process_request $EVAL_ERROR");
+            }
         }
     }
     
