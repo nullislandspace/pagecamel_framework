@@ -229,7 +229,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
             print "    LIST: Filtercolumn is defined but empty!\n";
             $ok = 0;
         }
-        my $type = $self->getColumnType($self->{table}, $self->{filtercolumn});
+        my $type = $dbh->getColumnType($self->{table}, $self->{filtercolumn});
         if(!defined($type)) {
             print '    LIST: Filtercolumn ', $self->{filtercolumn}, ' of table ', $self->{table}, " does not exist!\n";
             $ok = 0;
@@ -254,7 +254,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
             next;
         }
         my $pkcol = $pkitem->{column};
-        my $type = $self->getColumnType($self->{table}, $pkcol);
+        my $type = $dbh->getColumnType($self->{table}, $pkcol);
         if(!defined($type)) {
             print "    Primary key column $pkcol or table " . $self->{table} . " does not exist!\n";
             $ok = 0;
@@ -317,7 +317,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
             }
            $type = $item->{columntype};
         } else {
-            $type = $self->getColumnType($self->{table}, $item->{column});
+            $type = $dbh->getColumnType($self->{table}, $item->{column});
         }
 
         if(!defined($type)) {
@@ -498,7 +498,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $ok = 0;
         }
 
-        my $type = $self->getColumnType($self->{table}, $item->{column});
+        my $type = $dbh->getColumnType($self->{table}, $item->{column});
         if(!defined($type)) {
             print '    EDIT: Column ', $item->{column}, ' of table ', $self->{table}, " does not exist!\n";
             $ok = 0;
@@ -547,7 +547,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
                 next;
             }
 
-            my $enumtype = $self->getColumnType($item->{enumtable}, $item->{enumcolumn});
+            my $enumtype = $dbh->getColumnType($item->{enumtable}, $item->{enumcolumn});
             if(!defined($enumtype)) {
                 print '    EDIT: Column ', $item->{column}, " does reference nonexistant enumtable/enumvalue!\n";
                 $ok = 0;
@@ -573,7 +573,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
                     next;
                 }
 
-                my $subenumtype = $self->getColumnType($item->{enumtable}, $item->{enumparentcolumn});
+                my $subenumtype = $dbh->getColumnType($item->{enumtable}, $item->{enumparentcolumn});
                 if(!defined($subenumtype)) {
                     print '    EDIT: Column ', $item->{column}, " does reference nonexistant enumtable/enumparentcolumn!\n";
                     $ok = 0;
@@ -588,7 +588,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
             }
 
             if(defined($item->{showdescription})) {
-                my $descriptiontype = $self->getColumnType($item->{enumtable}, $item->{showdescription});
+                my $descriptiontype = $dbh->getColumnType($item->{enumtable}, $item->{showdescription});
                 if(!defined($descriptiontype)) {
                     print '    EDIT: Column ', $item->{showdescription}, " does reference nonexistant enumtable/description!\n";
                     $ok = 0;
@@ -665,7 +665,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
     }
 
     if(defined($self->{forceusercolumn})) {
-        my $type = $self->getColumnType($self->{table}, $self->{forceusercolumn});
+        my $type = $dbh->getColumnType($self->{table}, $self->{forceusercolumn});
         if(!defined($type)) {
             print '    EDIT: Forceusercolumn ', $self->{forceusercolumn}, ' of table ', $self->{table}, " does not exist!\n";
             $ok = 0;
@@ -747,34 +747,6 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
 
     return;
 }
-
-sub getColumnType {
-    my ($self, $table, $column) = @_;
-
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-
-    my $schema = 'public';
-    if($table =~ /\./) {
-        ($schema, $table) = split/\./, $table;
-    }
-
-    my $type;
-    my $sth = $dbh->prepare_cached("SELECT data_type FROM information_schema.columns
-                                    WHERE table_schema = ?
-                                    AND table_name = ?
-                                    AND column_name = ?")
-            or croak($dbh->errstr);
-    $sth->execute($schema, $table, $column) or croak($dbh->errstr);
-    while ((my $line = $sth->fetchrow_hashref)) {
-        $type = lc $line->{data_type};
-    }
-    $sth->finish;
-
-    $dbh->rollback;
-
-    return $type;
-}
-
 
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning
 # of Perl::Critic

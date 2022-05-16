@@ -101,6 +101,33 @@ sub checkDBH {
     return;
 }
 
+sub getColumnType {
+    my ($self, $table, $column) = @_;
+
+    $self->checkDBH();
+
+    my $schema = 'public';
+    if($table =~ /\./) {
+        ($schema, $table) = split/\./, $table;
+    }
+
+    my $type;
+    my $sth = $self->{mdbh}->prepare_cached("SELECT data_type FROM information_schema.columns
+                                    WHERE table_schema = ?
+                                    AND table_name = ?
+                                    AND column_name = ?")
+            or croak($self->{mdbh}->errstr);
+    $sth->execute($schema, $table, $column) or croak($self->{mdbh}->errstr);
+    while ((my $line = $sth->fetchrow_hashref)) {
+        $type = lc $line->{data_type};
+    }
+    $sth->finish;
+
+    $self->{mdbh}->rollback;
+
+    return $type;
+}
+
 sub reload {
     my ($self) = shift;
     # Nothing to do..
