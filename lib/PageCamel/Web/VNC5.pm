@@ -285,6 +285,9 @@ sub get_vnc {
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     my ($ok1, $husebase64) = $sysh->get($self->{modname}, 'force_base64');
     my $usebase64 = $husebase64->{settingvalue};
