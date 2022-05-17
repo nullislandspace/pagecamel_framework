@@ -32,7 +32,7 @@ sub new {
 
     my $self = bless $config, $class;
 
-    my $ok = 0;
+    my $ok = 1;
     # Required settings
     foreach my $key (qw[sysh dbh reph]) {
         if(!defined($self->{$key})) {
@@ -40,7 +40,9 @@ sub new {
             $ok=0;
         }
     }
-    croak("Failed to initialize Helpers::Passwords.pm");
+    if(!$ok) {
+        croak("Failed to initialize Helpers::Passwords.pm");
+    }
 
     return $self;
 }
@@ -65,17 +67,17 @@ sub gen_textsalt {
 sub update_password {
     my ($self, $username, $password) = @_;
 
+
     # While pre- and postsalt does not much for complexity, it helps preventing rainbow tables attacks.
     # I know, the bcrypt salt already does that, in case of a general bcrypt breach, this should
     # make it a bit more difficult.
     my $presalt = $self->gen_textsalt();
     my $postsalt = $self->gen_textsalt();
     my $bsalt = rand_bits(16*8); # 16 octets (16 bytes at 8 bits)
-    #print length($bsalt) . "\n";
-    #print $bsalt . "\n";
     my $bsalt_b64 = encode_base64($bsalt, '');
-    #my $cost = getCurrentYear() - 2000 + 3;
-    my $cost = 5; # FIXME: Make SystemSetting
+
+    my $settings = $self->getSettings();
+    my $cost = $settings->{password_bcryptcost};
 
     my $bcrypt = Digest->new('Bcrypt');
     $bcrypt->cost($cost);
@@ -113,8 +115,9 @@ sub verify_password {
     my $presalt = $self->gen_textsalt();
     my $postsalt = $self->gen_textsalt();
     my $bsalt = rand_bits(16*8); # 16 octets (16 bytes at 8 bits)
-    #my $cost = getCurrentYear() - 2000 + 3;
-    my $cost = 16; # FIXME: Make SystemSetting
+
+    my $settings = $self->getSettings();
+    my $cost = $settings->{password_bcryptcost};
     my $pwhash = '';
     my $isLocked = 0;
 
@@ -131,7 +134,7 @@ sub verify_password {
                               AND password_postfix != ''
                               AND password_bcrypt_hash != ''
                               AND password_bcrypt_salt != ''
-                              ")
+                              LIMIT 1")
         or croak($self->{dbh}->errstr);
     if(!$selsth->execute($username)) {
         $self->{reph}->debuglog($self->{dbh}->errstr);
@@ -159,9 +162,9 @@ sub verify_password {
 
     my $pwsalted = $bcrypt->b64digest;
 
-    # sleep for a random amount of time, up to a second fo further limit
+    # sleep for a random amount of time, up to a third of second fo further limit
     # bruteforcing and "unknown user" detection
-    my $sleeptime = int(rand(900) + 100) / 1000;
+    my $sleeptime = int(rand(200) + 100) / 1000;
     sleep($sleeptime);
 
     if($isLocked || !$found || $pwsalted ne $pwhash) {
@@ -169,6 +172,30 @@ sub verify_password {
     }
 
     return 1;
+}
+
+sub getSettings {
+    my ($self) = @_;
+
+    my $sysh = $self->{sysh};
+    my $dbh = $self->{dbh};
+    my $reph = $self->{reph};
+
+    # Defaults
+    my %settings = (
+        allow_keep_logged_in => 0,
+        standard_valid_time => '10 minutes',
+        keeploggedin_valid_time => '90 days',
+    );
+
+    foreach my $key (qw[password_bcryptcost]) {
+        my ($ok, $sysval) = $sysh->get('security', $key);
+        if($ok) {
+            $settings{$key} = $sysval->{settingvalue};
+        }
+    }
+
+    return \%settings;
 }
 
 

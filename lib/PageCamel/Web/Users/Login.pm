@@ -167,6 +167,17 @@ sub reload {
                                         ])
         or croak("Failed to create setting keeploggedin_valid_time!");
 
+    $sysh->createNumber(modulename => 'security',
+                        settingname => 'password_bcryptcost',
+                        settingvalue => 5,
+                        value_min => 1,
+                        value_max => 30,
+                        description => 'BCrypt security (cost), higher is slower login, default 5',
+                        processinghints => [
+                            "type=slider",
+                                            ])
+            or croak("Failed to create setting password_bcryptcost!");
+
     my $type = $dbh->getColumnType('pagecamel.sessions', 'valid_interval');
     if(!defined($type)) {
         $reph->debuglog("Updating sessions table (add valid_interval column)");
@@ -1483,8 +1494,6 @@ sub getSettings {
         }
     }
     $dbh->rollback;
-
-    print STDERR Dumper(\%settings);
 
     return \%settings;
 }
