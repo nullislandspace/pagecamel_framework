@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.0;
+our $VERSION = 4.1;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -22,7 +22,7 @@ use base qw(PageCamel::Web::BaseModule);
 use Crypt::Digest::SHA256 qw[sha256_hex];
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
-use PageCamel::Helpers::Passwords qw(verify_password gen_textsalt);
+use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 use PageCamel::Helpers::URI qw[decode_uri_path];
 use MIME::Base64;
@@ -41,12 +41,28 @@ sub new {
     #$self->{password_prefix} = "CARNIVORE::";
     #$self->{password_postfix} = "# or 1984";
 
-    $self->{basicauth_prefix_salt} = gen_textsalt();
-    $self->{basicauth_middle_salt} = gen_textsalt();
-    $self->{basicauth_postfix_salt} = gen_textsalt();
 
     my %paths;
     $self->{paths} = \%paths;
+
+    my $ok = 1;
+    # Deprecated settings
+    foreach my $key (qw[session_valid expires]) {
+        if(defined($self->{$key})) {
+            print STDERR "Login.pm: Setting $key is not allowed anymore!\n";
+            $ok = 0;
+        }
+    }
+    # Required settings
+    foreach my $key (qw[systemsettings]) {
+        if(!defined($self->{$key})) {
+            print STDERR "Login.pm: Setting $key is required but not set!\n";
+            $ok = 0;
+        }
+    }
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
+    }
 
     if(!defined($self->{httpsonlycookies}) || $self->{isDebugging}) {
         $self->{httpsonlycookies} = 0;
@@ -113,6 +129,71 @@ sub crossregister {
     if($type !~ /ClacksCache$/ && $type !~ /ClacksCachePg$/) {
         croak("memcache type is $type but needs to be of type ClacksCache or ClacksCachePg in module " . $self->{modname});
     }
+
+    return;
+}
+
+sub reload {
+    my ($self) = @_;
+
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    $sysh->createBool(modulename => 'security',
+                        settingname => 'allow_keep_logged_in',
+                        settingvalue => 0,
+                        description => 'Allow the "keep logged in" option',
+                        processinghints => [
+                            'type=switch',
+                                            ])
+            or croak("Failed to create setting allow_keep_logged_in!");
+
+    $sysh->createText(modulename => 'security',
+                    settingname => 'standard_valid_time',
+                    settingvalue => '10 minutes',
+                    description => 'How long are standard sessions valid without refresh',
+                    processinghints => [
+                        'type=textfield'
+                                        ])
+        or croak("Failed to create setting standard_valid_time!");
+
+    $sysh->createText(modulename => 'security',
+                    settingname => 'keeploggedin_valid_time',
+                    settingvalue => '90 days',
+                    description => 'How long are "keep logged in" sessions valid without refresh',
+                    processinghints => [
+                        'type=textfield'
+                                        ])
+        or croak("Failed to create setting keeploggedin_valid_time!");
+
+    $sysh->createNumber(modulename => 'security',
+                        settingname => 'password_bcryptcost',
+                        settingvalue => 5,
+                        value_min => 1,
+                        value_max => 30,
+                        description => 'BCrypt security (cost), higher is slower login, default 5',
+                        processinghints => [
+                            "type=slider",
+                                            ])
+            or croak("Failed to create setting password_bcryptcost!");
+
+    my $type = $dbh->getColumnType('pagecamel.sessions', 'valid_interval');
+    if(!defined($type)) {
+        $reph->debuglog("Updating sessions table (add valid_interval column)");
+        if(!$dbh->do("ALTER TABLE sessions ADD COLUMN valid_interval interval NOT NULL DEFAULT '10 minutes'")) {
+            croak($dbh->errstr);
+        }
+        $dbh->commit;
+    } elsif($type ne 'interval') {
+        croak("pagecamel.sessions column valid_interval has wrong type. Should be 'interval' but is $type");
+    }
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
+
+    $self->{basicauth_prefix_salt} = $pwh->gen_textsalt();
+    $self->{basicauth_middle_salt} = $pwh->gen_textsalt();
+    $self->{basicauth_postfix_salt} = $pwh->gen_textsalt();
 
     return;
 }
@@ -187,6 +268,7 @@ sub get_login {
         PageTitle   =>  $self->{login}->{pagetitle},
         username    =>  $ua->{postparams}->{'username'} || '',
         password    =>  $ua->{postparams}->{'password'} || '',
+        keeploggedin    =>  $ua->{postparams}->{'keep_logged_in'} || 0,
         PostLink    =>  $self->{login}->{webpath},
         DisableMousechecks => $self->{disable_mousecheck},
         showads => $self->{showads},
@@ -203,10 +285,13 @@ sub get_login {
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $viewh = $self->{server}->{modules}->{$self->{views}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     if($webdata{username} ne '' && $webdata{password} ne '') {
 
-        my $pwok = verify_password($dbh, $webdata{username}, $webdata{password});
+        my $pwok = $pwh->verify_password($webdata{username}, $webdata{password});
 
         my $clidmsg = '';
 
@@ -338,7 +423,8 @@ sub get_login {
             $hasAdmin = 1;
         }
 
-        my $session = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin);
+        my ($session, $expires) = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin, $webdata{keeploggedin});
+        $user{expires} = $expires;
 
         if($session eq '') {
             # Database error
@@ -370,7 +456,7 @@ sub get_login {
         $self->{cookie} = $self->create_cookie($ua,
                                 "name" => "pagecamel-session",
                                 "value" => "$session",
-                                "expires" => $self->{expires},
+                                "expires" => $expires,
                                 "httponly" => 1,
                                 "secure" => $self->{httpsonlycookies},
                                 "location" => '/',
@@ -387,12 +473,21 @@ sub get_login {
     if(!$self->{disable_mousecheck}) {
         my @extrascripts = ('/static/sha256.js');
         $webdata{HeadExtraScripts} = \@extrascripts;
-        $webdata{tempsessionid} = PageCamel::Helpers::Passwords::gen_textsalt();
-        $webdata{tempclientid} = PageCamel::Helpers::Passwords::gen_textsalt();
+        $webdata{tempsessionid} = $pwh->gen_textsalt();
+        $webdata{tempclientid} = $pwh->gen_textsalt();
     }
 
     my $template;
     my $templateok = 0;
+
+    my $settings = $self->getSettings();
+    $webdata{AllowKeepLoggedIn} = $settings->{allow_keep_logged_in};
+
+    if(defined($self->{server}->{modules}->{pwreset})) {
+        $webdata{AllowPWReset} = 1;
+    } else {
+        $webdata{AllowPWReset} = 0;
+    }
 
     eval {
         $template = $self->{server}->{modules}->{templates}->get('users/login', 1, %webdata);
@@ -512,13 +607,14 @@ sub getAutologin {
         $hasAdmin = 1;
     }
 
-    my $session = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin);
+    my ($session, $expires) = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin, 0);
     if($session eq '' || $session eq 'LICENSEPOINTSERROR') {
         return;
     }
+    $user{expires} = $expires;
     $self->{server}->{modules}->{$self->{memcache}}->set($session, \%user);
 
-    return $session;
+    return ($session, $expires);
 }
 
 sub get_switchtouser {
@@ -770,6 +866,7 @@ sub prefilter {
     }
 
     my $session = $ua->{cookies}->{"pagecamel-session"};
+    my $expires;
 
     # When we allow autologin, we check if the client already has a valid session. If not, we generate one
     # on the fly for the guest user and then proceed normally with all the checks in prefilter. This should make
@@ -790,7 +887,7 @@ sub prefilter {
         }
 
         if($autologin) {
-            $session = $self->getAutologin($ua);
+            ($session, $expires) = $self->getAutologin($ua);
             if(!defined($session)) {
                 return (
                     status => 500,
@@ -828,7 +925,7 @@ sub prefilter {
             $self->{cookie} = $self->create_cookie($ua,
                                                    "name" => "pagecamel-session",
                                                    "value" => $session,
-                                                   "expires" => $self->{expires},
+                                                   "expires" => $user->{expires},
                                                    "httponly" => 1,
                                                     "secure" => $self->{httpsonlycookies},
                                                    "location" => '/',
@@ -845,6 +942,7 @@ sub prefilter {
                                rights       => $user->{rights},
                                activeurl    => $webpath,
                                require_password_change  => $user->{require_password_change},
+                               expires      => $user->{expires},
                               );
 
             if(defined($user->{realuser})) {
@@ -919,6 +1017,9 @@ sub do_basic_auth {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     if(!defined($ua->{headers}->{Authorization}) || $ua->{headers}->{Authorization} !~ /^Basic\ /) {
         return $self->genBasicAuthRequest($realm);
@@ -958,7 +1059,7 @@ sub do_basic_auth {
     }
 
     if(!$pwok) {
-        $pwok = verify_password($dbh, $dynuser, $dynpass);
+        $pwok = $pwh->verify_password($dynuser, $dynpass);
 
         if($pwok) {
             if($cacheinsth->execute($authcookie)) {
@@ -1080,9 +1181,22 @@ sub get_defaultwebdata {
 }
 
 sub createSession {
-    my ($self, $ua, $username, $hasDeveloper, $hasAdmin) = @_;
+    my ($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin) = @_;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $settings = $self->getSettings();
+
+    if(!$settings->{allow_keep_logged_in}) {
+        $keeploggedin = 0;
+    }
+    # standard_valid_time keeploggedin_valid_time
+    my $validinterval = $settings->{standard_valid_time};
+    my $expires = $settings->{standard_valid_time_expires};
+    if($keeploggedin) {
+        $validinterval = $settings->{keeploggedin_valid_time};
+        $expires = $settings->{keeploggedin_valid_time_expires};
+    }
+
     my $validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.+-";
     my $host_addr = $ua->{remote_addr};
 
@@ -1098,11 +1212,11 @@ sub createSession {
     my ($simpleUA, $batbot) = simplifyUA($userAgent);
 
     my $sth = $dbh->prepare_cached("INSERT INTO sessions
-                                    (sid, username, client_ip, useragent, useragent_simplified, logintime, valid_until, has_developer, has_admin)
-                                    VALUES (?,?,?,?,?, now(), (now() + interval '10 minutes'), ?, ?)")
+                                    (sid, username, client_ip, useragent, useragent_simplified, logintime, has_developer, has_admin, valid_until, valid_interval)
+                                    VALUES (?,?,?,?,?, now(), ?, ?, (now() + ?::interval), ?)")
             or croak($dbh->errstr);
 
-    if(!$sth->execute($session, $username, $host_addr, $userAgent, $simpleUA, $hasDeveloper, $hasAdmin)) {
+    if(!$sth->execute($session, $username, $host_addr, $userAgent, $simpleUA, $hasDeveloper, $hasAdmin, $validinterval, $validinterval)) {
         my $licensepointserror = '';
         my $dberr = $dbh->errstr;
         print STDERR "*********** DB ERROR: $dberr\n";
@@ -1118,7 +1232,7 @@ sub createSession {
     $self->{currentSessionID} = $session;
     $self->{server}->user_login($username, $session);
 
-    return $session;
+    return ($session, $expires);
 }
 
 sub deleteSession {
@@ -1341,6 +1455,51 @@ sub firewall_check_loginfailure {
     }
 }
 
+sub getSettings {
+    my ($self) = @_;
+
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    # Defaults
+    my %settings = (
+        allow_keep_logged_in => 0,
+        standard_valid_time => '10 minutes',
+        keeploggedin_valid_time => '90 days',
+    );
+
+    foreach my $key (qw[allow_keep_logged_in standard_valid_time keeploggedin_valid_time]) {
+        my ($ok, $sysval) = $sysh->get('security', $key);
+        if($ok) {
+            $settings{$key} = $sysval->{settingvalue};
+        }
+    }
+
+    my $selsth = $dbh->prepare_cached("SELECT extract(epoch FROM ?::interval) AS seconds")
+            or croak($dbh->errstr);
+    foreach my $key (qw[standard_valid_time keeploggedin_valid_time]) {
+        if(!$selsth->execute($settings{$key})) {
+            croak($dbh->errstr);
+        }
+        my $line = $selsth->fetchrow_hashref;
+        $selsth->finish;
+        if(!defined($line) || !defined($line->{seconds})) {
+            # Something went wrong
+            $reph->debuglog("WARNING! Can't convert ", $settings{$key}, " to seconds!");
+            $settings{$key . '_seconds'} = 600;
+        } else {
+            $settings{$key . '_seconds'} = $line->{seconds};
+            $settings{$key . '_expires'} = '+' . $line->{seconds} . 's';
+        }
+    }
+    $dbh->rollback;
+
+    return \%settings;
+}
+
+
+   
 1;
 __END__
 

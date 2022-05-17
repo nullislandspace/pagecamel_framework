@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.0;
+our $VERSION = 4.1;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -46,7 +46,7 @@ foreach my $file (@files) {
     while((my $line = <$ifh>)) {
         if($line =~ /\_trquote/) {
             #print "< ", $line;
-            $line =~ s/\_trquote\((.+?)\)/\"\[\% tr.trquote\($1\) \%\]\"/;
+            $line =~ s/\_trquote\((.+?)\)/\"\[\% tr.trquote\($1\) \%\]\"/g;
             #print "> ", $line;
         }
         print $ofh $line;
@@ -65,6 +65,7 @@ close $mifh;
 close $mofh;
 print "Done.\n";
 
+#`cp $tmpfile $minified`;
 unlink($tmpfile);
 
 print "For development, use the following lines:\n";

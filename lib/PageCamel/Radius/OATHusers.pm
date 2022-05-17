@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.0;
+our $VERSION = 4.1;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -17,12 +17,14 @@ use feature 'signatures';
 no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
-use PageCamel::Helpers::Passwords qw[verify_password];
+use PageCamel::Helpers::Passwords;
 use DBI;
 
 sub new {
     my ($class) = @_;
     my $self = bless {}, $class;
+
+    croak("This module needs a rewrite for new Passwords handling code (see Helpers::Passwords)");
 
     return $self;
 }

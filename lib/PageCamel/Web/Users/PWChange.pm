@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.0;
+our $VERSION = 4.1;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -36,6 +36,20 @@ sub new {
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
+   
+    my $ok = 1;
+    # Required settings
+    foreach my $key (qw[systemsettings]) {
+        if(!defined($self->{$key})) {
+            print STDERR "PWChange.pm: Setting $key is required but not set!\n";
+            $ok = 0;
+        }
+    }
+
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
+    }
+
 
     return $self;
 }
@@ -61,6 +75,9 @@ sub get_pwchange {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $auth = $self->{server}->{modules}->{$self->{authentification}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
@@ -69,9 +86,12 @@ sub get_pwchange {
         pwnew1    =>  $ua->{postparams}->{'pwnew1'} || '',
         pwnew2    =>  $ua->{postparams}->{'pwnew1'} || '',
         PostLink    =>  $self->{webpath},
-        ResetLink    =>  $self->{resetpath},
         showads => $self->{showads},
     );
+
+    if(defined($self->{server}->{modules}->{pwreset})) {
+        $webdata{ResetLink} = $self->{resetpath};
+    }
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
     if($mode eq "changepw") {
@@ -81,7 +101,7 @@ sub get_pwchange {
                 $webdata{statuscolor} = "errortext";
                 $webdata{FocusOnField} = "pwnew1";
             } else {
-                my $oldpwok = verify_password($dbh, $webdata{userData}->{user}, $webdata{pwold});
+                my $oldpwok = $pwh->verify_password($webdata{userData}->{user}, $webdata{pwold});
 
                 if(!$oldpwok) {
                     $webdata{statustext} = "Old password incorrect!";
@@ -89,7 +109,7 @@ sub get_pwchange {
                     $webdata{FocusOnField} = "pwold";
                     $dbh->rollback;
                 } else {
-                    if(update_password($dbh, $webdata{userData}->{user}, $webdata{pwnew1})) {
+                    if($pwh->update_password($webdata{userData}->{user}, $webdata{pwnew1})) {
                         $webdata{statustext} = "Password changed!";
                         $webdata{statuscolor} = "oktext";
                         $webdata{userData}->{require_password_change} = 0;

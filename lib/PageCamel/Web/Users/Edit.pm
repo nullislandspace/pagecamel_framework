@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.0;
+our $VERSION = 4.1;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -25,6 +25,19 @@ use PageCamel::Helpers::URI qw(encode_uri_path);
 
 sub register {
     my $self = shift;
+    
+    my $ok = 1;
+    # Required settings
+    foreach my $key (qw[systemsettings]) {
+        if(!defined($self->{$key})) {
+            print STDERR "Edit.pm: Setting $key is required but not set!\n";
+            $ok = 0;
+        }
+    }
+
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
+    }
 
     if(!defined($self->{forcelowercase})) {
         $self->{forcelowercase} = 1;
@@ -94,6 +107,9 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
     my $th = $self->{server}->{modules}->{templates};
     my $ulh = $self->{server}->{modules}->{userlevels};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
 
@@ -209,7 +225,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
         my $password = $ua->{postparams}->{'password'} || '';
         if($password ne '') {
-            if(!update_password($dbh, $username, $password)) {
+            if(!$pwh->update_password($username, $password)) {
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update password!";
                 $webdata{statuscolor} = "errortext";
@@ -318,7 +334,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
         my $password = $ua->{postparams}->{'password'} || '';
         if($password ne '') {
             push @auditdata, "New password set";
-            if(!update_password($dbh, $username, $password)) {
+            if(!$pwh->update_password($username, $password)) {
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update password!";
                 $webdata{statuscolor} = "errortext";

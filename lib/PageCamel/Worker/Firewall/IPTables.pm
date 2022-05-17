@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.0;
+our $VERSION = 4.1;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -184,6 +184,9 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     my $postfixsel = $dbh->prepare_cached("SELECT DISTINCT ip_addr FROM postfix_blocklist")
             or croak($dbh->errstr);
 
+    my $externalprojectsel = $dbh->prepare_cached("SELECT DISTINCT ip_addr FROM externalproject_blocklist")
+            or croak($dbh->errstr);
+
     my $permablocksel = $dbh->prepare_cached("SELECT DISTINCT ip_addr FROM firewall_permablock")
             or croak($dbh->errstr);
 
@@ -300,6 +303,17 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
     }
     $postfixsel->finish;
 
+    if(!$externalprojectsel->execute) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return;
+    }
+    my @externalprojectips;
+    while((my $line = $externalprojectsel->fetchrow_hashref)) {
+        push @externalprojectips, $line->{ip_addr};
+    }
+    $externalprojectsel->finish;
+
     if(!$webipsel->execute) {
         $reph->debuglog($dbh->errstr);
         $dbh->rollback;
@@ -406,6 +420,20 @@ sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
         } else {
             push @six, "-A INPUT -s $ip -p tcp --dport 25 -j REJECT";
             push @six, "-A INPUT -s $ip -p tcp --dport 587 -j REJECT";
+        }
+    }
+
+    push @four, "#    External Projects";
+    push @six, "#    External Projects";
+    foreach my $ip (@externalprojectips) {
+        if($ip =~ /\./) {
+            #push @four, "-A INPUT -s $ip -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            push @four, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+        } else {
+            #push @six, "-A INPUT -s $ip -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            push @six, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
         }
     }
 

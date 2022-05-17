@@ -7,7 +7,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.0;
+our $VERSION = 4.1;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -210,13 +210,17 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
     }
 
     if($allowclient) {
-        $ok = 0;
-        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        if($self->{isDebugging}) {
             $self->{webserver}->process_request($client, $header);
-            $ok = 1;
-        };
-        if(!$ok) {
-            $self->endprogram($header, "!!!!! FAILED process_request $EVAL_ERROR");
+        } else {
+            $ok = 0;
+            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                $self->{webserver}->process_request($client, $header);
+                $ok = 1;
+            };
+            if(!$ok) {
+                $self->endprogram($header, "!!!!! FAILED process_request $EVAL_ERROR");
+            }
         }
     }
     

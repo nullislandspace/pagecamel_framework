@@ -1,4 +1,4 @@
-package PageCamel::Worker::Firewall::GeoIPLog;
+package PageCamel::Worker::Firewall::ExternalProject;
 #---AUTOPRAGMASTART---
 use 5.032;
 use strict;
@@ -55,16 +55,17 @@ sub crossregister {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
-    $self->{clacks}->listen('Firewall::Syslog');
+    $self->{clacks}->listen('Firewall::ExternalProject');
     $self->{clacks}->doNetwork();
 
     $dbh->{disconnectIsFatal} = 1; # Don't automatically reconnect but exit instead!
 
-    $self->{logsth} = $dbh->prepare_cached("INSERT INTO pagecamel.firewall_country_shitlist_log(ip_addr, destination_port, country_code, country_name)
-                                            VALUES (?, ?, ?, ?)")
+    $self->{ipblockinssth} = $dbh->prepare_cached("INSERT INTO externalproject_blocklist
+                                                    (ip_addr, logtext) VALUES (?, ?)")
             or croak($dbh->errstr);
 
-    $self->{countrysth} = $dbh->prepare_cached("SELECT country_code, country_name FROM pagecamel.geoip WHERE ? << netblock LIMIT 1")
+    $self->{ipblockdelsth} = $dbh->prepare_cached("DELETE FROM externalproject_blocklist
+                                           WHERE blockeduntil < now()")
             or croak($dbh->errstr);
 
     $dbh->commit;
@@ -81,6 +82,7 @@ sub work {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
     my $now = time;
     if($now > $self->{nextping}) {
@@ -91,70 +93,39 @@ sub work {
 
     $self->{clacks}->doNetwork();
 
-    my $first = 1;
     while((my $message = $self->{clacks}->getNext())) {
         $workCount++;
         if($message->{type} eq 'disconnect') {
             $self->debuglog("Restarting clacks connection of Syslog forwarder");
-            $self->{clacks}->listen('Firewall::Syslog');
+            $self->{clacks}->listen('Firewall::ExternalProject');
             $self->{clacks}->ping();
             $self->{clacks}->doNetwork();
             $self->{nextping} = $now + 30;
             next;
-        } elsif($message->{type} eq 'set') {
-            #my $key = $message->{name};
-            my $logtext = $message->{data};
-            next unless($logtext =~ /^kernel\:.*GEOIP-Dropped\:\ /); # Only work on GEOIP-Dropped messages
+        }
+       
+        if($message->{type} ne 'set' || $message->{name} ne 'Firewall::ExternalProject') {
+            # Ignore
+            next;
+        }
 
-            $logtext =~ s/.*GEOIP-Dropped\:\ //;
-            my @parts = split/\ /, $logtext;
-            my %parsed;
-            foreach my $part (@parts) {
-                my ($key, $val) = split/\=/, $part;
-                if(!defined($key) || !defined($val)) {
-                    next;
-                }
-                $parsed{$key} = $val;
-            }
-            my $ok = 1;
-            foreach my $required (qw[SRC DPT]) {
-                if(!defined($parsed{$required})) {
-                    $reph->debuglog("GEOIP Parsing failed: ", $logtext);
-                    $ok = 0;
-                    last;
-                }
-            }
-            next unless($ok);
+        my ($ip, $logtext) = split/\|/, $message->{data}, 2;
+        if(!defined($ip) || !defined($logtext) || !length($ip) || !length($logtext)) {
+            $reph->debuglog("Invalid Firewall::ExternalProject message: ", $message->{data});
+            next;
+        }
 
-            if(!$self->{countrysth}->execute($parsed{SRC})) {
-                $reph->debuglog($dbh->errstr);
-                $dbh->rollback;
-                next;
-            }
-            my $countryline = $self->{countrysth}->fetchrow_hashref;
-            $self->{countrysth}->finish;
-
-            foreach my $required (qw[country_code country_name]) {
-                if(!defined($countryline->{$required})) {
-                    $countryline->{$required} = '?';
-                }
-            }
-
-            if(!$self->{logsth}->execute($parsed{SRC}, $parsed{DPT}, $countryline->{country_code}, $countryline->{country_name})) {
-                $reph->debuglog($dbh->errstr);
-                $dbh->rollback;
-                next;
-            }
-            
+        if(!$self->{ipblockinssth}->execute($ip, $logtext)) {
+            $reph->debuglog($dbh->errstr);
+            $dbh->rollback;
+            return $workCount;
+        } else {
+            $reph->debuglog("External project firewall request for $ip: $logtext");
             $dbh->commit;
-
-            my $debugtext = "IP " . $parsed{SRC} . " PORT ". $parsed{DPT} . " " . $countryline->{country_code} . " " . $countryline->{country_name};
-            $reph->debuglog('GeoIP BLOCKED ' . $debugtext);
-
+            $workCount++;
         }
     }
 
-   
     # Do the updates not dependant on recieving stuff over the
     # network only every 10 seconds to reduce processor and database load
     if($now > $self->{nextrun}) {
@@ -163,8 +134,14 @@ sub work {
         return $workCount;
     }
 
-    $dbh->commit;
-    $workCount++;
+    if(!$self->{ipblockdelsth}->execute) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return $workCount;
+    } else {
+        $dbh->commit;
+        $workCount++;
+    }
 
     return $workCount;
 }

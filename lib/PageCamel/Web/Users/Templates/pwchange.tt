@@ -14,7 +14,9 @@
             <td align="right">[% tr.trquote("Old Password") %]</td>
             <td align="left">
                 <input type="password" name="pwold" value="" maxLength="40" size="20" id="pwold"><br/>
-                <a href="[% ResetLink %]">[% tr.trquote("I don't know my old password...") %]</a>
+                [% IF ResetLink != '' %]
+                    <a href="[% ResetLink %]">[% tr.trquote("I don't know my old password...") %]</a>
+                [% END %]
             </td>
         </tr>
         <tr>

@@ -2500,6 +2500,7 @@ lib/PageCamel/Worker/Firewall/BadBot.pm
 lib/PageCamel/Worker/Firewall/BlockCIDRWhois.pm
 lib/PageCamel/Worker/Firewall/DNS.pm
 lib/PageCamel/Worker/Firewall/Dovecot.pm
+lib/PageCamel/Worker/Firewall/ExternalProject.pm
 lib/PageCamel/Worker/Firewall/Floodcheck.pm
 lib/PageCamel/Worker/Firewall/GeoIPLog.pm
 lib/PageCamel/Worker/Firewall/Honeypot.pm
