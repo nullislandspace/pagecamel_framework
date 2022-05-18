@@ -170,8 +170,8 @@ sub reload {
     $sysh->createNumber(modulename => 'security',
                         settingname => 'password_bcryptcost',
                         settingvalue => 5,
-                        value_min => 1,
-                        value_max => 30,
+                        value_min => 5,
+                        value_max => 31,
                         description => 'BCrypt security (cost), higher is slower login, default 5',
                         processinghints => [
                             "type=slider",
