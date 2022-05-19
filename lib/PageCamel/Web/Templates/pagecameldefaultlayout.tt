@@ -577,12 +577,12 @@
                         [% ELSE %]
                             <div class="webgui_projectusername">[% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %][% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
                         [% END %]
-                        [% IF userData.keyfob_logout %]</i>[% END %]
                         <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a>
                         [% IF userData.hasrealuser == 1 %]
                             / <a class="webgui_projectloginlink" href="/user/switchback">[% tr.trquote("Back") %]</a>
                         [% END %]
                         </div>
+                        [% IF userData.keyfob_logout %]</i>[% END %]
                     [% END %]
                 </div>
             </div>
@@ -854,9 +854,9 @@
                         [% tr.trquote("Please login or register.") %]
                     [% ELSE %]
                         [% tr.trquote("Username") %]: [% userData.user %]<br/>
-                        [% tr.trquote("First name") %]: [% userData.first_name %]<br/>
-                        [% tr.trquote("Last name") %]: [% userData.last_name %]<br/>
-                        [% tr.trquote("Email") %]: [% userData.email_addr %]
+                        [% tr.trquote("First name") %]: [% tr.quote(userData.first_name) %]<br/>
+                        [% tr.trquote("Last name") %]: [% tr.quote(userData.last_name) %]<br/>
+                        [% tr.trquote("Email") %]: [% tr.quote(userData.email_addr) %]
                     [% END %]
                 </span>
             </p>

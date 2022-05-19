@@ -565,6 +565,7 @@ sub get_keyfoblogin {
     $dbh->commit;
 
     if(!defined($user) || !defined($user->{hardware_fob})) {
+        $reph->auditlog($self->{modname}, "Keyfob login failed for FOB " . $keyfobid);
         return (status      => 303,
                 location    => $self->{login}->{webpath},
                 type        => "text/html",
@@ -575,6 +576,7 @@ sub get_keyfoblogin {
     }
 
     my ($session, $expires, $startpage) = $self->getAutologin($ua, $user->{username});
+    $reph->auditlog($self->{modname}, "Keyfob login success for user " . $user->{username}, " (" . $keyfobid . ")");
 
     $self->{cookie} = $self->create_cookie($ua,
                             "name" => "pagecamel-session",
