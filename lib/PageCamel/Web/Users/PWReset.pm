@@ -67,6 +67,7 @@ sub register {
 
     $self->register_webpath($self->{webpath}, "get_pwreset");
     $self->register_public_url($self->{webpath});
+    $self->register_defaultwebdata("defaultwebdata");
     return;
 }
 
@@ -289,6 +290,15 @@ sub get_execute {
             type    => "text/html",
             data    => $template);
 }
+
+sub defaultwebdata {
+    my ($self, $webdata) = @_;
+
+    # Just allow the "password reset" menu item
+    $webdata->{canResetPassword} = 1;
+    return;
+}
+
 
 1;
 __END__

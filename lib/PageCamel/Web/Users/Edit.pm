@@ -141,7 +141,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
     }
     
     # Prepare empty user structure
-    foreach my $fieldname (qw[username oldusername email_addr account_locked account_lock_reason first_name last_name company_name]) {
+    foreach my $fieldname (qw[username oldusername email_addr account_locked account_lock_reason first_name last_name company_name hardware_fob]) {
         $webdata{$fieldname} = "";
     }
     
@@ -234,7 +234,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
             push @auditdata, "New password set";
         }
 
-        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name company_name password_can_expire]) {
+        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name company_name password_can_expire hardware_fob]) {
             my $upsth = $dbh->prepare_cached("UPDATE users
                                              SET $fieldname = ?
                                              WHERE username = ?")
@@ -342,7 +342,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
             }
         }
 
-        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name password_can_expire]) {
+        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name password_can_expire hardware_fob]) {
             my $upsth = $dbh->prepare_cached("UPDATE users
                                              SET $fieldname = ?
                                              WHERE username = ?")
@@ -423,7 +423,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
         while((my $user = $selsth->fetchrow_hashref)) {
-            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name company_name password_can_expire force_password_change]) {
+            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name company_name password_can_expire force_password_change hardware_fob]) {
                 $webdata{$fieldname} = $user->{$fieldname};
             }
 
