@@ -21,7 +21,7 @@ BEGIN {
     mkdir '/tmp/pagecamel_helpers_javascript_inline';
     $ENV{PERL_INLINE_DIRECTORY} = '/tmp/pagecamel_helpers_javascript_inline';
 };
-use JavaScript::Duktape;
+use JavaScript::Embedded;
 use JSON::XS;
 
 sub new {
@@ -36,7 +36,7 @@ sub new {
         croak('PageCamel::Helpers::JavaScript needs timeout (default timeout value)');
     }
 
-    my $js = JavaScript::Duktape->new(timeout => $self->{timeout});
+    my $js = JavaScript::Embedded->new(timeout => $self->{timeout});
     $self->{js} = $js;
 
     $self->{js}->set('log' => sub {
