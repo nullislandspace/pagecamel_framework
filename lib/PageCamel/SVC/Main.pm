@@ -280,6 +280,9 @@ sub startup {
 # apps in a round-robin fashion, so a single always-crashing app doesn't stop "later" apps from getting proper
 # treatment.
 # This should also allow better interactivity during startup. 
+# Rewrote again: Still CHECK all apps round-robin if there is work to be done, until we either
+# do a full loop-around or we find ONE that needed stuff to be done to it. This will give a better
+# response time, since we don't have to wait a full loop time for a single app to be started/stopped.
 sub work {
     my ($self) = @_;
 
@@ -294,17 +297,24 @@ sub work {
     $workCount += $self->handleClacksCommands();
 
     {
-        my $app = $self->{apps}->[$self->{nextappindex}];
-        $self->{nextappindex}++;
-        if($self->{nextappindex} == scalar @{$self->{apps}}) {
-            $self->{nextappindex} = 0;
-        }
+        my $currentappindex = $self->{nextappindex};
+        while(1) {
+            my $app = $self->{apps}->[$self->{nextappindex}];
+            $self->{nextappindex}++;
+            if($self->{nextappindex} == scalar @{$self->{apps}}) {
+                $self->{nextappindex} = 0;
+            }
+            if($self->{nextappindex} == $currentappindex) {
+                last;
+            }
 
-        my $didwork = $self->check_app($app);
-        $self->{clacks}->doNetwork();
+            my $didwork = $self->check_app($app);
+            $self->{clacks}->doNetwork();
 
-        if($didwork) {
-            $workCount++;
+            if($didwork) {
+                $workCount++;
+                last;
+            }
         }
     }
 
