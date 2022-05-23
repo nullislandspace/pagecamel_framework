@@ -35,19 +35,22 @@ sub new($proto, %config) {
     return $self;
 }
 
-sub init($self, $code) {
+sub init($self, $usercode, $systemcode = '') {
     my $dbh = $self->{dbh};
 
-    my $insth = $dbh->prepare_cached("INSERT TO " . $self->{table} . " (javascript, memory) VALUES
-                                        (?, ?) RETURNING script_id")
+    my $insth = $dbh->prepare_cached("INSERT TO " . $self->{table} . " (usercode, systemcode, memory) VALUES
+                                        (?, ?, ?) RETURNING script_id")
             or croak($dbh->errstr);
 
-    $self->loadCode($code);
+    if($systemcode ne '') {
+        $self->loadCode($systemcode);
+    }
+    $self->loadCode($usercode);
     $self->initMemory();
 
     my $memory = $self->getMemory();
 
-    if(!$insth->execute($code, $memory)) {
+    if(!$insth->execute($usercode, $systemcode, $memory)) {
         return;
     }
     my $idline = $insth->fetchrow_hashref;
@@ -71,7 +74,7 @@ sub load($self) {
         croak("load() called when script already loaded");
     }
 
-    my $selsth = $dbh->prepare_cached("SELECT javascript, memory FROM " . $self->{table} . "
+    my $selsth = $dbh->prepare_cached("SELECT usercode, systemcode, memory FROM " . $self->{table} . "
                                         WHERE script_id = ?")
             or croak($dbh->errstr);
 
@@ -80,11 +83,14 @@ sub load($self) {
     }
     my $line = $selsth->fetchrow_hashref;
     $selsth->finish;
-    if(!defined($line) || !defined($line->{javascript}) || !defined($line->{memory})) {
+    if(!defined($line) || !defined($line->{usercode}) || !defined($line->{systemcode}) || !defined($line->{memory})) {
         return;
     }
 
-    $self->loadCode($line->{javascript});
+    if($line->{systemcode} ne '') {
+        $self->loadCode($line->{systemcode});
+    }
+    $self->loadCode($line->{usercode});
     $self->setMemory($line->{memory});
 
     return 1;
@@ -116,9 +122,15 @@ sub save($self) {
 # WARNING: This is experimental, since we are loading new javascript functions with the same name over the existing ones
 # Default is NOT to call any memory initialization/memory update functions. You can either specifiy a function name or use INIT
 # to call the default memory init function
-sub update($self, $newcode, $memoryupdatefunction = '') {
-    my $dbh = $self->{dbh};
+sub updateSystemCode($self, $newcode) {
+    return $self->_updateCode($newcode, 'systemcode', '');
+}
 
+sub updateUserCode($self, $newcode, $memoryupdatefunction = '') {
+    return $self->_updateCode($newcode, 'usercode', $memoryupdatefunction);
+}
+
+sub _updateCode($self, $newcode, $column, $memoryupdatefunction) {
     if(!defined($self->{id})) {
         croak("ID not defined for update()");
     }
@@ -136,7 +148,7 @@ sub update($self, $newcode, $memoryupdatefunction = '') {
         $self->call($memoryupdatefunction);
     }
 
-    my $upsth = $dbh->prepare_cached("UPDATE " . $self->{table} . " SET javascript = ?, memory = ?
+    my $upsth = $dbh->prepare_cached("UPDATE " . $self->{table} . " SET " . $column . " = ?, memory = ?
                                         WHERE script_id = ?")
             or croak($dbh->errstr);
 
