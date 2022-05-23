@@ -25,7 +25,7 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
-    foreach my $key (qw[dbh table]) {
+    foreach my $key (qw[dbh reph table scriptname]) {
         if(!defined($self->{dbh})) {
             croak('PageCamel::Helpers::JavaScriptDB needs $key');
         }
@@ -35,50 +35,56 @@ sub new($proto, %config) {
     return $self;
 }
 
-sub init($self, $usercode, $systemcode = '') {
+sub init($self, $usercode, $systemcode) {
     my $dbh = $self->{dbh};
 
-    my $insth = $dbh->prepare_cached("INSERT TO " . $self->{table} . " (usercode, systemcode, memory) VALUES
-                                        (?, ?, ?) RETURNING script_id")
+    if($self->{loaded}) {
+        croak("init() called when script already loaded");
+    }
+
+    my $insth = $dbh->prepare_cached("INSERT TO " . $self->{table} . " (scriptname, usercode, systemcode, memory) VALUES
+                                        (?, ?, ?, ?)")
             or croak($dbh->errstr);
 
-    if($systemcode ne '') {
-        $self->loadCode($systemcode);
-    }
-    $self->loadCode($usercode);
-    $self->initMemory();
+    my $loadok = 0;
+    eval {
+        if($systemcode ne '') {
+            $self->loadCode($systemcode);
+        }
+        $self->loadCode($usercode);
+        $self->initMemory();
 
-    my $memory = $self->getMemory();
+        my $memory = $self->getMemory();
+        $loadok = 1;
+    };
 
-    if(!$insth->execute($usercode, $systemcode, $memory)) {
-        return;
+    if(!$loadok) {
+        return 0;
     }
-    my $idline = $insth->fetchrow_hashref;
+
+    if(!$insth->execute($self->{scriptname}, $usercode, $systemcode, $memory)) {
+        $reph->debuglog($dbh->errstr);
+        return 0;
+    }
     $insth->finish;
-    if(!defined($idline) || !defined($idline->{script_id})) {
-        return;
-    }
 
-    $self->{id} = $idline->{script_id};
+    $self->{loaded} = 1;
 
-    return $idline->{script_id};
+    return 1;
 }
 
 sub load($self) {
     my $dbh = $self->{dbh};
 
-    if(!defined($self->{id})) {
-        croak("ID not defined for load()");
-    }
     if($self->{loaded}) {
         croak("load() called when script already loaded");
     }
 
     my $selsth = $dbh->prepare_cached("SELECT usercode, systemcode, memory FROM " . $self->{table} . "
-                                        WHERE script_id = ?")
+                                        WHERE scriptname = ?")
             or croak($dbh->errstr);
 
-    if(!$selsth->execute($self->{id})) {
+    if(!$selsth->execute($self->{scriptname})) {
         return 0;
     }
     my $line = $selsth->fetchrow_hashref;
@@ -99,15 +105,12 @@ sub load($self) {
 sub save($self) {
     my $dbh = $self->{dbh};
 
-    if(!defined($self->{id})) {
-        croak("ID not defined for load()");
-    }
     if(!$self->{loaded}) {
         croak("save() called when script not loaded");
     }
 
     my $upsth = $dbh->prepare_cached("UPDATE " . $self->{table} . " SET memory = ?
-                                        WHERE script_id = ?")
+                                        WHERE scriptname = ?")
             or croak($dbh->errstr);
 
     my $memory = $self->getMemory();
@@ -122,21 +125,24 @@ sub save($self) {
 # WARNING: This is experimental, since we are loading new javascript functions with the same name over the existing ones
 # Default is NOT to call any memory initialization/memory update functions. You can either specifiy a function name or use INIT
 # to call the default memory init function
-sub updateSystemCode($self, $newcode) {
+sub updateSystemCode($self, $newcode, $memoryupdatefunction = '') {
+    if(!$self->{loaded}) {
+        croak("updateSystemCode() called when script not loaded");
+    }
     return $self->_updateCode($newcode, 'systemcode', '');
 }
 
 sub updateUserCode($self, $newcode, $memoryupdatefunction = '') {
+    if(!$self->{loaded}) {
+        croak("updateUserCode() called when script not loaded");
+    }
     return $self->_updateCode($newcode, 'usercode', $memoryupdatefunction);
 }
 
 sub _updateCode($self, $newcode, $column, $memoryupdatefunction) {
-    if(!defined($self->{id})) {
-        croak("ID not defined for update()");
-    }
 
     if(!$self->{loaded}) {
-        croak("update() called when script not loaded");
+        croak("_updateCode() called when script not loaded");
     }
 
     if($memoryupdatefunction eq 'INIT') {
@@ -149,12 +155,12 @@ sub _updateCode($self, $newcode, $column, $memoryupdatefunction) {
     }
 
     my $upsth = $dbh->prepare_cached("UPDATE " . $self->{table} . " SET " . $column . " = ?, memory = ?
-                                        WHERE script_id = ?")
+                                        WHERE scriptname = ?")
             or croak($dbh->errstr);
 
     my $memory = $self->getMemory();
 
-    if(!$upsth->execute($newcode, $memory, $self->{id})) {
+    if(!$upsth->execute($newcode, $memory, $self->{scriptname})) {
         return 0;
     }
 

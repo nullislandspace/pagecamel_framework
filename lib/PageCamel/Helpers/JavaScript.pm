@@ -39,7 +39,7 @@ sub new {
     my $js = JavaScript::Embedded->new(timeout => $self->{timeout});
     $self->{js} = $js;
 
-    $self->{js}->set('log' => sub {
+    $self->{js}->set('debuglog' => sub {
         $self->_logfromjs($_[0]);
     });
 
