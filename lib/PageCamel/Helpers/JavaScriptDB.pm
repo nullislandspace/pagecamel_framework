@@ -36,17 +36,16 @@ sub new($proto, %config) {
 }
 
 sub init($self, $usercode, $systemcode) {
-    my $dbh = $self->{dbh};
-
     if($self->{loaded}) {
         croak("init() called when script already loaded");
     }
 
-    my $insth = $dbh->prepare_cached("INSERT TO " . $self->{table} . " (scriptname, usercode, systemcode, memory) VALUES
+    my $insth = $self->{dbh}->prepare_cached("INSERT TO " . $self->{table} . " (scriptname, usercode, systemcode, memory) VALUES
                                         (?, ?, ?, ?)")
-            or croak($dbh->errstr);
+            or croak($self->{dbh}->errstr);
 
     my $loadok = 0;
+    my $memory;
     eval {
         if($systemcode ne '') {
             $self->loadCode($systemcode);
@@ -54,7 +53,7 @@ sub init($self, $usercode, $systemcode) {
         $self->loadCode($usercode);
         $self->initMemory();
 
-        my $memory = $self->getMemory();
+        $memory = $self->getMemory();
         $loadok = 1;
     };
 
@@ -63,7 +62,7 @@ sub init($self, $usercode, $systemcode) {
     }
 
     if(!$insth->execute($self->{scriptname}, $usercode, $systemcode, $memory)) {
-        $reph->debuglog($dbh->errstr);
+        $self->{reph}->debuglog($self->{dbh}->errstr);
         return 0;
     }
     $insth->finish;
@@ -74,15 +73,13 @@ sub init($self, $usercode, $systemcode) {
 }
 
 sub load($self) {
-    my $dbh = $self->{dbh};
-
     if($self->{loaded}) {
         croak("load() called when script already loaded");
     }
 
-    my $selsth = $dbh->prepare_cached("SELECT usercode, systemcode, memory FROM " . $self->{table} . "
+    my $selsth = $self->{dbh}->prepare_cached("SELECT usercode, systemcode, memory FROM " . $self->{table} . "
                                         WHERE scriptname = ?")
-            or croak($dbh->errstr);
+            or croak($self->{dbh}->errstr);
 
     if(!$selsth->execute($self->{scriptname})) {
         return 0;
@@ -103,15 +100,13 @@ sub load($self) {
 }
 
 sub save($self) {
-    my $dbh = $self->{dbh};
-
     if(!$self->{loaded}) {
         croak("save() called when script not loaded");
     }
 
-    my $upsth = $dbh->prepare_cached("UPDATE " . $self->{table} . " SET memory = ?
+    my $upsth = $self->{dbh}->prepare_cached("UPDATE " . $self->{table} . " SET memory = ?
                                         WHERE scriptname = ?")
-            or croak($dbh->errstr);
+            or croak($self->{dbh}->errstr);
 
     my $memory = $self->getMemory();
 
@@ -154,9 +149,9 @@ sub _updateCode($self, $newcode, $column, $memoryupdatefunction) {
         $self->call($memoryupdatefunction);
     }
 
-    my $upsth = $dbh->prepare_cached("UPDATE " . $self->{table} . " SET " . $column . " = ?, memory = ?
+    my $upsth = $self->{dbh}->prepare_cached("UPDATE " . $self->{table} . " SET " . $column . " = ?, memory = ?
                                         WHERE scriptname = ?")
-            or croak($dbh->errstr);
+            or croak($self->{dbh}->errstr);
 
     my $memory = $self->getMemory();
 
