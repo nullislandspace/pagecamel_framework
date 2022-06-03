@@ -30,6 +30,8 @@ sub new {
     
     $self->{isDebugging} = $isDebugging;
     $self->{configfile} = $configfile;
+
+    $Carp::Verbose = 1;
     
     return $self;
 }
@@ -101,6 +103,7 @@ sub run {
     eval {
         # Let STDOUT/STDERR settle down first
         sleep(0.1);
+
         
         my $nextCycleTime = $self->{config}->{mincycletime} + time;
         while(1) {
@@ -133,6 +136,7 @@ sub run {
 # *** This is NOT an OO function ***
 sub suicide {
     my ($errmsg, $evalerr) = @_;
+    sleep(1);
     print STDERR $errmsg, "\n";
     print STDERR $evalerr, "\n";
     while(1) {

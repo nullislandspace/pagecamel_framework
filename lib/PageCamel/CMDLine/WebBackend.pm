@@ -48,6 +48,8 @@ sub new {
     $self->{configfile} = $configfile;
     
     $self->init();
+
+    $Carp::Verbose = 1;
     
     return $self;
 }
@@ -189,6 +191,7 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
     my $ok = 0;
 
     my $header = $self->readFrontendheader($client);
+
 
     $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
