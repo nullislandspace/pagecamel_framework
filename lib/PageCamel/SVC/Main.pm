@@ -516,9 +516,9 @@ sub check_app {
     }
     my $shouldrun = $refshouldrun->{settingvalue};
 
-    #if($app->{status_name} eq 'demo_serial_worker_status') {
-    #    print $app->{status_name}, ": Shouldrun: ", $shouldrun, " Running: ", defined($app->{handle}), "\n";
-    #}
+    if(0 && $app->{status_name} eq 'demo_pos_worker_status') {
+        print $app->{status_name}, ": Shouldrun: ", $shouldrun, " Running: ", defined($app->{handle}), "\n";
+    }
     if($shouldrun && !defined($app->{handle})) {
         $self->{clacks}->set($app->{clacks_name}, 2); # Blue
         $self->{clacks}->doNetwork();
@@ -559,7 +559,7 @@ sub check_app {
         my $pid = $app->{handle};
         my $apptick = $app->{apptick};
         if($apptick == -1) {
-            # Client requested a temporary suspension of lifetick handling or has not sent a livetick yet
+            # Client requested a temporary suspension of lifetick handling
             $self->{clacks}->set($app->{clacks_name}, 1);
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
             $self->{clacks}->doNetwork();
@@ -596,7 +596,11 @@ sub start_app {
         print "Forked " . $app->{app} . " has PID $pid\n";
         $app->{handle} = $pid;
         $app->{apptick} = -1;
-        my $stime = time;
+        if($app->{lifetick} > 0) {
+            # Make sure we start checking apptick right away after starting the application. This prevents indefinite hangs on startup of applications
+            $app->{apptick} = time;
+        }
+
         for(1..3) {
             sleep(1); # Sleep a few seconds to allow the application to start up without
                       # too much conflicts with PageCamelSVC and other services to be started
