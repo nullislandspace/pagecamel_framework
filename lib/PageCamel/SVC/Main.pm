@@ -56,6 +56,7 @@ sub new {
     }
     $self->{clacks}->store("VERSION::" . $APPNAME, $APPVERSION);
     $self->{clacks}->remove("StopSVC");
+    $self->{clacks}->doNetwork();
     $self->{is_configured} = 0;
 
 
@@ -304,15 +305,16 @@ sub work {
             if($self->{nextappindex} == scalar @{$self->{apps}}) {
                 $self->{nextappindex} = 0;
             }
-            if($self->{nextappindex} == $currentappindex) {
-                last;
-            }
 
             my $didwork = $self->check_app($app);
             $self->{clacks}->doNetwork();
 
             if($didwork) {
                 $workCount++;
+                last;
+            }
+
+            if($self->{nextappindex} == $currentappindex) {
                 last;
             }
         }
@@ -514,8 +516,10 @@ sub check_app {
     }
     my $shouldrun = $refshouldrun->{settingvalue};
 
+    #if($app->{status_name} eq 'demo_serial_worker_status') {
+    #    print $app->{status_name}, ": Shouldrun: ", $shouldrun, " Running: ", defined($app->{handle}), "\n";
+    #}
     if($shouldrun && !defined($app->{handle})) {
-
         $self->{clacks}->set($app->{clacks_name}, 2); # Blue
         $self->{clacks}->doNetwork();
         $self->start_app($app);
@@ -531,10 +535,11 @@ sub check_app {
         return 0;
     }
 
+
     my $checker = Unix::PID->new();
 
     # First, check if the process exited
-    if(!$checker->is_pid_running($app->{handle})) {
+    if(!defined($app->{handle}) || !$checker->is_pid_running($app->{handle})) {
         # Process exited, so, restart
         $self->{clacks}->set($app->{clacks_name}, 2); # Blue
         $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
@@ -565,10 +570,12 @@ sub check_app {
             # Stale lifetick
             print "Stale Lifetick detected: " . $app->{description} . "!\n";
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
-            $self->stop_app($app);
+            $self->kill_app($app);
             $self->{clacks}->set($app->{clacks_name}, 3); # Purple ("lifetick error")
             $self->{clacks}->doNetwork();
-            $self->start_app($app);
+
+            # Don't start app immediately, let it start "naturally" in the course of cycling through all apps
+            #$self->start_app($app);
             return 1;
         } else {
             return 0;
@@ -644,7 +651,6 @@ sub stop_app {
             `$killcmd`;
         }
         print "...killed.\n";
-        $self->{clacks}->remove("LIFETICK::" . $pid);
     } else {
         print "App " . $app->{description} . " already killed\n";
     }
