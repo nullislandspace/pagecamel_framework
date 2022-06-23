@@ -22,8 +22,7 @@ use PageCamel::Helpers::DateStrings;
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -32,22 +31,19 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_prefilter("prefilter");
     return;
 }
 
 
-sub prefilter {
-    my ($self, $ua) = @_;
+sub prefilter($self, $ua) {
 
     if($ua->{method} =~ /^(?:GET|HEAD)$/io) {
         my @names = keys %{$ua->{postparams}};

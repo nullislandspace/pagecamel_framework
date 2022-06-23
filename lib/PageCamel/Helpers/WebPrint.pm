@@ -22,8 +22,7 @@ use File::Binary;
 use Time::HiRes qw(sleep);
 use Errno qw(:POSIX);
 
-sub webPrint {
-    my ($ofh, @parts) = @_;
+sub webPrint($ofh, @parts) {
     
     my $brokenpipe = 0;
     local $SIG{PIPE} = sub { $brokenpipe = 1;};

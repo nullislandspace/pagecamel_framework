@@ -24,8 +24,7 @@ our @EXPORT = qw(dbfreeze dbthaw dbderef); ## no critic (Modules::ProhibitAutoma
 
 use YAML::Syck;
 
-sub dbfreeze {
-    my ($data) = @_;
+sub dbfreeze($data) {
 
     if(!defined($data)) {
         croak('$data is undefined in dbfreeze');
@@ -37,14 +36,12 @@ sub dbfreeze {
 
 }
 
-sub dbthaw {
-    my ($data) = @_;
+sub dbthaw($data) {
 
     return Load($data);
 }
 
-sub dbderef {
-    my ($val) = @_;
+sub dbderef($val) {
 
     return if(!defined($val));
 

@@ -26,8 +26,7 @@ use Net::Clacks::Client;
 use Net::Syslogd;
 use IO::Socket::IP;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -39,8 +38,7 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
 
     #$self->{syslogd} = Net::Syslogd->new(-LocalAddr => $self->{syslog}->{ip}, -LocalPort => 17000)
@@ -63,8 +61,7 @@ sub register {
     return;
 }
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $workCount = 0;
 

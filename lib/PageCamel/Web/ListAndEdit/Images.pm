@@ -26,8 +26,7 @@ use PageCamel::Helpers::Strings qw(stripString splitStringWithQuotes humanFilesi
 use GD;
 use PageCamel::Helpers::URI qw[decode_uri_path];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -44,8 +43,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{download}->{webpath} . '/large', "get_download", 'GET');
     $self->register_webpath($self->{download}->{webpath} . '/thumb', "get_thumb", 'GET');
@@ -59,8 +57,7 @@ sub register {
     return;
 }
 
-sub clean_fname {
-    my ($self, $filename) = @_;
+sub clean_fname($self, $filename) {
 
     my $safe_filename_characters = "a-zA-Z0-9_.-";
     $filename =~ s/\\/\//go;
@@ -71,8 +68,7 @@ sub clean_fname {
     return $filename;
 }
 
-sub get_manage {
-    my ($self, $ua) = @_;
+sub get_manage($self, $ua) {
 
     my $webpath = $ua->{url};
 
@@ -199,8 +195,7 @@ sub get_manage {
             data    => $template);
 }
 
-sub get_download {
-    my ($self, $ua) = @_;
+sub get_download($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -249,8 +244,7 @@ sub get_download {
             data    => $data);
 }
 
-sub get_thumb {
-    my ($self, $ua) = @_;
+sub get_thumb($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -295,8 +289,7 @@ sub get_thumb {
 }
 
 
-sub get_fname {
-    my ($self, $ua) = @_;
+sub get_fname($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -335,8 +328,7 @@ sub get_fname {
             data    => $jsondata);
 }
 
-sub get_lines {
-    my ($self, $ua) = @_;
+sub get_lines($self, $ua) {
 
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

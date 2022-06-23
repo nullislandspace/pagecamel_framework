@@ -24,8 +24,7 @@ use PageCamel::Helpers::DBSerialize;
 # Eyes = similar to xeyes
 # GST = Green Screen Technologies (e.g. simulate green screen in things like debuglogs)
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -34,8 +33,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     # make sure the relevant system settings exist
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -64,21 +62,18 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{settings}->{webpath}, "get_settings");
     $self->register_prerender("prerender");
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     return;
 }
 
-sub get_settings {
-    my ($self, $ua) = @_;
+sub get_settings($self, $ua) {
 
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -149,8 +144,7 @@ sub get_settings {
             data    => $template);
 }
 
-sub prerender {
-    my ($self, $webdata) = @_;
+sub prerender($self, $webdata) {
 
     my $publicpage = 0;
 

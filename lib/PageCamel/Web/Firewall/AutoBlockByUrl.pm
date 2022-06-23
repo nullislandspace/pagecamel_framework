@@ -18,8 +18,7 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -28,14 +27,12 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_fastredirect("checkpath");
     return;
 }
 
-sub checkpath {
-    my ($self, $ua) = @_;
+sub checkpath($self, $ua) {
 
     my $webpath = $ua->{url} || '--unknown--';
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

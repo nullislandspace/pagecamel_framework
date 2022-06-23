@@ -20,8 +20,7 @@ use IO::Socket::IP;
 use Time::HiRes qw[sleep];
 use Sys::Hostname;
 
-sub new {
-    my ($class, $server, $port, $username) = @_;
+sub new($class, $server, $port, $username = 'unknown') {
     my $self = bless {}, $class;
 
     $self->{server} = $server;
@@ -37,8 +36,7 @@ sub new {
     return $self;
 }
 
-sub reconnect {
-    my ($self) = @_;
+sub reconnect($self) {
 
     if(defined($self->{socket})) {
         delete $self->{socket};
@@ -87,8 +85,7 @@ sub reconnect {
     return;
 }
 
-sub doNetwork {
-    my ($self) = @_;
+sub doNetwork($self) {
 
     # doNetwork interleaves handling incoming and outgoing traffic.
     # This is only relevant on slow links.
@@ -132,8 +129,7 @@ sub doNetwork {
     return $workCount;
 }
 
-sub ping {
-    my ($self) = @_;
+sub ping($self) {
 
     if($self->{lastping} < (time - 120)) {
         # Only send a ping every 120 seconds or less
@@ -144,16 +140,14 @@ sub ping {
     return;
 }
 
-sub disablePing {
-    my ($self) = @_;
+sub disablePing($self) {
 
     $self->{outbuffer} .= "NOPING\r\n";
 
     return;
 }
 
-sub setmike {
-    my ($self, $value) = @_;
+sub setmike($self, $value) {
 
     if($value) {
         $self->{outbuffer} .= "MIKE=on\r\n";
@@ -163,8 +157,7 @@ sub setmike {
     return;
 }
 
-sub setspeaker {
-    my ($self, $value) = @_;
+sub setspeaker($self, $value) {
 
     if($value) {
         $self->{outbuffer} .= "SPEAKER=on\r\n";
@@ -174,8 +167,7 @@ sub setspeaker {
     return;
 }
 
-sub setmonitor {
-    my ($self, $value) = @_;
+sub setmonitor($self, $value) {
 
     if($value) {
         $self->{outbuffer} .= "MONITOR=on\r\n";
@@ -185,21 +177,18 @@ sub setmonitor {
     return;
 }
 
-sub sendvoice {
-    my ($self, $value) = @_;
+sub sendvoice($self, $value) {
 
     $self->{outbuffer} .= "DATA=" . $value . "\r\n";
     return;
 }
 
-sub getServerinfo {
-    my ($self) = @_;
+sub getServerinfo($self) {
 
     return $self->{serverinfo};
 }
 
-sub getNext {
-    my ($self) = @_;
+sub getNext($self) {
 
     # Recieve next incoming message (if any)
 

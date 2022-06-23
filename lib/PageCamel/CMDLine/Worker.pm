@@ -23,8 +23,7 @@ use PageCamel::Helpers::Logo;
 use Time::HiRes qw(sleep time);
 use POSIX;
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
@@ -36,8 +35,7 @@ sub new {
 }
 
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
 
     my $initok = 0;
 
@@ -94,8 +92,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
     
     my $runok = 0;
 
@@ -133,8 +130,7 @@ sub run {
 
 # suicide() kills (-9) it's own program.
 # *** This is NOT an OO function ***
-sub suicide {
-    my ($errmsg, $evalerr) = @_;
+sub suicide($errmsg, $evalerr) {
     sleep(1);
     print STDERR $errmsg, "\n";
     print STDERR $evalerr, "\n";

@@ -24,8 +24,7 @@ use PageCamel::Helpers::Padding qw(doFPad);
 
 use Readonly;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
     
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -40,21 +39,18 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we are pretty much self contained
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("update_map");
     return;
 }
 
 
-sub update_map {
-    my ($self) = @_;
+sub update_map($self) {
     
     my $workCount = 0;
     

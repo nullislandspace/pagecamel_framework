@@ -16,8 +16,7 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
-sub new {
-    my $class = shift;
+sub new($class) {
     my $self = bless {}, $class;
 
     my @keycodes = (
@@ -71,8 +70,7 @@ sub new {
     return $self;
 }
 
-sub keytonum {
-    my ($self, $val) = @_;
+sub keytonum($self, $val) {
 
     $val = lc $val;
     my $num = 0;
@@ -86,8 +84,7 @@ sub keytonum {
     return $num;
 }
 
-sub numtokey {
-    my ($self, $val) = @_;
+sub numtokey($self, $val) {
 
     my $key = '';
     my $count = scalar @{$self->{keycodes}};
@@ -98,8 +95,7 @@ sub numtokey {
     return $self->{keycodes}->[$val];
 }
 
-sub genChecksum {
-    my ($self, $val) = @_;
+sub genChecksum($self, $val) {
 
     $val = uc $val;
     my $sum = 0;

@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,8 +28,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my ($self) = @_;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
 
     if(defined($self->{sitemap}) && $self->{sitemap}) {
@@ -40,8 +38,7 @@ sub register {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -85,8 +82,7 @@ sub get {
             );
 }
 
-sub sitemap {
-    my ($self, $sitemap) = @_;
+sub sitemap($self, $sitemap) {
 
     push @{$sitemap}, $self->{webpath};
 

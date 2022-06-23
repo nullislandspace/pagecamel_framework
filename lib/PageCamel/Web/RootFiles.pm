@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,8 +28,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     # Can load files only once due to register(),
     # and we ain't doing it here
@@ -38,8 +36,7 @@ sub reload {
     return;
 }
 
-sub load_files {
-    my ($self) = shift;
+sub load_files($self) {
 
     # Empty cache
     my %files;
@@ -79,8 +76,7 @@ sub load_files {
 
 }
 
-sub load_dir {
-    my ($self, $basedir) = @_;
+sub load_dir($self, $basedir) {
 
     my $fcount = 0;
 
@@ -129,8 +125,7 @@ sub load_dir {
     return $fcount;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->load_files;
 
@@ -138,8 +133,7 @@ sub register {
 }
 
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     # Register every file on its own
     foreach my $url (keys %{$self->{cache}}) {
@@ -150,8 +144,7 @@ sub crossregister {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $name = $ua->{url};
 

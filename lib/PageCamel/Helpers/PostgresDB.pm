@@ -24,8 +24,7 @@ use PageCamel::Helpers::ConfigLoader;
 use Readonly;
 Readonly::Scalar my $BLOBMODE => 0x00020000; ## no critic (ValuesAndExpressions::RequireNumberSeparators)
 
-sub updateConfig {
-    my ($self) = @_;
+sub updateConfig($self) {
     
     # This must be done *AFTER* new in SUPER (to handle host specific cases)
     if(defined($self->{include})) {
@@ -46,13 +45,7 @@ sub updateConfig {
     return;
 }
 
-sub checkDBH {
-    my ($self, $hasforked) = @_;
-
-    if(!defined($hasforked)) {
-        $hasforked = 0;
-    }
-    
+sub checkDBH($self, $hasforked = false) {
     if($hasforked && defined($self->{mdbh})) {
         $self->{firstConnect} = 1;
         $self->{mdbh}->disconnect;
@@ -100,8 +93,7 @@ sub checkDBH {
     return;
 }
 
-sub getColumnType {
-    my ($self, $table, $column) = @_;
+sub getColumnType($self, $table, $column) {
 
     $self->checkDBH();
 
@@ -127,22 +119,19 @@ sub getColumnType {
     return $type;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do..
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_cleanup("cleanup");
 
     return;
 }
 
-sub cleanup {
-    my ($self) = @_;
+sub cleanup($self) {
 
     $self->checkDBH();
     $self->{mdbh}->rollback;
@@ -150,9 +139,7 @@ sub cleanup {
     return;
 }
 
-sub dbd_options {
-    my ($self, $key, $value) = @_;
-    
+sub dbd_options($self, $key, $value) {
     $self->checkDBH();
     if(defined($value)) {
         $self->{mdbh}->{$key} = $value;
@@ -172,21 +159,29 @@ BEGIN {
     my @varGetFuncs = qw();
     my @handleFuncs = qw(prepare prepare_cached);
 
-    for my $a (@simpleFuncs){
+    for my $f (@simpleFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
-        *{__PACKAGE__ . "::$a"} = sub { $_[0]->checkDBH(); return $_[0]->{mdbh}->$a(); };
+        *{__PACKAGE__ . "::$f"} = sub ($arg1) { 
+            $arg1->checkDBH(); return $arg1->{mdbh}->$f();
+        };
     }
 
-    for my $a (@stdFuncs){
+    for my $f (@stdFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
-        *{__PACKAGE__ . "::$a"} = sub { $_[0]->checkDBH(); if(0 && $_[0]->{isDebugging}) {print STDERR $_[0]->{modname}, " ", $_[1], "\n";}; return $_[0]->{mdbh}->$a($_[1]); };
+        *{__PACKAGE__ . "::$f"} = sub ($arg1, $arg2) {
+            $arg1->checkDBH();
+            if(0 && $arg1->{isDebugging}) {
+                print STDERR $arg1->{modname}, " ", $arg2, "\n";
+            };
+            return $arg1->{mdbh}->$f($arg2);
+        };
     }
     
-    for my $a (@handleFuncs){
+    for my $f (@handleFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
-        *{__PACKAGE__ . "::$a"} = sub {
-            $_[0]->checkDBH();
-            my $sth = $_[0]->{mdbh}->$a($_[1]);
+        *{__PACKAGE__ . "::$f"} = sub ($arg1, $arg2) {
+            $arg1->checkDBH();
+            my $sth = $arg1->{mdbh}->$f($arg2);
             $sth->{Callbacks}->{execute} = sub {
                 if(scalar @_ > 1) {
                     for(my $j = 1; $j < scalar @_; $j++) {
@@ -204,14 +199,20 @@ BEGIN {
         };
     }
 
-    for my $a (@varSetFuncs){
+    for my $f (@varSetFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
-        *{__PACKAGE__ . "::$a"} = sub { $_[0]->checkDBH(); return $_[0]->{mdbh}->{$a} = $_[1]; };
+        *{__PACKAGE__ . "::$f"} = sub ($arg1, $arg2) {
+            $arg1->checkDBH();
+            return $arg1->{mdbh}->{$f} = $arg2;
+        };
     }
 
-    for my $a (@varGetFuncs){
+    for my $f (@varGetFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
-        *{__PACKAGE__ . "::$a"} = sub { $_[0]->checkDBH(); return $_[0]->{mdbh}->{$a}; };
+        *{__PACKAGE__ . "::$f"} = sub ($arg1) {
+            $arg1->checkDBH();
+            return $arg1->{mdbh}->{$f};
+        };
     }
 
 
@@ -221,14 +222,14 @@ BEGIN {
     {
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
 
-        *{__PACKAGE__ . "::pg_lo_creat"} = sub {
-            $_[0]->checkDBH();
-            return $_[0]->{mdbh}->pg_lo_creat($BLOBMODE);
+        *{__PACKAGE__ . "::pg_lo_creat"} = sub ($arg1) {
+            $arg1->checkDBH();
+            return $arg1->{mdbh}->pg_lo_creat($BLOBMODE);
         };
 
-        *{__PACKAGE__ . "::pg_lo_open"} = sub {
-            $_[0]->checkDBH();
-            return $_[0]->{mdbh}->pg_lo_open($_[1], $BLOBMODE);
+        *{__PACKAGE__ . "::pg_lo_open"} = sub ($arg1) {
+            $arg1->checkDBH();
+            return $arg1->{mdbh}->pg_lo_open($arg1, $BLOBMODE);
         };
 
     }
@@ -244,22 +245,19 @@ BEGIN {
     }
 }
 
-sub decode_hstore {
-    my ($self, $val) = @_;
+sub decode_hstore($self, $val) {
 
     # return hashref
     return Pg::hstore::decode($val);
 }
 
-sub encode_hstore {
-    my ($self, $hashref) = @_;
+sub encode_hstore($self, $hashref) {
 
     # return string
     return Pg::hstore::encode($hashref);
 }
 
-sub pg_notifies {
-    my ($self) = @_;
+sub pg_notifies($self) {
 
     $self->checkDBH();
     my $notify = $self->{mdbh}->pg_notifies;
@@ -267,8 +265,7 @@ sub pg_notifies {
 }
 
 # Sample of autogenerated function
-#sub prepare {
-#    my ($self, $arg) = @_;
+#sub prepare($self, $arg) {
 #
 #    return $self->{mdbh}->prepare($arg);
 #}

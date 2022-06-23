@@ -25,8 +25,7 @@ use URI;
 # Also, if the client uses a hostname that is ours but isn't our default hostname, reroute
 # the client to the correct one ("moved permanently")
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -42,15 +41,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_prefilter("prefilter");
     $self->register_defaultwebdata("get_defaultwebdata");
     return;
 }
 
-sub prefilter {
-    my ($self, $ua) = @_;
+sub prefilter($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -156,8 +153,7 @@ sub prefilter {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     return unless defined($self->{defaultwebdata});
     foreach my $key (keys %{$self->{defaultwebdata}}) {

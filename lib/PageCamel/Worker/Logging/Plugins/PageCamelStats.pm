@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Worker::Logging::PluginBase);
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -33,15 +32,13 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     $self->register_plugin('work', 'WEBGUI', 'ACCESS');
     return;
 }
 
-sub work {
-    my ($self, $device, $dbh, $reph, $memh) = @_;
+sub work($self, $device, $dbh, $reph, $memh) {
 
     my $workCount;
 
@@ -54,8 +51,7 @@ sub work {
     return $workCount;
 }
 
-sub workWebgui {
-    my ($self, $device, $dbh, $reph, $memh) = @_;
+sub workWebgui($self, $device, $dbh, $reph, $memh) {
 
     my $workCount = 0;
 
@@ -134,8 +130,7 @@ sub workWebgui {
     return $workCount;
 }
 
-sub workFirewall {
-    my ($self, $device, $dbh, $reph, $memh) = @_;
+sub workFirewall($self, $device, $dbh, $reph, $memh) {
 
 
     $reph->debuglog("Updating CAVACDISPLAY for Firewall");

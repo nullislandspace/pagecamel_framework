@@ -23,8 +23,7 @@ use PageCamel::Helpers::FileSlurp qw(writeBinFile slurpBinFile);
 
 # play -t raw -r 11025 -e signed-integer -b 16 -c 1 rawaudio.dat
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -36,15 +35,13 @@ sub new {
     return $self;
 }
 
-sub wsregister {
-    my $self = shift;
+sub wsregister($self) {
     # Nothing to register
     
     return;
 }
 
-sub wsreload {
-    my ($self) = @_;
+sub wsreload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -75,8 +72,7 @@ sub wsreload {
     return;
 }
 
-sub wshandlerstart {
-    my ($self, $ua, $settings) = @_;
+sub wshandlerstart($self, $ua, $settings) {
 
     my %audio = (
         playbackbuffer => [],
@@ -97,8 +93,7 @@ sub wshandlerstart {
     return;
 }
 
-sub wscleanup {
-    my ($self) = @_;
+sub wscleanup($self) {
     
     delete $self->{audio};
     
@@ -112,8 +107,7 @@ sub wscleanup {
 
 my $tmpaccu = 0;
 my $tmpcnt = 0;
-sub wshandlemessage {
-    my ($self, $message) = @_;
+sub wshandlemessage($self, $message) {
 
     if($message->{type} eq 'START') {
         if(defined($self->{ofh})) {

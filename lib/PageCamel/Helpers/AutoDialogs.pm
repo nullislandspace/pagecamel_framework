@@ -21,8 +21,7 @@ use HTML::Entities;
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Strings;
 
-sub new {
-    my ($class) = @_;
+sub new($class) {
     my $self = bless {
     }, $class;
 
@@ -35,8 +34,7 @@ sub new {
     return $self;
 }
 
-sub addDialog {
-    my ($self, $config, $fname) = @_;
+sub addDialog($self, $config, $fname) {
 
     if($config->{type} eq 'notification') {
         return $self->notification($config);
@@ -50,8 +48,7 @@ sub addDialog {
 }
 
 
-sub notification {
-    my ($self, $data) = @_;
+sub notification($self, $data) {
 
     my $title = $data->{title} || 'UNDEFINED';
     my $text = $data->{text} || 'UNDEFINED';
@@ -127,8 +124,7 @@ ENDJQUERY
 }
 
 
-sub simpleform {
-    my ($self, $data) = @_;
+sub simpleform($self, $data) {
 
     my $title = $data->{title} || 'UNDEFINED';
     my $text = $data->{text} || 'UNDEFINED';
@@ -221,8 +217,7 @@ ENDJQUERY
     return '';
 }
 
-sub modechangeform {
-    my ($self, $data) = @_;
+sub modechangeform($self, $data) {
 
     my $title = $data->{title} || 'UNDEFINED';
     my $text = $data->{text} || 'UNDEFINED';
@@ -327,8 +322,7 @@ ENDMCJQUERY
     return '';
 }
 
-sub getHTML {
-    my ($self, $context) = @_;
+sub getHTML($self, $context) {
 
     if(!$self->{count}) {
         return "";
@@ -345,8 +339,7 @@ sub getHTML {
     return $translate . "\n" . $self->{forms}->{markup} . "\n";
 }
 
-sub getJS {
-    my ($self, $context) = @_;
+sub getJS($self, $context) {
 
     if(!$self->{count}) {
         return "";
@@ -360,8 +353,7 @@ sub getJS {
             $self->{forms}->{js} . "\n";
 }
 
-sub tr { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
-    my ($self, $data) = @_;
+sub tr($self, $data) {
 
     return $data if($data eq '');
 
@@ -371,8 +363,7 @@ sub tr { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     return $trans;
 }
 
-sub quote {
-    my ($self, $data) = @_;
+sub quote($self, $data) {
 
     my $quoted = encode_entities($data, "'<>&\"\n");
     $quoted =~ s/ä/&auml;/;
@@ -386,14 +377,12 @@ sub quote {
     return $quoted;
 }
 
-sub trquote {
-    my ($self, $data) = @_;
+sub trquote($self, $data) {
 
     return $self->quote($self->tr($data));
 }
 
-sub elemNameQuote {
-    my ($self, $data) = @_;
+sub elemNameQuote($self, $data) {
     return $self->quote(PageCamel::Helpers::Strings::elemNameQuote($data));
 }
 

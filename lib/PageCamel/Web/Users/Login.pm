@@ -30,8 +30,7 @@ use Readonly;
 
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -86,8 +85,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{login}->{webpath}, "get_login");
 
@@ -116,8 +114,7 @@ sub register {
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     $self->register_public_url($self->{login}->{webpath});
     $self->register_public_url($self->{logout}->{webpath});
@@ -136,8 +133,7 @@ sub crossregister {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -218,8 +214,7 @@ sub reload {
     return;
 }
 
-sub get_logout {
-    my ($self, $ua) = @_;
+sub get_logout($self, $ua) {
 
     my $session = $ua->{cookies}->{"pagecamel-session"};
     if(!$self->validateSession($session, $ua)) {
@@ -258,8 +253,7 @@ sub get_logout {
             data    => $template);
 }
 
-sub get_forcelogout {
-    my ($self, $ua) = @_;
+sub get_forcelogout($self, $ua) {
 
     # This is called by session manager
     my $session = $ua->{cookies}->{"pagecamel-session"};
@@ -278,8 +272,7 @@ sub get_forcelogout {
     return (status  =>  204); # "OK, no content"
 }
 
-sub get_login {
-    my ($self, $ua) = @_;
+sub get_login($self, $ua) {
 
     print STDERR "LOGIN\n";
 
@@ -531,8 +524,7 @@ sub get_login {
 }
 
 
-sub get_keyfoblogin {
-    my ($self, $ua) = @_;
+sub get_keyfoblogin($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -601,8 +593,7 @@ sub get_keyfoblogin {
             data    => $template);
 }
 
-sub getAutologin {
-    my ($self, $ua, $username) = @_;
+sub getAutologin($self, $ua, $username) {
 
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -727,8 +718,7 @@ sub getAutologin {
     return ($session, $expires, $startpage);
 }
 
-sub get_switchtouser {
-    my ($self, $ua) = @_;
+sub get_switchtouser($self, $ua) {
 
     my $remove = $self->{switchtouser}->{webpath};
     my $targetuser = $ua->{url};
@@ -755,8 +745,7 @@ sub get_switchtouser {
             data    => $template);
 }
 
-sub get_switchfromuser {
-    my ($self, $ua) = @_;
+sub get_switchfromuser($self, $ua) {
 
     my $startpage = $self->adminSwitchFromUser($ua);
     if(!defined($startpage)) {
@@ -778,8 +767,7 @@ sub get_switchfromuser {
 }
 
 
-sub adminSwitchToUser {
-    my ($self, $username, $ua) = @_;
+sub adminSwitchToUser($self, $username, $ua) {
 
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -880,8 +868,7 @@ sub adminSwitchToUser {
     return $user->{startpage};
 }
 
-sub adminSwitchFromUser {
-    my ($self, $ua) = @_;
+sub adminSwitchFromUser($self, $ua) {
 
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -928,8 +915,7 @@ sub adminSwitchFromUser {
 }
 
 
-sub preauthcleanup {
-    my ($self) = @_;
+sub preauthcleanup($self) {
 
     delete $self->{cookie};
     delete $self->{currentData};
@@ -943,8 +929,7 @@ sub preauthcleanup {
     return;
 }
 
-sub prefilter {
-    my ($self, $ua) = @_;
+sub prefilter($self, $ua) {
 
     my $webpath = $ua->{url};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -1115,8 +1100,7 @@ sub prefilter {
     }
 }
 
-sub genBasicAuthRequest {
-    my ($self, $realm) = @_;
+sub genBasicAuthRequest($self, $realm) {
 
     return (
         status  => 401,
@@ -1124,8 +1108,7 @@ sub genBasicAuthRequest {
     );
 }
 
-sub do_basic_auth {
-    my ($self, $ua, $realm) = @_;
+sub do_basic_auth($self, $ua, $realm) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -1234,8 +1217,7 @@ sub do_basic_auth {
 
 }
 
-sub password_changed {
-    my ($self, $ua) = @_;
+sub password_changed($self, $ua) {
 
     my $session = $ua->{cookies}->{"pagecamel-session"};
     my $user;
@@ -1259,8 +1241,7 @@ sub password_changed {
     return;
 }
 
-sub postfilter {
-    my ($self, $ua, $header, $result) = @_;
+sub postfilter($self, $ua, $header, $result) {
 
     # Just add the cookie to the header
     if(defined($self->{cookie})) {
@@ -1283,8 +1264,7 @@ sub postfilter {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     if(defined($self->{currentData})) {
         $webdata->{userData} = $self->{currentData};
@@ -1299,8 +1279,7 @@ sub get_defaultwebdata {
     return;
 }
 
-sub createSession {
-    my ($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin) = @_;
+sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $settings = $self->getSettings();
@@ -1354,8 +1333,7 @@ sub createSession {
     return ($session, $expires);
 }
 
-sub deleteSession {
-    my ($self, $session) = @_;
+sub deleteSession($self, $session) {
 
     # CALL ON_LOGOUT
     # We need to temporarily force the session ID for the logout callbacks. This is so that
@@ -1387,8 +1365,7 @@ sub deleteSession {
     return;
 }
 
-sub updateSessionUsername {
-    my ($self, $session, $username) = @_;
+sub updateSessionUsername($self, $session, $username) {
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
@@ -1407,8 +1384,7 @@ sub updateSessionUsername {
     return;
 }
 
-sub deleteStaleSessions {
-    my ($self) = @_;
+sub deleteStaleSessions($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -1436,8 +1412,7 @@ sub deleteStaleSessions {
 
 }
 
-sub validateSession {
-    my ($self, $session, $ua) = @_;
+sub validateSession($self, $session, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -1473,8 +1448,7 @@ sub validateSession {
 
 }
 
-sub refreshSession {
-    my ($self, $session, $ua) = @_;
+sub refreshSession($self, $session, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -1485,8 +1459,7 @@ sub refreshSession {
 
 }
 
-sub get_sessionid {
-    my ($self) = @_;
+sub get_sessionid($self) {
 
     if(defined($self->{forcedSessionID})) {
         return $self->{forcedSessionID};
@@ -1495,8 +1468,7 @@ sub get_sessionid {
     return $self->{currentSessionID};
 }
 
-sub get_sessionrefresh {
-    my ($self, $ua) = @_;
+sub get_sessionrefresh($self, $ua) {
 
     if($ua->{method} eq 'POST') {
         # Beacon
@@ -1516,8 +1488,7 @@ sub get_sessionrefresh {
     );
 }
 
-sub firewall_log_loginfailure {
-    my ($self, $ua) = @_;
+sub firewall_log_loginfailure($self, $ua) {
 
     if($self->{disable_firewall}) {
         return;
@@ -1536,8 +1507,7 @@ sub firewall_log_loginfailure {
 
 }
 
-sub firewall_check_loginfailure {
-    my ($self, $ua) = @_;
+sub firewall_check_loginfailure($self, $ua) {
 
     if($self->{disable_firewall}) {
         return 1;
@@ -1574,8 +1544,7 @@ sub firewall_check_loginfailure {
     }
 }
 
-sub getSettings {
-    my ($self) = @_;
+sub getSettings($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};

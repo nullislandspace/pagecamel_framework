@@ -48,8 +48,7 @@ sub REAPER {
 }
 
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
@@ -72,8 +71,7 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
     
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -150,8 +148,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     while(1) {
         while((my @connections = $self->{select}->can_read)) {
@@ -198,8 +195,7 @@ sub run {
     return;
 }
 
-sub handleClient {
-    my ($self, $client) = @_;
+sub handleClient($self, $client) {
 
     my $sigpipeseen = 0;
     my $sigpipehandled = 0;
@@ -516,8 +512,7 @@ sub handleClient {
 
 }
 
-sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
-    my ($self) = @_;
+sub endprogram($self) {
 
     sleep(1);
     while(1) {

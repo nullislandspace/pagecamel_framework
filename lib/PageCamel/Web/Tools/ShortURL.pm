@@ -21,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Strings qw[stripString];
 use MIME::Base64;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -46,8 +45,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
 
     # Custom METHOD handling for RFCxxxx
@@ -57,8 +55,7 @@ sub register {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
     
     if(0) {
         my $rickroll = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
@@ -219,8 +216,7 @@ sub get {
     );
 }
 
-sub createID {
-    my ($self) = @_;
+sub createID($self) {
     
     my @validchars = split//, '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
     my $shortid = '';
@@ -231,8 +227,7 @@ sub createID {
     
 }
 
-sub getInputForm {
-    my ($self, $result) = @_;
+sub getInputForm($self, $result) {
     
     if(!defined($result)) {
         $result = '';
@@ -252,8 +247,7 @@ sub getInputForm {
     return $form;
 }
 
-sub custom_LONG {
-    my ($self, $ua) = @_;
+sub custom_LONG($self, $ua) {
 
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -293,8 +287,7 @@ sub custom_LONG {
 }
 
 
-sub custom_SHORT {
-    my ($self, $ua) = @_;
+sub custom_SHORT($self, $ua) {
 
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

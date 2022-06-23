@@ -21,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use Sys::Hostname;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -50,8 +49,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     # Create fields in system settings (if not existing)
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -108,14 +106,12 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_defaultwebdata("get_defaultwebdata");
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     my $hname = lc hostname;
@@ -127,8 +123,7 @@ sub crossregister {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

@@ -22,8 +22,7 @@ use PageCamel::Helpers::DateStrings;
 
 use Minecraft::RCON;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
     
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -37,8 +36,7 @@ sub new {
     return $self;
 }
 
-sub run_command {
-    my ($self, $command) = @_;
+sub run_command($self, $command) {
     
     my $workCount = 0;
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -56,8 +54,7 @@ sub run_command {
     return $reply;
 }
 
-sub saveall {
-    my ($self) = @_;
+sub saveall($self) {
 
     my $reply = $self->run_command("save-all");
     if(defined($reply) && $reply =~ /Saved\ the\ world/i) {
@@ -66,8 +63,7 @@ sub saveall {
     return 0;
 }
 
-sub backup {
-    my ($self) = @_;
+sub backup($self) {
 
     my $reply = $self->run_command("backup");
     if($reply =~ /Started/i) {
@@ -76,8 +72,7 @@ sub backup {
     return 0;
 }
 
-sub say { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
-    my ($self, $text) = @_;
+sub say($self, $text) {
 
     my $reply = $self->run_command("say $text");
     if(defined($reply)) {
@@ -86,8 +81,7 @@ sub say { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     return 0;
 }
 
-sub listWhitelist {
-    my ($self) = @_;
+sub listWhitelist($self) {
 
     my $rawlist = $self->run_command("whitelist list");
     if(!defined($rawlist)) {
@@ -101,8 +95,7 @@ sub listWhitelist {
     return @names;
 }
 
-sub addWhitelist {
-    my ($self, $username) = @_;
+sub addWhitelist($self, $username) {
 
     my $reply = $self->run_command("whitelist add $username");
     if(defined($reply) && $reply =~ /Added/) {
@@ -112,8 +105,7 @@ sub addWhitelist {
     return 0;
 }
 
-sub removeWhitelist {
-    my ($self, $username) = @_;
+sub removeWhitelist($self, $username) {
 
     my $reply = $self->run_command("whitelist remove $username");
     if(defined($reply) && $reply =~ /Removed/) {
@@ -123,8 +115,7 @@ sub removeWhitelist {
     return 0;
 }
 
-sub teleport {
-    my ($self, $username, $x, $y, $z) = @_;
+sub teleport($self, $username, $x, $y, $z) {
 
     my $reply = $self->run_command("tp $username $x $y $z");
     if(defined($reply) && $reply =~ /Teleported/) {

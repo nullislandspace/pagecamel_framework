@@ -17,8 +17,7 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 
-sub get {
-    my ($self, $key) = @_;
+sub get($self, $key) {
 
     return unless(defined($key));
 

@@ -20,8 +20,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::URI qw[decode_uri_path];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,15 +29,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
 
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};

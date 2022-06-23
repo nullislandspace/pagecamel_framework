@@ -29,8 +29,7 @@ use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::Strings qw[windowsStringsQuote encodeVNCString normalizeString];
 use PageCamel::Helpers::WebPrint;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -52,8 +51,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     if(defined($self->{webpath})) {
         $self->register_webpath($self->{webpath}, "get", "GET", "POST");
@@ -68,8 +66,7 @@ sub register {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -198,8 +195,7 @@ sub reload {
 }
 
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -229,8 +225,7 @@ sub get {
     }
 }
 
-sub get_select {
-    my ($self, $ua) = @_;
+sub get_select($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
@@ -278,8 +273,7 @@ sub get_select {
             data    => $template);
 }
 
-sub get_vnc {
-    my ($self, $ua) = @_;
+sub get_vnc($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -427,8 +421,7 @@ sub get_vnc {
             data    => $template);
 }
 
-sub socketstart {
-    my ($self, $ua) = @_;
+sub socketstart($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -501,8 +494,7 @@ sub socketstart {
     return %result;
 }
 
-sub sockethandler { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $ua) = @_;
+sub sockethandler($self, $ua) {
 
     my $session = $self->{sessiondata};
     my $dbh = $self->{server}->{modules}->{$self->{db}};

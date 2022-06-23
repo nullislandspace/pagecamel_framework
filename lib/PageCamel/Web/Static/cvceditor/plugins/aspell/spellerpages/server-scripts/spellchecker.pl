@@ -38,8 +38,7 @@ sub printTextVar {
 	}
 }
 
-sub printTextIdxDecl {
-	my $idx = shift;
+sub printTextIdxDecl($idx) {
 	print "words[$idx] = [];\n";
 	print "suggs[$idx] = [];\n";
 }
@@ -116,14 +115,12 @@ sub printCheckerResults {
 	close ASPELL or handleError( "Error executing `$cmd`\\n$unhandledText" ) and return;
 }
 
-sub escapeQuote {
-	my $str = shift;
+sub escapeQuote($str) {
 	$str =~ s/'/\\'/g;
 	return $str;
 }
 
-sub handleError {
-	my $err = shift;
+sub handleError($err) {
 	print "error = '" . escapeQuote( $err ) . "';\n";
 }
 

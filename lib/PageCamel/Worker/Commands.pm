@@ -20,8 +20,7 @@ use PageCamel::Helpers::DateStrings;
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -36,8 +35,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -53,14 +51,12 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
     return;
 }
 
-sub register_extcommand {
-    my ($self, $command, $modul) = @_;
+sub register_extcommand($self, $command, $modul) {
 
     $self->{extcommand}->{$command} = $modul;
 
@@ -75,8 +71,7 @@ sub register_extcommand {
     return;
 }
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};

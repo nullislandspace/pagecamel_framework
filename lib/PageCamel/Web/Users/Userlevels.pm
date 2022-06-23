@@ -26,8 +26,7 @@ use Readonly;
 
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -36,8 +35,7 @@ sub new {
     return $self;
 }
 
-sub finalcheck {
-    my ($self) = @_;
+sub finalcheck($self) {
 
     # Check which webpaths are under restricted paths and print some stats
     my %levelpaths;

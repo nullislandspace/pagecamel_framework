@@ -24,8 +24,7 @@ use File::stat;
 use Time::localtime;
 use Time::HiRes qw[sleep];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -42,22 +41,19 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do
 
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get_download", 'GET');
     
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     if(defined($self->{public}) && $self->{public} == 1) {
         $self->register_public_url($self->{webpath});
@@ -66,8 +62,7 @@ sub crossregister {
     return;
 }
 
-sub get_download {
-    my ($self, $ua) = @_;
+sub get_download($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -144,8 +139,7 @@ sub get_download {
     return %retstatus;
 }
 
-sub get_index {
-    my ($self, $ua, $streamid) = @_;
+sub get_index($self, $ua, $streamid) {
 
     my $data = '';
     my $filecount = 0;

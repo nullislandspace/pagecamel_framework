@@ -24,8 +24,7 @@ use PageCamel::Helpers::DateStrings;
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -34,22 +33,19 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get", 'GET');
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     $self->register_public_url($self->{webpath});
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $tile = $ua->{url};
 

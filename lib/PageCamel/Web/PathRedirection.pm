@@ -21,8 +21,7 @@ use base qw(PageCamel::Web::BaseModule);
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -52,14 +51,12 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_prefilter("prefilter");
     return;
 }
 
-sub prefilter {
-    my ($self, $ua) = @_;
+sub prefilter($self, $ua) {
 
     my $webpath = $ua->{url};
 

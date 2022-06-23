@@ -18,8 +18,7 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Helpers::ClacksCache PageCamel::Web::BaseModule);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     # Copy clacks config from external config module *before* new() on SUPER

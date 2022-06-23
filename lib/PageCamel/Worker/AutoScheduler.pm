@@ -29,8 +29,7 @@ Readonly my $HOURMEMKEY => "AutoScheduler::lastHour";
 Readonly my $MINUTEMEMKEY => "AutoScheduler::lastMinute";
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -39,14 +38,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we are pretty much self contained
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_worker("work_minute");
     $self->register_worker("work_shift");
@@ -57,8 +54,7 @@ sub register {
 }
 
 
-sub work_shift {
-    my ($self) = @_;
+sub work_shift($self) {
 
     my $workCount = 0;
 
@@ -104,8 +100,7 @@ sub work_shift {
     return $workCount;
 }
 
-sub work_hour {
-    my ($self) = @_;
+sub work_hour($self) {
 
     my $workCount = 0;
 
@@ -178,8 +173,7 @@ sub work_hour {
     return $workCount;
 }
 
-sub work_day {
-    my ($self) = @_;
+sub work_day($self) {
 
     my $workCount = 0;
 
@@ -264,8 +258,7 @@ sub work_day {
     return $workCount;
 }
 
-sub work_minute {
-    my ($self) = @_;
+sub work_minute($self) {
 
     my $workCount = 0;
 

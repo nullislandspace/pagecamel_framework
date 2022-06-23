@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,21 +28,18 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my ($self) = @_;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
 
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     if(defined($self->{public}) && $self->{public} == 1) {
         $self->register_public_url($self->{webpath});
@@ -53,8 +49,7 @@ sub crossregister {
 
 
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
 

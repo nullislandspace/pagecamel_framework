@@ -22,8 +22,7 @@ use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::Strings qw(stripString);
 use PageCamel::Helpers::URI qw(encode_uri_path);
 
-sub register {
-    my $self = shift;
+sub register($self) {
     
     my $ok = 1;
     # Required settings
@@ -51,14 +50,12 @@ sub register {
     return;
 }
 
-sub reload {
-    my $self = shift;
+sub reload($self) {
     
     return;
 }
 
-sub get_list {
-    my ($self, $ua) = @_;
+sub get_list($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
@@ -99,8 +96,7 @@ sub get_list {
 
 }
 
-sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $ua) = @_;
+sub get_edit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
@@ -205,7 +201,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
             $newusername = lc $newusername;
         }
 
-        break if($username eq '' || $newusername eq '');
+        goto reloaddata if($username eq '' || $newusername eq '');
         if($username ne $newusername) {
             push @auditdata, "old username: $username";
             push @auditdata, "new username: $newusername";
@@ -217,7 +213,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update username!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             # For easier handling
             $username = $newusername;
@@ -228,7 +224,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update password!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "New password set";
         }
@@ -253,7 +249,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "$fieldname: $fielddata";
         }
@@ -270,7 +266,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                     $dbh->rollback;
                     $webdata{statustext} = "Can't set user to forced password change!";
                     $webdata{statuscolor} = "errortext";
-                    break;
+                    goto reloaddata 
                 }
             }
         }
@@ -297,7 +293,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "Permission " . $fieldname->{db} . ": $fielddata";
         }
@@ -318,7 +314,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
 
         push @auditdata, "Company: $company";
 
-        break if($username eq '');
+        goto reloaddata if($username eq '');
         my $upnamesth = $dbh->prepare_cached("INSERT INTO users
                                              (username, company_name)
                                              VALUES(?, ?)")
@@ -327,7 +323,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
             $dbh->rollback;
             $webdata{statustext} = "Can't update username!";
             $webdata{statuscolor} = "errortext";
-            break;
+            goto reloaddata 
         }
 
         my $password = $ua->{postparams}->{'password'} || '';
@@ -337,7 +333,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update password!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
         }
 
@@ -361,7 +357,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "$fieldname: $fielddata";
         }
@@ -383,7 +379,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "Permission " . $fieldname->{db} . ": $fielddata";
         }
@@ -396,6 +392,8 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
         $mode = "edit";
     }
+
+reloaddata:
 
 
     # handle "select": Turn it into "edit" after skipping updating data in database

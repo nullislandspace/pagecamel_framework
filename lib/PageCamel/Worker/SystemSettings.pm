@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Worker::BaseModule PageCamel::Helpers::SystemSettings);
 use PageCamel::Helpers::DateStrings;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,14 +28,12 @@ sub new {
     return $self;
 }
 
-sub register {
-    my ($self) = shift;
+sub register($self) {
 
     return;
 }
 
-sub reload {
-    my $self = shift;
+sub reload($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

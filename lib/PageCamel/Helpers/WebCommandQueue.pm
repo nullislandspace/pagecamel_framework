@@ -20,8 +20,7 @@ use PageCamel::Helpers::UTF;
 use WWW::Mechanize::GZip;
 use XML::Simple;
 
-sub new {
-    my ($proto, $baseurl) = @_;
+sub new($proto, $baseurl) {
     my $class = ref($proto) || $proto;
 
     my %config = (
@@ -34,8 +33,7 @@ sub new {
     return $self;
 }
 
-sub nextcommand {
-    my ($self, $command) = @_;
+sub nextcommand($self, $command) {
 
     my $result = $self->{mech}->get($self->{url} . "/getnext/$command");
     if(!$result->is_success) {
@@ -53,8 +51,7 @@ sub nextcommand {
     }
 }
 
-sub finished {
-    my ($self, $commandid, $status) = @_;
+sub finished($self, $commandid, $status) {
 
     my $result = $self->{mech}->get($self->{url} . "/markdone/$commandid/status");
     if(!$result->is_success) {

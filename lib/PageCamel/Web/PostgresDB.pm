@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Helpers::PostgresDB PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,8 +29,7 @@ sub new {
 
     return $self;
 }
-sub handle_child_start {
-    my ($self) = @_;
+sub handle_child_start($self) {
 
     # Make sure we get a database handle directly after forking in PreFork mode. With a properly
     # set *SpareServers config, this should minimize the slow start problem when the number
@@ -42,8 +40,7 @@ sub handle_child_start {
     return;
 }
 
-sub endconfig {
-    my ($self) = @_;
+sub endconfig($self) {
 
     if($self->{forking}) {
         # forking server: disconnect from database, generate new connection

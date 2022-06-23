@@ -26,8 +26,7 @@ use Time::HiRes qw(sleep);
 use MIME::Base64;
 use XML::Simple;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -48,15 +47,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my ($self) = @_;
+sub register($self) {
 
     $self->register_worker('work');
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     if(defined($self->{archivepath}) && !-d $self->{archivepath}) {
         croak($self->{modname} . 'error: Directory does not exist: ' . $self->{archivepath});
@@ -64,8 +61,7 @@ sub reload {
 
 }
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $workCount = 0;
 
@@ -140,8 +136,7 @@ sub work {
     return $workCount;
 }
 
-sub getImage {
-    my ($self) = @_;
+sub getImage($self) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $mech = WWW::Mechanize::GZip->new();
@@ -166,8 +161,7 @@ sub getImage {
     return(0);
 }
 
-sub drawTimestamp {
-    my ($img) = @_;
+sub drawTimestamp($img) {
     my $datestring = getISODate();
     #$datestring = '01234567890-:';
     my $xlen = length($datestring) * 10 + 3;
@@ -192,8 +186,7 @@ sub drawTimestamp {
     return;
 }
 
-sub drawLetter {
-    my ($img, $x, $y, $letter) = @_;
+sub drawLetter($img, $x, $y, $letter) {
     
     my $segments;
     if($letter eq ' ') {
@@ -234,8 +227,7 @@ sub drawLetter {
     return;
 }
 
-sub drawSegment {
-    my ($img, $x, $y, $segment) = @_;
+sub drawSegment($img, $x, $y, $segment) {
 if(0) {
     if($segment eq '1') {
         $img->draw_rectangle($x, $y, 10, 2);

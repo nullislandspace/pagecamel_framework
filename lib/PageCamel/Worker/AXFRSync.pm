@@ -26,8 +26,7 @@ use Readonly;
 
 Readonly my $HOURMEMKEY => "AXFRSync::lastHour";
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -36,14 +35,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we are pretty much self contained
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_worker("work_hour");
 
@@ -51,8 +48,7 @@ sub register {
 }
 
 
-sub work_hour {
-    my ($self) = @_;
+sub work_hour($self) {
 
     my $workCount = 0;
 
@@ -122,8 +118,7 @@ sub work_hour {
     return $workCount;
 }
 
-sub syncDomain {
-    my ($self, $domain, $times) = @_;
+sub syncDomain($self, $domain, $times) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -234,8 +229,7 @@ sub syncDomain {
     return $workCount;
 }
 
-sub maptime {
-    my ($self, $value, $times) = @_;
+sub maptime($self, $value, $times) {
 
     if(defined($times->{$value})) {
         return $value;

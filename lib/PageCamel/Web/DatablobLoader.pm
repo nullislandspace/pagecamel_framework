@@ -24,8 +24,7 @@ use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile writeBinFile);
 use File::Temp;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -40,15 +39,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get_blob", 'GET');
 
     return;
 }
 
-sub get_blob {
-    my ($self, $ua) = @_;
+sub get_blob($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $id = $ua->{url};

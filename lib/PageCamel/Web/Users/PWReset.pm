@@ -30,8 +30,7 @@ use Readonly;
 
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -61,8 +60,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get_pwreset");
     $self->register_public_url($self->{webpath});
@@ -70,16 +68,14 @@ sub register {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     # Nothing to do
 
     return;
 }
 
-sub get_pwreset {
-    my ($self, $ua) = @_;
+sub get_pwreset($self, $ua) {
 
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -97,8 +93,7 @@ sub get_pwreset {
 }
 
 
-sub get_request {
-    my ($self, $ua) = @_;
+sub get_request($self, $ua) {
 
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
@@ -213,8 +208,7 @@ END
 }
 
 
-sub get_execute {
-    my ($self, $ua, $resetkey) = @_;
+sub get_execute($self, $ua, $resetkey) {
 
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
@@ -290,8 +284,7 @@ sub get_execute {
             data    => $template);
 }
 
-sub defaultwebdata {
-    my ($self, $webdata) = @_;
+sub defaultwebdata($self, $webdata) {
 
     # Just allow the "password reset" menu item
     $webdata->{canResetPassword} = 1;

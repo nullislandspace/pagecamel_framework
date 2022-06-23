@@ -22,8 +22,7 @@ use Readonly;
 Readonly::Scalar my $BLOBMODE => 0x00020000; ## no critic (ValuesAndExpressions::RequireNumberSeparators)
 
 
-sub new {
-    my ($class, $dbh, $datablobid, $metaonly) = @_;
+sub new($class, $dbh, $datablobid = undef, $metaonly = undef) {
     my $self = bless {}, $class;
 
     $self->{dbh} = $dbh;
@@ -57,8 +56,7 @@ sub new {
     return $self;
 }
 
-sub blobOpen {
-    my ($self) = @_;
+sub blobOpen($self) {
 
     if(defined($self->{blobfd}) && !$self->blobClose()) {
         return 0;
@@ -99,8 +97,7 @@ sub blobOpen {
     return $self;
 }
 
-sub blobClose {
-    my ($self) = @_;
+sub blobClose($self) {
 
     if($self->{metaonly}) {
         delete $self->{blobfd};
@@ -130,14 +127,12 @@ sub blobClose {
 
 }
 
-sub blobID {
-    my ($self) = @_;
+sub blobID($self) {
 
     return $self->{datablob_id};
 }
 
-sub blobWrite {
-    my ($self, $data, $offset) = @_;
+sub blobWrite($self, $data, $offset = 0) {
 
     if($self->{metaonly}) {
         croak("Can't write to metaonly blob fh!")
@@ -153,10 +148,6 @@ sub blobWrite {
 
     if(!ref($data)) {
         croak("Data buffer is not a reference!")
-    }
-
-    if(!defined($offset)) {
-        $offset = 0;
     }
 
     if($offset > $self->{datalength}) {
@@ -185,8 +176,7 @@ sub blobWrite {
     return 1;
 }
 
-sub blobRead {
-    my ($self, $data, $offset, $len) = @_;
+sub blobRead($self, $data, $offset = 0, $len = undef) {
 
     if($self->{metaonly}) {
         croak("Can't read from metaonly blob fh!")
@@ -233,8 +223,7 @@ sub blobRead {
     return 1;
 }
 
-sub blobDelete {
-    my ($self) = @_;
+sub blobDelete($self) {
 
     if(defined($self->{blobfd})) {
         $self->blobClose;
@@ -249,8 +238,7 @@ sub blobDelete {
 }
 
 # Does not work at the moment.
-#sub blobTruncate {
-#    my ($self) = @_;
+#sub blobTruncate($self) {
 #
 #    if($self->{metaonly}) {
 #        croak("Can't truncate metaonly blob fh!")
@@ -277,15 +265,10 @@ sub blobDelete {
 #    return 1;
 #}
 
-sub blobUpdateETag {
-    my ($self, $force) = @_;
+sub blobUpdateETag($self, $force = false) {
 
     if($self->{metaonly}) {
         return;
-    }
-
-    if(!defined($force)) {
-        $force = 0;
     }
 
     if(!defined($self->{blobfd})) {
@@ -314,8 +297,7 @@ sub blobUpdateETag {
     return 1;
 }
 
-sub getLastUpdate {
-    my ($self) = @_;
+sub getLastUpdate($self) {
 
     if(!defined($self->{blobfd})) {
         $self->blobOpen();
@@ -324,8 +306,7 @@ sub getLastUpdate {
     return $self->{lastupdate};
 }
 
-sub getETag {
-    my ($self) = @_;
+sub getETag($self) {
 
     if(!defined($self->{blobfd})) {
         $self->blobOpen();
@@ -336,8 +317,7 @@ sub getETag {
     return $self->{etag};
 }
 
-sub getLength {
-    my ($self) = @_;
+sub getLength($self) {
 
     if(!defined($self->{blobfd})) {
         $self->blobOpen();

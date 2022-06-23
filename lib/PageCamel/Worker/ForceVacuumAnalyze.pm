@@ -18,8 +18,7 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Worker::BaseModule);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -28,16 +27,14 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("force_vacuum");
     $self->register_worker("force_analyze");
     return;
 }
 
 
-sub force_vacuum {
-    my ($self) = @_;
+sub force_vacuum($self) {
 
     my $workCount = 0;
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -86,8 +83,7 @@ sub force_vacuum {
     return $workCount;
 }
 
-sub force_analyze {
-    my ($self) = @_;
+sub force_analyze($self) {
 
     my $workCount = 0;
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

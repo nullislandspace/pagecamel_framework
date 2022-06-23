@@ -25,8 +25,7 @@ use Net::Clacks::Client;
 use WWW::Mechanize;
 use JSON::XS qw(decode_json);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -38,8 +37,7 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -55,14 +53,12 @@ sub register {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     return;
 }
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $workCount = 0;
 
@@ -183,8 +179,7 @@ sub work {
     return $workCount;
 }
 
-sub runCommand {
-    my ($self, $command, $option) = @_;
+sub runCommand($self, $command, $option) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -214,8 +209,7 @@ sub runCommand {
     return $data;
 }
 
-sub switch_on {
-    my ($self, $switch) = @_;
+sub switch_on($self, $switch) {
 
     my $tasmotaname = $self->{switches}->{$switch}->{switch};
     
@@ -230,8 +224,7 @@ sub switch_on {
 
 }
 
-sub switch_off {
-    my ($self, $switch) = @_;
+sub switch_off($self, $switch) {
 
     my $tasmotaname = $self->{switches}->{$switch}->{switch};
     
@@ -245,8 +238,7 @@ sub switch_off {
     return 0;
 }
 
-sub switch_state {
-    my ($self, $switch) = @_;
+sub switch_state($self, $switch) {
 
     my $tasmotaname = $self->{switches}->{$switch}->{switch};
     

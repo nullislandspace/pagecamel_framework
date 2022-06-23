@@ -20,8 +20,7 @@ use base qw(PageCamel::Web::BaseModule);
 
 use MIME::Base64;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,15 +29,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_fastredirect("prefilter");
     $self->register_prerender("prerender");
     return;
 }
 
-sub prefilter {
-    my ($self, $ua) = @_;
+sub prefilter($self, $ua) {
 
     # Remember host for prerender call (no access to $ua there)
     if(defined($self->{domain})) {
@@ -90,8 +87,7 @@ sub prefilter {
         );
 }
 
-sub prerender {
-    my ($self, $webdata) = @_;
+sub prerender($self, $webdata) {
 
     if(!defined($webdata->{showads})) {
         $webdata->{showads} = 0;

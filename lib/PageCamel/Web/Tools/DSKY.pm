@@ -22,8 +22,7 @@ use Net::Clacks::Client;
 use JSON::XS;
 use MIME::Base64;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,8 +34,7 @@ sub new {
     return $self;
 }
 
-sub wsmaskget {
-    my ($self, $ua, $settings, $webdata) = @_;
+sub wsmaskget($self, $ua, $settings, $webdata) {
     
     if(!defined($webdata->{HeadExtraScript})) {
         $webdata->{HeadExtraScript} = [];
@@ -54,8 +52,7 @@ sub wsmaskget {
     return;
 }
 
-sub wshandlerstart {
-    my ($self, $ua, $settings) = @_;
+sub wshandlerstart($self, $ua, $settings) {
 
     $self->{nextping} = time + 10;
 
@@ -77,8 +74,7 @@ sub wshandlerstart {
     return;
 }
 
-sub wshandlemessage {
-    my ($self, $message) = @_;
+sub wshandlemessage($self, $message) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -98,8 +94,7 @@ sub wshandlemessage {
     return 1;
 }
 
-sub wscleanup {
-    my ($self) = @_;
+sub wscleanup($self) {
 
     delete $self->{nextping};
     delete $self->{clacks};
@@ -107,8 +102,7 @@ sub wscleanup {
     return;
 }
 
-sub wscyclic {
-    my ($self) = @_;
+sub wscyclic($self) {
 
     my $now = time;
     if($now > $self->{nextping}) {

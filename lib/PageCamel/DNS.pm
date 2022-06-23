@@ -51,8 +51,7 @@ sub setThreadingMode {
 }
 
 
-sub doConfig {
-    my ($self, $isDebugging, $isVerbose, $dbconf, $config) = @_;
+sub doConfig($self, $isDebugging, $isVerbose, $dbconf, $config) {
 
     $self->{isDebugging} = $isDebugging;
     $self->{isVerbose} = $isVerbose;
@@ -66,8 +65,7 @@ sub doConfig {
     return;
 }
 
-sub child_init_hook {
-    my ($self) = @_;
+sub child_init_hook($self) {
 
     if(!defined($self->{config}->{remotelookup})) {
         $self->{config}->{remotelookup} = 0;
@@ -245,8 +243,7 @@ sub child_init_hook {
     return;
 }
 
-sub child_finish_hook {
-    my ($self) = @_;
+sub child_finish_hook($self) {
 
     $self->debuglog("******************** CHILD STOP *********************");
     delete $self->{clacks};
@@ -258,8 +255,7 @@ sub child_finish_hook {
     return;
 }
 
-sub isownip {
-    my ($self, $ip, $dbh) = @_;
+sub isownip($self, $ip, $dbh) {
 
     $ip =~ s/\/.*//;
 
@@ -319,8 +315,7 @@ sub isownip {
     return $ismyown;
 }
 
-sub ignorerequest {
-    my ($self, $hostname) = @_;
+sub ignorerequest($self, $hostname) {
 
     my $found = 0;
 
@@ -341,8 +336,7 @@ sub ignorerequest {
     return $found;
 }
 
-sub debuglog {
-    my ($self, @loglineparts) = @_;
+sub debuglog($self, @loglineparts) {
     my $logline;
     if(defined($self->{debuglogpid})) {
         $logline = getISODate() . ' ' .  $self->{debuglogpid} . ' ' . join('', @loglineparts);
@@ -368,8 +362,7 @@ sub debuglog {
     return;
 }
 
-sub countRequest {
-    my ($self) = @_;
+sub countRequest($self) {
 
     if(!defined($self->{clacks})) {
         return;
@@ -381,8 +374,7 @@ sub countRequest {
 }
     
 
-sub process_request {
-    my ($self, $realsocket) = @_;
+sub process_request($self, $realsocket) {
 
     if(!defined($self->{dbh})) {
         $self->child_init_hook;
@@ -403,8 +395,7 @@ sub process_request {
     }
 }
 
-sub handleUDP {
-    my ($self, $peerhost) = @_;
+sub handleUDP($self, $peerhost) {
 
     eval {  ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $prop = $self->{'server'};
@@ -495,8 +486,7 @@ sub handleUDP {
     return;
 }
 
-sub handleTCP {
-    my ($self, $peerhost, $realsocket) = @_;
+sub handleTCP($self, $peerhost, $realsocket) {
 
 
     binmode($realsocket);
@@ -639,8 +629,7 @@ sub handleTCP {
     return;
 }
 
-sub compile_reply { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $qname, $qclass, $qtype, $peerhost, $proto) = @_;
+sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
     my ($rcode, @ans, @auth, @add);
     my $extrainfo = '';
 
@@ -1236,8 +1225,7 @@ sub compile_reply { ## no critic (Subroutines::ProhibitExcessComplexity)
 }
 
 
-sub resolve_extern {
-    my ($self, $qname, $qtype) = @_;
+sub resolve_extern($self, $qname, $qtype) {
 
     my $dbh = $self->{dbh};
 
@@ -1397,8 +1385,7 @@ if(1) {
     return ($reply, $error);
 }
 
-sub fixDestination {
-    my ($domain, $host) = @_;
+sub fixDestination($domain, $host) {
 
     my $destination;
     if($host =~ /\./ || $host =~ /\:/) {

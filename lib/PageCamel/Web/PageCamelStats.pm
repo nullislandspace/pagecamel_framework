@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,8 +28,7 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my ($self) = shift;
+sub crossregister($self) {
 
     # Reset all the counters to zero
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -53,8 +51,7 @@ sub crossregister {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_logstart("prefilter");
     $self->register_logend("postfilter");
@@ -62,8 +59,7 @@ sub register {
     return;
 }
 
-sub prefilter {
-    my ($self, $ua) = @_;
+sub prefilter($self, $ua) {
 
     my $webpath = $ua->{url} || '--unknown--';
 
@@ -116,8 +112,7 @@ sub prefilter {
     return;
 }
 
-sub postfilter {
-    my ($self, $ua, $header, $result) = @_;
+sub postfilter($self, $ua, $header, $result) {
 
     return if(!defined($self->{requestdata}));
 
@@ -184,8 +179,7 @@ sub postfilter {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     $webdata->{__do_not_log_to_accesslog} = 0;
     return;

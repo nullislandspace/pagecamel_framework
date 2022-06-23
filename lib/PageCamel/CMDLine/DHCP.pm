@@ -39,16 +39,14 @@ $SIG{INT} = $SIG{TERM} = $SIG{HUP} = \&signal_handler;
 $SIG{PIPE} = 'IGNORE';
 
 
-sub logger {
-    my $str = shift;
+sub logger($str) {
     #print STDOUT strftime "[%d/%b/%Y:%H:%M:%S] ", localtime;
     print STDOUT "$str\n";
 }
 
 
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
 
     $self->{isDebugging} = $isDebugging;
@@ -59,8 +57,7 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
 
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -129,8 +126,7 @@ sub init {
 
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     my $buf = undef;
     my $fromaddr;       # address & port from which packet was received
@@ -182,8 +178,7 @@ sub run {
     return;
 }
 
-sub do_discover {
-    my ($self, $dhcpreq) = @_;
+sub do_discover($self, $dhcpreq) {
 
     # Get IP from database
     my $mac = $self->parseMac($dhcpreq->chaddr());
@@ -231,8 +226,7 @@ sub do_discover {
     return;
 }
 
-sub do_request {
-    my ($self, $dhcpreq) = @_;
+sub do_request($self, $dhcpreq) {
 
     # Get IP from database
     my $mac = $self->parseMac($dhcpreq->chaddr());
@@ -306,8 +300,7 @@ sub do_request {
     return;
 }
 
-sub logdb {
-    my ($self, $type, $vendor, $ip, $mac, $hname, $refused) = @_;
+sub logdb($self, $type, $vendor, $ip, $mac, $hname, $refused) {
 
     if(!$self->{logsth}->execute($type, $vendor, $ip, $mac, $hname, $refused)) {
         logger("DB ERROR: " . $self->{dbh}->errstr);
@@ -319,8 +312,7 @@ sub logdb {
     return;
 }
 
-sub parseMac {
-    my ($self, $rawmac) = @_;
+sub parseMac($self, $rawmac) {
 
     $rawmac = substr($rawmac, 0, 12);
     my @parts = split//, $rawmac;

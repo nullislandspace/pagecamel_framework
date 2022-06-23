@@ -21,8 +21,7 @@ package TestServer;
 use base qw(Net::Server::Single);
 
 
-sub process_request {
-    my $self = shift;
+sub process_request($self) {
     
     my @headers;
     my $lcount = 0;
@@ -77,8 +76,7 @@ sub process_request {
     print $content;
 }
 
-sub parse_request_line {
-    my ($self, $request, $header) = @_;
+sub parse_request_line($self, $request, $header) {
     
     if($header =~ /^([A-Z]+)\ (\S+)\ HTTP\/(1\.\d)$/) {
         ($request->{method}, $request->{url}, $request->{httpversion}) = ($1, $2, $3); 
@@ -115,8 +113,7 @@ sub parse_request_line {
     return;
 }
 
-sub parse_postdata {
-    my ($self, $request, $postdata) = @_;
+sub parse_postdata($self, $request, $postdata) {
     
     my %postparams;
     my @parts = split/\&/, $postdata;
@@ -142,8 +139,7 @@ sub parse_postdata {
     return;
 }
 
-sub parse_header_line {
-    my ($self, $request, $header) = @_;
+sub parse_header_line($self, $request, $header) {
     
     if($header =~ /^(\S+)\:\ (.+)$/) {
         my ($name, $value) = ($1, $2);
@@ -158,8 +154,7 @@ sub parse_header_line {
     return;
 }
 
-sub getForm {
-    my ($self, $request) = @_;
+sub getForm($self, $request) {
     
     my $form = <<'END_FORM';
 <html>
@@ -181,8 +176,7 @@ END_FORM
     return $form;
 }
 
-sub parseSubmit {
-    my ($self, $request) = @_;
+sub parseSubmit($self, $request) {
     
     my $form = <<'END_FORM';
 <html>

@@ -23,8 +23,7 @@ use PageCamel::Helpers::Padding qw(doSpacePad);
 
 use IO::Handle;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -41,8 +40,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $oldlog = $memh->get($self->{APPNAME});
@@ -63,8 +61,7 @@ sub reload {
     return;
 }
 
-sub dblog {
-    my ($self, $error_type, $description) = @_;
+sub dblog($self, $error_type, $description) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -78,8 +75,7 @@ sub dblog {
     return;
 }
 
-sub auditlog {
-    my ($self, $modulename, $logtext) = @_;
+sub auditlog($self, $modulename, $logtext) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $worker = $self->{PSAPPNAME};
@@ -94,8 +90,7 @@ sub auditlog {
     return;
 }
 
-sub debuglog {
-    my ($self, @parts) = @_;
+sub debuglog($self, @parts) {
 
     my $line = '';
     foreach my $part (@parts) {
@@ -125,8 +120,7 @@ sub debuglog {
     return;
 }
 
-sub debuglog_overwrite {
-    my ($self, @parts) = @_;
+sub debuglog_overwrite($self, @parts) {
 
     my $line = '';
     foreach my $part (@parts) {

@@ -51,8 +51,7 @@ exit(0);
 
 
 
-sub find_pm {
-	my ($workDir) = @_;
+sub find_pm($workDir) {
 
 	my @files;
 	opendir(my $dfh, $workDir) or die($!);

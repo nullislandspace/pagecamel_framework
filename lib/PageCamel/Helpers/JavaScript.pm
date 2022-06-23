@@ -23,8 +23,7 @@ BEGIN {
 use JavaScript::Embedded;
 use JSON::XS;
 
-sub new {
-    my ($class, %config) = @_;
+sub new($class, %config) {
     my $self = bless \%config, $class;
 
     if(!defined($self->{reph})) {
@@ -75,17 +74,14 @@ sub new {
     return $self;
 }
 
-sub _logfromjs {
-    my ($self, $text) = @_;
+sub _logfromjs($self, $text) {
 
     $self->{reph}->debuglog($text);
 
     return;
 }
 
-sub loadCode {
-    my ($self, $code) = @_;
-
+sub loadCode($self, $code) {
     if(!defined($code)) {
         croak("JS code undefined!");
     }
@@ -97,8 +93,7 @@ sub loadCode {
     return;
 }
 
-sub call {
-    my ($self, $name, @arguments) = @_;
+sub call($self, $name, @arguments) {
 
     my $func = $self->{js}->get_object($name);
     if(!defined($func)) {
@@ -108,28 +103,24 @@ sub call {
     return $func->(@arguments);
 }
 
-sub registerCallback {
-    my ($self, $name, $func) = @_;
+sub registerCallback($self, $name, $func) {
 
     $self->{js}->set($name, $func);
 
     return;
 }
 
-sub encode {
-    my ($self, $data) = @_;
+sub encode($self, $data) {
 
     return encode_json $data;
 }
 
-sub decode {
-    my ($self, $json) = @_;
+sub decode($self, $json) {
 
     return decode_json $json;
 }
 
-sub toArray {
-    my ($self, $object) = @_;
+sub toArray($self, $object) {
 
     my @arr;
     $object->forEach(sub {
@@ -142,16 +133,14 @@ sub toArray {
 
 }
 
-sub getKeys {
-    my ($self, $object) = @_;
+sub getKeys($self, $object) {
 
     my $rval = $self->call('__getKeys', $object);
     
     return $self->toArray($rval);
 }
 
-sub toHash {
-    my ($self, $object) = @_;
+sub toHash($self, $object) {
 
     my @keys = $self->getKeys($object);
     my %hash;
@@ -163,22 +152,19 @@ sub toHash {
     return %hash;
 }
 
-sub setMemory {
-    my ($self, $memory) = @_;
+sub setMemory($self, $memory) {
 
     $self->call('__setmemory', $memory);
 
     return;
 }
 
-sub getMemory {
-    my ($self) = @_;
+sub getMemory($self) {
 
     return $self->call('__getmemory');
 }
 
-sub initMemory {
-    my ($self) = @_;
+sub initMemory($self) {
 
     $self->call('initMemory');
     return;

@@ -42,8 +42,7 @@ BEGIN {
 }
 
 
-sub tr_init {
-    my ($dbh, $memh, $debugflag) = @_;
+sub tr_init($dbh, $memh, $debugflag) {
 
     $globalmemh = $memh;
     $globaldbh = $dbh;
@@ -66,9 +65,7 @@ sub tr_checkreload {
     return;
 }
 
-sub tr_reload {
-    #my ($dbh, $memh) = @_;
-
+sub tr_reload() {
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
@@ -115,8 +112,7 @@ sub tr_reload {
     return;
 }
 
-sub makeCacheChecksum {
-    my ($cache) = @_;
+sub makeCacheChecksum($cache) {
     
     my $cachestring = '';
     $cachestring .= join('', sort @{$cache->{keys}});
@@ -136,8 +132,7 @@ sub makeCacheChecksum {
     
 }
 
-sub tr_checklang {
-    my ($lang) = @_;
+sub tr_checklang($lang) {
 
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
@@ -150,8 +145,7 @@ sub tr_checklang {
 
 }
 
-sub tr_rememberkey {
-    my ($key) = @_;
+sub tr_rememberkey($key) {
 
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
@@ -172,8 +166,7 @@ sub tr_rememberkey {
 
 }
 
-sub tr_translate {
-    my ($lang, $key) = @_;
+sub tr_translate($lang, $key) {
 
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
@@ -206,8 +199,7 @@ sub tr_translate {
     return $key;
 }
 
-sub tr_export {
-    #my ($dbh, $memh) = @_;
+sub tr_export() {
 
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
@@ -225,8 +217,7 @@ sub tr_export {
     return $exp;
 }
 
-sub tr_import {
-    my ($impraw) = @_;
+sub tr_import($impraw) {
 
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);

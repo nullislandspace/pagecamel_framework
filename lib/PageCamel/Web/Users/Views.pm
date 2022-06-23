@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,16 +34,14 @@ sub new {
     return $self;
 }
 
-sub register {
-    my ($self) = @_;
+sub register($self) {
 
     $self->register_late_defaultwebdata("get_late_defaultwebdata");
 
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
 
     $self->iterateCheckViews($self->{views}->{view});
@@ -52,8 +49,7 @@ sub reload {
     return;
 }
 
-sub iterateCheckViews {
-    my ($self, $checkview) = @_;
+sub iterateCheckViews($self, $checkview) {
 
     foreach my $view (@{$checkview}) {
         my $ok = 1;
@@ -131,8 +127,7 @@ sub iterateCheckViews {
     return;
 }
 
-sub getURL {
-    my ($self, $path) = @_;
+sub getURL($self, $path) {
 
     my ($locmodname, $subvarname, $subsubvarname) = split/\//, $path;
     $subvarname = "" if(!defined($subvarname));
@@ -171,8 +166,7 @@ sub getURL {
     return;
 }
 
-sub getstarturl {
-    my ($self, $rights) = @_;
+sub getstarturl($self, $rights) {
 
     my $starturl;
 
@@ -209,8 +203,7 @@ sub getstarturl {
     return $starturl;
 }
 
-sub get_late_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_late_defaultwebdata($self, $webdata) {
 
     if(!defined($webdata->{userData})) {
         return;
@@ -238,8 +231,7 @@ sub get_late_defaultwebdata {
     return;
 }
 
-sub iterateViews {
-    my ($self, $webdata, $dropdownmenu, $activeview, $rights, $activeURL, $viewlist) = @_;
+sub iterateViews($self, $webdata, $dropdownmenu, $activeview, $rights, $activeURL, $viewlist) {
 
     foreach my $view (@{$viewlist}) {
         next if(defined($view->{level}) && !contains($view->{level}, $rights));

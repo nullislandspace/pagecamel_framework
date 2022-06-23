@@ -20,8 +20,7 @@ use base qw(PageCamel::Worker::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use CPAN::Mini::Inject;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -38,8 +37,7 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     # Register ourselfs in the RBSCommands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
@@ -50,8 +48,7 @@ sub crossregister {
     return;
 }
 
-sub execute {
-    my ($self, $command, $arguments) = @_;
+sub execute($self, $command, $arguments) {
 
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
@@ -61,8 +58,7 @@ sub execute {
 }
 
 
-sub do_mycpan_update_files {
-    my ($self, $arguments) = @_;
+sub do_mycpan_update_files($self, $arguments) {
 
     my $logtype = "OTHER"; # make logging visible only to admin user
 

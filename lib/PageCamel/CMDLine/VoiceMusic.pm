@@ -29,8 +29,7 @@ use Readonly;
 Readonly my $SAMPLERATE => 8000.0;
 Readonly my $CFACTOR => 2048.0 / 44_100.0; # Original timing in browser (most likely) 44100 Sample/s in 2048 samples "batches"
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     
     my $self = bless {}, $class;
 
@@ -40,8 +39,7 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
     
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -81,8 +79,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
     
     # Let STDOUT/STDERR settle down first
     sleep(0.1);

@@ -18,8 +18,7 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Worker::BaseModule);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -28,8 +27,7 @@ sub new {
     return $self;
 }
 
-sub register_plugin {
-    my ($self, $funcname, $type, $subtype) = @_;
+sub register_plugin($self, $funcname, $type, $subtype) {
 
     print "  $self->{modname} will handle logging for $type / $subtype\n";
 

@@ -39,8 +39,7 @@ sub REAPER {
     return;
 }
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
@@ -53,8 +52,7 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
     
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -144,8 +142,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     while(1) {
         my @connections = $self->{select}->can_read();
@@ -184,8 +181,7 @@ sub run {
     return;
 }
 
-sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
-    my ($self, $client) = @_;
+sub handleClient($self, $client) {
 
     my $ok = 0;
 
@@ -263,8 +259,7 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
     $self->endprogram($header, "exit(0)");
 }
 
-sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
-    my ($self, $header, $debugmessage) = @_;
+sub endprogram($self, $header, $debugmessage) {
 
     if($debugmessage !~ /exit\(0\)/) {
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
@@ -281,8 +276,7 @@ sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
     }
 }
 
-sub readFrontendheader {
-    my ($self, $client) = @_;
+sub readFrontendheader($self, $client) {
 
     my $line = '';
     while(1) {

@@ -24,8 +24,7 @@ my %apifunctions = (
     gettempsens     => \&api_gettempsens,
 );
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -34,22 +33,19 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get", 'POST');
 
     return;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     $self->register_public_url($self->{webpath});
 
@@ -57,8 +53,7 @@ sub crossregister {
 }
 
 # Get supervisor cards
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

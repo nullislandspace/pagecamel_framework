@@ -25,8 +25,7 @@ use PageCamel::Helpers::Logging::Graphs;
 use PDF::Report;
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -39,8 +38,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     if(!defined($self->{readonlydb})) {
         $self->{readonlydb} = $self->{db};
@@ -48,8 +46,7 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     if(defined($self->{reportedit})) {
         $self->register_webpath($self->{reportedit}->{webpath}, "get_edit");
@@ -76,8 +73,7 @@ sub register {
     return;
 }
 
-sub on_login {
-    my ($self, $username, $sessionid) = @_;
+sub on_login($self, $username, $sessionid) {
 
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
@@ -87,8 +83,7 @@ sub on_login {
     return;
 }
 
-sub on_logout {
-    my ($self, $sessionid) = @_;
+sub on_logout($self, $sessionid) {
 
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
@@ -98,8 +93,7 @@ sub on_logout {
     return;
 }
 
-sub get_view {
-    my ($self, $ua) = @_;
+sub get_view($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
@@ -253,8 +247,7 @@ sub get_view {
             data    => $template);
 }
 
-sub get_edit {
-    my ($self, $ua) = @_;
+sub get_edit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
@@ -492,8 +485,7 @@ sub get_edit {
 
 # "get_select" actually only displays the available report list, POST
 # is done to the main mask to have a smoother workflow without redirects
-sub get_select {
-    my ($self, $ua) = @_;
+sub get_select($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
@@ -541,8 +533,7 @@ sub get_select {
 
 }
 
-sub get_create {
-    my ($self, $ua) = @_;
+sub get_create($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
@@ -576,8 +567,7 @@ sub get_create {
 
 }
 
-sub get_graph {
-    my ($self, $ua) = @_;
+sub get_graph($self, $ua) {
 
     #my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $rodbh = $self->{server}->{modules}->{$self->{readonlydb}};

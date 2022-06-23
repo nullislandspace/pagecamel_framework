@@ -24,8 +24,7 @@ use PageCamel::Helpers::VoiceClient;
 
 # play -t raw -r 11025 -e signed-integer -b 16 -c 1 rawaudio.dat
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -41,15 +40,13 @@ sub new {
     return $self;
 }
 
-sub wsregister {
-    my $self = shift;
+sub wsregister($self) {
     # Nothing to register
     
     return;
 }
 
-sub wsreload {
-    my ($self) = @_;
+sub wsreload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -80,8 +77,7 @@ sub wsreload {
     return;
 }
 
-sub wshandlerstart {
-    my ($self, $ua, $settings) = @_;
+sub wshandlerstart($self, $ua, $settings) {
     
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
@@ -104,8 +100,7 @@ sub wshandlerstart {
     return;
 }
 
-sub wscleanup {
-    my ($self) = @_;
+sub wscleanup($self) {
     
     delete $self->{audio};
     
@@ -117,8 +112,7 @@ sub wscleanup {
     return;
 }
 
-sub wscyclic {
-    my ($self) = @_;
+sub wscyclic($self) {
     
     $self->{audio}->{vserv}->doNetwork();
     my %outmsg;
@@ -149,8 +143,7 @@ sub wscyclic {
     
 }
 
-sub wshandlemessage {
-    my ($self, $message) = @_;
+sub wshandlemessage($self, $message) {
 
     if($message->{type} eq 'DATA') {
 

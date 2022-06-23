@@ -29,8 +29,7 @@ use Readonly;
 
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -53,23 +52,20 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get_pwchange");
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     # Nothing to do
 
     return;
 }
 
-sub get_pwchange {
-    my ($self, $ua) = @_;
+sub get_pwchange($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $auth = $self->{server}->{modules}->{$self->{authentification}};

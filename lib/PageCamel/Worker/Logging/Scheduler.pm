@@ -21,8 +21,7 @@ use base qw(PageCamel::Worker::BaseModule);
 use PageCamel::Helpers::Strings qw(stripString);
 use PageCamel::Helpers::DateStrings;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,15 +34,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_worker("work");
     return;
 }
 
-sub add_plugin {
-    my ($self, $device, $subdevice, $module, $func) = @_;
+sub add_plugin($self, $device, $subdevice, $module, $func) {
 
     if(defined($self->{loggers}->{$device}->{$subdevice})) {
         croak("Logging plugin for $device / $subdevice already registered!");
@@ -55,8 +52,7 @@ sub add_plugin {
 }
 
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $workCount = 0;
 

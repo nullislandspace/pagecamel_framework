@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,15 +28,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_firewall("firewall");
     return;
 }
 
-sub firewall {
-    my ($self, $client) = @_;
+sub firewall($self, $client) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $selsth = $dbh->prepare_cached("SELECT * FROM accesslog_blocklist

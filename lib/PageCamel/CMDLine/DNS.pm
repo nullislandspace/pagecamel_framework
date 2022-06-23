@@ -22,8 +22,7 @@ use PageCamel::Helpers::Logo;
 use Sys::Hostname;
 use PageCamel::DNS;
 
-sub new {
-    my ($class, $isDebugging, $isVerbose, $configfile) = @_;
+sub new($class, $isDebugging, $isVerbose, $configfile) {
     my $self = bless {}, $class;
 
     $self->{isDebugging} = $isDebugging;
@@ -35,8 +34,7 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
 
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -103,8 +101,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     # Let STDOUT/STDERR settle down first
     sleep(0.1);

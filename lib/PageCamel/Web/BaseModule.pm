@@ -19,8 +19,7 @@ use Sys::Hostname;
 use PageCamel::Helpers::DateStrings;
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $hname = hostname;
@@ -65,14 +64,12 @@ sub handle_child_start {
     return;
 }
 
-sub handle_child_stop {
-    my ($self) = @_;
+sub handle_child_stop($self) {
 
     return;
 }
 
-sub create_cookie {
-    my ($self, $ua, %fields) = @_;
+sub create_cookie($self, $ua, %fields) {
 
     # Check for required fields
     foreach my $fname (qw[name value]) {
@@ -135,8 +132,7 @@ sub endconfig {
 }
 
 
-sub extend_header {
-    my ($self, $headers, $headername, $value) = @_;
+sub extend_header($self, $headers, $headername, $value) {
 
     if(!defined($headers->{$headername})) {
         $headers->{$headername} = $value;
@@ -150,8 +146,7 @@ sub extend_header {
 }
 
 # Convenience functions for registering various callbacks
-sub register_webpath {
-    my ($self, $path, $funcname, @methods) = @_;
+sub register_webpath($self, $path, $funcname, @methods) {
 
     confess("No Webpath specified") unless defined($path);
     confess("No function name specified") unless defined($funcname);
@@ -160,8 +155,7 @@ sub register_webpath {
     return;
 }
 
-sub register_overridewebpath {
-    my ($self, $path, $funcname, @methods) = @_;
+sub register_overridewebpath($self, $path, $funcname, @methods) {
 
     confess("No Webpath specified") unless defined($path);
     confess("No function name specified") unless defined($funcname);
@@ -170,8 +164,7 @@ sub register_overridewebpath {
     return;
 }
 
-sub register_custom_method {
-    my ($self, $method, $funcname) = @_;
+sub register_custom_method($self, $method, $funcname) {
 
     confess("No Method specified") unless defined($method);
     confess("No function name specified") unless defined($funcname);
@@ -180,8 +173,7 @@ sub register_custom_method {
     return;
 }
 
-sub register_protocolupgrade {
-    my ($self, $path, $funcname, @protocols) = @_;
+sub register_protocolupgrade($self, $path, $funcname, @protocols) {
 
     confess("No Webpath specified") unless defined($path);
     confess("No function name specified") unless defined($funcname);
@@ -191,35 +183,30 @@ sub register_protocolupgrade {
     return;
 }
 
-sub register_basic_auth {
-    my ($self, $url, $realm) = @_;
+sub register_basic_auth($self, $url, $realm) {
 
     $self->{server}->add_basic_auth($url, $realm);
     return;
 }
 
-sub get_basic_auths {
-    my ($self) = @_;
+sub get_basic_auths($self) {
 
     return $self->{server}->get_basic_auths();
 }
 
-sub register_public_url {
-    my ($self, $url) = @_;
+sub register_public_url($self, $url) {
 
     $self->{server}->add_public_url($url);
     return;
 }
 
-sub get_public_urls {
-    my ($self) = @_;
+sub get_public_urls($self) {
 
     return $self->{server}->get_public_urls();
 }
 
 # Allow Cross Origin Resource Sharing on specific URLs
-sub register_cors {
-    my ($self, $path, $origin, @methods) = @_;
+sub register_cors($self, $path, $origin, @methods) {
 
     confess("No Webpath specified") unless defined($path);
     confess("No origin specified") unless defined($origin);
@@ -242,29 +229,27 @@ BEGIN {
                         logend logdatadelivery logwebsocket logrequestfinished logstacktrace remotelog sitemap firewall fastredirect);
 
     # -- Deep magic begins here...
-    for my $a (@stdFuncs){
-        #print STDERR "Function " . __PACKAGE__ . "::register_$a will call add_$a\n";
+    for my $f (@stdFuncs){
+        #print STDERR "Function " . __PACKAGE__ . "::register_$f will call add_$f\n";
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
-        *{__PACKAGE__ . "::register_$a"} =
-            sub {
-                my $funcname = "add_$a";
+        *{__PACKAGE__ . "::register_$f"} =
+            sub ($arg1, $arg2) {
+                my $funcname = "add_$f";
                 confess("No function name specified") unless defined($funcname);
-                $_[0]->{server}->$funcname($_[0], $_[1]);
+                $arg1->{server}->$funcname($arg1, $arg2);
             };
     }
     # ... and ends here
 }
 
-#sub register_prefilter {
-#    my ($self, $funcname) = @_;
+#sub register_prefilter($self, $funcname) {
 #
 #    confess("No function name specified") unless defined($funcname);
 #    $self->{server}->add_prefilter($self, $funcname);
 #}
 
 
-sub newClacksFromConfig {
-    my ($self, $clconf) = @_;
+sub newClacksFromConfig($self, $clconf) {
 
     my $socket = $clconf->get('socket');
     my $clacks;

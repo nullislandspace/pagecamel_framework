@@ -20,8 +20,7 @@ use base qw(PageCamel::Web::BaseModule);
 
 # Block access from any known "bad networks"
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,14 +29,12 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_firewall("firewall");
     return;
 }
 
-sub firewall {
-    my ($self, $client) = @_;
+sub firewall($self, $client) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $selsth = $dbh->prepare_cached("UPDATE firewall_block_cidr

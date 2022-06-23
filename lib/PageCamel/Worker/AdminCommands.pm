@@ -21,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use XML::Simple;
 use Time::HiRes qw(sleep);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -40,14 +39,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     # Register ourselfs in the RBSCommands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
@@ -58,8 +55,7 @@ sub register {
     return;
 }
 
-sub execute {
-    my ($self, $command, $arguments) = @_;
+sub execute($self, $command, $arguments) {
 
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
@@ -68,8 +64,7 @@ sub execute {
     return;
 }
 
-sub do_svc_reset_all_services {
-    my ($self, $command, $arguments) = @_;
+sub do_svc_reset_all_services($self, $command, $arguments) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -199,8 +194,7 @@ BEGIN {
     # ... and ends here
 }
 
-sub do_reindex_all_tables {
-    my ($self, $arguments) = @_;
+sub do_reindex_all_tables($self, $arguments) {
     my $done = 0;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

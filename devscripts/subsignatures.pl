@@ -45,15 +45,20 @@ foreach my $file (@files) {
     while(scalar @lines) {
         my $line = shift @lines;
         my ($subname, $args);
-        if($line =~ /[^\#]*sub\ (.*)\ \{/) {
+
+        # Match the sub NAME line
+        if($line =~ /[^\#]*\ *sub\ (.*)\ \{/) {
             $subname = $1;
         } else {
             print $ofh $line;
             next;
         }
+
         if($lines[0] =~ /[^\#]*my\ .*?\((.*)\).*\@\_/) {
+            # Match arguments in the form of: my ($foo, $bar) = @_;
             $args = $1;
         } elsif($lines[0] =~ /[^\#]*my\ \(*(.*?)\)*\ *\=\ *shift(\ *\@\_)*/) {
+            # Match single "shift" argument: my $self = shift @_;
             $args = $1;
             print "-------------- SHIFT ARG!!! ---------------\n";
             print "     $args\n";
@@ -73,6 +78,7 @@ foreach my $file (@files) {
         print $newsub;
         print $ofh $newsub;
 
+        # Try to warn about (possible) optional arguments. This isn't perfect, but better than nothing
         lookForOptionals($file, $subname, $args, @lines);
     }
     close $ofh;
@@ -83,9 +89,11 @@ print "Done.\n";
 exit(0);
 
 sub lookForOptionals($file, $subname, $arglist, @lines) {
+    # read all the lines from the current sub and beautify the arguments
     my @sublines = getSublines(@lines);
     my @args = getArgs($arglist);
 
+    # Let's look if any of the arguments are used in a defined() match
     foreach my $arg (@args) {
         foreach my $line (@sublines) {
             my $matcharg = 'defined\(\ *\\' . $arg . '\ *\)';
@@ -104,6 +112,13 @@ sub lookForOptionals($file, $subname, $arglist, @lines) {
 }
 
 sub getSublines(@lines) {
+    # Read all lines of the sub. We count opening and closing braces {}, when
+    # we reach zero we are at the end of the sub. Mostly, maybe, unless we aren't.
+    # This is a very dumb algorithm. You can't write a proper code analyzer in five
+    # minutes.
+    #
+    # To quote my favourite robot character:
+    # "I calculated the odds of this succeeding against the odds I was doing something incredibly stupid... and I went ahead anyway."
     my $count = 1;
 
     my @sublines;

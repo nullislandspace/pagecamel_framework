@@ -25,8 +25,7 @@ use MIME::Base64;
 use Net::Clacks::Client;
 use IO::Socket::IP;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -38,15 +37,13 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
 
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -84,8 +81,7 @@ sub crossregister {
 }
 
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

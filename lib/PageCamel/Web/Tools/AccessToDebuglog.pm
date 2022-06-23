@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,15 +28,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_remotelog("log");
 
     return;
 }
 
-sub log { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
-    my ($self, $logdata) = @_;
+sub log($self, $logdata) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

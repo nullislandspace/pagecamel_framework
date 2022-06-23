@@ -20,14 +20,12 @@ use PageCamel::Helpers::UTF;
 use PageCamel::Helpers::FileSlurp qw(slurpTextFile);
 
 
-sub new {
-    my ($class, %config) = @_;
+sub new($class, %config) {
     my $self = bless \%config, $class;
     return $self;
 }
 
-sub filter {
-    my $self = shift;
+sub filter($self) {
 
     my (@headers, @headcount, @lines);
 

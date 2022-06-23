@@ -21,8 +21,7 @@ use base qw(PageCamel::Web::BaseModule);
 # Detect a specific attack(?) from Amazon servers. It's always IPv6 with a
 # useragent_simplified of "curl" accessing the root path
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -31,14 +30,12 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_prefilter("prefilter");
     return;
 }
 
-sub prefilter {
-    my ($self, $ua) = @_;
+sub prefilter($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

@@ -30,8 +30,7 @@ Readonly my $CFACTOR => 2048.0 / 44_100.0; # Original timing in browser (most li
 Readonly my $BUFFERTARGET => int($SAMPLERATE * 0.75); # Try to hold about 3/4 of a second
 Readonly my $BIASFACTOR => $BUFFERTARGET / 0.16;
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     
     my $self = bless {}, $class;
 
@@ -41,8 +40,7 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
     
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -92,8 +90,7 @@ sub init {
     return;
 }
 
-sub run { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self) = @_;
+sub run($self) {
     
     # Let STDOUT/STDERR settle down first
     sleep(0.1);

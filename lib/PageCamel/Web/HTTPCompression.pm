@@ -20,8 +20,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use IO::Compress::Gzip qw(gzip $GzipError);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -34,14 +33,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     # only register if we actually have at least ONE compression type enabled
     if($self->{gzip}) {
@@ -50,8 +47,7 @@ sub register {
     return;
 }
 
-sub postfilter {
-    my ($self, $ua, $header, $result) = @_;
+sub postfilter($self, $ua, $header, $result) {
 
     # Ignore replies without content
     return if(!(defined($result->{data})));

@@ -22,8 +22,7 @@ use PageCamel::Helpers::DBSerialize;
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -32,20 +31,17 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     #nothing to register
     return;
 }
 
-sub get {
-    my ($self, $username, $settingname) = @_;
+sub get($self, $username, $settingname) {
 
     if(!defined($username) || !defined($settingname)) {
         return 0;
@@ -82,8 +78,7 @@ sub get {
     }
 }
 
-sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
-    my ($self, $username, $settingname, $settingref) = @_;
+sub set($self, $username, $settingname, $settingref) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -100,8 +95,7 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
     return 1;
 }
 
-sub delete {## no critic(BuiltinHomonyms)
-    my ($self, $username, $settingname) = @_;
+sub delete($self, $username, $settingname) {
 
     my $settingref;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -122,8 +116,7 @@ sub delete {## no critic(BuiltinHomonyms)
     return 1;
 }
 
-sub list {
-    my ($self, $username) = @_;
+sub list($self, $username) {
 
     my @settingnames;
     my $dbh = $self->{server}->{modules}->{$self->{db}};

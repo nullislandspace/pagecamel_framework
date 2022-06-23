@@ -23,8 +23,7 @@ use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::TestData;
 use Crypt::Digest::SHA256 qw[sha256_hex];
 
-sub new {
-    my ($proto, $config) = @_;
+sub new($proto, $config) {
     my $class = ref($proto) || $proto;
     
     my $self = bless $config, $class;
@@ -38,8 +37,7 @@ sub new {
     return $self;
 }
 
-sub printStartDocument {
-    my ($self) = @_;
+sub printStartDocument($self) {
     
     $self->{img} = GD::Image->new($self->{width}, $self->{height});
     $self->{imgoffs} = 0;
@@ -51,8 +49,7 @@ sub printStartDocument {
     return;
 }
 
-sub printEndDocument {
-    my ($self, $printername) = @_;
+sub printEndDocument($self, $printername = '') {
     
     # Need to downsize image to minimum required length
     my $cropped = GD::Image->new($self->{width}, $self->{imgoffs});
@@ -133,8 +130,7 @@ sub printEndDocument {
     return $imagedata;
 }
 
-sub printAddTextLine {
-    my ($self, $line, $y) = @_;
+sub printAddTextLine($self, $line, $y = undef) {
     
     chomp $line;
     
@@ -152,8 +148,7 @@ sub printAddTextLine {
     return $oldoffs;
 }
 
-sub printAddBoldTextLine {
-    my ($self, $line, $y) = @_;
+sub printAddBoldTextLine($self, $line, $y = undef) {
     
     chomp $line;
     
@@ -171,8 +166,7 @@ sub printAddBoldTextLine {
     return $oldoffs;
 }
 
-sub printAddSmallTextLine {
-    my ($self, $line, $x, $y) = @_;
+sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     
     chomp $line;
     
@@ -186,8 +180,7 @@ sub printAddSmallTextLine {
     return;
 }
 
-sub printAddBigTextLine {
-    my ($self, $line) = @_;
+sub printAddBigTextLine($self, $line) {
     
     chomp $line;
     
@@ -198,16 +191,14 @@ sub printAddBigTextLine {
     return;
 }
 
-sub printAddSingleLine {
-    my ($self, $line) = @_;
+sub printAddSingleLine($self, $line) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
                                       $self->{imgblack});
     $self->{imgoffs} += 24;
 }
 
-sub printAddDoubleLine {
-    my ($self, $line) = @_;
+sub printAddDoubleLine($self, $line) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
                                       $self->{imgblack});
@@ -217,26 +208,11 @@ sub printAddDoubleLine {
     $self->{imgoffs} += 24;
 }
 
-sub printAddImage {
-    my ($self, $filename, $isbindata, $imagesoftness, $doscale, $center) = @_;
+sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $doscale = true, $center = false) {
     
     my $reph = $self->{reph};
     
     my $pic;
-    if(!defined($isbindata)) {
-        $isbindata = 0;
-    }
-    
-    # Image softness (dithering grade) only works on greyscale image
-    if(!defined($imagesoftness)) {
-        $imagesoftness = 1;
-    }
-    if(!defined($doscale)) {
-        $doscale = 1;
-    }
-    if(!defined($center)) {
-        $center = 0;
-    }
     
     if($isbindata) {
         $pic = GD::Image->newFromPngData($filename, 0);
@@ -280,14 +256,9 @@ sub printAddImage {
     return $oldimgoffs;
 }
 
-sub printAddGreyscaleImage {
-    my ($self, $filename, $isbindata, $imagesoftness) = @_;
+sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     
     my $reph = $self->{reph};
-    
-    if(!defined($imagesoftness)) {
-        $imagesoftness = 1;
-    }
     
     my $rawpic;
     if($isbindata) {
@@ -515,8 +486,7 @@ sub printAddGreyscaleImage {
     return;
 }
 
-sub rememberPrint {
-    my ($self, $imagedata, $description, $markascopytext, $copy_y) = @_;
+sub rememberPrint($self, $imagedata, $description, $markascopytext = undef, $copy_y = undef) {
     
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
@@ -558,8 +528,7 @@ sub rememberPrint {
     return 1;
 }
 
-sub reprintDocument {
-    my ($self, $documentid, $printername) = @_;
+sub reprintDocument($self, $documentid, $printername) {
 
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
@@ -611,8 +580,7 @@ sub reprintDocument {
     return;
 }
 
-sub printAddTestPattern_HeatupCooldown {
-    my ($self) = @_;
+sub printAddTestPattern_HeatupCooldown($self) {
     
     for(1..3) {
         $self->{img}->filledRectangle(0, $self->{imgoffs},
@@ -624,8 +592,7 @@ sub printAddTestPattern_HeatupCooldown {
     return
 }
 
-sub printAddTestPattern_VerticalLines {
-    my ($self, $pointsize) = @_;
+sub printAddTestPattern_VerticalLines($self, $pointsize) {
     
     for(my $x = 0; $x < $self->{width}; $x += $pointsize) {
 
@@ -644,8 +611,7 @@ sub printAddTestPattern_VerticalLines {
     return
 }
 
-sub printAddTestPattern_HorizontalLines {
-    my ($self, $pointsize) = @_;
+sub printAddTestPattern_HorizontalLines($self, $pointsize) {
     
     for(1..2) {
         my $i = 0;
@@ -661,8 +627,7 @@ sub printAddTestPattern_HorizontalLines {
     return
 }
 
-sub printAddTestPattern_Rectangle {
-    my ($self) = @_;
+sub printAddTestPattern_Rectangle($self) {
     
     for(my $i = 0; $i < $self->{width}; $i++) {
         if($i == 0 || $i == ($self->{width} - 1)) {
@@ -682,8 +647,7 @@ sub printAddTestPattern_Rectangle {
 }
 
 
-sub printTestMessage {
-    my ($self, $printer, $tests) = @_;
+sub printTestMessage($self, $printer, $tests) {
     
     my @lines = PageCamel::Helpers::TestData::getTestLines();
     
@@ -762,8 +726,7 @@ sub printTestMessage {
     return $imagedata;
 }
 
-sub makeFName {
-    my ($self) = @_;
+sub makeFName($self) {
     
     my $fname = '';
     while($fname eq '') {

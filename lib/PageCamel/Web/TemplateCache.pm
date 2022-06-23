@@ -33,8 +33,7 @@ use JavaScript::Minifier qw(minify);
 my $templatemodulecount = 0;
 my @knowntemplatemodules;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -71,16 +70,14 @@ sub new {
     return $self;
 }
 
-sub addPath {
-    my ($self, $basePath) = @_;
+sub addPath($self, $basePath) {
 
     push @{$self->{EXTRAINC}}, $basePath;
 
     return 1;
 }
 
-sub addView {
-    my ($self, $path, $base) = @_;
+sub addView($self, $path, $base) {
     
     foreach my $v (@{$self->{view}}) {
         if($v->{base} eq $base) {
@@ -103,8 +100,7 @@ sub addView {
 
 }
 
-sub reload {
-    my ($self, $ofh) = @_;
+sub reload($self, $ofh = undef) {
     if(!defined($ofh)) {
         $ofh = \*STDOUT;
     }
@@ -162,8 +158,7 @@ sub reload {
     return;
 }
 
-sub load_dir {
-    my ($self, $dir, $base, $files) = @_;
+sub load_dir($self, $dir, $base, $files) {
 
     $base =~ s/^\///o;
     $base =~ s/\/$//o;
@@ -183,8 +178,7 @@ sub load_dir {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     
     $self->register_webpath($self->{uninline}->{webpath} . '/static', 'get_uninline_static', 'GET');
     $self->register_webpath($self->{uninline}->{webpath} . '/dynamic', 'get_uninline_dynamic', 'GET');
@@ -192,8 +186,7 @@ sub register {
     return;
 }
 
-sub get {
-    my ($self, $name, $uselayout, %webdata) = @_;
+sub get($self, $name, $uselayout, %webdata) {
     return unless defined($self->{cache}->{$name});
 
     # Run a prerender callback on our webdata, so modules
@@ -261,8 +254,7 @@ sub get {
     return $output;
 }
 
-sub render_partials {
-    my ($self, $name, %webdata) = @_;
+sub render_partials($self, $name, %webdata) {
     return unless defined($self->{cache}->{$name});
 
     # Run a prerender callback on our webdata, so modules
@@ -289,8 +281,7 @@ sub render_partials {
 }
 
 
-sub do_uninline {
-    my ($self, $data, $kname, $fname) = @_;
+sub do_uninline($self, $data, $kname, $fname) {
         
     my @newlines;
     
@@ -554,8 +545,7 @@ sub do_uninline {
     return $newdata;
 }
 
-sub get_uninline_static {
-    my ($self, $ua) = @_;
+sub get_uninline_static($self, $ua) {
     
     my $fname = $ua->{url};
     
@@ -610,8 +600,7 @@ sub get_uninline_static {
     return %retpage;
 }
 
-sub get_uninline_dynamic {
-    my ($self, $ua) = @_;
+sub get_uninline_dynamic($self, $ua) {
     
     my $fname = $ua->{url};
     
@@ -669,8 +658,7 @@ sub get_uninline_dynamic {
     return %retpage;
 }
 
-sub makeDynamicScript {
-    my ($self, $page, $webdata, $templatename) = @_;
+sub makeDynamicScript($self, $page, $webdata, $templatename) {
     
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
@@ -717,8 +705,7 @@ sub makeDynamicScript {
     return;
 }
 
-sub gen_dynjsname {
-    my ($self) = @_;
+sub gen_dynjsname($self) {
     
     my $namebase = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -733,8 +720,7 @@ sub gen_dynjsname {
     return $name;
 }
 
-sub gen_eventhandlername {
-    my ($self) = @_;
+sub gen_eventhandlername($self) {
     
     my $namebase = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -752,8 +738,7 @@ sub gen_eventhandlername {
 #my ($newdata, $autodialogjs, $autodialoghtml) = $self->parseAutoDialogs($data);
 #my @oldlines = split/\n/, $data;
 
-sub parseAutoDialogs {
-    my ($self, $fname, $data) = @_;
+sub parseAutoDialogs($self, $fname, $data) {
     
     my @oldlines = split/\n/, $data;
     my @newlines;

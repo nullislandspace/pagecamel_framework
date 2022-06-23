@@ -21,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Strings qw[webSafeString elemNameQuote];
 use HTTP::BrowserDetect;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -47,14 +46,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
 
     if(defined($self->{sitemap}) && $self->{sitemap}) {
@@ -72,8 +69,7 @@ sub register {
     return;
 }
 
-sub hookrootpath {
-    my ($self, $ua) = @_;
+sub hookrootpath($self, $ua) {
 
     if($ua->{url} ne '/') {
         return;
@@ -90,8 +86,7 @@ sub hookrootpath {
 
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -333,8 +328,7 @@ sub get {
             'Vary'    => 'User-Agent', # <-- Signal google we support mobile on this page
             );
 }
-sub get_wiki_archive {
-    my ($self, $ua) = @_;
+sub get_wiki_archive($self, $ua) {
 
     my $clientMode = $self->getClientMode($ua);
     if($clientMode ne 'mobile') {
@@ -390,8 +384,7 @@ sub get_wiki_archive {
 
 }
 
-sub sitemap {
-    my ($self, $sitemap) = @_;
+sub sitemap($self, $sitemap) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -409,8 +402,7 @@ sub sitemap {
     return;
 }
 
-sub getClientMode {
-    my ($self, $ua) = @_;
+sub getClientMode($self, $ua) {
 
     if(!$self->{supportmobile}) {
         return '';

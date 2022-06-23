@@ -21,8 +21,7 @@ use base qw(Exporter);
 
 our @EXPORT_OK = qw(colorHex2RGB colorRGB2Hex colorMaxContrast colorHexMaxContrast);
 
-sub colorHex2RGB {
-    my ($colorstring) = @_;
+sub colorHex2RGB($colorstring) {
     
     my @rgb = (0, 0, 0);
     my @hexrgb;
@@ -37,14 +36,12 @@ sub colorHex2RGB {
     return @rgb;
 }
 
-sub colorRGB2Hex {
-    my ($r, $g, $b) = @_;
+sub colorRGB2Hex($r, $g, $b) {
 
     return sprintf("#%02lx%02lx%02lx", $r, $g, $b);
 }
 
-sub colorMaxContrast {
-    my ($r, $g, $b) = @_;
+sub colorMaxContrast($r, $g, $b) {
 
     my ($newr, $newg, $newb);
 
@@ -83,8 +80,7 @@ sub colorMaxContrast {
     return ($newr, $newg, $newb);
 }
 
-sub colorHexMaxContrast {
-    my ($colorstring) = @_;
+sub colorHexMaxContrast($colorstring) {
 
     return colorRGB2Hex(colorMaxContrast(colorHex2RGB($colorstring)));
 }

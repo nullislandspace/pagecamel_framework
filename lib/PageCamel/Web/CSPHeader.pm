@@ -20,8 +20,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use Crypt::Digest::SHA256 qw(sha256_b64);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,14 +29,12 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_postfilter("postfilter");
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     my @headerparts;
     my %defaultheaders;
@@ -71,8 +68,7 @@ sub reload {
     return;
 }
 
-sub postfilter {
-    my ($self, $ua, $header, $result) = @_;
+sub postfilter($self, $ua, $header, $result) {
     
     my $cspname = 'DEFAULT';
     if(defined($self->{csp}->{$ua->{url}})) {

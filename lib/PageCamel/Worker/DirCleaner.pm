@@ -28,8 +28,7 @@ use Readonly;
 
 Readonly my $YEARBASEOFFSET => 1900;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -53,15 +52,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
     return;
 }
 
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $workCount = 0;
 
@@ -83,8 +80,7 @@ sub work {
     return $workCount;
 }
 
-sub clean {
-    my ($self, $dir) = @_;
+sub clean($self, $dir) {
 
     my @todelete;
     my $deletes = 0;

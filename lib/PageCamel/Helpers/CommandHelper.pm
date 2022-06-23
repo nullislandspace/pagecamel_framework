@@ -22,9 +22,7 @@ use base qw(Exporter);
 our @EXPORT = qw(getCommandQueue); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
-sub getCommandQueue {
-    my ($dbh, $memh, $command) = @_;
-
+sub getCommandQueue($dbh, $memh, $command = undef) {
     my @commands;
 
     my $where = "";

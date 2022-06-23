@@ -21,8 +21,7 @@ use base qw(PageCamel::Worker::BaseModule);
 use Net::Twitter;
 use Scalar::Util qw[blessed];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -31,21 +30,18 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we are pretty much self contained
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
     return;
 }
 
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};

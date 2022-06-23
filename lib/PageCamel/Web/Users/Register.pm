@@ -30,8 +30,7 @@ use Readonly;
 
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -53,8 +52,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get_register");
     $self->register_public_url($self->{webpath});
@@ -62,16 +60,14 @@ sub register {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     # Nothing to do
 
     return;
 }
 
-sub get_register {
-    my ($self, $ua) = @_;
+sub get_register($self, $ua) {
 
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -98,8 +94,7 @@ sub get_register {
     return $self->get_request($ua);
 }
 
-sub get_checkuser {
-    my ($self, $ua) = @_;
+sub get_checkuser($self, $ua) {
 
     my $user = $ua->{postparams}->{'username'} || '';
 
@@ -111,8 +106,7 @@ sub get_checkuser {
             );
 }
 
-sub validateUsername {
-    my ($self, $user) = @_;
+sub validateUsername($self, $user) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -146,8 +140,7 @@ sub validateUsername {
     return "OK";
 }
 
-sub get_checkemail {
-    my ($self, $ua) = @_;
+sub get_checkemail($self, $ua) {
 
     my $email = $ua->{postparams}->{'email'} || '';
 
@@ -159,8 +152,7 @@ sub get_checkemail {
             );
 }
 
-sub validateEmail {
-    my ($self, $email) = @_;
+sub validateEmail($self, $email) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -199,8 +191,7 @@ sub validateEmail {
     return "OK";
 }
 
-sub get_request {
-    my ($self, $ua) = @_;
+sub get_request($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
@@ -316,8 +307,7 @@ END
 }
 
 
-sub get_execute {
-    my ($self, $ua, $registerkey) = @_;
+sub get_execute($self, $ua, $registerkey) {
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -400,8 +390,7 @@ sub get_execute {
             data    => $template);
 }
 
-sub addUserRights {
-    my ($self, $user) = @_;
+sub addUserRights($self, $user) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -418,8 +407,7 @@ sub addUserRights {
     return 1;
 }
 
-sub defaultwebdata {
-    my ($self, $webdata) = @_;
+sub defaultwebdata($self, $webdata) {
 
     # Just allow the "register" menu item
     $webdata->{canRegisterUsers} = 1;

@@ -25,8 +25,7 @@ use PageCamel::Helpers::DBSerialize qw/dbderef/;
 
 use Readonly;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
     
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -43,14 +42,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we are pretty much self contained
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     # Register ourselfs in the RBSCommands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
@@ -61,8 +58,7 @@ sub register {
     return;
 }
 
-sub execute {
-    my ($self, $command, $arguments) = @_;
+sub execute($self, $command, $arguments) {
     
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
@@ -71,8 +67,7 @@ sub execute {
     return;
 }
 
-sub do_postfix_update_aliases {
-    my ($self, $arguments) = @_;
+sub do_postfix_update_aliases($self, $arguments) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

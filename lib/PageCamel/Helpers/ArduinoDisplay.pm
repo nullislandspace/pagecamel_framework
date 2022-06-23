@@ -20,8 +20,7 @@ use Device::SerialPort qw( :PARAM :STAT 0.07 );
 use Time::HiRes qw[sleep];
 use MIME::Base64;
 
-sub new {
-    my ($proto, $config) = @_;
+sub new($proto, $config) {
     my $class = ref($proto) || $proto;
 
     my $self = bless $config, $class;
@@ -44,8 +43,7 @@ sub new {
     return $self;
 }
 
-sub getEvents {
-    my ($self) = @_;
+sub getEvents($self) {
 
     while(1) {
         my ($count, $data) = $self->{arduino}->read(1);
@@ -78,8 +76,7 @@ sub getEvents {
 }
 
 
-sub decodeSerial {
-    my ($self) = @_;
+sub decodeSerial($self) {
 
     my $cavacdecoded;
 
@@ -94,8 +91,7 @@ sub decodeSerial {
     return;
 }
 
-sub blankDisplay {
-    my ($self) = @_;
+sub blankDisplay($self) {
 
     for(my $i = 0; $i < 7; $i++) {
         $self->writeDisplay($i, $self->leftPad(''));
@@ -104,8 +100,7 @@ sub blankDisplay {
     return;
 }
 
-sub writeDisplay {
-    my ($self, $displaynum, $data) = @_;
+sub writeDisplay($self, $displaynum, $data) {
 
     return if($data eq $self->{states}->{displaybuffer}->[$displaynum]); # already displayed
 
@@ -116,8 +111,7 @@ sub writeDisplay {
     return $self->writePacket(chr($displaynum) . $data);
 }
 
-sub writePacket {
-    my ($self, $binarydata) = @_;
+sub writePacket($self, $binarydata) {
 
     my $outdata = chr(0x02); # STX
 
@@ -137,8 +131,7 @@ sub writePacket {
 }
 
 # This is a very general call to "send your sensor data packet". The answer is very implementation dependant
-sub sendEnquiry {
-    my ($self) = @_;
+sub sendEnquiry($self) {
 
     $self->{arduino}->write(chr(0x05)); # ENQ
 
@@ -147,11 +140,7 @@ sub sendEnquiry {
     return;
 }
 
-sub secondsToTimestring {
-    my ($self, $val) = @_;
-
-    croak("UNDEF seconds") unless(defined($val));
-
+sub secondsToTimestring($self, $val) {
     $val = 0 + $val;
     if($val < 0) {
         $val = 0;
@@ -174,8 +163,7 @@ sub secondsToTimestring {
     return $self->leftPad($self->numberToString($hours . '-' . $minutes . '-' . $seconds));
 }
 
-sub numberToString {
-    my ($self, $num) = @_;
+sub numberToString($self, $num) {
 
     my $val = '';
     my @binaries = $self->get7Segment();
@@ -235,13 +223,7 @@ sub numberToString {
     return $val;
 }
 
-sub leftPad {
-    my ($self, $val, $padbyte) = @_;
-    if(!defined($padbyte)) {
-        $padbyte = 0x00;
-    }
-    croak("BLA") unless defined($val);
-
+sub leftPad($self, $val, $padbyte = 0x00) {
     while(length($val) < 8) {
         $val = chr($padbyte) . $val;
     }
@@ -249,12 +231,7 @@ sub leftPad {
     return $val;
 }
 
-sub rightPad {
-    my ($self, $val, $padbyte) = @_;
-    if(!defined($padbyte)) {
-        $padbyte = 0x00;
-    }
-
+sub rightPad($self, $val, $padbyte = 0x00) {
     while(length($val) < 8) {
         $val .= chr($padbyte);
     }

@@ -20,8 +20,7 @@ use base qw(PageCamel::Web::BaseWebSocket);
 use PageCamel::Helpers::DateStrings;
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -38,8 +37,7 @@ sub new {
 }
 
 
-sub wshandlerstart {
-    my ($self, $ua, $settings) = @_;
+sub wshandlerstart($self, $ua, $settings) {
 
     $self->{nextping} = time + 10;
 
@@ -53,8 +51,7 @@ sub wshandlerstart {
     return;
 }
 
-sub wscleanup {
-    my ($self) = @_;
+sub wscleanup($self) {
 
     delete $self->{nextping};
     delete $self->{clacks};
@@ -62,8 +59,7 @@ sub wscleanup {
     return;
 }
 
-sub wscyclic {
-    my ($self) = @_;
+sub wscyclic($self) {
 
     my $now = time;
     if($now > $self->{nextping}) {

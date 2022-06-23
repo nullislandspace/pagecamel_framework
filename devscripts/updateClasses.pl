@@ -26,8 +26,7 @@ updateClass('lib/PageCamel/Helpers.pm', 'lib/PageCamel/Helpers', 'PageCamel::Hel
 print "Done\n";
 
 
-sub updateClass {
-    my ($filename, $dirname, $basename) = @_;
+sub updateClass($filename, $dirname, $basename) {
 
     print "updating $filename with $basename classes from $dirname\n";
 
@@ -61,8 +60,7 @@ sub updateClass {
     close($ofh);
 }
 
-sub findModules {
-    my ($dirname, $basename) = @_;
+sub findModules($dirname, $basename) {
 
     my @files;
 

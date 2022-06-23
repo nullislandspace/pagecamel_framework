@@ -27,8 +27,7 @@ use JSON::XS;
 use PageCamel::Helpers::Strings qw(stripString splitStringWithQuotes humanFilesize);
 use PageCamel::Helpers::URI qw[decode_uri_path];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -41,16 +40,14 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{selecttable}->{webpath}, "get_lines", 'POST');
 
     return;
 }
 
-sub get_lines {
-    my ($self, $ua) = @_;
+sub get_lines($self, $ua) {
 
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

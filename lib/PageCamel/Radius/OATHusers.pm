@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use PageCamel::Helpers::Passwords;
 use DBI;
 
-sub new {
-    my ($class) = @_;
+sub new($class) {
     my $self = bless {}, $class;
 
     croak("This module needs a rewrite for new Passwords handling code (see Helpers::Passwords)");
@@ -28,8 +27,7 @@ sub new {
     return $self;
 }
 
-sub validate {
-    my ($self, $database, $username, $password, $service) = @_;
+sub validate($self, $database, $username, $password, $service) {
 
     # Missing fields
     if(!defined($username) || !defined($password) || !defined($service) ||

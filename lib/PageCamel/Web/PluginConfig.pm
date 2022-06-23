@@ -23,8 +23,7 @@ use Readonly;
 
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,8 +34,7 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
     
     if(defined($self->{templates})) {
         # Configure an additional path in the TemplateCache module

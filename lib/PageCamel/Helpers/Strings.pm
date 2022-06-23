@@ -22,8 +22,7 @@ use PageCamel::Helpers::Padding qw(doSpacePad);
 our @EXPORT_OK = qw(tabsToTable normalizeString elemNameQuote stripString humanFilesize windowsStringsQuote splitStringWithQuotes webSafeString encodeVNCString cutStrings lineWrap);
 
 
-sub tabsToTable {
-    my ($txt, @lengths) = @_;
+sub tabsToTable($txt, @lengths) {
 
     my @parts = split/\t/, $txt;
     my $newtext = "";
@@ -35,8 +34,7 @@ sub tabsToTable {
 }
 
 # strip string of leading and trailing whitespace
-sub stripString {
-    my $val = shift;
+sub stripString($val) {
 
     $val =~ s/^\s+//o;
     $val =~ s/\s+$//o;
@@ -46,8 +44,7 @@ sub stripString {
 }
 
 # Removes all unneeded whitespace and non-word characters
-sub normalizeString {
-    my $val = shift;
+sub normalizeString($val) {
 
     $val =~ s/\t/ /go;
     $val =~ s/^\s+//o;
@@ -58,8 +55,7 @@ sub normalizeString {
     return $val;
 }
 
-sub webSafeString {
-    my $val = shift;
+sub webSafeString($val) {
 
     $val =~ s/\t/ /go;
     $val =~ s/^\ +//o;
@@ -72,8 +68,7 @@ sub webSafeString {
     return $val;
 }
 
-sub splitStringWithQuotes {
-    my $val = shift;
+sub splitStringWithQuotes($val) {
 
     # Double backslash in search fields
     $val =~ s/\\/\\\\/g;
@@ -131,8 +126,7 @@ sub splitStringWithQuotes {
     return @strings;
 }
 
-sub elemNameQuote {
-    my $val = shift;
+sub elemNameQuote($val) {
 
     #$val = normalizeString($val);
     $val =~ s/\s/_/g;
@@ -141,8 +135,7 @@ sub elemNameQuote {
     return $val;
 }
 
-sub windowsStringsQuote {
-    my $val = shift;
+sub windowsStringsQuote($val) {
 
     $val =~ s/\ä/ae/go;
     $val =~ s/\ö/oe/go;
@@ -157,8 +150,7 @@ sub windowsStringsQuote {
     return $val;
 }
 
-sub humanFilesize {
-    my $size = shift;
+sub humanFilesize($size) {
     my $exp = 0;
     state $units = [qw(B KB MB GB TB PB)];
     for (@{$units}) {
@@ -170,8 +162,7 @@ sub humanFilesize {
 }
 
 # Encode a string for VNC session recording
-sub encodeVNCString {
-    my ($val) = @_;
+sub encodeVNCString($val) {
 
     my $out = "";
     my @chars = split//, $val;
@@ -191,8 +182,7 @@ sub encodeVNCString {
 }
 
 # 'cut -c' compatible implementation
-sub cutStrings {
-    my ($definition, $seperator, @lines) = @_;
+sub cutStrings($definition, $seperator, @lines) {
 
     my @outlines;
 
@@ -230,8 +220,7 @@ sub cutStrings {
 }
 
 # Line-wrap a string
-sub lineWrap {
-    my ($val, $linelength) = @_;
+sub lineWrap($val, $linelength) {
 
     my @lines;
     my $line = '';

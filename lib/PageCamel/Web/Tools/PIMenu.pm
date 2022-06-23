@@ -28,8 +28,7 @@ use PageCamel::Helpers::DateStrings;
 use Readonly;
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -42,15 +41,13 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do
 
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     if(defined($self->{public}->{webpath})) {
         $self->register_webpath($self->{public}->{webpath}, "get_public");
@@ -73,8 +70,7 @@ sub register {
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
     
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -98,8 +94,7 @@ sub crossregister {
     return;
 }
 
-sub clean_fname {
-    my ($self, $filename) = @_;
+sub clean_fname($self, $filename) {
 
     my $safe_filename_characters = "a-zA-Z0-9_.-";
     $filename =~ s/\\/\//go;
@@ -110,8 +105,7 @@ sub clean_fname {
     return $filename;
 }
 
-sub get_manage {
-    my ($self, $ua) = @_;
+sub get_manage($self, $ua) {
 
     my $webpath = $ua->{url};
 
@@ -186,8 +180,7 @@ sub get_manage {
             data    => $template);
 }
 
-sub get_public {
-    my ($self, $ua) = @_;
+sub get_public($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -220,8 +213,7 @@ sub get_public {
 
 # ------------------------------------
 
-sub get_download {
-    my ($self, $ua) = @_;
+sub get_download($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $uamethod = $ua->{method};
@@ -534,8 +526,7 @@ sub get_download {
    return(status => 500); # Something went wrong
 }
 
-sub file_get_multipart_contentlength {
-    my ($self, $ua) = @_;
+sub file_get_multipart_contentlength($self, $ua) {
 
     # Add up all data block sizes and corresponding headers
 
@@ -554,8 +545,7 @@ sub file_get_multipart_contentlength {
     return $len;
 }
 
-sub file_get_multipart {
-    my ($self, $ua) = @_;
+sub file_get_multipart($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -620,8 +610,7 @@ sub file_get_multipart {
     );
 }
 
-sub file_get {
-    my ($self, $ua) = @_;
+sub file_get($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -662,8 +651,7 @@ sub file_get {
 
 
 
-sub get_fname {
-    my ($self, $ua) = @_;
+sub get_fname($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -703,8 +691,7 @@ sub get_fname {
 }
 
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     
@@ -722,8 +709,7 @@ sub get_defaultwebdata {
     return;
 }
 
-sub sitemap {
-    my ($self, $sitemap) = @_;
+sub sitemap($self, $sitemap) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

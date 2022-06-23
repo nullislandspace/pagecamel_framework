@@ -23,8 +23,7 @@ use Net::Ping;
 use WWW::Mechanize::GZip;
 use XML::Simple;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,16 +34,14 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     $self->register_plugin('work', 'TEMPSENSOR', 'HWG-STE snmp');
     $self->register_plugin('work', 'TEMPSENSOR', 'HWG-STE http');
     return;
 }
 
-sub loadMiniMIB {
-    my ($self) = @_;
+sub loadMiniMIB($self) {
 
     my @MIBS = $self->loadMIB();
 
@@ -60,8 +57,7 @@ sub loadMiniMIB {
     return;
 }
 
-sub loadMIB {
-    my ($self) = @_;
+sub loadMIB($self) {
 
     my $MIB =<<"MINIMIB";
 ID;ColName;Description
@@ -75,8 +71,7 @@ MINIMIB
     return @MIBS;
 }
 
-sub work {
-    my ($self, $device, $dbh, $reph, $memh) = @_;
+sub work($self, $device, $dbh, $reph, $memh) {
 
     my $workCount = 0;
 
@@ -145,8 +140,7 @@ sub work {
 # ************************************************************************************
 # ************************************************************************************
 
-sub getSNMPValues {
-    my ($self, $reph, $ip, $port) = @_;
+sub getSNMPValues($self, $reph, $ip, $port) {
 
     $reph->debuglog("  Connecting to $ip:$port");
 
@@ -235,8 +229,7 @@ sub getSNMPValues {
 # ************************************************************************************
 # ************************************************************************************
 
-sub getXMLValues {
-    my ($self, $reph, $ip, $port) = @_;
+sub getXMLValues($self, $reph, $ip, $port) {
 
     $reph->debuglog("  XML-Connecting to $ip:$port");
 

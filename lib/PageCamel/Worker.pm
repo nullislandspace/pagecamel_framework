@@ -91,19 +91,13 @@ use PageCamel::Worker::Wansview::Stream;
 #=!=END-AUTO-INCLUDES
 
 
-sub new {
-    my $class = shift;
+sub new($class) {
     my $self = bless {}, $class;
 
     return $self;
 }
 
-sub startconfig {
-    my ($self, $isDebug) = @_;
-
-    if(!defined($isDebug)) {
-        $isDebug = 0;
-    }
+sub startconfig($self, $isDebug = false) {
     $self->{debug} = $isDebug;
 
     my @workers;
@@ -118,8 +112,7 @@ sub startconfig {
     return;
 }
 
-sub configure {
-    my ($self, $modname, $perlmodulename, %config) = @_;
+sub configure($self, $modname, $perlmodulename, %config) {
 
     # Let the module know its configured module name...
     $config{modname} = $modname;
@@ -156,8 +149,7 @@ sub configure {
     return;
 }
 
-sub endconfig {
-    my ($self) = @_;
+sub endconfig($self) {
 
     #$self->{modules}->{$modname}->reload;   # (Re)load module's data
     print "Guidance is internal!\n"; # We REQUIRE an Apollo reference here!!1!
@@ -185,8 +177,7 @@ sub endconfig {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     my $workCount = 0;
 
@@ -219,8 +210,7 @@ sub run {
     return $workCount;
 }
 
-sub add_worker {
-    my ($self, $module, $funcname) = @_;
+sub add_worker($self, $module, $funcname) {
 
     my %conf = (
         Module  => $module,
@@ -231,8 +221,7 @@ sub add_worker {
     return;
 }
 
-sub add_cleanup {
-    my ($self, $module, $funcname) = @_;
+sub add_cleanup($self, $module, $funcname) {
 
     my %conf = (
         Module  => $module,

@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,14 +28,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_prefilter("prefilter");
     $self->register_postfilter("postfilter");
@@ -45,8 +42,7 @@ sub register {
 }
 
 
-sub prefilter {
-    my ($self, $ua) = @_;
+sub prefilter($self, $ua) {
 
     my $webpath = $ua->{url};
     my $userAgent = $ua->{headers}->{'User-Agent'} || "Unknown";
@@ -66,8 +62,7 @@ sub prefilter {
     return;
 
 }
-sub postfilter {
-    my ($self, $ua, $header, $result) = @_;
+sub postfilter($self, $ua, $header, $result) {
 
     if(!defined($self->{BrowserData}->{Browser})) {
         return;
@@ -102,8 +97,7 @@ sub postfilter {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     $webdata->{BrowserData} = $self->{BrowserData};
     return;

@@ -20,8 +20,7 @@ use base qw(PageCamel::Worker::Logging::PluginBase);
 
 use PageCamel::Helpers::Strings qw(stripString);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -32,15 +31,13 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     $self->register_plugin('work', 'SMARTSTATUS', 'SMARTSTATUS');
     return;
 }
 
-sub loadColumns {
-    my ($self, $dbh) = @_;
+sub loadColumns($self, $dbh) {
 
     my %cols;
     my $selsth = $dbh->prepare("SELECT column_name, data_type FROM information_schema.columns
@@ -56,8 +53,7 @@ sub loadColumns {
     return;
 }
 
-sub work {
-    my ($self, $device, $dbh, $reph, $memh) = @_;
+sub work($self, $device, $dbh, $reph, $memh) {
 
     my $workCount = 0;
 

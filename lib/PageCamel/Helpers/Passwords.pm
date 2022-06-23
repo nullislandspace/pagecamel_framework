@@ -25,8 +25,7 @@ use MIME::Base64;
 use PageCamel::Helpers::DateStrings;
 use Time::HiRes qw[sleep];
 
-sub new {
-    my ($proto, $config) = @_;
+sub new($proto, $config) {
     my $class = ref($proto) || $proto;
 
     my $self = bless $config, $class;
@@ -47,8 +46,7 @@ sub new {
 }
 
 
-sub gen_textsalt {
-    my ($self) = @_;
+sub gen_textsalt($self) {
 
     my $saltbase = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -63,8 +61,7 @@ sub gen_textsalt {
 }
 
 
-sub update_password {
-    my ($self, $username, $password) = @_;
+sub update_password($self, $username, $password) {
 
 
     # While pre- and postsalt does not much for complexity, it helps preventing rainbow tables attacks.
@@ -105,8 +102,7 @@ sub update_password {
     return 1;
 }
 
-sub verify_password {
-    my ($self, $username, $password) = @_;
+sub verify_password($self, $username, $password) {
 
     # Pre-initialize for random pw calculations in case no user is found (there should be no
     # measurable time difference for unknown users. This will make it harder to guess is a username
@@ -173,8 +169,7 @@ sub verify_password {
     return 1;
 }
 
-sub getSettings {
-    my ($self) = @_;
+sub getSettings($self) {
 
     my $sysh = $self->{sysh};
     my $dbh = $self->{dbh};

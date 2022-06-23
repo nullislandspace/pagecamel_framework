@@ -20,8 +20,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use JSON::XS;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,8 +29,7 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     $self->register_webpath($self->{webpath}, 'beaconhandler', 'POST');
     $self->register_public_url($self->{webpath});
@@ -40,16 +38,14 @@ sub crossregister {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     $webdata->{EnablePageViewStats} = 1;
     return;
 }
 
 
-sub beaconhandler {
-    my ($self, $ua) = @_;
+sub beaconhandler($self, $ua) {
     
     my $beacondata;
     my $decoded = 0;

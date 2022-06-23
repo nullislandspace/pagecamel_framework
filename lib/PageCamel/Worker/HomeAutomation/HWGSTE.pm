@@ -24,8 +24,7 @@ use Net::Clacks::Client;
 use WWW::Mechanize;
 use XML::Simple;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -37,8 +36,7 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -49,8 +47,7 @@ sub register {
     return;
 }
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $workCount = 0;
 
@@ -101,8 +98,7 @@ sub work {
     return $workCount;
 }
 
-sub getClimate {
-    my ($self) = @_;
+sub getClimate($self) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

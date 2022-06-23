@@ -20,8 +20,7 @@ use PageCamel::Helpers::DateStrings;
 use base qw(PageCamel::Worker::Logging::PluginBase);
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -46,16 +45,14 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_worker('logdata');
     $self->register_worker('rollingwindow');
     return;
 }
 
-sub logdata {
-    my ($self) = @_;
+sub logdata($self) {
 
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -86,8 +83,7 @@ sub logdata {
     return $workCount;
 }
 
-sub rollingwindow {
-    my ($self) = @_;
+sub rollingwindow($self) {
 
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};

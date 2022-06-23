@@ -27,8 +27,7 @@ use File::Type;
 my $cachemodulecount = 0;
 my @knownstaticmodules;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -58,16 +57,14 @@ sub new {
     return $self;
 }
 
-sub addPath {
-    my ($self, $basePath) = @_;
+sub addPath($self, $basePath) {
 
     push @{$self->{EXTRAINC}}, $basePath;
 
     return 1;
 }
 
-sub addView {
-    my ($self, $dirpath, $urlpath) = @_;
+sub addView($self, $dirpath, $urlpath) {
     # add additional views to scan in all incs
     
     my %view = (
@@ -98,8 +95,7 @@ sub addView {
     
 }
 
-sub reload {
-    my ($self, $ofh) = @_;
+sub reload($self, $ofh = undef) {
 
     if(!defined($ofh)) {
         $ofh = \*STDOUT;
@@ -136,8 +132,7 @@ sub reload {
 
 }
 
-sub load_dir {
-    my ($self, $basedir, $basewebpath, $ofh) = @_;
+sub load_dir($self, $basedir, $basewebpath, $ofh) {
 
     my $fcount = 0;
     my $ft = File::Type->new();
@@ -256,8 +251,7 @@ sub load_dir {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     # Also need to register the webpaths during addview() call, because we can get additional paths during
     # the crossregister loop
@@ -274,8 +268,7 @@ sub register {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $name = $ua->{url};
 
@@ -340,8 +333,7 @@ sub get {
     return %retpage;
 }
 
-sub sitemap {
-    my ($self, $sitemap) = @_;
+sub sitemap($self, $sitemap) {
 
     push @{$sitemap}, keys %{$self->{cache}};
 

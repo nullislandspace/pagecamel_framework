@@ -20,8 +20,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -42,8 +41,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -60,15 +58,13 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
     $self->register_prerender("prerender");
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -101,8 +97,7 @@ sub get {
             data    => $template);
 }
 
-sub prerender {
-    my ($self, $webdata) = @_;
+sub prerender($self, $webdata) {
 
     my $userMenubar = $self->{default_menubar};
 

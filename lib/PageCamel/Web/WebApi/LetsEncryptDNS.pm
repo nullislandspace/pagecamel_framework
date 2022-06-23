@@ -28,8 +28,7 @@ my %apifunctions = (
     remove     => \&api_remove,
 );
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -38,22 +37,19 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "handle_rpc", 'POST');
 
     return;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     if(defined($self->{auth_realm})) {
         $self->register_basic_auth($self->{webpath}, $self->{auth_realm});
@@ -62,8 +58,7 @@ sub crossregister {
     return;
 }
 
-sub handle_rpc {
-    my ($self, $ua) = @_;
+sub handle_rpc($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

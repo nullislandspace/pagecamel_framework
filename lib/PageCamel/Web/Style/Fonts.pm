@@ -48,8 +48,7 @@ foreach my $key (sort keys %fontfamilies) {
                     };
 }
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -62,8 +61,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -80,16 +78,14 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
     $self->register_webpath($self->{csspath}, "get_css");
     $self->register_prerender("prerender");
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -124,8 +120,7 @@ sub get {
             data    => $template);
 }
 
-sub prerender {
-    my ($self, $webdata) = @_;
+sub prerender($self, $webdata) {
 
     my $userFont = $self->{default_font};
 
@@ -172,8 +167,7 @@ sub prerender {
     return;
 }
 
-sub get_css {
-    my ($self, $ua) = @_;
+sub get_css($self, $ua) {
 
     my $webpath = $ua->{url};
     my $userFont;

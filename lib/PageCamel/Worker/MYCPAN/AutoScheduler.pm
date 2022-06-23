@@ -27,8 +27,7 @@ Readonly my $DAYMEMKEY => "MYCPAN::AutoScheduler::lastDay";
 Readonly my $HOURMEMKEY => "MYCPAN::AutoScheduler::lastHour";
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -42,22 +41,19 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we are pretty much self contained
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work_hour");
     #$self->register_worker("work_day");
     return;
 }
 
 
-sub work_hour {
-    my ($self) = @_;
+sub work_hour($self) {
 
     my $workCount = 0;
 
@@ -99,8 +95,7 @@ sub work_hour {
     return $workCount;
 }
 
-sub work_day {
-    my ($self) = @_;
+sub work_day($self) {
 
     my $workCount = 0;
 

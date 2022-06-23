@@ -43,8 +43,7 @@ my @lines = (
     '',
 );
 
-sub PageCamelLogo {
-    my ($appname, $version) = @_;
+sub PageCamelLogo($appname, $version) {
 
     my @xlines = @lines; # Do NOT work on original data set
     foreach my $line (@xlines) {

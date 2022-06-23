@@ -22,8 +22,7 @@ use Net::Ping;
 use Net::Ping::External; # For more reliable ICMP. We don't use this
                          # directly, just making sure it is included in the Makefile.PL requirements
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -32,8 +31,7 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     $self->register_plugin('work', 'PING', 'ICMP');
     $self->register_plugin('work', 'PING', 'TCP');
@@ -41,8 +39,7 @@ sub crossregister {
     return;
 }
 
-sub work {
-    my ($self, $device, $dbh, $reph, $memh) = @_;
+sub work($self, $device, $dbh, $reph, $memh) {
 
     my $workCount = 0;
 

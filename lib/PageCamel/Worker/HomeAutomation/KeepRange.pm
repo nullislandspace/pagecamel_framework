@@ -22,8 +22,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Worker::BaseModule);
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,8 +34,7 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -51,8 +49,7 @@ sub register {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -121,8 +118,7 @@ sub reload {
     return;
 }
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $workCount = 0;
 

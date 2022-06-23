@@ -22,8 +22,7 @@ use Net::Clacks::Client;
 
 # play -t raw -r 11025 -e signed-integer -b 16 -c 1 rawaudio.dat
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -36,8 +35,7 @@ sub new {
 }
 
 
-sub wshandlerstart {
-    my ($self, $ua, $settings) = @_;
+sub wshandlerstart($self, $ua, $settings) {
 
     $self->{nextping} = time + 10;
 
@@ -49,8 +47,7 @@ sub wshandlerstart {
     return;
 }
 
-sub wshandlemessage {
-    my ($self, $message) = @_;
+sub wshandlemessage($self, $message) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -63,8 +60,7 @@ sub wshandlemessage {
     return 1;
 }
 
-sub wscleanup {
-    my ($self) = @_;
+sub wscleanup($self) {
 
     delete $self->{nextping};
     delete $self->{clacks};
@@ -72,8 +68,7 @@ sub wscleanup {
     return;
 }
 
-sub wscyclic {
-    my ($self) = @_;
+sub wscyclic($self) {
 
     my $now = time;
     if($now > $self->{nextping}) {

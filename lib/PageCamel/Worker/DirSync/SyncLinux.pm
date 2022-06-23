@@ -27,8 +27,7 @@ use File::Copy;
 use Readonly;
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -44,14 +43,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we are pretty much self contained
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     # Register ourselfs in the CommandQueue module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
@@ -62,8 +59,7 @@ sub register {
     return;
 }
 
-sub execute {
-    my ($self, $command, $arguments) = @_;
+sub execute($self, $command, $arguments) {
 
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
@@ -72,8 +68,7 @@ sub execute {
     return;
 }
 
-sub do_dirsync {
-    my ($self, $arguments) = @_;
+sub do_dirsync($self, $arguments) {
     my ($syncname, $source, $dest, $maxage) = @{$arguments};
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

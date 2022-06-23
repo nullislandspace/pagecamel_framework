@@ -26,8 +26,7 @@ use Net::Clacks::Client;
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use MIME::Base64;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -40,14 +39,12 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     $self->initLocal();
 
@@ -56,8 +53,7 @@ sub crossregister {
 
 }
 
-sub initLocal {
-    my ($self) = @_;
+sub initLocal($self) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $now = time;
@@ -73,8 +69,7 @@ sub initLocal {
 }
 
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

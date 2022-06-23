@@ -21,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::CommandHelper;
 use PageCamel::Helpers::Strings qw[windowsStringsQuote];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -31,22 +30,19 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     if(defined($self->{admin})) {
         $self->register_webpath($self->{admin}->{webpath}, "get_admin");
     }
     return;
 }
 
-sub get_admin {
-    my ($self, $ua) = @_;
+sub get_admin($self, $ua) {
 
     my $webpath = $ua->{url};
     my $dbh = $self->{server}->{modules}->{$self->{db}};

@@ -22,8 +22,7 @@ use PageCamel::Helpers::DBSerialize;
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -32,15 +31,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
     $self->register_defaultwebdata("get_defaultwebdata");
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -90,8 +87,7 @@ sub get {
             data    => $template);
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     if(!defined($webdata->{userData}) ||
               !defined($webdata->{userData}->{user}) ||

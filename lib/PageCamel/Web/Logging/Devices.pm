@@ -21,8 +21,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -31,15 +30,13 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{list}->{webpath}, "get_list");
     $self->register_webpath($self->{edit}->{webpath}, "get_edit");
@@ -47,8 +44,7 @@ sub register {
     return;
 }
 
-sub get_list {
-    my ($self, $ua) = @_;
+sub get_list($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -80,8 +76,7 @@ sub get_list {
             data    => $template);
 }
 
-sub get_edit {
-    my ($self, $ua) = @_;
+sub get_edit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

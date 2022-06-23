@@ -20,8 +20,7 @@ use base qw(Exporter);
 our @EXPORT = qw(getTestText getTestImage1 getTestImage2); ## no critic (Modules::ProhibitAutomaticExportation)
 use MIME::Base64;
 
-sub getTestLines {
-    my ($self) = @_;
+sub getTestLines($self) {
     
     my $raw = decode_base64('
         PT09PT09PT09PT09PT09PT09PT09CkZpbmFsIHByb2plY3QgcmVwb3J0Ogo9PT09PT09PT09PT09
@@ -58,8 +57,7 @@ sub getTestLines {
     return @lines;
 }
 
-sub getTestImage1 {
-    my ($self) = @_;
+sub getTestImage1($self) {
     
     return decode_base64('
         iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAAAAADRE4smAAABI2lDQ1BJQ0MgcHJvZmlsZQAAKJGd
@@ -636,8 +634,7 @@ sub getTestImage1 {
     ');
 }
 
-sub getTestImage2 {
-    my ($self) = @_;
+sub getTestImage2($self) {
     
     return decode_base64('
         iVBORw0KGgoAAAANSUhEUgAAAgAAAAJ/CAIAAACBbvy5AAABhmlDQ1BJQ0MgcHJvZmlsZQAAKJF9

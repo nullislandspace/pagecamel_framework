@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -33,8 +32,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_logstart("logstart");
     $self->register_logend("logend");
@@ -43,8 +41,7 @@ sub register {
     return;
 }
 
-sub logstart {
-    my ($self, $ua) = @_;
+sub logstart($self, $ua) {
 
     my $webpath = $ua->{url} || '--unknown--';
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -126,8 +123,7 @@ sub logstart {
     return;
 }
 
-sub logend {
-    my ($self, $ua, $header, $result) = @_;
+sub logend($self, $ua, $header, $result) {
 
     return if(!defined($self->{requestdata}));
 
@@ -212,8 +208,7 @@ sub logend {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     $webdata->{__do_not_log_to_accesslog} = 0;
     return;

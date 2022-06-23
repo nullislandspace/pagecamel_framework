@@ -40,8 +40,7 @@ exit(0);
 
 
 
-sub find_files {
-    my ($workDir) = @_;
+sub find_files($workDir) {
 
     my @files;
     opendir(my $dfh, $workDir) or die($ERRNO);

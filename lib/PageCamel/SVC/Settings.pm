@@ -21,8 +21,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Helpers::SystemSettings);
 use PageCamel::Helpers::ClacksCache;
 
-sub new {
-    my ($proto, $dbh, $clacks) = @_;
+sub new($proto, $dbh, $clacks) {
     my $class = ref($proto) || $proto;
     
     my %tmp;

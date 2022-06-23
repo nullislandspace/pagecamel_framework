@@ -25,8 +25,7 @@ use base qw(PageCamel::Worker::Logging::PluginBase);
 # a dummy work() function to handle multiple "device" types #
 # -----------------------------------------------------------
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,8 +34,7 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
     
     foreach my $item (@{$self->{item}}) {
         $self->register_plugin('work', $item->{device}, $item->{subtype});
@@ -45,8 +43,7 @@ sub crossregister {
     return;
 }
 
-sub work {
-    my ($self, $device, $dbh, $reph, $memh) = @_;
+sub work($self, $device, $dbh, $reph, $memh) {
 
     my $workCount = 0;
 

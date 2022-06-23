@@ -28,8 +28,7 @@ use PageCamel::Helpers::DBSerialize;
 use Email::Simple;
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -38,22 +37,18 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     return;
 }
 
 
 
-sub sendMail {
-    my ($self, $recievers, $subject, $message, $contenttype, $extip) = @_;
-
+sub sendMail($self, $recievers, $subject, $message, $contenttype, $extip = '0.0.0.0') {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if(!defined($extip)) {

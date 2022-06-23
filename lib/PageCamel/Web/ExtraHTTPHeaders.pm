@@ -21,8 +21,7 @@ use base qw(PageCamel::Web::BaseModule);
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -31,14 +30,12 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_postfilter("postfilter");
     return;
 }
 
-sub postfilter {
-    my ($self, $ua, $header, $result) = @_;
+sub postfilter($self, $ua, $header, $result) {
 
     foreach my $name (keys %{$self->{headers}->{item}}) {
         my $realname = $name;

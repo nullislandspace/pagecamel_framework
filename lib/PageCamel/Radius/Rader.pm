@@ -22,8 +22,7 @@ use RADIUS::Dictionary;
 use RADIUS::Packet;
 use PageCamel::Radius::OATHusers;
 
-sub setConfig {
-    my ($self, $secret, $database) = @_;
+sub setConfig($self, $secret, $database) {
 
     $self->{secret} = $secret;
     $self->{database} = $database;
@@ -31,8 +30,7 @@ sub setConfig {
     return;
 }
 
-sub process_request {
-    my $self = shift;
+sub process_request($self) {
     my $prop = $self->{'server'};
 
     # This is a VERY simple RADIUS authentication server which responds

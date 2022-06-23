@@ -19,8 +19,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -29,15 +28,13 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
 
     return;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     if($self->{public}) {
         $self->register_public_url($self->{webpath});
@@ -46,8 +43,7 @@ sub crossregister {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

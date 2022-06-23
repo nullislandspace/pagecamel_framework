@@ -21,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::FileSlurp qw[slurpBinFile];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -31,14 +30,12 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get", qw[GET HEAD]);
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
 
