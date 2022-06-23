@@ -40,9 +40,11 @@ our @ISA; ## no critic (ClassHierarchies::ProhibitExplicitISA)
 sub setThreadingMode {
     my($isDebugging) = @_;
 
-    if(0 && $isDebugging) {
+    if($isDebugging) {
+        print "************ SINGLE THREAD MODE ********\n";
         push @ISA, 'Net::Server::Single'; ## no critic (ClassHierarchies::ProhibitExplicitISA)
     } else {
+        print "************ MULTI THREAD MODE ********\n";
         push @ISA, 'Net::Server::PreFork'; ## no critic (ClassHierarchies::ProhibitExplicitISA)
     }
 
@@ -405,151 +407,10 @@ sub process_request {
 sub handleUDP {
     my ($self, $peerhost) = @_;
 
-    my $prop = $self->{'server'};
+    eval {  ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        my $prop = $self->{'server'};
 
-    my $indata = $prop->{udp_data};
-    my $inpacket = Net::DNS::Packet->new(\$indata, 0);
-    my ($question) = $inpacket->question;
-
-    # Count request
-    $self->countRequest();
-
-    if($self->ignorerequest($question->qname)) {
-        return;
-    }
-
-    # mark the answer as authoritive (by setting the 'aa' flag
-    my $extra = { aa => $self->{config}->{authoritive} };
-
-    my $reply = $inpacket->reply();
-    my $header = $reply->header;
-
-    my $opcode  = $inpacket->header->opcode;
-	my $qdcount = $inpacket->header->qdcount;
-
-    my ($validreply, $rcode, $ans, $auth, $add, $remotelookup);
-
-    if(!$qdcount) {
-        $header->rcode("NOERROR");
-    } elsif($qdcount > 1) {
-        # Multiple questions(?) currently unsupported
-        $header->rcode("FORMERR");
-    } else {
-        my ($qname, $qtype, $qclass);
-        my $ok = 0;
-        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-            $qname = lc $question->qname;
-            $qtype = uc $question->qtype;
-            $qclass = $question->qclass;
-            $ok = 1;
-        };
-
-        if(!$ok) {
-            # Request error
-            $rcode = 'FORMERR';
-        } elsif($opcode eq 'QUERY') {
-            ($validreply, $rcode, $ans, $auth, $add, $remotelookup) = $self->compile_reply($qname, $qclass, $qtype, $peerhost, 'UDP');
-            if(!defined($validreply) || !$validreply) {
-                # Client blocked or something else went wrong. Close the connection without answer
-                return;
-            }
-        } elsif($opcode eq 'NOTIFY') {
-            # Not implemented
-            $rcode = 'NOTIMP';
-        } else {
-            # Unsupported opcode
-            $rcode = 'FORMERR';
-        }
-
-        $header->rcode($rcode);
-        $reply->{answer} = [@{$ans}] if $ans;
-        $reply->{authority} = [@{$auth}] if $auth;
-        $reply->{additional} = [@{$add}] if $add;
-
-    }
-
-    # "Recursion available"
-    $header->ra($self->{config}->{remotelookup});
-
-    # Only "authoritive" if it's from our own database
-    $header->aa(1) if($self->{config}->{authoritive} && !$remotelookup);
-
-    my $max_len = $inpacket->edns->size;
-    if(!defined($max_len)) {
-        $max_len = 512;
-        $self->debuglog("Undefined max UDP length, setting to $max_len just in case");
-    }
-    my $outdata = $reply->data();
-    if(length($outdata) > $max_len) {
-        $self->debuglog("Truncating UDP response to allowed limit $max_len from " . length($outdata));
-        $outdata = $reply->data($max_len);
-    }
-
-    #$self->debuglog("Max len: $max_len, packet len: ", length($outdata));
-
-    $prop->{client}->send($outdata);
-
-    return;
-}
-
-sub handleTCP {
-    my ($self, $peerhost, $realsocket) = @_;
-
-
-    binmode($realsocket);
-    $realsocket->blocking(0);
-
-    while(1) {
-        my $idletimeout = time + $self->{config}->{tcpidletimeout};
-        my $lenprefix = '';
-        while(length($lenprefix) < 2) {
-            if(time > $idletimeout) {
-                $self->debuglog("TCP Idle timeout during length header read.");
-                return;
-            }
-
-            my $buffer;
-            my $status = sysread($realsocket, $buffer, 2 - length($lenprefix));
-            if(!$realsocket->connected || !$realsocket->opened || $realsocket->error || ($ERRNO ne '' && !$ERRNO{EWOULDBLOCK})) {
-                $self->debuglog("TCP connection closed by client during header read.");
-                return;
-            }
-
-            if(!defined($buffer) || !length($buffer)) {
-                sleep(0.01);
-                next;
-            }
-            $lenprefix .= $buffer;
-        }
-
-        my $packetlength = unpack('n', $lenprefix);
-        $self->debuglog("Incoming packet length: $packetlength");
-        if($packetlength < 2 || $packetlength > 30_000) {
-            $self->debuglog("Packet size out of bounds 2 < size > 30000");
-            return;
-        }
-
-        my $indata = '';
-        while(length($indata) < $packetlength) {
-            if(time > $idletimeout) {
-                $self->debuglog("TCP Idle timeout during packet read.");
-                return;
-            }
-
-            my $buffer;
-            my $status = sysread($realsocket, $buffer, $packetlength - length($indata));
-            if(!$realsocket->connected || !$realsocket->opened || $realsocket->error || ($ERRNO ne '' && !$ERRNO{EWOULDBLOCK})) {
-                $self->debuglog("TCP connection closed by client during packet read.");
-                return;
-            }
-            if(!defined($buffer) || !length($buffer)) {
-                sleep(0.01);
-                next;
-            }
-            $indata .= $buffer;
-        }
-
-
+        my $indata = $prop->{udp_data};
         my $inpacket = Net::DNS::Packet->new(\$indata, 0);
         my ($question) = $inpacket->question;
 
@@ -590,7 +451,7 @@ sub handleTCP {
                 # Request error
                 $rcode = 'FORMERR';
             } elsif($opcode eq 'QUERY') {
-                ($validreply, $rcode, $ans, $auth, $add, $remotelookup) = $self->compile_reply($qname, $qclass, $qtype, $peerhost, 'TCP');
+                ($validreply, $rcode, $ans, $auth, $add, $remotelookup) = $self->compile_reply($qname, $qclass, $qtype, $peerhost, 'UDP');
                 if(!defined($validreply) || !$validreply) {
                     # Client blocked or something else went wrong. Close the connection without answer
                     return;
@@ -602,9 +463,8 @@ sub handleTCP {
                 # Unsupported opcode
                 $rcode = 'FORMERR';
             }
+
             $header->rcode($rcode);
-
-
             $reply->{answer} = [@{$ans}] if $ans;
             $reply->{authority} = [@{$auth}] if $auth;
             $reply->{additional} = [@{$add}] if $add;
@@ -617,18 +477,166 @@ sub handleTCP {
         # Only "authoritive" if it's from our own database
         $header->aa(1) if($self->{config}->{authoritive} && !$remotelookup);
 
+        my $max_len = $inpacket->edns->size;
+        if(!defined($max_len)) {
+            $max_len = 512;
+            $self->debuglog("Undefined max UDP length, setting to $max_len just in case");
+        }
         my $outdata = $reply->data();
-        my $outlenheader = pack('n', length($outdata));
-
-        if(!webPrint($realsocket, $outlenheader, $outdata)) {
-            if($self->{isVerbose}) {
-                print STDERR "webPrint failed, closing connection!\n";
-            }
-            return;
+        if(length($outdata) > $max_len) {
+            $self->debuglog("Truncating UDP response to allowed limit $max_len from " . length($outdata));
+            $outdata = $reply->data($max_len);
         }
 
-        # Loop/keep-alive
-    }
+        #$self->debuglog("Max len: $max_len, packet len: ", length($outdata));
+
+        $prop->{client}->send($outdata);
+    };
+
+    return;
+}
+
+sub handleTCP {
+    my ($self, $peerhost, $realsocket) = @_;
+
+
+    binmode($realsocket);
+    $realsocket->blocking(0);
+
+    my $idletimeout = time + $self->{config}->{tcpidletimeout};
+    eval {  ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        while(1) {
+            my $lenprefix = '';
+            while(length($lenprefix) < 2) {
+                if(time > $idletimeout) {
+                    $self->debuglog("TCP Idle timeout during length header read.");
+                    return;
+                }
+
+                my $buffer;
+                my $status = sysread($realsocket, $buffer, 2 - length($lenprefix));
+                if(!$realsocket->connected || !$realsocket->opened || $realsocket->error || ($ERRNO ne '' && !$ERRNO{EWOULDBLOCK})) {
+                    $self->debuglog("TCP connection closed by client during header read.");
+                    return;
+                }
+
+                if(!defined($buffer) || !length($buffer)) {
+                    sleep(0.01);
+                    next;
+                }
+                $lenprefix .= $buffer;
+            }
+
+            my $packetlength = unpack('n', $lenprefix);
+            $self->debuglog("Incoming packet length: $packetlength");
+            if($packetlength < 2 || $packetlength > 30_000) {
+                $self->debuglog("Packet size out of bounds 2 < size > 30000");
+                return;
+            }
+
+            my $indata = '';
+            while(length($indata) < $packetlength) {
+                if(time > $idletimeout) {
+                    $self->debuglog("TCP Idle timeout during packet read.");
+                    return;
+                }
+
+                my $buffer;
+                my $status = sysread($realsocket, $buffer, $packetlength - length($indata));
+                if(!$realsocket->connected || !$realsocket->opened || $realsocket->error || ($ERRNO ne '' && !$ERRNO{EWOULDBLOCK})) {
+                    $self->debuglog("TCP connection closed by client during packet read.");
+                    return;
+                }
+                if(!defined($buffer) || !length($buffer)) {
+                    sleep(0.01);
+                    next;
+                }
+                $indata .= $buffer;
+            }
+
+
+            my $inpacket = Net::DNS::Packet->new(\$indata, 0);
+            my ($question) = $inpacket->question;
+
+            # Count request
+            $self->countRequest();
+
+            if($self->ignorerequest($question->qname)) {
+                return;
+            }
+
+            # mark the answer as authoritive (by setting the 'aa' flag
+            my $extra = { aa => $self->{config}->{authoritive} };
+
+            my $reply = $inpacket->reply();
+            my $header = $reply->header;
+
+            my $opcode  = $inpacket->header->opcode;
+            my $qdcount = $inpacket->header->qdcount;
+
+            my ($validreply, $rcode, $ans, $auth, $add, $remotelookup);
+
+            if(!$qdcount) {
+                $header->rcode("NOERROR");
+            } elsif($qdcount > 1) {
+                # Multiple questions(?) currently unsupported
+                $header->rcode("FORMERR");
+            } else {
+                my ($qname, $qtype, $qclass);
+                my $ok = 0;
+                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                    $qname = lc $question->qname;
+                    $qtype = uc $question->qtype;
+                    $qclass = $question->qclass;
+                    $ok = 1;
+                };
+
+                if(!$ok) {
+                    # Request error
+                    $rcode = 'FORMERR';
+                } elsif($opcode eq 'QUERY') {
+                    ($validreply, $rcode, $ans, $auth, $add, $remotelookup) = $self->compile_reply($qname, $qclass, $qtype, $peerhost, 'TCP');
+                    if(!defined($validreply) || !$validreply) {
+                        # Client blocked or something else went wrong. Close the connection without answer
+                        return;
+                    }
+                } elsif($opcode eq 'NOTIFY') {
+                    # Not implemented
+                    $rcode = 'NOTIMP';
+                } else {
+                    # Unsupported opcode
+                    $rcode = 'FORMERR';
+                }
+                $header->rcode($rcode);
+
+
+                $reply->{answer} = [@{$ans}] if $ans;
+                $reply->{authority} = [@{$auth}] if $auth;
+                $reply->{additional} = [@{$add}] if $add;
+
+            }
+
+            # "Recursion available"
+            $header->ra($self->{config}->{remotelookup});
+
+            # Only "authoritive" if it's from our own database
+            $header->aa(1) if($self->{config}->{authoritive} && !$remotelookup);
+
+            my $outdata = $reply->data();
+            my $outlenheader = pack('n', length($outdata));
+
+            if(!webPrint($realsocket, $outlenheader, $outdata)) {
+                if($self->{isVerbose}) {
+                    print STDERR "webPrint failed, closing connection!\n";
+                }
+                return;
+            }
+
+            # Loop/keep-alive
+            # Reset Idle timeout
+            $idletimeout = time + $self->{config}->{tcpidletimeout};
+        }
+    };
     return;
 }
 

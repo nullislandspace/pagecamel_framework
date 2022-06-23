@@ -31,6 +31,8 @@ sub new {
     $self->{isVerbose} = $isVerbose;
     $self->{configfile} = $configfile;
 
+    print "**** DEBUGGING MODE ****\n" if($self->{isDebugging});
+
     return $self;
 }
 
@@ -91,7 +93,8 @@ sub init {
     }
 
     my $hname = hostname;
-    PageCamel::DNS::setThreadingMode($self->{isDebugging});
+    #PageCamel::DNS::setThreadingMode($self->{isDebugging});
+    PageCamel::DNS::setThreadingMode(0);
     my $nameserver = PageCamel::DNS->new();
     $nameserver->doConfig($self->{isDebugging}, $self->{isVerbose}, $config->{$hname}, $config);
 
