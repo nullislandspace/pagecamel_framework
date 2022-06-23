@@ -1,8 +1,7 @@
 #!/usr/bin/env perl
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # PAGECAMEL  (C) 2008-2020 Rene Schickbauer
@@ -40,7 +39,7 @@ foreach my $file (@files) {
         if($line =~ /^use\ +(.+)\;/) {
             my $pragma = $1;
             my $skip = 0;
-            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF)/ && $pragma !~ /Digest/) {
+            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF|builtin)/ && $pragma !~ /Digest/) {
                 # Remove this (old) lines
                 $skip = 1;
             }
@@ -70,6 +69,10 @@ foreach my $file (@files) {
         if($line =~ /^use\ feature\ \'signatures\'/ || $line =~ /^no\ warnings\ .*experimental\:\:signatures/) {
             next;
         }
+        # Handle the new "builtin" stuff
+        if($line =~ /^no\ warnings\ .*experimental\:\:builtin/) {
+            next;
+        }
 
         if($line =~ /^\#\-\-\-AUTOPRAGMA/) {
            next;
@@ -83,9 +86,8 @@ foreach my $file (@files) {
         }
         if($line =~ /^package\ / || $line =~ /^\#\!/) {
             print $ofh "#---AUTOPRAGMASTART---\n";
-            print $ofh "use 5.032;\n";
+            print $ofh "use v5.36;\n";
             print $ofh "use strict;\n";
-            print $ofh "use warnings;\n";
             print $ofh "use diagnostics;\n";
             print $ofh "use mro 'c3';\n";
             print $ofh "use English;\n";
@@ -95,11 +97,11 @@ foreach my $file (@files) {
             print $ofh "use Array::Contains;\n";
             print $ofh "use utf8;\n";
             print $ofh "use Data::Dumper;\n";
+            print $ofh "use builtin qw[true false is_bool];\n";
+            print $ofh "no warnings qw(experimental::builtin);\n";
             if($file !~ /Helpers\/UTF\.pm$/) {
                 print $ofh "use PageCamel::Helpers::UTF;\n";
             }
-            print $ofh "use feature 'signatures';\n";
-            print $ofh "no warnings qw(experimental::signatures);\n";
             print $ofh "#---AUTOPRAGMAEND---\n";
             $inserted = 1;
         }
