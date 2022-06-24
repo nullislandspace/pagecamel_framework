@@ -2,8 +2,9 @@
 # Developed under Artistic license
 package PageCamel::CMDLine::LetsEncrypt;
 #---AUTOPRAGMASTART---
-use v5.36;
+use 5.032;
 use strict;
+use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -13,9 +14,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
+use feature 'signatures';
+no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 use IO::File;
 use JSON::MaybeXS;
@@ -36,7 +37,8 @@ use Sys::Hostname;
 
 my $_self;
 
-sub new($proto, $configfile, $isDebugging, $isVerbose) {
+sub new {
+    my ($proto, $configfile, $isDebugging, $isVerbose) = @_;
     my $class = ref($proto) || $proto;
 
     print "Loading config file ", $configfile, "\n";
@@ -84,7 +86,8 @@ sub new($proto, $configfile, $isDebugging, $isVerbose) {
 
 my $needrestart;
 
-sub run($self) {
+sub run {
+    my ($self) = @_;
 
     chdir($self->{homedir});
     my $lastrun = '';
@@ -147,7 +150,8 @@ sub run($self) {
     return;
 }
 
-sub debuglog($self, @args) {
+sub debuglog {
+    my ($self, @args) = @_;
 
     #return unless($self->{isDebugging});
 
@@ -155,7 +159,8 @@ sub debuglog($self, @args) {
     print STDERR $printarg, "\n";
     return;
 }
-sub work($self, $opt) {
+sub work {
+    my ($self, $opt) = @_;
     my $rv = $self->parse_options($opt);
     return $rv if $rv;
     # Set the default protocol version to 2 unless it is set explicitly or custom server/directory is set (in which case auto-sense is used).
@@ -401,7 +406,8 @@ sub work($self, $opt) {
     return { code => $opt->{'issue-code'}||0 };
 }
 
-sub parse_options($self, $opt) {
+sub parse_options {
+    my ($self, $opt) = @_;
     my $args = @ARGV;
 
     #GetOptions ($opt, 'key=s', 'csr=s', 'csr-key=s', 'domains=s', 'path=s', 'crt=s', 'email=s', 'curve=s', 'server=s', 'directory=s', 'api=i', 'config=s', 'renew=i', 'renew-check=s','issue-code=i',
@@ -545,7 +551,8 @@ sub encode_args {
     return $@;
 }
 
-sub parse_config($self, $opt) {
+sub parse_config {
+    my ($self, $opt) = @_;
     unless ($opt) {
         return sub {
             return { code => 1, msg => shift }
@@ -595,7 +602,8 @@ sub parse_config($self, $opt) {
     }
 }
 
-sub _register($self, $le, $opt) {
+sub _register {
+    my ($self, $le, $opt) = @_;
     return $self->_error("Could not load the resource directory: " . $le->error_details, 'RESOURCE_DIRECTORY_LOAD') if $le->directory;
     $self->debuglog("Registering the account key");
     return $self->_error($le->error_details, 'REGISTRATION') if $le->register;
@@ -609,7 +617,8 @@ sub _register($self, $le, $opt) {
     return 0;
 }
 
-sub _puny($domain) {
+sub _puny {
+    my $domain = shift;
     my @rv = ();
     for (split /\./, $domain) {
         my $enc = encode_punycode($_);
@@ -618,7 +627,8 @@ sub _puny($domain) {
     return join '.', @rv;
 }
 
-sub _path_mismatch($le, $opt) {
+sub _path_mismatch {
+    my ($le, $opt) = @_;
     if ($opt->{'path'} and my $domains = $le->domains) {
         my @paths = grep {$_} split /\s*,\s*/, $opt->{'path'};
         if (@paths > 1) {
@@ -631,7 +641,8 @@ sub _path_mismatch($le, $opt) {
     return 0;
 }
 
-sub _load_mod($self, $opt, $type, $handler) {
+sub _load_mod {
+    my ($self, $opt, $type, $handler) = @_;
     return unless ($opt and $opt->{$type});
     eval {
         my $mod = $opt->{$type};
@@ -649,7 +660,8 @@ sub _load_mod($self, $opt, $type, $handler) {
     return undef;
 }
 
-sub _load_params($self, $opt, $type) {
+sub _load_params {
+    my ($self, $opt, $type) = @_;
     return unless ($opt and $opt->{$type});
     if ($opt->{$type}!~/[\{\[\}\]]/) {
         $opt->{$type} = $self->_read($opt->{$type});
@@ -663,7 +675,8 @@ sub _load_params($self, $opt, $type) {
         $self->_error("Could not decode '$type'. Please make sure you are providing a valid JSON document and {} are in place." . ($opt->{'debug'} ? $@ : ''), 'JSON_DECODE') : 0;
 }
 
-sub _read($self, $file) {
+sub _read {
+    my ($self, $file) = @_;
     return unless (-e $file and -r _);
     my $fh = IO::File->new();
     $fh->open($file, '<:encoding(UTF-8)') or return;
@@ -673,7 +686,8 @@ sub _read($self, $file) {
     return $src;
 }
 
-sub _write($self, $file, $content) {
+sub _write {
+    my ($self, $file, $content) = @_;
     return 1 unless ($file and $content);
     my $fh = IO::File->new($file, 'w');
     return 1 unless defined $fh;
@@ -683,11 +697,13 @@ sub _write($self, $file, $content) {
     return 0;
 }
 
-sub _error($self, $msg, $code) {
+sub _error {
+    my ($self, $msg, $code) = @_;
     return { msg => $msg, code => $code||255 };
 }
 
-sub process_challenge_dns($challenge, $params) {
+sub process_challenge_dns {
+    my ($challenge, $params) = @_; # $self gets passed as parameter in callback
     my $self = $_self;
     my $value = encode_base64url(sha256("$challenge->{token}.$challenge->{fingerprint}"));
     my $tld = $challenge->{domain};
@@ -722,7 +738,8 @@ sub process_challenge_dns($challenge, $params) {
     return 1;
 }
 
-sub process_verification_dns($results, $params) {
+sub process_verification_dns {
+    my ($results, $params) = @_; # $self gets passed as parameter in callback
     my $self = $_self;
     $self->debuglog("Processing the 'dns' verification for '$results->{domain}'");
     if ($results->{valid}) {
@@ -756,7 +773,8 @@ sub process_verification_dns($results, $params) {
     return 1;
 }
 
-sub remoteCall($self, $command, @options) {
+sub remoteCall {
+    my ($self, $command, @options) = @_;
     my $error = 0;
 
     my $xmlrpc = XML::RPC->new($self->{remotedns}->{url}, ("User-Agent" => "PageCamel LetsEncrypt/$VERSION"));

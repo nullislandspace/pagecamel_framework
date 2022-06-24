@@ -191,14 +191,14 @@ sub printAddBigTextLine($self, $line) {
     return;
 }
 
-sub printAddSingleLine($self, $line) {
+sub printAddSingleLine($self) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
                                       $self->{imgblack});
     $self->{imgoffs} += 24;
 }
 
-sub printAddDoubleLine($self, $line) {
+sub printAddDoubleLine($self) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
                                       $self->{imgblack});

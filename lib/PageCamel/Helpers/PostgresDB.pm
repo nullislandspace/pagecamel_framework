@@ -222,14 +222,14 @@ BEGIN {
     {
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
 
-        *{__PACKAGE__ . "::pg_lo_creat"} = sub ($arg1) {
+        *{__PACKAGE__ . "::pg_lo_creat"} = sub ($arg1, $BLOBMODE) {
             $arg1->checkDBH();
             return $arg1->{mdbh}->pg_lo_creat($BLOBMODE);
         };
 
-        *{__PACKAGE__ . "::pg_lo_open"} = sub ($arg1) {
+        *{__PACKAGE__ . "::pg_lo_open"} = sub ($arg1, $BLOBID, $BLOBMODE) {
             $arg1->checkDBH();
-            return $arg1->{mdbh}->pg_lo_open($arg1, $BLOBMODE);
+            return $arg1->{mdbh}->pg_lo_open($BLOBID, $BLOBMODE);
         };
 
     }
