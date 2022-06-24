@@ -118,7 +118,7 @@ sub wshandlemessage($self, $message) {
     return 1;
 }
 
-sub wscyclic($self) {
+sub wscyclic($self, $ua) {
 
     my $now = time;
     if($now > $self->{nextping}) {

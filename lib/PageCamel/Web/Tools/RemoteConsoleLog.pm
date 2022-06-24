@@ -94,7 +94,7 @@ sub wscleanup($self) {
     return;
 }
 
-sub wscyclic($self) {
+sub wscyclic($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

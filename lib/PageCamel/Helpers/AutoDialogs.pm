@@ -34,7 +34,7 @@ sub new($class) {
     return $self;
 }
 
-sub addDialog($self, $config, $fname) {
+sub addDialog($self, $config) {
 
     if($config->{type} eq 'notification') {
         return $self->notification($config);
@@ -43,7 +43,7 @@ sub addDialog($self, $config, $fname) {
     } elsif($config->{type} eq 'modechangeform') {
         return $self->modechangeform($config);
     } else {
-        croak("Unknown AutoDialog type " . $config->{type} . "in $fname");
+        croak("Unknown AutoDialog type " . $config->{type});
     }
 }
 
@@ -322,7 +322,7 @@ ENDMCJQUERY
     return '';
 }
 
-sub getHTML($self, $context) {
+sub getHTML($self) {
 
     if(!$self->{count}) {
         return "";
@@ -339,7 +339,7 @@ sub getHTML($self, $context) {
     return $translate . "\n" . $self->{forms}->{markup} . "\n";
 }
 
-sub getJS($self, $context) {
+sub getJS($self) {
 
     if(!$self->{count}) {
         return "";

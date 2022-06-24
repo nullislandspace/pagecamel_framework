@@ -112,7 +112,7 @@ sub wscleanup($self) {
     return;
 }
 
-sub wscyclic($self) {
+sub wscyclic($self, $ua) {
     
     $self->{audio}->{vserv}->doNetwork();
     my %outmsg;

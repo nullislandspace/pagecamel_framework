@@ -915,7 +915,7 @@ sub adminSwitchFromUser($self, $ua) {
 }
 
 
-sub preauthcleanup($self) {
+sub preauthcleanup($self, $ua) {
 
     delete $self->{cookie};
     delete $self->{currentData};

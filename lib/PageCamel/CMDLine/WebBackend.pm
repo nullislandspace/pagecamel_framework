@@ -99,7 +99,7 @@ sub init($self) {
     
     my $webserver = PageCamel::WebBase->new($config);
     
-    $webserver->startconfig($config->{server}, $self->{isDebugging}, $ps_appname);
+    $webserver->startconfig();
     
     my @modlist = @{$config->{module}};
     foreach my $module (@modlist) {

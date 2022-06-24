@@ -270,7 +270,7 @@ my %expiresmultiplier = (
     'Y' => 60*60*24*365,
 );
 
-sub getWebdate($num, $reloffset) {
+sub getWebdate($num = undef, $reloffset = undef) {
     if(!defined($num)) {
         $num = time;
     }

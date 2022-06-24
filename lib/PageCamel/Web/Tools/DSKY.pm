@@ -102,7 +102,7 @@ sub wscleanup($self) {
     return;
 }
 
-sub wscyclic($self) {
+sub wscyclic($self, $ua) {
 
     my $now = time;
     if($now > $self->{nextping}) {

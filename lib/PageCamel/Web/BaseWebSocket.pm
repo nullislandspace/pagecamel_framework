@@ -449,7 +449,7 @@ sub sockethandler($self, $ua) {
     }
 
     $self->wsdisconnect($ua, \%settings);
-    $self->wscleanup($ua, \%settings);
+    $self->wscleanup();
 
     delete $self->{sessiondata};
 

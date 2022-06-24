@@ -359,7 +359,7 @@ sub allow_deny_hook($self, $peerhost) {
     return 1;
 };
 
-sub post_process_request_hook($self, $server) {
+sub post_process_request_hook($self) {
 
     #print STDERR "Closing connection to ", $self->{last_accepted_client}, "\n";
     $self->{last_accepted_client} = '0.0.0.0';
