@@ -23,6 +23,7 @@ use PageCamel::Helpers::DataBlobs;
 
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile writeBinFile);
 use File::Temp;
+use PDF::Report;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -89,22 +90,47 @@ sub get_blob($self, $ua) {
         my $dirname = $dir->dirname;
 
         my $sourcefname = $dirname . '/source.' . $self->{convert}->{source};
+        $sourcefname = '/home/cavac/temp/bla.png';
         my $destinationfname = $dirname . '/dest.' . $self->{convert}->{destination};
-
-        my $cmd = '' . $self->{convert}->{command};
-        $cmd =~ s/SOURCE/$sourcefname/g;
-        $cmd =~ s/DESTINATION/$destinationfname/g;
 
         print STDERR "Writing datablob to tempfile $sourcefname\n";
         writeBinFile($sourcefname, $blobdata);
 
-        print STDERR "Running command $cmd\n";
-        my @state = `$cmd`;
+        if($self->{convert}->{command} eq 'INTERNALPDF') {
+            print STDERR "Using internal PDF converter\n";
 
-        print STDERR "Command returned: ", join("\n", @state), "\n";
+            my $scalefactor = 80/210; # Resize so that document is still aproximately the same size as original (80mm = invoice paper width, 210 = A4 width)
+            my $image = GD::Image->newFromPngData($blobdata);
+            my ($w, $h) = $image->getBounds();
 
-        print STDERR "Slurping tempfile $destinationfname\n";
-        $blobdata = slurpBinFile($destinationfname);
+            $h = int($h * $scalefactor) + 1;
+
+            my $pdf = PDF::Report->new(PageSize          => "A4",
+                                        PageOrientation => "Portrait",
+                                        );
+            $pdf->newpage(1);
+            my ($pagewidth, $pageheight) = $pdf->getPageDimensions();
+            print STDERR "Page width: $pagewidth\n";
+            my $z = $pageheight - 50;
+            $pdf->addImgScaled($sourcefname, 80, $z - $h, $scalefactor);
+
+            $blobdata = $pdf->Finish();
+        } else {
+            print STDERR "Using external command\n";
+            my $cmd = '' . $self->{convert}->{command};
+            $cmd =~ s/SOURCE/$sourcefname/g;
+            $cmd =~ s/DESTINATION/$destinationfname/g;
+
+
+            print STDERR "Running command $cmd\n";
+            my @state = `$cmd`;
+
+            print STDERR "Command returned: ", join("\n", @state), "\n";
+
+            print STDERR "Slurping tempfile $destinationfname\n";
+            $blobdata = slurpBinFile($destinationfname);
+        }
+
     }
 
 
