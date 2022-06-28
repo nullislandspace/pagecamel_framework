@@ -94,7 +94,6 @@ sub get_blob {
         my $dirname = $dir->dirname;
 
         my $sourcefname = $dirname . '/source.' . $self->{convert}->{source};
-        $sourcefname = '/home/cavac/temp/bla.png';
         my $destinationfname = $dirname . '/dest.' . $self->{convert}->{destination};
 
         print STDERR "Writing datablob to tempfile $sourcefname\n";
