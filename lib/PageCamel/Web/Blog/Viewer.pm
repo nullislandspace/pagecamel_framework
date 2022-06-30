@@ -1,8 +1,7 @@
 package PageCamel::Web::Blog::Viewer;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -22,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Strings qw[webSafeString elemNameQuote];
 use HTTP::BrowserDetect;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -52,14 +50,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     if(defined($self->{internal_webpath})) {
         $self->register_webpath($self->{internal_webpath}, "get");
     } else {
@@ -93,8 +89,7 @@ sub register {
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -119,8 +114,7 @@ sub crossregister {
     return;
 }
 
-sub hookrootpath {
-    my ($self, $ua) = @_;
+sub hookrootpath($self, $ua) {
 
     if($ua->{url} ne '/') {
         return;
@@ -160,8 +154,7 @@ sub hookrootpath {
 
 }
 
-sub shorturl {
-    my ($self, $ua) = @_;
+sub shorturl($self, $ua) {
 
     my $article_id;
 
@@ -179,8 +172,7 @@ sub shorturl {
 
 }
 
-sub get { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -564,8 +556,7 @@ sub get { ## no critic (Subroutines::ProhibitExcessComplexity)
             );
 }
 
-sub get_script {
-    my ($self, $ua, $id) = @_;
+sub get_script($self, $ua, $id) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -605,8 +596,7 @@ sub get_script {
 
 }
 
-sub get_blog_archive {
-    my ($self, $ua) = @_;
+sub get_blog_archive($self, $ua) {
 
     my $clientMode = $self->getClientMode($ua);
     if($clientMode ne 'mobile') {
@@ -663,8 +653,7 @@ sub get_blog_archive {
 
 }
 
-sub sitemap {
-    my ($self, $sitemap) = @_;
+sub sitemap($self, $sitemap) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -688,8 +677,7 @@ sub sitemap {
     return;
 }
 
-sub rssfeed {
-    my ($self, $ua) = @_;
+sub rssfeed($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -749,8 +737,7 @@ sub rssfeed {
     );
 }
 
-sub getClientMode {
-    my ($self, $ua) = @_;
+sub getClientMode($self, $ua) {
 
     if(!$self->{supportmobile}) {
         return '';

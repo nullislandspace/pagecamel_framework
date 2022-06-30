@@ -1,8 +1,7 @@
 package PageCamel::Helpers::JavaScriptDB;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Helpers::JavaScript);
@@ -25,7 +24,7 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
-    foreach my $key (qw[dbh table]) {
+    foreach my $key (qw[dbh reph table scriptname]) {
         if(!defined($self->{dbh})) {
             croak('PageCamel::Helpers::JavaScriptDB needs $key');
         }
@@ -35,74 +34,78 @@ sub new($proto, %config) {
     return $self;
 }
 
-sub init($self, $code) {
-    my $dbh = $self->{dbh};
-
-    my $insth = $dbh->prepare_cached("INSERT TO " . $self->{table} . " (javascript, memory) VALUES
-                                        (?, ?) RETURNING script_id")
-            or croak($dbh->errstr);
-
-    $self->loadCode($code);
-    $self->initMemory();
-
-    my $memory = $self->getMemory();
-
-    if(!$insth->execute($code, $memory)) {
-        return;
+sub init($self, $usercode, $systemcode) {
+    if($self->{loaded}) {
+        croak("init() called when script already loaded");
     }
-    my $idline = $insth->fetchrow_hashref;
+
+    my $insth = $self->{dbh}->prepare_cached("INSERT TO " . $self->{table} . " (scriptname, usercode, systemcode, memory) VALUES
+                                        (?, ?, ?, ?)")
+            or croak($self->{dbh}->errstr);
+
+    my $loadok = 0;
+    my $memory;
+    eval {
+        if($systemcode ne '') {
+            $self->loadCode($systemcode);
+        }
+        $self->loadCode($usercode);
+        $self->initMemory();
+
+        $memory = $self->getMemory();
+        $loadok = 1;
+    };
+
+    if(!$loadok) {
+        return 0;
+    }
+
+    if(!$insth->execute($self->{scriptname}, $usercode, $systemcode, $memory)) {
+        $self->{reph}->debuglog($self->{dbh}->errstr);
+        return 0;
+    }
     $insth->finish;
-    if(!defined($idline) || !defined($idline->{script_id})) {
-        return;
-    }
 
-    $self->{id} = $idline->{script_id};
+    $self->{loaded} = 1;
 
-    return $idline->{script_id};
+    return 1;
 }
 
 sub load($self) {
-    my $dbh = $self->{dbh};
-
-    if(!defined($self->{id})) {
-        croak("ID not defined for load()");
-    }
     if($self->{loaded}) {
         croak("load() called when script already loaded");
     }
 
-    my $selsth = $dbh->prepare_cached("SELECT javascript, memory FROM " . $self->{table} . "
-                                        WHERE script_id = ?")
-            or croak($dbh->errstr);
+    my $selsth = $self->{dbh}->prepare_cached("SELECT usercode, systemcode, memory FROM " . $self->{table} . "
+                                        WHERE scriptname = ?")
+            or croak($self->{dbh}->errstr);
 
-    if(!$selsth->execute($self->{id})) {
+    if(!$selsth->execute($self->{scriptname})) {
         return 0;
     }
     my $line = $selsth->fetchrow_hashref;
     $selsth->finish;
-    if(!defined($line) || !defined($line->{javascript}) || !defined($line->{memory})) {
+    if(!defined($line) || !defined($line->{usercode}) || !defined($line->{systemcode}) || !defined($line->{memory})) {
         return;
     }
 
-    $self->loadCode($line->{javascript});
+    if($line->{systemcode} ne '') {
+        $self->loadCode($line->{systemcode});
+    }
+    $self->loadCode($line->{usercode});
     $self->setMemory($line->{memory});
 
     return 1;
 }
 
 sub save($self) {
-    my $dbh = $self->{dbh};
-
-    if(!defined($self->{id})) {
-        croak("ID not defined for load()");
-    }
     if(!$self->{loaded}) {
         croak("save() called when script not loaded");
     }
 
-    my $upsth = $dbh->prepare_cached("UPDATE " . $self->{table} . " SET memory = ?
-                                        WHERE script_id = ?")
-            or croak($dbh->errstr);
+    my $upsth = $self->{dbh}->prepare_cached("UPDATE " . $self->{table} . " SET memory = ?
+                                        WHERE scriptname = ?")
+            or croak($self->{dbh}->errstr);
 
     my $memory = $self->getMemory();
 
@@ -116,15 +119,24 @@ sub save($self) {
 # WARNING: This is experimental, since we are loading new javascript functions with the same name over the existing ones
 # Default is NOT to call any memory initialization/memory update functions. You can either specifiy a function name or use INIT
 # to call the default memory init function
-sub update($self, $newcode, $memoryupdatefunction = '') {
-    my $dbh = $self->{dbh};
-
-    if(!defined($self->{id})) {
-        croak("ID not defined for update()");
+sub updateSystemCode($self, $newcode, $memoryupdatefunction = '') {
+    if(!$self->{loaded}) {
+        croak("updateSystemCode() called when script not loaded");
     }
+    return $self->_updateCode($newcode, 'systemcode', '');
+}
+
+sub updateUserCode($self, $newcode, $memoryupdatefunction = '') {
+    if(!$self->{loaded}) {
+        croak("updateUserCode() called when script not loaded");
+    }
+    return $self->_updateCode($newcode, 'usercode', $memoryupdatefunction);
+}
+
+sub _updateCode($self, $newcode, $column, $memoryupdatefunction) {
 
     if(!$self->{loaded}) {
-        croak("update() called when script not loaded");
+        croak("_updateCode() called when script not loaded");
     }
 
     if($memoryupdatefunction eq 'INIT') {
@@ -136,13 +148,13 @@ sub update($self, $newcode, $memoryupdatefunction = '') {
         $self->call($memoryupdatefunction);
     }
 
-    my $upsth = $dbh->prepare_cached("UPDATE " . $self->{table} . " SET javascript = ?, memory = ?
-                                        WHERE script_id = ?")
-            or croak($dbh->errstr);
+    my $upsth = $self->{dbh}->prepare_cached("UPDATE " . $self->{table} . " SET " . $column . " = ?, memory = ?
+                                        WHERE scriptname = ?")
+            or croak($self->{dbh}->errstr);
 
     my $memory = $self->getMemory();
 
-    if(!$upsth->execute($newcode, $memory, $self->{id})) {
+    if(!$upsth->execute($newcode, $memory, $self->{scriptname})) {
         return 0;
     }
 

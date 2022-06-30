@@ -1,8 +1,7 @@
 package PageCamel::WebBase;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 #=!=START-AUTO-INCLUDES
@@ -323,23 +322,20 @@ foreach my $header (@httpheaders) {
     $httpheadersmapping{lc $header} = $header;
 }
 
-sub new {
-    my ($class, $config) = @_;
+sub new($class, $config) {
     my $self = bless $config, $class;
         
     return $self;
 }
 
-sub processing_error_hook {
-    my ($self, @errors) = @_;
+sub processing_error_hook($self, @errors) {
     print STDERR "Unhandled exception: \n", join("\n", @errors);
     print STDERR "Suiciding (SIGINT)  / PID $PID\n";
     return 0;
 }
 
 
-sub allow_deny_hook {
-    my ($self, $peerhost) = @_;
+sub allow_deny_hook($self, $peerhost) {
 
     $self->{last_accepted_client} = '0.0.0.0';
 
@@ -363,8 +359,7 @@ sub allow_deny_hook {
     return 1;
 };
 
-sub post_process_request_hook {
-    my ($self, $server) = @_;
+sub post_process_request_hook($self) {
 
     #print STDERR "Closing connection to ", $self->{last_accepted_client}, "\n";
     $self->{last_accepted_client} = '0.0.0.0';
@@ -372,8 +367,7 @@ sub post_process_request_hook {
     return;
 }
 
-sub child_init_hook {
-    my ($self) = @_;
+sub child_init_hook($self) {
 
     if(0 && $self->{isDebugging}) {
         print STDERR "******************** CHILD START *********************\n";
@@ -386,8 +380,7 @@ sub child_init_hook {
     return;
 }
 
-sub child_finish_hook {
-    my ($self) = @_;
+sub child_finish_hook($self) {
 
     if(0 && $self->{isDebugging}) {
         print STDERR "******************** CHILD STOP *********************\n";
@@ -399,8 +392,7 @@ sub child_finish_hook {
     return;
 }
 
-sub readheader {
-    my ($self, $timeout, $socket) = @_;
+sub readheader($self, $timeout, $socket) {
 
     my $line;
     my $ok = 0;
@@ -447,8 +439,7 @@ sub readheader {
     return $line;
 }
 
-sub get_request_body {
-    my ($self, $socket, $ua, $timeout, $blocksize) = @_;
+sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
 
     # Note: Timeout is set per datablock
 
@@ -506,8 +497,7 @@ sub get_request_body {
     return 1;
 }
 
-sub parse_request_line {
-    my ($self, $ua, $header) = @_;
+sub parse_request_line($self, $ua, $header) {
 
     if($header =~ /^([A-Z]+)\ (\S+)\ HTTP\/(.*)$/) {
         ($ua->{method}, $ua->{url}, $ua->{httpversion}) = ($1, $2, $3);
@@ -545,8 +535,7 @@ sub parse_request_line {
     return 1;
 }
 
-sub parse_header_line {
-    my ($self, $ua, $header) = @_;
+sub parse_header_line($self, $ua, $header) {
 
     if($header =~ /^(\S+)\:\ (.+)$/) {
         my ($name, $value) = ($1, $2);
@@ -577,8 +566,7 @@ sub parse_header_line {
     return 1;
 }
 
-sub parse_post_data {
-    my ($self, $ua) = @_;
+sub parse_post_data($self, $ua) {
 
     my $ok = 1;
 
@@ -705,8 +693,7 @@ sub parse_post_data {
     return $ok;
 }
 
-sub process_request { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $realsocket, $frontendheader) = @_;
+sub process_request($self, $realsocket, $frontendheader) {
 
 #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
 #    my $alpnversion = 'http/1.1';
@@ -1608,8 +1595,7 @@ cleanup:
     return;
 }
 
-sub startconfig {
-    my ($self) = @_;
+sub startconfig($self) {
 
     # Pre-create empty lists and hashes
     foreach my $anonhash (qw[paths modules custom_methods protocolupgrade cors basic_auth]) {
@@ -1625,8 +1611,7 @@ sub startconfig {
     return;
 }
 
-sub endconfig {
-    my ($self) = @_;
+sub endconfig($self) {
 
     print "For great justice...\n"; # We REQUIRE an all-your-base reference here!!1!
     print "Cross registering modules...\n";
@@ -1742,8 +1727,7 @@ sub endconfig {
 
 }
 
-sub configure_module {
-    my ($self, $modname, $perlmodulename, %config) = @_;
+sub configure_module($self, $modname, $perlmodulename, %config) {
 
     # Let the module know its configured module name...
     $config{modname} = $modname;
@@ -1784,8 +1768,7 @@ sub configure_module {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     foreach my $modname (keys %{$self->{modules}}) {
         $self->{modules}->{$modname}->reload;   # Reload module's data
@@ -1793,8 +1776,7 @@ sub reload {
     return;
 }
 
-sub run_task {
-    my ($self) = @_;
+sub run_task($self) {
 
 
     # only run tasks if there was no connection (there might be a browser just loading more files)
@@ -1808,8 +1790,7 @@ sub run_task {
 }
 
 # Multi-Module calls: Called from one module to run multiple other module functions
-sub get_defaultwebdata {
-    my ($self) = @_;
+sub get_defaultwebdata($self) {
 
     my %webdata = ();
     foreach my $item (@{$self->{default_webdata}}) {
@@ -1827,8 +1808,7 @@ sub get_defaultwebdata {
     return %webdata;
 }
 
-sub get_sitemap {
-    my ($self) = @_;
+sub get_sitemap($self) {
 
     my @sitemap;
     foreach my $item (@{$self->{sitemap}}) {
@@ -1843,8 +1823,7 @@ sub get_sitemap {
 # This is used by the template engine to get last-minute data fields
 # just before rendering webdata with a template into a webpage
 # Takes a reference to webdata
-sub prerender {
-    my ($self, $webdata) = @_;
+sub prerender($self, $webdata) {
 
     foreach my $item (@{$self->{prerender}}) {
         my $module = $item->{Module};
@@ -1854,8 +1833,7 @@ sub prerender {
     return;
 }
 
-sub user_login {
-    my ($self, $username, $sessionid) = @_;
+sub user_login($self, $username, $sessionid) {
 
     foreach my $item (@{$self->{loginitems}}) {
         my $module = $item->{Module};
@@ -1865,8 +1843,7 @@ sub user_login {
     return;
 }
 
-sub user_logout {
-    my ($self, $sessionid) = @_;
+sub user_logout($self, $sessionid) {
 
     foreach my $item (@{$self->{logoutitems}}) {
         my $module = $item->{Module};
@@ -1876,8 +1853,7 @@ sub user_logout {
     return;
 }
 
-sub sessionrefresh {
-    my ($self, $sessionid) = @_;
+sub sessionrefresh($self, $sessionid) {
 
     foreach my $item (@{$self->{sessionrefresh}}) {
         my $module = $item->{Module};
@@ -1897,8 +1873,7 @@ sub sessionrefresh {
 # also specifies HEAD, PageCamel assumes that it shouldn't automagically handle this. Also,
 # PageCamel can only automagically assume HEAD if the function provides GET because of the required
 # idempotency of GET and HEAD.
-sub add_webpath {
-    my ($self, $path, $module, $funcname, @methods) = @_;
+sub add_webpath($self, $path, $module, $funcname, @methods) {
 
     if(!@methods) {
         @methods = qw[GET POST];
@@ -1918,8 +1893,7 @@ sub add_webpath {
     return;
 }
 
-sub add_overridewebpath {
-    my ($self, $path, $module, $funcname, @methods) = @_;
+sub add_overridewebpath($self, $path, $module, $funcname, @methods) {
 
     if(!@methods) {
         @methods = qw[GET POST];
@@ -1939,21 +1913,18 @@ sub add_overridewebpath {
     return;
 }
 
-sub get_webpaths {
-    my ($self) = @_;
+sub get_webpaths($self) {
 
     return $self->{webpaths};
 }
 
-sub get_overridewebpaths {
-    my ($self) = @_;
+sub get_overridewebpaths($self) {
 
     return $self->{overridewebpaths};
 }
 
 # Add a custom method handler
-sub add_custom_method {
-    my ($self, $method, $module, $funcname) = @_;
+sub add_custom_method($self, $method, $module, $funcname) {
 
     $method = uc($method);
 
@@ -1974,8 +1945,7 @@ sub add_custom_method {
     return;
 }
 
-sub add_protocolupgrade {
-    my ($self, $path, $module, $funcname, @protocols) = @_;
+sub add_protocolupgrade($self, $path, $module, $funcname, @protocols) {
 
     if(!@protocols) {
         croak("add_protocolupgrade requires protocols to be defined!");
@@ -1992,8 +1962,7 @@ sub add_protocolupgrade {
     return;
 }
 
-sub add_basic_auth {
-    my ($self, $url, $realm) = @_;
+sub add_basic_auth($self, $url, $realm) {
 
     if(!defined($url) || $url eq '') {
         croak("Undefined URL in add_basic_auth()");
@@ -2012,14 +1981,12 @@ sub add_basic_auth {
     return;
 }
 
-sub get_basic_auths {
-    my ($self) = @_;
+sub get_basic_auths($self) {
 
     return $self->{basic_auth};
 }
 
-sub add_public_url {
-    my ($self, $url) = @_;
+sub add_public_url($self, $url) {
 
     if(!defined($url) || $url eq '') {
         croak("Undefined URL in add_public_url()");
@@ -2034,16 +2001,14 @@ sub add_public_url {
     return;
 }
 
-sub get_public_urls {
-    my ($self) = @_;
+sub get_public_urls($self) {
 
     return $self->{public_urls};
 
 }
 
 # Cross Origin Resource requests
-sub add_cors {
-    my ($self, $path, $module, $origin, @methods) = @_;
+sub add_cors($self, $path, $module, $origin, @methods) {
 
     if(defined($self->{cors}->{$path}->{$origin})) {
         croak($module->{modname} . " error: $path for $origin already registered, previously registered in " . $self->{cors}->{$path}->{$origin}->{Module}->{modname});
@@ -2058,8 +2023,7 @@ sub add_cors {
     return;
 }
 
-sub get_cors_config {
-    my ($self, $path, $origin) = @_;
+sub get_cors_config($self, $path, $origin) {
 
     if($origin eq '*') {
         # Origin can not be a wildcard star

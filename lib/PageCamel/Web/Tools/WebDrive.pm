@@ -1,8 +1,7 @@
 package PageCamel::Web::Tools::WebDrive;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -30,8 +29,7 @@ use PageCamel::Helpers::Padding qw[doFPad];
 use PageCamel::Helpers::URI qw(encode_uri);
 use Digest::SHA1  qw(sha1 sha1_hex);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -48,8 +46,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, 'get', "GET");
     $self->register_webpath($self->{downloadwebpath}, 'get_download', "GET");
@@ -63,8 +60,7 @@ sub register {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -120,8 +116,7 @@ sub reload {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
@@ -191,21 +186,18 @@ sub get {
             data    => $template);
 }
 
-sub get_hashingworker {
-    my ($self, $ua) = @_;
+sub get_hashingworker($self, $ua) {
     
     return $self->get_workerscript($ua, 'tools/webdrive_hashingworker.js');
 }
 
-sub get_uploadworker {
-    my ($self, $ua) = @_;
+sub get_uploadworker($self, $ua) {
     
     return $self->get_workerscript($ua, 'tools/webdrive_uploadworker.js');
 }
 
 
-sub get_workerscript {
-    my ($self, $ua, $templatename) = @_;
+sub get_workerscript($self, $ua, $templatename) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -233,8 +225,7 @@ sub get_workerscript {
             data    => $template);
 }
     
-sub socketstart {
-    my ($self, $ua) = @_;
+sub socketstart($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -278,8 +269,7 @@ sub socketstart {
     return %result;
 }
 
-sub sockethandler {
-    my ($self, $ua) = @_;
+sub sockethandler($self, $ua) {
 
     my $session = $self->{sessiondata};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -559,8 +549,7 @@ sub sockethandler {
     return 1;
 }
 
-sub get_files {
-    my ($self, $ua) = @_;
+sub get_files($self, $ua) {
     
     my @files;
     my $total = 0;
@@ -706,8 +695,7 @@ sub get_files {
     );
 }
 
-sub clean_fname {
-    my ($self, $filename) = @_;
+sub clean_fname($self, $filename) {
 
     my $safe_filename_characters = "a-zA-Z0-9_.-";
     $filename =~ s/\\/\//go;
@@ -718,8 +706,7 @@ sub clean_fname {
     return $filename;
 }
 
-sub clean_searchstring {
-    my ($self, $searchstring) = @_;
+sub clean_searchstring($self, $searchstring) {
 
     $searchstring =~ s/^\s+//;
     $searchstring =~ s/\s+$//;
@@ -735,8 +722,7 @@ sub clean_searchstring {
 
 
 
-sub get_download {
-    my ($self, $ua) = @_;
+sub get_download($self, $ua) {
 
     my $uamethod = $ua->{method};
     my @headkeys = sort keys %{$ua->{headers}};
@@ -1053,8 +1039,7 @@ sub get_download {
    return(status => 500); # Something went wrong
 }
 
-sub file_get_multipart_contentlength {
-    my ($self, $ua) = @_;
+sub file_get_multipart_contentlength($self, $ua) {
 
     my $len = 0;
     foreach my $okrange (@{$self->{file}->{ranges}}) {
@@ -1071,8 +1056,7 @@ sub file_get_multipart_contentlength {
     return $len;
 }
 
-sub file_get_multipart {
-    my ($self, $ua) = @_;
+sub file_get_multipart($self, $ua) {
 
     if(!defined($self->{file}->{fh})) {
         $self->{file}->{fh} = File::Binary->new($self->{file}->{fname});
@@ -1133,8 +1117,7 @@ sub file_get_multipart {
     );
 }
 
-sub file_get {
-    my ($self, $ua) = @_;
+sub file_get($self, $ua) {
 
     my $ok = 0;
 

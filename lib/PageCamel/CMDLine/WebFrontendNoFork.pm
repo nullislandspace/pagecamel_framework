@@ -1,8 +1,7 @@
 package PageCamel::CMDLine::WebFrontendNoFork;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use IO::Socket::IP;
@@ -96,8 +95,7 @@ BEGIN {
 }
 
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
@@ -120,8 +118,7 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
     
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -191,8 +188,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     my $ok = 0;
     eval {
@@ -211,8 +207,7 @@ sub run {
     return;
 }
 
-sub handle_protocol {
-    my ($self) = @_;
+sub handle_protocol($self) {
 
     my %clients;
     my @toremove;

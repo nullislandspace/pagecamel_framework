@@ -1,8 +1,7 @@
 package PageCamel::Helpers::URI;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 
@@ -22,8 +21,7 @@ use base qw(Exporter);
 use PageCamel::Helpers::Padding qw(doFPad);
 our @EXPORT_OK = qw(decode_uri decode_uri_part decode_uri_path encode_uri encode_uri_part encode_uri_path);
 
-sub encode_uri {
-    my ($orig) = @_;
+sub encode_uri($orig) {
 
     my @oparts = split/\//, $orig;
     my @eparts;
@@ -34,8 +32,7 @@ sub encode_uri {
     return join('/', @eparts);
 }
 
-sub encode_uri_part {
-    my ($orig) = @_;
+sub encode_uri_part($orig) {
 
     my $encoded = '';
 
@@ -53,8 +50,7 @@ sub encode_uri_part {
     return $encoded;
 }
 
-sub encode_uri_path {
-    my ($orig) = @_;
+sub encode_uri_path($orig) {
 
     my $encoded = '';
 
@@ -72,8 +68,7 @@ sub encode_uri_path {
     return $encoded;
 }
 
-sub decode_uri {
-    my ($orig) = @_;
+sub decode_uri($orig) {
 
     my @oparts = split/\//, $orig;
     my @dparts;
@@ -84,8 +79,7 @@ sub decode_uri {
     return join('/', @dparts);
 }
 
-sub decode_uri_part {
-    my ($orig) = @_;
+sub decode_uri_part($orig) {
 
     my $decoded = '';
     return $decoded unless defined($orig);
@@ -105,8 +99,7 @@ sub decode_uri_part {
 }
 
 # This is similar to decode_uri_part, but treats the plus sign literally instead of as space
-sub decode_uri_path {
-    my ($orig) = @_;
+sub decode_uri_path($orig) {
 
     my $decoded = '';
     return $decoded unless defined($orig);

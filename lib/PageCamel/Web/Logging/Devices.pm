@@ -1,8 +1,7 @@
 package PageCamel::Web::Logging::Devices;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -22,8 +21,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -32,15 +30,13 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{list}->{webpath}, "get_list");
     $self->register_webpath($self->{edit}->{webpath}, "get_edit");
@@ -48,8 +44,7 @@ sub register {
     return;
 }
 
-sub get_list {
-    my ($self, $ua) = @_;
+sub get_list($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -81,8 +76,7 @@ sub get_list {
             data    => $template);
 }
 
-sub get_edit {
-    my ($self, $ua) = @_;
+sub get_edit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

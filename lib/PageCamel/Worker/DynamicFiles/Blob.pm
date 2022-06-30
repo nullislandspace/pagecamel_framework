@@ -1,8 +1,7 @@
 package PageCamel::Worker::DynamicFiles::Blob;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Worker::BaseModule);
@@ -24,8 +23,7 @@ use PageCamel::Helpers::FileSlurp qw[slurpBinFile];
 use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DataBlobs;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -42,8 +40,7 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     # Register ourselfs in the RBSCommands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
@@ -54,8 +51,7 @@ sub crossregister {
     return;
 }
 
-sub execute {
-    my ($self, $command, $arguments) = @_;
+sub execute($self, $command, $arguments) {
 
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
@@ -65,8 +61,7 @@ sub execute {
 }
 
 
-sub do_dynamicfiles_update_database {
-    my ($self, $arguments) = @_;
+sub do_dynamicfiles_update_database($self, $arguments) {
 
     my ($dbmodule, $localdir, $filesdontchange) = @{$arguments};
 
@@ -201,8 +196,7 @@ sub do_dynamicfiles_update_database {
     return (1, $logtype);
 }
 
-sub find_files {
-    my ($self, $realdir, $virtdir, $dbmodule, $filesdontchange) = @_;
+sub find_files($self, $realdir, $virtdir, $dbmodule, $filesdontchange) {
 
     my %dirs;
     my %files;

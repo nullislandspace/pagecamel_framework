@@ -1,8 +1,7 @@
 package PageCamel::Web::Users::Edit;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -23,8 +22,7 @@ use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::Strings qw(stripString);
 use PageCamel::Helpers::URI qw(encode_uri_path);
 
-sub register {
-    my $self = shift;
+sub register($self) {
     
     my $ok = 1;
     # Required settings
@@ -52,14 +50,12 @@ sub register {
     return;
 }
 
-sub reload {
-    my $self = shift;
+sub reload($self) {
     
     return;
 }
 
-sub get_list {
-    my ($self, $ua) = @_;
+sub get_list($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
@@ -100,8 +96,7 @@ sub get_list {
 
 }
 
-sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $ua) = @_;
+sub get_edit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
@@ -141,7 +136,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
     }
     
     # Prepare empty user structure
-    foreach my $fieldname (qw[username oldusername email_addr account_locked account_lock_reason first_name last_name company_name]) {
+    foreach my $fieldname (qw[username oldusername email_addr account_locked account_lock_reason first_name last_name company_name hardware_fob]) {
         $webdata{$fieldname} = "";
     }
     
@@ -206,7 +201,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
             $newusername = lc $newusername;
         }
 
-        break if($username eq '' || $newusername eq '');
+        goto reloaddata if($username eq '' || $newusername eq '');
         if($username ne $newusername) {
             push @auditdata, "old username: $username";
             push @auditdata, "new username: $newusername";
@@ -218,7 +213,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update username!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             # For easier handling
             $username = $newusername;
@@ -229,12 +224,12 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update password!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "New password set";
         }
 
-        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name company_name password_can_expire]) {
+        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name company_name password_can_expire hardware_fob]) {
             my $upsth = $dbh->prepare_cached("UPDATE users
                                              SET $fieldname = ?
                                              WHERE username = ?")
@@ -254,7 +249,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "$fieldname: $fielddata";
         }
@@ -271,7 +266,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                     $dbh->rollback;
                     $webdata{statustext} = "Can't set user to forced password change!";
                     $webdata{statuscolor} = "errortext";
-                    break;
+                    goto reloaddata 
                 }
             }
         }
@@ -298,7 +293,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "Permission " . $fieldname->{db} . ": $fielddata";
         }
@@ -319,7 +314,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
 
         push @auditdata, "Company: $company";
 
-        break if($username eq '');
+        goto reloaddata if($username eq '');
         my $upnamesth = $dbh->prepare_cached("INSERT INTO users
                                              (username, company_name)
                                              VALUES(?, ?)")
@@ -328,7 +323,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
             $dbh->rollback;
             $webdata{statustext} = "Can't update username!";
             $webdata{statuscolor} = "errortext";
-            break;
+            goto reloaddata 
         }
 
         my $password = $ua->{postparams}->{'password'} || '';
@@ -338,11 +333,11 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update password!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
         }
 
-        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name password_can_expire]) {
+        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name password_can_expire hardware_fob]) {
             my $upsth = $dbh->prepare_cached("UPDATE users
                                              SET $fieldname = ?
                                              WHERE username = ?")
@@ -362,7 +357,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "$fieldname: $fielddata";
         }
@@ -384,7 +379,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 $dbh->rollback;
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
-                break;
+                goto reloaddata 
             }
             push @auditdata, "Permission " . $fieldname->{db} . ": $fielddata";
         }
@@ -397,6 +392,8 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
         }
         $mode = "edit";
     }
+
+reloaddata:
 
 
     # handle "select": Turn it into "edit" after skipping updating data in database
@@ -423,7 +420,7 @@ sub get_edit { ## no critic (Subroutines::ProhibitExcessComplexity)
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
         while((my $user = $selsth->fetchrow_hashref)) {
-            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name company_name password_can_expire force_password_change]) {
+            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name company_name password_can_expire force_password_change hardware_fob]) {
                 $webdata{$fieldname} = $user->{$fieldname};
             }
 

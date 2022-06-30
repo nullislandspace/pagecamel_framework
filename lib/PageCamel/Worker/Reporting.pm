@@ -1,8 +1,7 @@
 package PageCamel::Worker::Reporting;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Worker::BaseModule);
@@ -24,8 +23,7 @@ use PageCamel::Helpers::Padding qw(doSpacePad);
 
 use IO::Handle;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -42,8 +40,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $oldlog = $memh->get($self->{APPNAME});
@@ -64,8 +61,7 @@ sub reload {
     return;
 }
 
-sub dblog {
-    my ($self, $error_type, $description) = @_;
+sub dblog($self, $error_type, $description) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -79,8 +75,7 @@ sub dblog {
     return;
 }
 
-sub auditlog {
-    my ($self, $modulename, $logtext) = @_;
+sub auditlog($self, $modulename, $logtext) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $worker = $self->{PSAPPNAME};
@@ -95,8 +90,7 @@ sub auditlog {
     return;
 }
 
-sub debuglog {
-    my ($self, @parts) = @_;
+sub debuglog($self, @parts) {
 
     my $line = '';
     foreach my $part (@parts) {
@@ -126,8 +120,7 @@ sub debuglog {
     return;
 }
 
-sub debuglog_overwrite {
-    my ($self, @parts) = @_;
+sub debuglog_overwrite($self, @parts) {
 
     my $line = '';
     foreach my $part (@parts) {

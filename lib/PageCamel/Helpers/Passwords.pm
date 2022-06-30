@@ -1,8 +1,7 @@
 package PageCamel::Helpers::Passwords;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # PAGECAMEL  (C) 2008-2020 Rene Schickbauer
@@ -26,8 +25,7 @@ use MIME::Base64;
 use PageCamel::Helpers::DateStrings;
 use Time::HiRes qw[sleep];
 
-sub new {
-    my ($proto, $config) = @_;
+sub new($proto, $config) {
     my $class = ref($proto) || $proto;
 
     my $self = bless $config, $class;
@@ -48,8 +46,7 @@ sub new {
 }
 
 
-sub gen_textsalt {
-    my ($self) = @_;
+sub gen_textsalt($self) {
 
     my $saltbase = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -64,8 +61,7 @@ sub gen_textsalt {
 }
 
 
-sub update_password {
-    my ($self, $username, $password) = @_;
+sub update_password($self, $username, $password) {
 
 
     # While pre- and postsalt does not much for complexity, it helps preventing rainbow tables attacks.
@@ -106,8 +102,7 @@ sub update_password {
     return 1;
 }
 
-sub verify_password {
-    my ($self, $username, $password) = @_;
+sub verify_password($self, $username, $password) {
 
     # Pre-initialize for random pw calculations in case no user is found (there should be no
     # measurable time difference for unknown users. This will make it harder to guess is a username
@@ -174,8 +169,7 @@ sub verify_password {
     return 1;
 }
 
-sub getSettings {
-    my ($self) = @_;
+sub getSettings($self) {
 
     my $sysh = $self->{sysh};
     my $dbh = $self->{dbh};

@@ -1,8 +1,7 @@
 package PageCamel::Worker::Firewall::IPTables;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # Do some updates and advanced parsing for accesslog. Run at once an hour. The
@@ -25,8 +24,7 @@ use PageCamel::Helpers::DBSerialize;
 use MIME::Base64;
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -43,14 +41,12 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -70,8 +66,7 @@ sub crossregister {
 }
 
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -124,8 +119,7 @@ sub work {
     return $workCount;
 }
 
-sub updateIPTables { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self) = @_;
+sub updateIPTables($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

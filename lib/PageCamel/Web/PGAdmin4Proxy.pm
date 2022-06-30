@@ -1,8 +1,7 @@
 package PageCamel::Web::PGAdmin4Proxy;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -25,8 +24,7 @@ my @ignorepgadmin4headers = qw[Date Server Title X-Meta-Robots];
 #my @ignoreclientheaders = qw[Connection Cookie DNT Host Referer Upgrade-Insecure-Requests Accept-Encoding];
 my @ignoreclientheaders = qw[Host Upgrade-Insecure-Requests Accept-Encoding];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,16 +33,14 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
     $self->register_postfilter("postfilter");
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     if(defined($self->{auth_realm})) {
         $self->register_basic_auth($self->{webpath}, $self->{auth_realm});
@@ -52,8 +48,7 @@ sub crossregister {
     return;
 }
 
-sub postfilter {
-    my ($self, $ua, $header, $result) = @_;
+sub postfilter($self, $ua, $header, $result) {
 
     my $clientpath = $ua->{url};
     my $mypath = $self->{webpath};
@@ -79,8 +74,7 @@ sub postfilter {
 
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $pgadmin4path = $ua->{url};
 
@@ -319,8 +313,7 @@ sub get {
     return %retpage;
 }
 
-sub readsocketline {
-    my ($self, $socket, $timeout) = @_;
+sub readsocketline($self, $socket, $timeout = 30) {
 
     if(!defined($timeout) || !$timeout) {
         $timeout = 30;
@@ -342,8 +335,7 @@ sub readsocketline {
     return $line;
 }
 
-sub readChunked {
-    my ($self, $socket) = @_;
+sub readChunked($self, $socket) {
 
     my $content = '';
     while(1) {
@@ -359,8 +351,7 @@ sub readChunked {
 
 }
 
-sub readPlain {
-    my ($self, $socket, $clength) = @_;
+sub readPlain($self, $socket, $clength) {
 
     my $content = '';
     my $reallength = 0;

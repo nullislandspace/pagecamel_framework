@@ -1,8 +1,7 @@
 package PageCamel::Web::Impressum;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,16 +11,15 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,8 +28,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
    #
     # make sure the relevant system settings exist
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -57,8 +54,7 @@ sub reload {
     return;
 }
 
-sub register {
-    my ($self) = @_;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
     $self->register_prerender("prerender");
 
@@ -69,8 +65,7 @@ sub register {
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     $self->register_public_url($self->{webpath});
     return;
@@ -78,8 +73,7 @@ sub crossregister {
 
 
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my %sets;
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -113,8 +107,7 @@ sub get {
             );
 }
 
-sub prerender {
-    my ($self, $webdata) = @_;
+sub prerender($self, $webdata) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my ($ok, $data) = $sysh->get($self->{modname}, 'impressum_enable');
@@ -126,8 +119,7 @@ sub prerender {
     return;
 }
 
-sub sitemap {
-    my ($self, $sitemap) = @_;
+sub sitemap($self, $sitemap) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my ($ok, $data) = $sysh->get($self->{modname}, 'impressum_enable');

@@ -1,8 +1,7 @@
 package PageCamel::Web::SessionSettings;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -28,8 +27,7 @@ Readonly::Scalar my $RETRY_WAIT   => 0.05;
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -40,14 +38,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_logoutitem("on_logout");
     return;
 }
@@ -59,8 +55,7 @@ sub register {
 # right now, we depend on beeing onLogout() called by the
 # login module for timed-out sessions
 
-sub get {
-    my ($self, $settingname) = @_;
+sub get($self, $settingname) {
 
     my $settingref;
 
@@ -99,8 +94,7 @@ sub get {
     return 0;
 }
 
-sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
-    my ($self, $settingname, $settingref) = @_;
+sub set($self, $settingname, $settingref) {
 
     my $loginh = $self->{server}->{modules}->{$self->{login}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -108,8 +102,6 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
 
     my $sessionid = $loginh->get_sessionid;
     return 0 if(!defined($sessionid));
-
-    croak unless(defined($settingref));
 
     my $keyname = "SessionSettings::" . $sessionid . "::" . $settingname;
 
@@ -145,8 +137,7 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
     return 1;
 }
 
-sub delete {## no critic(BuiltinHomonyms)
-    my ($self, $settingname, $forcedid) = @_;
+sub delete($self, $settingname, $forcedid = undef) {
 
     my $settingref;
 
@@ -194,8 +185,7 @@ sub delete {## no critic(BuiltinHomonyms)
     return 1;
 }
 
-sub list {
-    my ($self, $forcedid) = @_;
+sub list($self, $forcedid = undef) {
 
     my @settingnames = ();
 
@@ -223,8 +213,7 @@ sub list {
     return (1, @settingnames);
 }
 
-sub on_logout {
-    my ($self, $sessionid) = @_;
+sub on_logout($self, $sessionid) {
 
     my ($status, @keys) = $self->list($sessionid);
     if($status != 0) {

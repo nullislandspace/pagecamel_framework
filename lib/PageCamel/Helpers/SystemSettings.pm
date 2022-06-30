@@ -1,8 +1,7 @@
 package PageCamel::Helpers::SystemSettings;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize qw[dbfreeze dbthaw dbderef];
 use Time::HiRes qw[sleep];
 
-sub createNumber {
-    my ($self, %setting) = @_;
+sub createNumber($self, %setting) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -53,8 +51,7 @@ sub createNumber {
     return 1;
 }
 
-sub createText {
-    my ($self, %setting) = @_;
+sub createText($self, %setting) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -83,8 +80,7 @@ sub createText {
     return 1;
 }
 
-sub createBool {
-    my ($self, %setting) = @_;
+sub createBool($self, %setting) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -114,8 +110,7 @@ sub createBool {
     return 1;
 }
 
-sub createEnum {
-    my ($self, %setting) = @_;
+sub createEnum($self, %setting) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -144,15 +139,9 @@ sub createEnum {
     return 1;
 }
 
-sub get {
-    my ($self, $modulename, $settingname, $forcedb) = @_;
-
+sub get($self, $modulename, $settingname, $forcedb = false) {
     if(!defined($modulename) || !defined($settingname)) {
         return 0;
-    }
-
-    if(!defined($forcedb)) {
-        $forcedb = 0;
     }
 
     my $settingref;
@@ -192,8 +181,7 @@ sub get {
     }
 }
 
-sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
-    my ($self, $modulename, $settingname, $value) = @_;
+sub set($self, $modulename, $settingname, $value) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -251,8 +239,7 @@ sub set { ## no critic (NamingConventions::ProhibitAmbiguousNames)
     return 0;
 }
 
-sub delete {## no critic(BuiltinHomonyms)
-    my ($self, $modulename, $settingname) = @_;
+sub delete($self, $modulename, $settingname) {
 
     my $settingref;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -275,8 +262,7 @@ sub delete {## no critic(BuiltinHomonyms)
     return 1;
 }
 
-sub list {
-    my ($self, $modulename) = @_;
+sub list($self, $modulename) {
 
     my @settingnames;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -298,8 +284,7 @@ sub list {
     return (1, @settingnames);
 }
 
-sub updateProcessinghints {
-    my ($self, $modulename, $settingname, $hints) = @_;
+sub updateProcessinghints($self, $modulename, $settingname, $hints) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -339,8 +324,7 @@ sub updateProcessinghints {
     return 0;
 }
 
-sub updateEnumValues {
-    my ($self, $modulename, $settingname, $values) = @_;
+sub updateEnumValues($self, $modulename, $settingname, $values) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -378,8 +362,7 @@ sub updateEnumValues {
     return 0;
 }
 
-sub updateMinMax {
-    my ($self, $modulename, $settingname, $min, $max) = @_;
+sub updateMinMax($self, $modulename, $settingname, $min, $max) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

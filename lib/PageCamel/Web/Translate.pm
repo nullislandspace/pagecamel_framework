@@ -1,8 +1,7 @@
 package PageCamel::Web::Translate;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 
@@ -30,8 +29,7 @@ use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use Readonly;
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -50,8 +48,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     # Update the handles for the template plugin
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -66,8 +63,7 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{settings}->{webpath}, "get_settings");
     $self->register_webpath($self->{languages}->{webpath}, "get_languages");
     $self->register_webpath($self->{translations}->{webpath}, "get_translations");
@@ -80,8 +76,7 @@ sub register {
     return;
 }
 
-sub get_settings {
-    my ($self, $ua) = @_;
+sub get_settings($self, $ua) {
 
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -132,8 +127,7 @@ sub get_settings {
             data    => $template);
 }
 
-sub get_languages {
-    my ($self, $ua) = @_;
+sub get_languages($self, $ua) {
 
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -210,8 +204,7 @@ sub get_languages {
             data    => $template);
 }
 
-sub get_translations {
-    my ($self, $ua) = @_;
+sub get_translations($self, $ua) {
 
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -307,8 +300,7 @@ sub get_translations {
             data    => $template);
 }
 
-sub get_export {
-    my ($self, $ua) = @_;
+sub get_export($self, $ua) {
 
     my $webpath = $ua->{url};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -353,8 +345,7 @@ sub get_export {
 }
 
 
-sub get_file {
-    my ($self, $ua) = @_;
+sub get_file($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -368,8 +359,7 @@ sub get_file {
 }
 
 
-sub prerender {
-    my ($self, $webdata) = @_;
+sub prerender($self, $webdata) {
 
     # Unless the user is logged in, we don't have set a user selected Language, use English
     if(!defined($webdata->{userData}) ||
@@ -405,8 +395,7 @@ sub prerender {
     return;
 }
 
-sub postfilter {
-    my ($self, $ua, $header, $result) = @_;
+sub postfilter($self, $ua, $header, $result) {
 
     return if(!defined($self->{lastuserlanguage}));
 
@@ -421,8 +410,7 @@ sub postfilter {
 }
 
 # Translation
-sub check_translationupdates {
-    my ($self) = @_;
+sub check_translationupdates($self) {
 
     tr_checkreload();
 

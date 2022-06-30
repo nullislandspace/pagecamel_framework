@@ -82,6 +82,17 @@
                         </div>
                     </td>
                 </tr>
+                [% IF FobLogin != "" %]
+                    <tr>
+                        <td align="right">[% tr.trquote("Hardware fob") %]</td>
+                        <td align="left">
+                            <input type="text" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob"><br>
+                            <input type="Button" value="[% tr.trquote("Read Fob") %]" id="readfobbutton">
+                        </td>
+                    </tr>
+                [% ELSE %]
+                    <input type="hidden" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob"><br>
+                [% END %]
                 <tr>
                     <td align="right">[% tr.trquote("Options") %]</td>
                     <td align="left">
@@ -126,12 +137,31 @@
     data-accountlocked="[% account_locked %]"
     data-trquote-encryptingpassword="[% tr.trquote("Encrypting password...") %]"
     data-forcelowercase="[% forcelowercase %]"
+    data-foblogin="[% FobLogin %]"
 ></span>
 
 <script>
     
+
     function extraOnLoad() {
-        // DON'T DELETE: auto-uninline onfoo html tags to JS file
+        if(ttvars.foblogin != '') {
+            initFobReader();
+        }
+    }
+
+    fobreader = new XMLHttpRequest();
+    function initFobReader() {
+        $('#readfobbutton').on('click', function() {
+
+            fobreader.open("GET", 'http://localhost:8080', true);
+            fobreader.onreadystatechange=function() {
+                if(fobreader.readyState == 4) {
+                    var newfob = fobreader.responseText;
+                    $('#hardware_fob').val(newfob);
+                }
+            }
+            fobreader.send(null);
+        });
     }
     
     function submitMe() {

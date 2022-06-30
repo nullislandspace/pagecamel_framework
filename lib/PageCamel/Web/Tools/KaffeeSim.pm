@@ -2,9 +2,8 @@
 # Developed under Artistic license
 package PageCamel::Web::Tools::KaffeeSim;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -14,9 +13,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -34,8 +33,7 @@ use PageCamel::Helpers::Strings qw[windowsStringsQuote];
 use PageCamel::Helpers::WebPrint;
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -49,8 +47,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, 'get', "GET");
     $self->register_webpath($self->{wspath}, 'socketstart', "GET", "CONNECT");
@@ -59,8 +56,7 @@ sub register {
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -104,8 +100,7 @@ sub reload {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
@@ -158,8 +153,7 @@ sub get {
 }
 
 
-sub socketstart {
-    my ($self, $ua) = @_;
+sub socketstart($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -203,8 +197,7 @@ sub socketstart {
     return %result;
 }
 
-sub sockethandler {
-    my ($self, $ua) = @_;
+sub sockethandler($self, $ua) {
 
     my $session = $self->{sessiondata};
     my $dbh = $self->{server}->{modules}->{$self->{db}};

@@ -1,8 +1,7 @@
 package PageCamel::Worker::BaseModule;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,16 +11,15 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 use Sys::Hostname;
 
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $hname = hostname;
@@ -53,15 +51,13 @@ sub crossregister {
     return;
 }
 
-sub register_worker {
-    my ($self, $funcname) = @_;
+sub register_worker($self, $funcname) {
 
     $self->{server}->add_worker($self, $funcname);
     return;
 }
 
-sub register_cleanup {
-    my ($self, $funcname) = @_;
+sub register_cleanup($self, $funcname) {
 
     $self->{server}->add_cleanup($self, $funcname);
     return;
@@ -72,8 +68,7 @@ sub endconfig {
     return;
 }
 
-sub newClacksFromConfig {
-    my ($self, $clconf) = @_;
+sub newClacksFromConfig($self, $clconf) {
 
     my $socket = $clconf->get('socket');
     my $clacks;

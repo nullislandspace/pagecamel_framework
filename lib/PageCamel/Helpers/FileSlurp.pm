@@ -1,8 +1,7 @@
 package PageCamel::Helpers::FileSlurp;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(Exporter);
@@ -22,8 +21,7 @@ our @EXPORT_OK = qw(slurpTextFile slurpBinFile writeBinFile slurpBinFilehandle s
 use File::Binary;
 
 
-sub slurpTextFile {
-    my $fname = shift;
+sub slurpTextFile($fname) {
 
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
@@ -46,8 +44,7 @@ sub slurpTextFile {
     return @datalines;
 }
 
-sub slurpBinFile {
-    my $fname = shift;
+sub slurpBinFile($fname) {
 
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
@@ -61,8 +58,7 @@ sub slurpBinFile {
     return $data;
 }
 
-sub slurpBinFilePart {
-    my ($fname, $start, $len) = @_;
+sub slurpBinFilePart($fname, $start, $len) {
 
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
@@ -75,8 +71,7 @@ sub slurpBinFilePart {
     return $data;
 }
 
-sub slurpBinFilehandle {
-    my $fh = shift;
+sub slurpBinFilehandle($fh) {
 
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
@@ -89,8 +84,7 @@ sub slurpBinFilehandle {
     return $data;
 }
 
-sub writeBinFile {
-    my ($fname, $data) = @_;
+sub writeBinFile($fname, $data) {
 
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly

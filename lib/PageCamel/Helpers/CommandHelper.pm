@@ -1,8 +1,7 @@
 package PageCamel::Helpers::CommandHelper;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use PageCamel::Helpers::DateStrings;
@@ -23,9 +22,7 @@ use base qw(Exporter);
 our @EXPORT = qw(getCommandQueue); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
-sub getCommandQueue {
-    my ($dbh, $memh, $command) = @_;
-
+sub getCommandQueue($dbh, $memh, $command = undef) {
     my @commands;
 
     my $where = "";

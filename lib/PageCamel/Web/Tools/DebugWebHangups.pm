@@ -1,8 +1,7 @@
 package PageCamel::Web::Tools::DebugWebHangups;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -22,8 +21,7 @@ use base qw(PageCamel::Web::BaseModule);
 use MIME::Base64;
 use Time::HiRes qw[sleep];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -32,8 +30,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_logstart("logstart");
     $self->register_logend("logend");
@@ -45,8 +42,7 @@ sub register {
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     my $clacks = $self->newClacksFromConfig($clconf);
@@ -59,8 +55,7 @@ sub crossregister {
     return;
 }
 
-sub handle_child_start {
-    my ($self) = @_;
+sub handle_child_start($self) {
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = $self->newClacksFromConfig($clconf);
@@ -72,8 +67,7 @@ sub handle_child_start {
     return;
 }
 
-sub handle_child_stop {
-    my ($self) = @_;
+sub handle_child_stop($self) {
 
     $self->{clacks}->remove($self->{clackskey});
     $self->{clacks}->doNetwork();
@@ -82,8 +76,7 @@ sub handle_child_stop {
 }
 
 
-sub logstart {
-    my ($self, $ua) = @_;
+sub logstart($self, $ua) {
 
     my $webpath = $ua->{url} || '--unknown--';
 
@@ -101,8 +94,7 @@ sub logstart {
     return;
 }
 
-sub logend {
-    my ($self, $ua) = @_;
+sub logend($self, $ua) {
 
     $self->{clacks}->store($self->{clackskey}, 'LOGEND ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
@@ -111,8 +103,7 @@ sub logend {
 }
 
 
-sub logdatadelivery {
-    my ($self, $ua) = @_;
+sub logdatadelivery($self, $ua) {
 
     $self->{clacks}->store($self->{clackskey}, 'LOGDATADELIVERY ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
@@ -120,8 +111,7 @@ sub logdatadelivery {
     return;
 }
 
-sub logwebsocket {
-    my ($self, $ua) = @_;
+sub logwebsocket($self, $ua) {
 
     $self->{clacks}->store($self->{clackskey}, 'LOGWEBSOCKET ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
@@ -129,8 +119,7 @@ sub logwebsocket {
     return;
 }
 
-sub logrequestfinished {
-    my ($self, $ua, $header, $result) = @_;
+sub logrequestfinished($self, $ua, $header, $result) {
 
     $self->{clacks}->store($self->{clackskey}, 'IDLE');
     $self->{clacks}->doNetwork();
@@ -139,8 +128,7 @@ sub logrequestfinished {
     return;
 }
 
-sub logstacktrace {
-    my ($self, $message) = @_;
+sub logstacktrace($self, $message) {
 
     my $key = 'DEBUG::STACKTRACE::' . $PID;
     print STDERR "############################# KEY $key\n";

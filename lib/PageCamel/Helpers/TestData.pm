@@ -1,8 +1,7 @@
 package PageCamel::Helpers::TestData;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(Exporter);
 our @EXPORT = qw(getTestText getTestImage1 getTestImage2); ## no critic (Modules::ProhibitAutomaticExportation)
 use MIME::Base64;
 
-sub getTestLines {
-    my ($self) = @_;
+sub getTestLines($self) {
     
     my $raw = decode_base64('
         PT09PT09PT09PT09PT09PT09PT09CkZpbmFsIHByb2plY3QgcmVwb3J0Ogo9PT09PT09PT09PT09
@@ -59,8 +57,7 @@ sub getTestLines {
     return @lines;
 }
 
-sub getTestImage1 {
-    my ($self) = @_;
+sub getTestImage1($self) {
     
     return decode_base64('
         iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAAAAADRE4smAAABI2lDQ1BJQ0MgcHJvZmlsZQAAKJGd
@@ -637,8 +634,7 @@ sub getTestImage1 {
     ');
 }
 
-sub getTestImage2 {
-    my ($self) = @_;
+sub getTestImage2($self) {
     
     return decode_base64('
         iVBORw0KGgoAAAANSUhEUgAAAgAAAAJ/CAIAAACBbvy5AAABhmlDQ1BJQ0MgcHJvZmlsZQAAKJF9

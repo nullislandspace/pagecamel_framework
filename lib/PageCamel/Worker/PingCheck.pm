@@ -1,8 +1,7 @@
 package PageCamel::Worker::PingCheck;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Worker::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use Net::Ping;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -34,15 +32,13 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_worker("work");
     return;
 }
 
 
-sub work {
-    my ($self) = @_;
+sub work($self) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -76,7 +72,7 @@ sub work {
 
     foreach my $device (@devices) {
         my $ok = 0;
-        if($pinger->ping($device->{ip_address}, 2)) {
+        if($pinger->ping($device->{ip_address}, 5)) {
             $ok = 1;
             $reph->debuglog("Device ", $device->{device_name}, " at IP ", $device->{ip_address}, " is reachable.");
         } else {

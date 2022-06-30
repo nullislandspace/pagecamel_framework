@@ -1,8 +1,7 @@
 package PageCamel::Worker::AXFRSync;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Worker::BaseModule);
@@ -27,8 +26,7 @@ use Readonly;
 
 Readonly my $HOURMEMKEY => "AXFRSync::lastHour";
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -37,14 +35,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we are pretty much self contained
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_worker("work_hour");
 
@@ -52,8 +48,7 @@ sub register {
 }
 
 
-sub work_hour {
-    my ($self) = @_;
+sub work_hour($self) {
 
     my $workCount = 0;
 
@@ -123,8 +118,7 @@ sub work_hour {
     return $workCount;
 }
 
-sub syncDomain {
-    my ($self, $domain, $times) = @_;
+sub syncDomain($self, $domain, $times) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -235,8 +229,7 @@ sub syncDomain {
     return $workCount;
 }
 
-sub maptime {
-    my ($self, $value, $times) = @_;
+sub maptime($self, $value, $times) {
 
     if(defined($times->{$value})) {
         return $value;

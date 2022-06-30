@@ -1,8 +1,7 @@
 #!/usr/bin/env perl
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # PAGECAMEL  (C) 2008-2020 Rene Schickbauer
@@ -27,8 +26,7 @@ updateClass('lib/PageCamel/Helpers.pm', 'lib/PageCamel/Helpers', 'PageCamel::Hel
 print "Done\n";
 
 
-sub updateClass {
-    my ($filename, $dirname, $basename) = @_;
+sub updateClass($filename, $dirname, $basename) {
 
     print "updating $filename with $basename classes from $dirname\n";
 
@@ -62,8 +60,7 @@ sub updateClass {
     close($ofh);
 }
 
-sub findModules {
-    my ($dirname, $basename) = @_;
+sub findModules($dirname, $basename) {
 
     my @files;
 

@@ -1,8 +1,7 @@
 package PageCamel::Web::BaseWebSocket;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -26,8 +25,7 @@ use Time::HiRes qw[sleep alarm time];
 use PageCamel::Helpers::WebPrint;
 use Digest::SHA1  qw(sha1 sha1_hex);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -57,8 +55,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, 'get', "GET", "CONNECT");
     $self->register_protocolupgrade($self->{webpath}, 'sockethandler', "websocket");
@@ -68,15 +65,13 @@ sub register {
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
     
     $self->wscrossregister();
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -135,69 +130,58 @@ sub reload {
 }
 
 # define empty Websocket base callbacks (in case the specific implementation doesn't overload them)
-sub wsregister {
-    my ($self) = @_;
+sub wsregister($self) {
     
     return;
 }
 
-sub wscrossregister {
-    my ($self) = @_;
+sub wscrossregister($self) {
     
     return;
 }
 
-sub wsreload {
-    my ($self) = @_;
+sub wsreload($self) {
     
     return;
 }
 
-sub wsmaskget {
-    my ($self, $ua, $settings, $webdata) = @_;
+sub wsmaskget($self, $ua, $settings, $webdata) {
 
     return;
 }
 
-sub wsstart {
-    my ($self, $ua, $webdata) = @_;
+sub wsstart($self, $ua, $webdata) {
     
     return;
 }
 
-sub wshandlerstart {
-    my ($self, $ua, $settings) = @_;
+sub wshandlerstart($self, $ua, $settings) {
     
     return;
 }
 
-sub wsdisconnect {
-    my ($self, $ua, $settings) = @_;
+sub wsdisconnect($self, $ua, $settings) {
     
     return;
 }
 
-sub wscleanup {
-    my ($self, $ua, $settings) = @_;
+sub wscleanup($self, $ua, $settings) {
     
     return;
 }
 
 
-sub wshandlemessage {
-    my ($self, $message) = @_;
+sub wshandlemessage($self, $message) {
     
     return 1;
 }
 
-sub wscyclic {
-    my ($self) = @_;
+sub wscyclic($self) {
     
     return 1;
 }
 
-sub wsprint {
-    my ($self, $message) = @_;
+sub wsprint($self, $message) {
     
     my $frame = $self->{sessiondata}->{frame};
     my $ua = $self->{sessiondata}->{ua};
@@ -217,8 +201,7 @@ sub wsprint {
     return 1;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -286,8 +269,7 @@ sub get {
 }
 
     
-sub socketstart {
-    my ($self, $ua) = @_;
+sub socketstart($self, $ua) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -339,8 +321,7 @@ sub socketstart {
     return %result;
 }
 
-sub sockethandler {
-    my ($self, $ua) = @_;
+sub sockethandler($self, $ua) {
 
     my $session = $self->{sessiondata};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -468,7 +449,7 @@ sub sockethandler {
     }
 
     $self->wsdisconnect($ua, \%settings);
-    $self->wscleanup($ua, \%settings);
+    $self->wscleanup();
 
     delete $self->{sessiondata};
 

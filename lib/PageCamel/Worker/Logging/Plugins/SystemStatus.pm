@@ -1,8 +1,7 @@
 package PageCamel::Worker::Logging::Plugins::SystemStatus;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Worker::Logging::PluginBase);
@@ -23,8 +22,7 @@ use base qw(PageCamel::Worker::Logging::PluginBase);
 use Sys::Load qw(getload uptime);
 use PageCamel::Helpers::Strings qw(stripString);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -35,15 +33,13 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     $self->register_plugin('work', 'SYSTEMSTATUS', 'SYSTEMSTATUS');
     return;
 }
 
-sub loadColumns {
-    my ($self, $dbh) = @_;
+sub loadColumns($self, $dbh) {
 
     my %cols;
     my $selsth = $dbh->prepare("SELECT column_name, data_type FROM information_schema.columns
@@ -60,8 +56,7 @@ sub loadColumns {
     return;
 }
 
-sub work {
-    my ($self, $device, $dbh, $reph, $memh) = @_;
+sub work($self, $device, $dbh, $reph, $memh) {
 
     my $workCount = 0;
 

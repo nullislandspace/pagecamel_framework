@@ -1,8 +1,7 @@
 package PageCamel::Web::DynamicFiles::Blob;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -23,8 +22,7 @@ use Number::Bytes::Human qw(format_bytes);
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::URI qw(encode_uri);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -44,15 +42,13 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do
 
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{download}->{webpath}, "get_download", 'GET', 'POST');
     
     if(defined($self->{wastedspace})) {
@@ -62,8 +58,7 @@ sub register {
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
 
     if($self->{public}) {
         $self->register_public_url($self->{download}->{webpath});
@@ -72,13 +67,7 @@ sub crossregister {
     return;
 }
 
-sub get_download { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $ua, $isErrorMode) = @_;
-
-    if(!defined($isErrorMode)) {
-        $isErrorMode = 0;
-    }
-
+sub get_download($self, $ua, $isErrorMode = false) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $uamethod = $ua->{method};
     my @headkeys = sort keys %{$ua->{headers}};
@@ -129,7 +118,7 @@ sub get_download { ## no critic (Subroutines::ProhibitExcessComplexity)
             if($self->{directorylisting}) {
                 return $self->getDirectory($ua, $filename);
             } elsif(defined($self->{errorfile})) {
-                return $self->get_download($ua, 1);
+                return $self->get_download($ua, true);
             } else {
                 return(status => 404);
             }
@@ -401,8 +390,7 @@ sub get_download { ## no critic (Subroutines::ProhibitExcessComplexity)
    return(status => 500); # Something went wrong
 }
 
-sub file_get_multipart_contentlength {
-    my ($self, $ua) = @_;
+sub file_get_multipart_contentlength($self, $ua) {
 
     # Add up all data block sizes and corresponding headers
 
@@ -421,8 +409,7 @@ sub file_get_multipart_contentlength {
     return $len;
 }
 
-sub file_get_multipart {
-    my ($self, $ua) = @_;
+sub file_get_multipart($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -487,8 +474,7 @@ sub file_get_multipart {
     );
 }
 
-sub file_get {
-    my ($self, $ua) = @_;
+sub file_get($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -524,8 +510,7 @@ sub file_get {
 }
 
 
-sub getDirectory {
-    my ($self, $ua, $filename) = @_;
+sub getDirectory($self, $ua, $filename) {
 
     return (status => 404) unless defined($self->{server}->{modules}->{templates});
 
@@ -625,7 +610,7 @@ sub getDirectory {
     }
 
     if(!$count && defined($self->{errorfile})) {
-        return $self->get_download($ua, 1);
+        return $self->get_download($ua, true);
     } elsif(!$count) {
         return(status => 404);
     }
@@ -656,8 +641,7 @@ sub getDirectory {
             data    => $template);
 }
 
-sub getDirectorySearch {
-    my ($self, $ua, $filename) = @_;
+sub getDirectorySearch($self, $ua, $filename) {
 
     return (status => 404) unless defined($self->{server}->{modules}->{templates});
 

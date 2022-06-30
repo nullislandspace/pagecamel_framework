@@ -1,8 +1,7 @@
 package PageCamel::Worker::Debuglog2DB;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use PageCamel::Helpers::DateStrings;
 use base qw(PageCamel::Worker::Logging::PluginBase);
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -47,16 +45,14 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_worker('logdata');
     $self->register_worker('rollingwindow');
     return;
 }
 
-sub logdata {
-    my ($self) = @_;
+sub logdata($self) {
 
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -87,8 +83,7 @@ sub logdata {
     return $workCount;
 }
 
-sub rollingwindow {
-    my ($self) = @_;
+sub rollingwindow($self) {
 
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};

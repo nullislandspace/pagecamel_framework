@@ -1,5 +1,5 @@
+[% IF ExtraLoginHTML != "" %][% ExtraLoginHTML %][% END %]
 <form name="login" method="post" action="[% PostLink %]" onsubmit="return submitMe();">
-
     <p>
         <table class="data" align="center" id="MainDataTable">
             <tr class="tabheader">
@@ -135,11 +135,19 @@
     [% END %]
 </form>
 
+[% IF FobLogin != "" %]
+    <form name="fobloginform" method="post" action="[% FobLogin %]" id="fobloginform">
+        <input type="hidden" name="fobid" id="fobid" value="">
+    </form>
+[% END %]
+
 <span id="masktemplatedataset"
     data-statuscolor="[% statuscolor %]"
     data-statustext="[% statustext %]"
     data-trquote-checkingpassword="[% tr.trquote("Checking password...") %]"
+    data-trquote-keyfoblogin="[% tr.trquote("Key fob login...") %]"
     data-disablemousechecks="[% DisableMousechecks %]"
+    data-foblogin="[% FobLogin %]"
 ></span>
 
 <script>
@@ -194,10 +202,34 @@
         return false;
     }
 
+    var fobreader = new XMLHttpRequest();
+    var fobloginrunning = 0;
+    function runFobReader() {
+        if(fobloginrunning == 1) {
+            return;
+        }
+        fobreader.open("GET", 'http://localhost:8080', true);
+        fobreader.onreadystatechange=function() {
+            if(fobreader.readyState == 4) {
+                var newfob = fobreader.responseText;
+                if(newfob != '') {
+                    console.log("Starting FOB login...");
+                    fobloginrunning = 1;
+                    $('#fobid').val(newfob);
+                    $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+                    $('#fobloginform').submit();
+                }
+            }
+        }
+        fobreader.send(null);
+    }
 
     function extraOnLoad() {
         if(ttvars.statustext === "" || ttvars.statuscolor != "oktext") {
             maskExtraOnLoad();
+        }
+        if(ttvars.foblogin != '') {
+            setInterval(runFobReader, 1000);
         }
     }
 

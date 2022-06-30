@@ -1,8 +1,7 @@
 package PageCamel::Web::Tools::RemoteConsoleLog;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseWebSocket);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use JSON::XS;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -34,8 +32,7 @@ sub new {
     return $self;
 }
 
-sub wsmaskget {
-    my ($self, $ua, $settings, $webdata) = @_;
+sub wsmaskget($self, $ua, $settings, $webdata) {
 
     foreach my $key (qw[HeadExtraScripts HeadExtraCSS]) {
         if(!defined($webdata->{$key})) {
@@ -67,8 +64,7 @@ sub wsmaskget {
     return;
 }
 
-sub wscrossregister {
-    my ($self) = @_;
+sub wscrossregister($self) {
 
     $self->register_webpath($self->{beacon}->{webpath}, 'beaconhandler', 'POST');
     $self->register_public_url($self->{beacon}->{webpath});
@@ -77,8 +73,7 @@ sub wscrossregister {
     return;
 }
 
-sub wshandlerstart {
-    my ($self, $ua, $settings) = @_;
+sub wshandlerstart($self, $ua, $settings) {
 
     $self->{nextping} = time + 10;
 
@@ -91,8 +86,7 @@ sub wshandlerstart {
     return;
 }
 
-sub wscleanup {
-    my ($self) = @_;
+sub wscleanup($self) {
 
     delete $self->{nextping};
     delete $self->{clacks};
@@ -100,8 +94,7 @@ sub wscleanup {
     return;
 }
 
-sub wscyclic {
-    my ($self) = @_;
+sub wscyclic($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -149,16 +142,14 @@ sub wscyclic {
 }
 
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     $webdata->{EnableRemoteConsoleLog} = 1;
     return;
 }
 
 
-sub beaconhandler {
-    my ($self, $ua) = @_;
+sub beaconhandler($self, $ua) {
     
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};

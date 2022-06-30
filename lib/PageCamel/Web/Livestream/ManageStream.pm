@@ -1,8 +1,7 @@
 package PageCamel::Web::Livestream::ManageStream;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,16 +11,15 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,21 +28,18 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my ($self) = @_;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get", "GET", "POST");
 
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -119,8 +114,7 @@ if(1) {
             );
 }
 
-sub getStreamMode {
-    my ($self) = @_;
+sub getStreamMode($self) {
 
     my $streammode = 1;
     if(-f $self->{livedir} . '/_is_archived') {

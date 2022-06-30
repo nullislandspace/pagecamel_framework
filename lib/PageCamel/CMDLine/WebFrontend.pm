@@ -1,8 +1,7 @@
 package PageCamel::CMDLine::WebFrontend;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use IO::Socket::INET;
@@ -49,8 +48,7 @@ sub REAPER {
 }
 
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
@@ -73,8 +71,7 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
     
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -151,8 +148,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     while(1) {
         while((my @connections = $self->{select}->can_read)) {
@@ -199,8 +195,7 @@ sub run {
     return;
 }
 
-sub handleClient {
-    my ($self, $client) = @_;
+sub handleClient($self, $client) {
 
     my $sigpipeseen = 0;
     my $sigpipehandled = 0;
@@ -517,8 +512,7 @@ sub handleClient {
 
 }
 
-sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
-    my ($self) = @_;
+sub endprogram($self) {
 
     sleep(1);
     while(1) {

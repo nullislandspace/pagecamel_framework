@@ -1,8 +1,7 @@
 package PageCamel::Worker::MYCPAN::LocalCommands;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Worker::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use CPAN::Mini::Inject;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -39,8 +37,7 @@ sub new {
     return $self;
 }
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     # Register ourselfs in the RBSCommands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
@@ -51,8 +48,7 @@ sub crossregister {
     return;
 }
 
-sub execute {
-    my ($self, $command, $arguments) = @_;
+sub execute($self, $command, $arguments) {
 
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
@@ -62,8 +58,7 @@ sub execute {
 }
 
 
-sub do_mycpan_update_files {
-    my ($self, $arguments) = @_;
+sub do_mycpan_update_files($self, $arguments) {
 
     my $logtype = "OTHER"; # make logging visible only to admin user
 

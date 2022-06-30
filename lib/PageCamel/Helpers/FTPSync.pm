@@ -1,8 +1,7 @@
 package PageCamel::Helpers::FTPSync;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 
 use Net::FTP;
 my $MAXFILES = 500;
 
-sub new {
-    my ($class, $url, $localdir, $mode, $filetype, $reph, $isDebug) = @_;
+sub new($class, $url, $localdir, $mode, $filetype = '', $reph = undef, $isDebug = undef) {
 
     if($mode ne "copy" && $mode ne "move") {
         return;
@@ -63,8 +61,7 @@ sub new {
     return $self;
 }
 
-sub connectRemote {
-    my ($self) = @_;
+sub connectRemote($self) {
 
     my $ftp = Net::FTP->new($self->{server}, Debug => 0, Timeout => 10, Passive => 1)
         or return;
@@ -90,8 +87,7 @@ sub connectRemote {
     return 1;
 }
 
-sub toLocal {
-    my ($self) = @_;
+sub toLocal($self) {
 
     $self->{reph}->debuglog("  Reading remote dir...") if($self->{debug});
 
@@ -141,8 +137,7 @@ sub toLocal {
     return 1;
 }
 
-sub toRemote {
-    my ($self) = @_;
+sub toRemote($self) {
 
     my $globname = $self->{localdir} . "/*";
     if($self->{type} ne "") {
@@ -190,8 +185,7 @@ sub toRemote {
     return 1;
 }
 
-sub quit {
-    my ($self) = @_;
+sub quit($self) {
 
     if($self->{ftp}) {
         $self->{ftp}->quit;

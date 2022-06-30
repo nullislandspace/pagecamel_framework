@@ -1,8 +1,7 @@
 package PageCamel::Web::StaticCache;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -28,8 +27,7 @@ use File::Type;
 my $cachemodulecount = 0;
 my @knownstaticmodules;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -59,16 +57,14 @@ sub new {
     return $self;
 }
 
-sub addPath {
-    my ($self, $basePath) = @_;
+sub addPath($self, $basePath) {
 
     push @{$self->{EXTRAINC}}, $basePath;
 
     return 1;
 }
 
-sub addView {
-    my ($self, $dirpath, $urlpath) = @_;
+sub addView($self, $dirpath, $urlpath) {
     # add additional views to scan in all incs
     
     my %view = (
@@ -99,8 +95,7 @@ sub addView {
     
 }
 
-sub reload {
-    my ($self, $ofh) = @_;
+sub reload($self, $ofh = undef) {
 
     if(!defined($ofh)) {
         $ofh = \*STDOUT;
@@ -137,8 +132,7 @@ sub reload {
 
 }
 
-sub load_dir {
-    my ($self, $basedir, $basewebpath, $ofh) = @_;
+sub load_dir($self, $basedir, $basewebpath, $ofh) {
 
     my $fcount = 0;
     my $ft = File::Type->new();
@@ -257,8 +251,7 @@ sub load_dir {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     # Also need to register the webpaths during addview() call, because we can get additional paths during
     # the crossregister loop
@@ -275,8 +268,7 @@ sub register {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $name = $ua->{url};
 
@@ -341,8 +333,7 @@ sub get {
     return %retpage;
 }
 
-sub sitemap {
-    my ($self, $sitemap) = @_;
+sub sitemap($self, $sitemap) {
 
     push @{$sitemap}, keys %{$self->{cache}};
 

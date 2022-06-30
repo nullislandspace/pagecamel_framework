@@ -1,8 +1,7 @@
 package PageCamel::Web::TT::Translate;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # WARNING: Template-Toolkit seems to have a special problem with Perl::Critic,
@@ -31,21 +30,18 @@ use base qw(Template::Plugin);
 use Template::Plugin;
 use Template::Exception;
 
-sub load {
-    my ($class, $context) = @_;
+sub load($class, $context) {
     my $self = bless {
     }, $class;
 
     return $self;
 }
 
-sub new {
-    my ($self, $context) = @_;
+sub new($self, $context) {
     return $self;
 }
 
-sub tr {
-    my ($self, $data) = @_;
+sub tr($self, $data) {
 
     return $data if($data eq '');
 
@@ -55,8 +51,7 @@ sub tr {
     return $trans;
 }
 
-sub quote {
-    my ($self, $data) = @_;
+sub quote($self, $data) {
 
     my $quoted = encode_entities($data, "'<>&\"\n");
     $quoted =~ s/ä/&auml;/;
@@ -70,28 +65,24 @@ sub quote {
     return $quoted;
 }
 
-sub trquote {
-    my ($self, $data) = @_;
+sub trquote($self, $data) {
 
     return $self->quote($self->tr($data));
 }
 
-sub fixdate {
-    my ($self, $data) = @_;
+sub fixdate($self, $data) {
 
     return $self->quote(fixDateField($data));
 }
 
-sub elemNameQuote {
-    my ($self, $data) = @_;
+sub elemNameQuote($self, $data) {
     return $self->quote(PageCamel::Helpers::Strings::elemNameQuote($data));
 }
 
 BEGIN {
     my $x_lang;
 
-    sub setLang {
-        my (undef, $newlang) = @_;
+    sub setLang($unused, $newlang) {
         $x_lang = $newlang;
         return;
     }

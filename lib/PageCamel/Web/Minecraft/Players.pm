@@ -2,9 +2,8 @@
 # Developed under Artistic license
 package PageCamel::Web::Minecraft::Players;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -14,9 +13,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -26,8 +25,7 @@ use JSON::XS;
 use PageCamel::Helpers::Strings qw(stripString splitStringWithQuotes);
 use MIME::Base64;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
     
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -38,14 +36,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_overridewebpath($self->{webpath} . '/index.html', "get_index");
     $self->register_overridewebpath($self->{webpath} . '/playermarkers.js', "get_js");
     $self->register_overridewebpath($self->{webpath} . '/players.json', "get_json");
@@ -55,8 +51,7 @@ sub register {
     return;
 }
 
-sub get_index {
-    my ($self, $ua) = @_;
+sub get_index($self, $ua) {
     
     my @lines = slurpTextFile($self->{basedir} . 'index.html');
 
@@ -85,8 +80,7 @@ sub get_index {
             data    => $fulltext);
 }
 
-sub get_js {
-    my ($self, $ua) = @_;
+sub get_js($self, $ua) {
     
     my $th = $self->{server}->{modules}->{templates};
     
@@ -103,8 +97,7 @@ sub get_js {
             data    => $template);
 }
 
-sub get_json {
-    my ($self, $ua) = @_;
+sub get_json($self, $ua) {
 
     my $jsonfile;    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -186,8 +179,7 @@ sub get_json {
             data    => $jsonfile);
 }
 
-sub makeDragon {
-    my ($self, $world, $x, $z) = @_;
+sub makeDragon($self, $world, $x, $z) {
     
     my $dname = 'border' . $self->{dragoncount};
     $self->{dragoncount}++;
@@ -218,8 +210,7 @@ sub makeDragon {
     return \%dragon;
 }
 
-sub get_playericon {
-    my ($self, $ua) = @_;
+sub get_playericon($self, $ua) {
 
     my $playerskin;    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -265,8 +256,7 @@ sub get_playericon {
             data    => $playerskin);
 }
 
-sub decodeEnderDragon {
-    my ($self) = @_;
+sub decodeEnderDragon($self) {
 
     $self->{enderdragongif} = decode_base64("
         R0lGODlhQABAAPcvAAMDAwgKBwwMDAcECA4RDhINEw8QEBMTExgYFxcUGBsbGyQkJCsrKzMzMzw8

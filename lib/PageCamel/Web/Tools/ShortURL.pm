@@ -1,8 +1,7 @@
 package PageCamel::Web::Tools::ShortURL;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -22,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Strings qw[stripString];
 use MIME::Base64;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -47,8 +45,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
 
     # Custom METHOD handling for RFCxxxx
@@ -58,8 +55,7 @@ sub register {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
     
     if(0) {
         my $rickroll = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
@@ -220,8 +216,7 @@ sub get {
     );
 }
 
-sub createID {
-    my ($self) = @_;
+sub createID($self) {
     
     my @validchars = split//, '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
     my $shortid = '';
@@ -232,8 +227,7 @@ sub createID {
     
 }
 
-sub getInputForm {
-    my ($self, $result) = @_;
+sub getInputForm($self, $result) {
     
     if(!defined($result)) {
         $result = '';
@@ -253,8 +247,7 @@ sub getInputForm {
     return $form;
 }
 
-sub custom_LONG {
-    my ($self, $ua) = @_;
+sub custom_LONG($self, $ua) {
 
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -294,8 +287,7 @@ sub custom_LONG {
 }
 
 
-sub custom_SHORT {
-    my ($self, $ua) = @_;
+sub custom_SHORT($self, $ua) {
 
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

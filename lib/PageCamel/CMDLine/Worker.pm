@@ -1,8 +1,7 @@
 package PageCamel::CMDLine::Worker;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use PageCamel::Worker;
@@ -24,19 +23,19 @@ use PageCamel::Helpers::Logo;
 use Time::HiRes qw(sleep time);
 use POSIX;
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
     $self->{configfile} = $configfile;
+
+    $Carp::Verbose = 1;
     
     return $self;
 }
 
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
 
     my $initok = 0;
 
@@ -93,14 +92,14 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
     
     my $runok = 0;
 
     eval {
         # Let STDOUT/STDERR settle down first
         sleep(0.1);
+
         
         my $nextCycleTime = $self->{config}->{mincycletime} + time;
         while(1) {
@@ -131,8 +130,8 @@ sub run {
 
 # suicide() kills (-9) it's own program.
 # *** This is NOT an OO function ***
-sub suicide {
-    my ($errmsg, $evalerr) = @_;
+sub suicide($errmsg, $evalerr) {
+    sleep(1);
     print STDERR $errmsg, "\n";
     print STDERR $evalerr, "\n";
     while(1) {

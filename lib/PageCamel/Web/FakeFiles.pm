@@ -1,8 +1,7 @@
 package PageCamel::Web::FakeFiles;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,16 +11,15 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -30,8 +28,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     # Can load files only once due to register(),
     # and we ain't doing it here
@@ -39,8 +36,7 @@ sub reload {
     return;
 }
 
-sub load_files {
-    my ($self) = shift;
+sub load_files($self) {
 
     # Empty cache
     my %files;
@@ -82,8 +78,7 @@ sub load_files {
 
 }
 
-sub load_dir {
-    my ($self, $basedir) = @_;
+sub load_dir($self, $basedir) {
 
     my $fcount = 0;
 
@@ -112,8 +107,7 @@ sub load_dir {
     return $fcount;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->load_files;
 
@@ -121,8 +115,7 @@ sub register {
 }
 
 
-sub crossregister {
-    my $self = shift;
+sub crossregister($self) {
 
     # Register every file on its own
     foreach my $url (keys %{$self->{fastmap}}) {
@@ -133,8 +126,7 @@ sub crossregister {
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     if($ua->{method} eq 'POST') {
         # "ooops, we are so so sorryyyy that we can't parse whatever junk you just POSTed"

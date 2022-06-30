@@ -1,8 +1,7 @@
 package PageCamel::Web::ListAndEdit::Main;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -34,8 +33,7 @@ use IO::Compress::Gzip qw(gzip $GzipError);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -164,15 +162,13 @@ sub new {
 }
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get");
     return;
 }
 
-sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self) = @_;
+sub reload($self) {
 
     # Run sanity checks on configuration
     my $ok = 1;
@@ -750,8 +746,7 @@ sub reload { ## no critic (Subroutines::ProhibitExcessComplexity)
 
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning
 # of Perl::Critic
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $mode = $ua->{postparams}->{'mode'} || 'list';
     my $primarykey = stripString($ua->{postparams}->{'primary_key'} || '');
@@ -837,8 +832,7 @@ sub get {
     return $self->get_edit($ua);
 }
 
-sub send_csv {
-    my ($self, $ua) = @_;
+sub send_csv($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
@@ -893,8 +887,7 @@ sub send_csv {
 
 }
 
-sub download_csv {
-    my ($self, $ua) = @_;
+sub download_csv($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
@@ -939,8 +932,7 @@ sub download_csv {
 }
 
 
-sub get_pagescript {
-    my ($self, $ua, $mode) = @_;
+sub get_pagescript($self, $ua, $mode) {
 
     my $lastetag = $ua->{headers}->{'If-None-Match'} || '';
     
@@ -986,13 +978,9 @@ sub get_pagescript {
     return %retpage;
 }
 
-sub get_list {
-    my ($self, $ua, $usemasterlayout) = @_;
+sub get_list($self, $ua, $usemasterlayout = true) {
     
     my $listlength = 500;
-    if(!defined($usemasterlayout)) {
-        $usemasterlayout = 1;
-    }
     if(!$usemasterlayout) {
         $listlength = 300;
     }
@@ -1114,8 +1102,7 @@ sub get_list {
             data    => $template);
 }
 
-sub get_lines { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $ua) = @_;
+sub get_lines($self, $ua) {
 
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -1490,8 +1477,7 @@ sub get_lines { ## no critic (Subroutines::ProhibitExcessComplexity)
         );
 }
 
-sub get_prevnext {
-    my ($self, $ua, $currentprimkey) = @_;
+sub get_prevnext($self, $ua, $currentprimkey) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
@@ -1555,8 +1541,7 @@ sub get_prevnext {
     return ('', '');
 }
 
-sub get_edit { ## no critic (ProhibitExcessComplexity)
-    my ($self, $ua, $forcePrimaryKey, $forceFields) = @_;
+sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
 
     if($self->{listonly}) {
         return (status => 403); # Forbidden
@@ -2318,8 +2303,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
             data    => $template);
 }
 
-sub get_autosave {
-    my ($self, $ua) = @_;
+sub get_autosave($self, $ua) {
 
     if($self->{listonly}) {
         return (status => 403); # Forbidden
@@ -2336,8 +2320,7 @@ sub get_autosave {
 
 }
 
-sub write_auditlog {
-    my ($self, $username, $mode, @data) = @_;
+sub write_auditlog($self, $username, $mode, @data) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

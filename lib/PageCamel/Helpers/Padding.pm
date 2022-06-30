@@ -1,8 +1,7 @@
 package PageCamel::Helpers::Padding;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 
@@ -22,8 +21,7 @@ use base qw(Exporter);
 our @EXPORT_OK = qw(doFPad doSpacePad trim doLeftSpacePad forceByteLength doCenterPad);
 
 
-sub doFPad {
-    my ($val, $len) = @_;
+sub doFPad($val, $len) {
     if(!defined($val) || !defined($len)) {
         print STDERR "ERROR: Undefined variable!\n";
     }
@@ -33,24 +31,21 @@ sub doFPad {
     return $val;
 }
 
-sub doSpacePad {
-    my ($val, $len) = @_;
+sub doSpacePad($val, $len) {
     while(length($val) < $len) {
         $val = "$val ";
     }
     return $val;
 }
 
-sub doLeftSpacePad {
-    my ($val, $len) = @_;
+sub doLeftSpacePad($val, $len) {
     while(length($val) < $len) {
         $val = " $val";
     }
     return $val;
 }
 
-sub doCenterPad {
-    my ($val, $len) = @_;
+sub doCenterPad($val, $len) {
     
     while(length($val) < $len) {
         $val = " $val";
@@ -63,15 +58,13 @@ sub doCenterPad {
     return $val;
 }
 
-sub trim {
-    my $string = shift;
+sub trim($string) {
     $string =~ s/^\s+//;
     $string =~ s/\s+$//;
     return $string;
 }
 
-sub forceByteLength {
-    my ($string, $len) = @_;
+sub forceByteLength($string, $len) {
     
     if(length($string) > $len) {
         $string = substr $string, 0, $len;

@@ -1,8 +1,7 @@
 package PageCamel::Helpers::WebCommandQueue;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 
 use WWW::Mechanize::GZip;
 use XML::Simple;
 
-sub new {
-    my ($proto, $baseurl) = @_;
+sub new($proto, $baseurl) {
     my $class = ref($proto) || $proto;
 
     my %config = (
@@ -35,8 +33,7 @@ sub new {
     return $self;
 }
 
-sub nextcommand {
-    my ($self, $command) = @_;
+sub nextcommand($self, $command) {
 
     my $result = $self->{mech}->get($self->{url} . "/getnext/$command");
     if(!$result->is_success) {
@@ -54,8 +51,7 @@ sub nextcommand {
     }
 }
 
-sub finished {
-    my ($self, $commandid, $status) = @_;
+sub finished($self, $commandid, $status) {
 
     my $result = $self->{mech}->get($self->{url} . "/markdone/$commandid/status");
     if(!$result->is_success) {

@@ -1,8 +1,7 @@
 package PageCamel::Helpers::UTF;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,8 +11,8 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 #---AUTOPRAGMAEND---
 
 use Encode qw(encode decode);
@@ -22,14 +21,12 @@ use base qw(Exporter);
 use PageCamel::Helpers::Padding qw(doSpacePad);
 our @EXPORT = qw(encode_utf8 decode_utf8 encode_utf8_array decode_utf8_array encode_utf16 decode_utf16 is_utf8); ## no critic (Modules::ProhibitAutomaticExportation)
 
-sub encode_utf8 {
-    my ($orig) = @_;
+sub encode_utf8($orig) {
 
     return encode('UTF-8', $orig);
 }
 
-sub decode_utf8 {
-    my ($orig) = @_;
+sub decode_utf8($orig) {
 
     return decode('UTF-8', $orig);
 }
@@ -57,20 +54,17 @@ sub decode_utf8_array {
 }
 
 
-sub encode_utf16 {
-    my ($orig) = @_;
+sub encode_utf16($orig) {
 
     return encode('UTF-16', $orig);
 }
 
-sub decode_utf16 {
-    my ($orig) = @_;
+sub decode_utf16($orig) {
 
     return decode('UTF-16', $orig);
 }
 
-sub is_utf8 {
-    my ($orig) = @_;
+sub is_utf8($orig) {
 
     return Encode::is_utf8($orig);
 }

@@ -1,8 +1,7 @@
 package PageCamel::Web::StandardFields;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -22,8 +21,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use Sys::Hostname;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -51,8 +49,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     # Create fields in system settings (if not existing)
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -109,14 +106,12 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_defaultwebdata("get_defaultwebdata");
     return;
 }
 
-sub crossregister {
-    my ($self) = @_;
+sub crossregister($self) {
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     my $hname = lc hostname;
@@ -128,8 +123,7 @@ sub crossregister {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

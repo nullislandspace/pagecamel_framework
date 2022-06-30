@@ -1,8 +1,7 @@
 package PageCamel::Web::DirSync::DirSync;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -23,8 +22,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Padding qw(doFPad);
 use PDF::Report;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -33,14 +31,12 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
     # Nothing to do
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{diredit}->{webpath}, "get_edit");
     $self->register_webpath($self->{dirselect}->{webpath}, "get_select");
     return;
@@ -48,8 +44,7 @@ sub register {
 
 # "get_select" actually only displays the available card list, POST
 # is done to the main mask to have a smoother workflow without redirects
-sub get_select {
-    my ($self, $ua) = @_;
+sub get_select($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -92,8 +87,7 @@ sub get_select {
 
 # "get_select" actually only displays the available card list, POST
 # is done to the main mask to have a smoother workflow without redirects
-sub get_edit {
-    my ($self, $ua) = @_;
+sub get_edit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

@@ -1,8 +1,7 @@
 package PageCamel::Helpers::Logging::Graphs;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use GD;
@@ -53,15 +52,13 @@ sub initColors {
 }
 
 
-sub registerPlugin {
-    my ($devicetype, $funcref) = @_;
+sub registerPlugin($devicetype, $funcref) {
 
     $plugins{$devicetype} = $funcref;
     return;
 }
 
-sub simpleGraph {
-    my ($dbh, $devicetype, $graphname, $hostname, $ctime, $starttime) = @_;
+sub simpleGraph($dbh, $devicetype, $graphname, $hostname, $ctime, $starttime) {
 
     if($starttime eq '-- ::') {
         # Compensate for datetimepicker mask when field is empty
@@ -92,8 +89,7 @@ sub simpleGraph {
     return genGraph($dbh, $graph, $table, $hostname, $ctime, $starttime);
 }
 
-sub genGraph {
-    my ($dbh, $graph, $table, $host, $ctime, $starttime) = @_;
+sub genGraph($dbh, $graph, $table, $host, $ctime, $starttime = '') {
 
     # Starttime is the time defining when the graph starts. If it is not defined, and endtime of
     # now() is presumed and starttime is now() - $timeframe
@@ -162,16 +158,9 @@ sub genGraph {
 }
 
 
-sub calcGraph { ## no critic (Subroutines::ProhibitManyArgs)
-    my ($dbh, $graph, $table, $host, $ctime, $starttime, $coredate, $datarows, $disable_legend) = @_;
-
+sub calcGraph($dbh, $graph, $table, $host, $ctime, $starttime, $coredate, $datarows, $disable_legend = false) {
     if(!$colorinit) {
         initColors();
-    }
-
-
-    if(!defined($disable_legend)) {
-        $disable_legend = 0;
     }
 
     my ($timeframe, $precision, $numElements) = parseCTime($ctime);
@@ -432,8 +421,7 @@ sub defaultImage {
 
 }
 
-sub parseCTime {
-    my ($ctime) = @_;
+sub parseCTime($ctime) {
 
     my $precision; # in seconds
     my $timeframe; # in seconds

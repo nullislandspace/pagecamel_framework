@@ -1,8 +1,7 @@
 package PageCamel::Helpers::DBSerialize;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 # Serialize/deserialize complex data structures in a way compatible to a
@@ -25,8 +24,7 @@ our @EXPORT = qw(dbfreeze dbthaw dbderef); ## no critic (Modules::ProhibitAutoma
 
 use YAML::Syck;
 
-sub dbfreeze {
-    my ($data) = @_;
+sub dbfreeze($data) {
 
     if(!defined($data)) {
         croak('$data is undefined in dbfreeze');
@@ -38,14 +36,12 @@ sub dbfreeze {
 
 }
 
-sub dbthaw {
-    my ($data) = @_;
+sub dbthaw($data) {
 
     return Load($data);
 }
 
-sub dbderef {
-    my ($val) = @_;
+sub dbderef($val) {
 
     return if(!defined($val));
 

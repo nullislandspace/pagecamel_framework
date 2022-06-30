@@ -1,8 +1,7 @@
 package PageCamel::Web::Style::Themes;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,17 +11,16 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -43,8 +41,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -61,16 +58,14 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{webpath}, "get");
     $self->register_prerender("prerender");
     $self->register_postauthfilter("redirect_themed_images");
     return;
 }
 
-sub get {
-    my ($self, $ua) = @_;
+sub get($self, $ua) {
 
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -103,8 +98,7 @@ sub get {
             data    => $template);
 }
 
-sub prerender {
-    my ($self, $webdata) = @_;
+sub prerender($self, $webdata) {
 
     my $userTheme = $self->{default_theme};
 
@@ -160,8 +154,7 @@ sub prerender {
 # "308 Permanent Redirect" is still an experimental RFC AND not what we want.
 # Just rewrite the URL internally
 # FIXME: Somehow fix the theme support so jQuery always goes to the correct path...
-sub redirect_themed_images {
-    my ($self, $ua) = @_;
+sub redirect_themed_images($self, $ua) {
 
     if($ua->{url} !~ /css\/themes/ && $ua->{url} =~ /^\/static\/images\/(ui\-.*\.png)$/) {
         my $oldfname = $1;

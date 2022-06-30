@@ -1,8 +1,7 @@
 package PageCamel::Radius::Rader;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Net::Server::Single);
@@ -23,8 +22,7 @@ use RADIUS::Dictionary;
 use RADIUS::Packet;
 use PageCamel::Radius::OATHusers;
 
-sub setConfig {
-    my ($self, $secret, $database) = @_;
+sub setConfig($self, $secret, $database) {
 
     $self->{secret} = $secret;
     $self->{database} = $database;
@@ -32,8 +30,7 @@ sub setConfig {
     return;
 }
 
-sub process_request {
-    my $self = shift;
+sub process_request($self) {
     my $prop = $self->{'server'};
 
     # This is a VERY simple RADIUS authentication server which responds

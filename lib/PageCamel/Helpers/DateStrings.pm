@@ -1,8 +1,7 @@
 package PageCamel::Helpers::DateStrings;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use PageCamel::Helpers::Padding qw(doFPad);
@@ -54,8 +53,7 @@ my %timemap = (
 my $timemap_updated = "";
 my $timezoneoffset = 0;
 
-sub setmylocaltime {
-    my ($lt) = @_;
+sub setmylocaltime($lt) {
 
     $timezoneoffset = $lt;
     return 1;
@@ -173,8 +171,7 @@ sub getUTCISODate {
 }
 
 
-sub getISODate_nDaysOffset {
-    my ($nDays) = @_;
+sub getISODate_nDaysOffset($nDays) {
     my ($sec,$min, $hour, $mday,$mon, $year, $wday,$yday, $isdst) = localtime(time + (86_400 * $nDays));
     $year += $YEARBASEOFFSET;
     $mon += 1;
@@ -273,9 +270,7 @@ my %expiresmultiplier = (
     'Y' => 60*60*24*365,
 );
 
-sub getWebdate {
-    my ($num, $reloffset) = @_;
-
+sub getWebdate($num = undef, $reloffset = undef) {
     if(!defined($num)) {
         $num = time;
     }
@@ -292,8 +287,7 @@ sub getWebdate {
     return time2str($timezoneoffset + $num);
 }
 
-sub parseWebdate {
-    my ($str) = @_;
+sub parseWebdate($str) {
 
     if($str =~ /^([+-])(\d+(\.\d+)?)(\w)/) {
         my %multipliers = (
@@ -383,8 +377,7 @@ sub getWindowsDateAndTime {
     return ("$mday-$mon-$year", "$hour:$min:$sec");
 }
 
-sub getLastModifiedWebdate {
-    my ($fname) = @_;
+sub getLastModifiedWebdate($fname) {
 
     my $epoch_timestamp = (stat($fname))[9];
     return time2str($epoch_timestamp);
@@ -403,8 +396,7 @@ sub isAprilFoolsDay {
     return 0;
 }
 
-sub parseNaturalDate {
-    my ($dateString) = @_;
+sub parseNaturalDate($dateString) {
 
     updateTimeMap();
 
@@ -446,9 +438,7 @@ sub parseNaturalDate {
     }
 }
 
-sub fixDateField {
-    my ($date) = @_;
-
+sub fixDateField($date) {
     if(!defined($date)) {
         return "";
     }
@@ -482,8 +472,7 @@ sub offsetISODate {
     return $newtime;
 }
 
-sub getScanspeedDate {
-    my ($scanspeed) = @_;
+sub getScanspeedDate($scanspeed) {
 
     my ($sec,$min, $hour, $mday,$mon, $year, $wday,$yday, $isdst) = getmylocaltime();
 
@@ -512,8 +501,7 @@ sub getScanspeedDate {
     return "$year$mon$mday$hour$min$sec";
 }
 
-sub timeToSeconds {
-    my ($timestring)  = @_;
+sub timeToSeconds($timestring) {
 
     my ($hours, $minutes) = split/\:/, $timestring;
 
@@ -551,8 +539,7 @@ sub eternalseptemberize {
     return $result;
 }
 
-sub secondsToInterval {
-    my ($seconds) = @_;
+sub secondsToInterval($seconds) {
 
     my $interval = '';
     my @divisors = (60, 60, 24);

@@ -1,8 +1,7 @@
 package PageCamel::CMDLine::DNS;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use PageCamel::Helpers::ConfigLoader;
@@ -23,19 +22,19 @@ use PageCamel::Helpers::Logo;
 use Sys::Hostname;
 use PageCamel::DNS;
 
-sub new {
-    my ($class, $isDebugging, $isVerbose, $configfile) = @_;
+sub new($class, $isDebugging, $isVerbose, $configfile) {
     my $self = bless {}, $class;
 
     $self->{isDebugging} = $isDebugging;
     $self->{isVerbose} = $isVerbose;
     $self->{configfile} = $configfile;
 
+    print "**** DEBUGGING MODE ****\n" if($self->{isDebugging});
+
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
 
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -91,7 +90,8 @@ sub init {
     }
 
     my $hname = hostname;
-    PageCamel::DNS::setThreadingMode($self->{isDebugging});
+    #PageCamel::DNS::setThreadingMode($self->{isDebugging});
+    PageCamel::DNS::setThreadingMode(0);
     my $nameserver = PageCamel::DNS->new();
     $nameserver->doConfig($self->{isDebugging}, $self->{isVerbose}, $config->{$hname}, $config);
 
@@ -101,8 +101,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     # Let STDOUT/STDERR settle down first
     sleep(0.1);

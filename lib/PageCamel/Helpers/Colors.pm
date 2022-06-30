@@ -1,8 +1,7 @@
 package PageCamel::Helpers::Colors;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 
@@ -22,8 +21,7 @@ use base qw(Exporter);
 
 our @EXPORT_OK = qw(colorHex2RGB colorRGB2Hex colorMaxContrast colorHexMaxContrast);
 
-sub colorHex2RGB {
-    my ($colorstring) = @_;
+sub colorHex2RGB($colorstring) {
     
     my @rgb = (0, 0, 0);
     my @hexrgb;
@@ -38,14 +36,12 @@ sub colorHex2RGB {
     return @rgb;
 }
 
-sub colorRGB2Hex {
-    my ($r, $g, $b) = @_;
+sub colorRGB2Hex($r, $g, $b) {
 
     return sprintf("#%02lx%02lx%02lx", $r, $g, $b);
 }
 
-sub colorMaxContrast {
-    my ($r, $g, $b) = @_;
+sub colorMaxContrast($r, $g, $b) {
 
     my ($newr, $newg, $newb);
 
@@ -84,8 +80,7 @@ sub colorMaxContrast {
     return ($newr, $newg, $newb);
 }
 
-sub colorHexMaxContrast {
-    my ($colorstring) = @_;
+sub colorHexMaxContrast($colorstring) {
 
     return colorRGB2Hex(colorMaxContrast(colorHex2RGB($colorstring)));
 }

@@ -1,8 +1,7 @@
 package PageCamel::Radius::OATHusers;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,16 +11,15 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use PageCamel::Helpers::Passwords;
 use DBI;
 
-sub new {
-    my ($class) = @_;
+sub new($class) {
     my $self = bless {}, $class;
 
     croak("This module needs a rewrite for new Passwords handling code (see Helpers::Passwords)");
@@ -29,8 +27,7 @@ sub new {
     return $self;
 }
 
-sub validate {
-    my ($self, $database, $username, $password, $service) = @_;
+sub validate($self, $database, $username, $password, $service) {
 
     # Missing fields
     if(!defined($username) || !defined($password) || !defined($service) ||

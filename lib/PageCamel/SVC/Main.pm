@@ -1,8 +1,7 @@
 package PageCamel::SVC::Main;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 # PAGECAMEL  (C) 2008-2020 Rene Schickbauer
 # Developed under Artistic license
@@ -56,6 +55,7 @@ sub new {
     }
     $self->{clacks}->store("VERSION::" . $APPNAME, $APPVERSION);
     $self->{clacks}->remove("StopSVC");
+    $self->{clacks}->doNetwork();
     $self->{is_configured} = 0;
 
 
@@ -71,8 +71,7 @@ sub new {
     return $self;
 }
 
-sub checkDatabase {
-    my ($self) = @_;
+sub checkDatabase($self) {
 
     if(defined($self->{dbh}) && !$self->{dbh}->ping) {
         $self->{dbh}->disconnect;
@@ -88,24 +87,21 @@ sub checkDatabase {
     return;
 }
 
-sub setRealPerlBinary {
-    my ($self, $binary) = @_;
+sub setRealPerlBinary($self, $binary) {
 
     print "** SETTING REAL PERL BINARY TO $binary **\n";
     $self->{realperlbinary} = $binary;
     return;
 }
 
-sub requestStop {
-    my ($self) = @_;
+sub requestStop($self) {
 
     my $tmp = 1;
     $self->{clacks}->store("StopSVC", $tmp);
     return;
 }
 
-sub shouldStop {
-    my ($self) = @_;
+sub shouldStop($self) {
 
     my $stop = $self->{clacks}->retrieve("StopSVC");
     if(!defined($stop) || $stop != 1){
@@ -116,15 +112,13 @@ sub shouldStop {
 
 }
 
-sub setServerStatus {
-    my ($self, $status) = @_;
+sub setServerStatus($self, $status) {
 
     $self->{clacks}->store("SVCRunningStatus", $status);
     return;
 }
 
-sub getServerStatus {
-    my ($self) = @_;
+sub getServerStatus($self) {
 
     my $status = $self->{clacks}->retrieve("SVCRunningStatus");
     if(!defined($status)){
@@ -135,8 +129,7 @@ sub getServerStatus {
 
 }
 
-sub startconfig {
-    my ($self) = @_;
+sub startconfig($self) {
 
     $self->{apps} = ();
     $self->{startup_scripts} = ();
@@ -144,8 +137,7 @@ sub startconfig {
     return;
 }
 
-sub configure_module {
-    my ($self, $module) = @_;
+sub configure_module($self, $module) {
 
     print "Configuring module " . $module->{description} . "...\n";
     $module->{handle} = undef;
@@ -196,16 +188,14 @@ sub configure_module {
     return;
 }
 
-sub configure_startup {
-    my ($self, $command) = @_;
+sub configure_startup($self, $command) {
 
     $command =~ s/\//\\/g;
     push @{$self->{startup_scripts}}, $command;
     return;
 }
 
-sub configure_shutdown {
-    my ($self, $command) = @_;
+sub configure_shutdown($self, $command) {
 
     $command =~ s/\//\\/g;
     push @{$self->{shutdown_scripts}}, $command;
@@ -213,16 +203,14 @@ sub configure_shutdown {
 }
 
 
-sub endconfig {
-    my ($self) = @_;
+sub endconfig($self) {
     $self->{shutdown_complete} = 1;
     $self->{is_configured} = 1;
     return;
 
 }
 
-sub startup {
-    my ($self) = @_;
+sub startup($self) {
 
     # "Don't fear the Reaper"
     $SIG{CHLD} = 'IGNORE';
@@ -280,8 +268,10 @@ sub startup {
 # apps in a round-robin fashion, so a single always-crashing app doesn't stop "later" apps from getting proper
 # treatment.
 # This should also allow better interactivity during startup. 
-sub work {
-    my ($self) = @_;
+# Rewrote again: Still CHECK all apps round-robin if there is work to be done, until we either
+# do a full loop-around or we find ONE that needed stuff to be done to it. This will give a better
+# response time, since we don't have to wait a full loop time for a single app to be started/stopped.
+sub work($self) {
 
     my $workCount = 0;
 
@@ -294,17 +284,25 @@ sub work {
     $workCount += $self->handleClacksCommands();
 
     {
-        my $app = $self->{apps}->[$self->{nextappindex}];
-        $self->{nextappindex}++;
-        if($self->{nextappindex} == scalar @{$self->{apps}}) {
-            $self->{nextappindex} = 0;
-        }
+        my $currentappindex = $self->{nextappindex};
+        while(1) {
+            my $app = $self->{apps}->[$self->{nextappindex}];
+            $self->{nextappindex}++;
+            if($self->{nextappindex} == scalar @{$self->{apps}}) {
+                $self->{nextappindex} = 0;
+            }
 
-        my $didwork = $self->check_app($app);
-        $self->{clacks}->doNetwork();
+            my $didwork = $self->check_app($app);
+            $self->{clacks}->doNetwork();
 
-        if($didwork) {
-            $workCount++;
+            if($didwork) {
+                $workCount++;
+                last;
+            }
+
+            if($self->{nextappindex} == $currentappindex) {
+                last;
+            }
         }
     }
 
@@ -339,8 +337,7 @@ sub work {
     return $workCount;
 }
 
-sub handleClacksCommands {
-    my ($self) = @_;
+sub handleClacksCommands($self) {
 
     my $workCount = 0;
     my $done = 0;
@@ -447,8 +444,7 @@ sub handleClacksCommands {
     return $workCount;
 }
 
-sub shutdownsvc {
-    my ($self) = @_;
+sub shutdownsvc($self) {
 
     if($self->{is_configured} == 1) {
         print "Shutdown started.\n";
@@ -468,22 +464,19 @@ sub shutdownsvc {
     return;
 }
 
-sub disable_service {
-    my ($self, $svcname) = @_;
+sub disable_service($self, $svcname) {
 
     $self->{sysh}->set('pagecamel_services', $svcname . '_enable', 0);
     return;
 }
 
-sub enable_service {
-    my ($self, $svcname) = @_;
+sub enable_service($self, $svcname) {
 
     $self->{sysh}->set('pagecamel_services', $svcname . '_enable', 1);
     return;
 }
 
-sub check_service {
-    my ($self, $svcname) = @_;
+sub check_service($self, $svcname) {
 
     my ($ok, $refstatus) = $self->{sysh}->get('pagecamel_services', $svcname . '_status');
 
@@ -493,8 +486,7 @@ sub check_service {
     return $refstatus->{settingvalue};
 }
 
-sub check_app {
-    my ($self, $app) = @_;
+sub check_app($self, $app) {
 
 
     my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
@@ -504,8 +496,10 @@ sub check_app {
     }
     my $shouldrun = $refshouldrun->{settingvalue};
 
+    if(0 && $app->{status_name} eq 'demo_pos_worker_status') {
+        print $app->{status_name}, ": Shouldrun: ", $shouldrun, " Running: ", defined($app->{handle}), "\n";
+    }
     if($shouldrun && !defined($app->{handle})) {
-
         $self->{clacks}->set($app->{clacks_name}, 2); # Blue
         $self->{clacks}->doNetwork();
         $self->start_app($app);
@@ -521,10 +515,11 @@ sub check_app {
         return 0;
     }
 
+
     my $checker = Unix::PID->new();
 
     # First, check if the process exited
-    if(!$checker->is_pid_running($app->{handle})) {
+    if(!defined($app->{handle}) || !$checker->is_pid_running($app->{handle})) {
         # Process exited, so, restart
         $self->{clacks}->set($app->{clacks_name}, 2); # Blue
         $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
@@ -544,7 +539,7 @@ sub check_app {
         my $pid = $app->{handle};
         my $apptick = $app->{apptick};
         if($apptick == -1) {
-            # Client requested a temporary suspension of lifetick handling or has not sent a livetick yet
+            # Client requested a temporary suspension of lifetick handling
             $self->{clacks}->set($app->{clacks_name}, 1);
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
             $self->{clacks}->doNetwork();
@@ -555,10 +550,12 @@ sub check_app {
             # Stale lifetick
             print "Stale Lifetick detected: " . $app->{description} . "!\n";
             $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
-            $self->stop_app($app);
+            $self->kill_app($app);
             $self->{clacks}->set($app->{clacks_name}, 3); # Purple ("lifetick error")
             $self->{clacks}->doNetwork();
-            $self->start_app($app);
+
+            # Don't start app immediately, let it start "naturally" in the course of cycling through all apps
+            #$self->start_app($app);
             return 1;
         } else {
             return 0;
@@ -569,8 +566,7 @@ sub check_app {
     return 0;
 }
 
-sub start_app {
-    my ($self, $app) = @_;
+sub start_app($self, $app) {
 
     my $pid = fork();
 
@@ -579,7 +575,11 @@ sub start_app {
         print "Forked " . $app->{app} . " has PID $pid\n";
         $app->{handle} = $pid;
         $app->{apptick} = -1;
-        my $stime = time;
+        if($app->{lifetick} > 0) {
+            # Make sure we start checking apptick right away after starting the application. This prevents indefinite hangs on startup of applications
+            $app->{apptick} = time;
+        }
+
         for(1..3) {
             sleep(1); # Sleep a few seconds to allow the application to start up without
                       # too much conflicts with PageCamelSVC and other services to be started
@@ -603,8 +603,7 @@ sub start_app {
     return;
 }
 
-sub stop_app {
-    my ($self, $app) = @_;
+sub stop_app($self, $app) {
 
     $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
     $self->{clacks}->set($app->{clacks_name}, 0);
@@ -634,15 +633,13 @@ sub stop_app {
             `$killcmd`;
         }
         print "...killed.\n";
-        $self->{clacks}->remove("LIFETICK::" . $pid);
     } else {
         print "App " . $app->{description} . " already killed\n";
     }
     return;
 }
 
-sub kill_app {
-    my ($self, $app) = @_;
+sub kill_app($self, $app) {
 
     if(defined($app->{handle}) && $app->{handle}) {
         $self->{clacks}->set($app->{clacks_name}, 1); # Red
@@ -674,8 +671,7 @@ sub kill_app {
     return;
 }
 
-sub run_script {
-    my ($self, $command) = @_;
+sub run_script($self, $command) {
 
     print "Running command '$command':\n";
     my @lines = `$command`;
@@ -687,8 +683,7 @@ sub run_script {
     return 1;
 }
 
-sub resetServer {
-    my ($self) = @_;
+sub resetServer($self) {
 
     print"  Flushing ClacksCache...\n";
     $self->{clacks}->clearcache();

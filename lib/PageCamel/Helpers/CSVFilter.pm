@@ -1,8 +1,7 @@
 package PageCamel::Helpers::CSVFilter;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,23 +11,21 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 
 use PageCamel::Helpers::FileSlurp qw(slurpTextFile);
 
 
-sub new {
-    my ($class, %config) = @_;
+sub new($class, %config) {
     my $self = bless \%config, $class;
     return $self;
 }
 
-sub filter {
-    my $self = shift;
+sub filter($self) {
 
     my (@headers, @headcount, @lines);
 

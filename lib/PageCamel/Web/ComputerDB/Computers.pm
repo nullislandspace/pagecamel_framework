@@ -1,8 +1,7 @@
 package PageCamel::Web::ComputerDB::Computers;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -23,8 +22,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Padding qw(doFPad);
 use PDF::Report;
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     my (@keynames, @nullfields, @readonlykeynames, %datatypes);
 
@@ -59,8 +57,7 @@ sub reload {
     return;
 }
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -71,8 +68,7 @@ sub new {
 
 
 
-sub register {
-    my $self = shift;
+sub register($self) {
     $self->register_webpath($self->{computeredit}->{webpath}, "get_edit");
     $self->register_webpath($self->{computerselect}->{webpath}, "get_select");
     $self->register_webpath($self->{computervnc}->{webpath}, "get_vncedit");
@@ -81,8 +77,7 @@ sub register {
 
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning
 # of Perl::Critic
-sub get_edit { ## no critic (ProhibitExcessComplexity)
-    my ($self, $ua) = @_;
+sub get_edit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -607,13 +602,7 @@ sub get_edit { ## no critic (ProhibitExcessComplexity)
 
 # "get_select" actually only displays the available card list, POST
 # is done to the main mask to have a smoother workflow without redirects
-sub get_select {
-    my ($self, $ua, $afterdelete) = @_;
-
-    if(!defined($afterdelete)) {
-        $afterdelete = 0;
-    }
-
+sub get_select($self, $ua, $afterdelete = false) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
@@ -677,8 +666,7 @@ sub get_select {
 
 # VNCEdit is a quickedit tool to quickly changes VNC access rights on a number
 # of computers
-sub get_vncedit {
-    my ($self, $ua) = @_;
+sub get_vncedit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

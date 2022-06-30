@@ -379,7 +379,32 @@
                     $(this).css('font-family', ttvars.fontface);
                 });
 
+                if(ttvars.keyfoblogout == "1") {
+                    setInterval(runFobLogoutReader, 1000);
+                }
+
             });
+
+            var foblogoutreader = new XMLHttpRequest();
+            var foblogoutrunning = 0;
+            function runFobLogoutReader() {
+                if(foblogoutrunning == 1) {
+                    return;
+                }
+                foblogoutreader.open("GET", 'http://localhost:8080', true);
+                foblogoutreader.onreadystatechange=function() {
+                    if(foblogoutreader.readyState == 4) {
+                        var newfob = foblogoutreader.responseText;
+                        if(newfob == '') {
+                            console.log("Starting FOB logout...");
+                            foblogoutrunning = 1;
+                            $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogout + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+                            location.href="/user/logout";
+                        }
+                    }
+                }
+                foblogoutreader.send(null);
+            }
 
 
             function ShowAprilFools() {
@@ -498,6 +523,8 @@
             data-enabledb="[% EnableDB %]"
             data-fontfamily="[% UIThemeFont %]"
             data-fontface="[% UIThemeFontFace %]"
+            data-keyfoblogout="[% userData.keyfob_logout %]"
+            data-trquote-keyfoblogout="[% tr.trquote("Key fob logout...") %]"
         ></span>
         <!-- master template TT vars dataset -->
 
@@ -538,22 +565,24 @@
             <div class="webgui_projectmottobar">
                 <div class="webgui_projectmottotext">[% ProjectMotto %]</div>
                 <div class="webgui_projectloginlink">
-                    [% IF userData.user == 'guest' %]
+                    [% IF userData.user == '' || userData.user == 'guest' %]
                         <a class="webgui_projectloginlink" href="/user/login">[% tr.trquote("Login") %]</a>
                         [% IF canRegisterUsers == 1 %]
                             / <a class="webgui_projectloginlink" href="/user/register">[% tr.trquote("Register") %]</a>
                         [% END %]
                     [% ELSE %]
+                        [% IF userData.keyfob_logout %]<i>[% END %]
                         [% IF IsAprilFoolsDay == "1" %]
-                            <div class="webgui_projectusername">The great and powerful [% userData.first_name %]&nbsp;/&nbsp;
+                            <div class="webgui_projectusername">The great and powerful [% tr.quote(userData.first_name) %]&nbsp;/&nbsp;
                         [% ELSE %]
-                            <div class="webgui_projectusername">[% userData.first_name %] [% userData.last_name %][% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
+                            <div class="webgui_projectusername">[% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %][% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
                         [% END %]
                         <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a>
                         [% IF userData.hasrealuser == 1 %]
                             / <a class="webgui_projectloginlink" href="/user/switchback">[% tr.trquote("Back") %]</a>
                         [% END %]
                         </div>
+                        [% IF userData.keyfob_logout %]</i>[% END %]
                     [% END %]
                 </div>
             </div>
@@ -610,10 +639,12 @@
                                                 [% IF PageTitle == "Login" %]activemenutab="1"[% END %]>
                                                 [% tr.trquote("Login") %][% IF PageTitle == "Login" %]*[% END %]
                                             </a>
+                                            [% IF canResetPassword == 1 %]
                                             <a id="reset_password_button" name="menutab" href="/user/pwreset" pagecamelnavdestination="/user/pwreset"
                                                 [% IF PageTitle == "Reset Password" %]activemenutab="1"[% END %]>
                                                 [% tr.trquote("Reset password") %][% IF PageTitle == "Reset Password" %]*[% END %]
                                             </a>
+                                            [% END %]
                                             [% IF canRegisterUsers == 1 %]
                                                 <a id="register_account_button" name="menutab" href="/user/register" pagecamelnavdestination="/user/register"
                                                     [% IF PageTitle == "Register new account" %]activemenutab="1"[% END %]>
@@ -823,9 +854,9 @@
                         [% tr.trquote("Please login or register.") %]
                     [% ELSE %]
                         [% tr.trquote("Username") %]: [% userData.user %]<br/>
-                        [% tr.trquote("First name") %]: [% userData.first_name %]<br/>
-                        [% tr.trquote("Last name") %]: [% userData.last_name %]<br/>
-                        [% tr.trquote("Email") %]: [% userData.email_addr %]
+                        [% tr.trquote("First name") %]: [% tr.quote(userData.first_name) %]<br/>
+                        [% tr.trquote("Last name") %]: [% tr.quote(userData.last_name) %]<br/>
+                        [% tr.trquote("Email") %]: [% tr.quote(userData.email_addr) %]
                     [% END %]
                 </span>
             </p>

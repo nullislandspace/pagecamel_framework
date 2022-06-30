@@ -1,8 +1,7 @@
 package PageCamel::SVC::Settings;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 # PAGECAMEL  (C) 2008-2020 Rene Schickbauer
 # Developed under Artistic license
@@ -22,8 +21,7 @@ no warnings qw(experimental::signatures);
 use base qw(PageCamel::Helpers::SystemSettings);
 use PageCamel::Helpers::ClacksCache;
 
-sub new {
-    my ($proto, $dbh, $clacks) = @_;
+sub new($proto, $dbh, $clacks) {
     my $class = ref($proto) || $proto;
     
     my %tmp;

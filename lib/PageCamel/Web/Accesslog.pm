@@ -1,8 +1,7 @@
 package PageCamel::Web::Accesslog;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,16 +11,15 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -34,8 +32,7 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_logstart("logstart");
     $self->register_logend("logend");
@@ -44,8 +41,7 @@ sub register {
     return;
 }
 
-sub logstart {
-    my ($self, $ua) = @_;
+sub logstart($self, $ua) {
 
     my $webpath = $ua->{url} || '--unknown--';
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -127,8 +123,7 @@ sub logstart {
     return;
 }
 
-sub logend {
-    my ($self, $ua, $header, $result) = @_;
+sub logend($self, $ua, $header, $result) {
 
     return if(!defined($self->{requestdata}));
 
@@ -213,8 +208,7 @@ sub logend {
     return;
 }
 
-sub get_defaultwebdata {
-    my ($self, $webdata) = @_;
+sub get_defaultwebdata($self, $webdata) {
 
     $webdata->{__do_not_log_to_accesslog} = 0;
     return;

@@ -2,9 +2,8 @@
 # Developed under Artistic license
 package PageCamel::Worker::Minecraft::PlayerCoords;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -14,9 +13,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 use base qw(PageCamel::Worker::BaseModule);
 use PageCamel::Helpers::DateStrings;
@@ -32,8 +31,7 @@ use PageCamel::Helpers::FileSlurp qw[writeBinFile];
 use Digest::SHA1 qw[sha1_hex];
 use Net::Clacks::Client;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -44,8 +42,7 @@ sub new {
     return $self;
 }
 
-sub reload {
-    my ($self) = shift;
+sub reload($self) {
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -73,16 +70,14 @@ sub reload {
     return;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_worker("work_cycle");
 
     return;
 }
 
-sub work_cycle {
-    my ($self) = @_;
+sub work_cycle($self) {
 
     my $workCount = 0;
     my ($ok, $sval, $mode);
@@ -135,8 +130,7 @@ sub work_cycle {
     return $workCount;
 }
 
-sub updateCoords {
-    my ($self, $data) = @_;
+sub updateCoords($self, $data) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -231,8 +225,7 @@ sub updateCoords {
     return $workCount;
 }
 
-sub updateSkins {
-    my ($self) = @_;
+sub updateSkins($self) {
 
     my $workCount = 0;
 
@@ -339,8 +332,7 @@ sub updateSkins {
     return $workCount;
 }
 
-sub recordCoords {
-    my ($self) = @_;
+sub recordCoords($self) {
 
     my $workCount = 0;
 
@@ -395,8 +387,7 @@ sub recordCoords {
     return $workCount;
 }
 
-sub playbackCoords {
-    my ($self) = @_;
+sub playbackCoords($self) {
 
     my $workCount = 0;
 
@@ -489,8 +480,7 @@ sub playbackCoords {
 }
 
 
-sub getNameFromUUID {
-    my ($self, $uuid) = @_;
+sub getNameFromUUID($self, $uuid) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $mech = WWW::Mechanize::GZip->new();
@@ -526,8 +516,7 @@ sub getNameFromUUID {
     return $username;
 }
 
-sub getIcons {
-    my ($self, $playername) = @_;
+sub getIcons($self, $playername) {
 
     my $skindata = $self->loadRawSkin($playername);
     my $alive = $self->renderIcon($playername, $skindata, 0);
@@ -536,8 +525,7 @@ sub getIcons {
     return $alive, $dead;
 }
 
-sub loadRawSkin {
-    my ($self, $playername) = @_;
+sub loadRawSkin($self, $playername) {
 
     my $skindata;
 
@@ -569,8 +557,7 @@ sub loadRawSkin {
     return $skindata;
 }
 
-sub renderIcon {
-    my ($self, $playername, $skindata, $isdead) = @_;
+sub renderIcon($self, $playername, $skindata, $isdead) {
 
     my $src = GD::Image->newFromPngData($skindata, 1);
     my $wings = GD::Image->newFromPngData(getAngelWings(), 1);
@@ -679,8 +666,7 @@ sub getAngelWings {
         ");
 }
 
-sub parseUserdata {
-    my ($raw) = @_;
+sub parseUserdata($raw) {
 
     $raw =~ s/\[//g;
     $raw =~ s/\]//g;

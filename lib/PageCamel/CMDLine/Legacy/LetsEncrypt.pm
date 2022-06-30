@@ -2,9 +2,8 @@
 # Developed under Artistic license
 package PageCamel::CMDLine::Legacy::LetsEncrypt;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -14,9 +13,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 use IO::File;
 use JSON::MaybeXS;
@@ -37,8 +36,7 @@ use Sys::Hostname;
 #use constant PEER_CRT  => 4;
 #use constant CRT_DEPTH => 5;
 
-sub new {
-    my ($proto, $configfile, $isDebugging, $isVerbose) = @_;
+sub new($proto, $configfile, $isDebugging, $isVerbose) {
     my $class = ref($proto) || $proto;
 
     print "Loading config file ", $configfile, "\n";
@@ -84,8 +82,7 @@ sub new {
 
 my $needrestart;
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     chdir($self->{homedir});
     my $lastrun = '';
@@ -150,8 +147,7 @@ sub run {
 # -----------------------------------
 # HELLLO WOOOOOORLLLLLLLLLDDDDDDDDDDD
 # -----------------------------------
-sub debuglog {
-    my ($self, @args) = @_;
+sub debuglog($self, @args) {
 
     #return unless($self->{isDebugging});
 
@@ -160,8 +156,7 @@ sub debuglog {
     return;
 }
 
-sub work { ## no critic (Subroutines::ProhibitExcessComplexity)
-    my ($self, $opt) = @_;
+sub work($self, $opt) {
     my $rv = $self->parse_options($opt);
     return $rv if $rv;
 
@@ -312,8 +307,7 @@ sub work { ## no critic (Subroutines::ProhibitExcessComplexity)
     return { code => $opt->{'issue-code'}||0 };
 }
 
-sub parse_options {
-    my ($self, $opt) = @_;
+sub parse_options($self, $opt) {
 
     $self->debuglog("[ ZeroSSL Crypt::LE client v$VERSION started. ]");
     $self->debuglog("Could not encode arguments, support for internationalized domain names may not be available.") if $opt->{'e'};
@@ -428,8 +422,7 @@ sub encode_args {
     return $@;
 }
 
-sub _register {
-    my ($self, $le, $opt) = @_;
+sub _register($self, $le, $opt) {
     return $self->_error("Could not load the resource directory: " . $le->error_details) if $le->directory;
     $self->debuglog("Registering the account key");
     return $self->_error($le->error_details) if $le->register;
@@ -443,8 +436,7 @@ sub _register {
     return 0;
 }
 
-sub _puny {
-    my $domain = shift;
+sub _puny($domain) {
     my @rv = ();
     for (split /\./, $domain) {
         my $enc = encode_punycode($_);
@@ -453,8 +445,7 @@ sub _puny {
     return join '.', @rv;
 }
 
-sub _path_mismatch {
-    my ($self, $le, $opt) = @_;
+sub _path_mismatch($self, $le, $opt) {
     if ($opt->{'path'} and my $domains = $le->domains) {
         my @paths = grep {$_} split /\s*,\s*/, $opt->{'path'};
         if (@paths > 1) {
@@ -467,8 +458,7 @@ sub _path_mismatch {
     return 0;
 }
 
-sub _load_params {
-    my ($self, $opt, $type) = @_;
+sub _load_params($self, $opt, $type) {
     return unless ($opt and $opt->{$type});
     if ($opt->{$type}!~/[\{\[\}\]]/) {
         $opt->{$type} = $self->_read($opt->{$type});
@@ -482,8 +472,7 @@ sub _load_params {
         $self->_error("Could not decode '$type'. Please make sure you are providing a valid JSON document and {} are in place." . ($opt->{'debug'} ? $@ : '')) : 0;
 }
 
-sub _read {
-    my ($self, $file) = @_;
+sub _read($self, $file) {
     return unless (-e $file and -r _);
     my $fh = IO::File->new();
     $fh->open($file, '<:encoding(UTF-8)') or return;
@@ -493,8 +482,7 @@ sub _read {
     return $src;
 }
 
-sub _write {
-    my ($self, $file, $content) = @_;
+sub _write($self, $file, $content) {
     return 1 unless ($file and $content);
     my $fh = IO::File->new($file, 'w');
     return 1 unless defined $fh;
@@ -504,13 +492,11 @@ sub _write {
     return 0;
 }
 
-sub _error {
-    my ($self, $msg, $code) = @_;
+sub _error($self, $msg, $code) {
     return { msg => $msg, code => $code||255 };
 }
 
-sub process_challenge_dns {
-    my ($challenge, $params) = @_; # $self gets passed as parameter in callback
+sub process_challenge_dns($challenge, $params) {
     my $self = $params->{caller};
     my $value = encode_base64url(sha256("$challenge->{token}.$challenge->{fingerprint}"));
     my $tld = $challenge->{domain};
@@ -545,8 +531,7 @@ sub process_challenge_dns {
     return 1;
 }
 
-sub process_verification_dns {
-    my ($results, $params) = @_; # $self gets passed as parameter in callback
+sub process_verification_dns($results, $params) {
     my $self = $params->{caller};
     $self->debuglog("Processing the 'dns' verification for '$results->{domain}'");
     if ($results->{valid}) {
@@ -580,8 +565,7 @@ sub process_verification_dns {
     return 1;
 }
 
-sub remoteCall {
-    my ($self, $command, @options) = @_;
+sub remoteCall($self, $command, @options) {
     my $error = 0;
 
     my $xmlrpc = XML::RPC->new($self->{remotedns}->{url}, ("User-Agent" => "PageCamel LetsEncrypt/$VERSION"));

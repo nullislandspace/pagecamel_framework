@@ -1,8 +1,7 @@
 package PageCamel::CMDLine::WebBackend;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use IO::Select;
@@ -40,20 +39,20 @@ sub REAPER {
     return;
 }
 
-sub new {
-    my ($class, $isDebugging, $configfile) = @_;
+sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
     
     $self->{isDebugging} = $isDebugging;
     $self->{configfile} = $configfile;
     
     $self->init();
+
+    $Carp::Verbose = 1;
     
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init($self) {
     
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
@@ -100,7 +99,7 @@ sub init {
     
     my $webserver = PageCamel::WebBase->new($config);
     
-    $webserver->startconfig($config->{server}, $self->{isDebugging}, $ps_appname);
+    $webserver->startconfig();
     
     my @modlist = @{$config->{module}};
     foreach my $module (@modlist) {
@@ -143,8 +142,7 @@ sub init {
     return;
 }
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     while(1) {
         my @connections = $self->{select}->can_read();
@@ -183,12 +181,12 @@ sub run {
     return;
 }
 
-sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
-    my ($self, $client) = @_;
+sub handleClient($self, $client) {
 
     my $ok = 0;
 
     my $header = $self->readFrontendheader($client);
+
 
     $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -261,8 +259,7 @@ sub handleClient { ## no critic (Subroutines::RequireFinalReturn)
     $self->endprogram($header, "exit(0)");
 }
 
-sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
-    my ($self, $header, $debugmessage) = @_;
+sub endprogram($self, $header, $debugmessage) {
 
     if($debugmessage !~ /exit\(0\)/) {
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
@@ -279,8 +276,7 @@ sub endprogram { ## no critic (Subroutines::RequireFinalReturn)
     }
 }
 
-sub readFrontendheader {
-    my ($self, $client) = @_;
+sub readFrontendheader($self, $client) {
 
     my $line = '';
     while(1) {

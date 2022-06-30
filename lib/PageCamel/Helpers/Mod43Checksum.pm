@@ -1,8 +1,7 @@
 package PageCamel::Helpers::Mod43Checksum;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,13 +11,12 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
-sub new {
-    my $class = shift;
+sub new($class) {
     my $self = bless {}, $class;
 
     my @keycodes = (
@@ -72,8 +70,7 @@ sub new {
     return $self;
 }
 
-sub keytonum {
-    my ($self, $val) = @_;
+sub keytonum($self, $val) {
 
     $val = lc $val;
     my $num = 0;
@@ -87,8 +84,7 @@ sub keytonum {
     return $num;
 }
 
-sub numtokey {
-    my ($self, $val) = @_;
+sub numtokey($self, $val) {
 
     my $key = '';
     my $count = scalar @{$self->{keycodes}};
@@ -99,8 +95,7 @@ sub numtokey {
     return $self->{keycodes}->[$val];
 }
 
-sub genChecksum {
-    my ($self, $val) = @_;
+sub genChecksum($self, $val) {
 
     $val = uc $val;
     my $sum = 0;

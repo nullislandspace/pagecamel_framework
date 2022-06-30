@@ -1,8 +1,7 @@
 package PageCamel::Web::Users::PWReset;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -12,9 +11,9 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
@@ -31,8 +30,7 @@ use Readonly;
 
 Readonly my $TESTRANGE => 1_000_000;
 
-sub new {
-    my ($proto, %config) = @_;
+sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
@@ -62,24 +60,22 @@ sub new {
     return $self;
 }
 
-sub register {
-    my $self = shift;
+sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get_pwreset");
     $self->register_public_url($self->{webpath});
+    $self->register_defaultwebdata("defaultwebdata");
     return;
 }
 
-sub reload {
-    my ($self) = @_;
+sub reload($self) {
 
     # Nothing to do
 
     return;
 }
 
-sub get_pwreset {
-    my ($self, $ua) = @_;
+sub get_pwreset($self, $ua) {
 
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -97,8 +93,7 @@ sub get_pwreset {
 }
 
 
-sub get_request {
-    my ($self, $ua) = @_;
+sub get_request($self, $ua) {
 
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
@@ -213,8 +208,7 @@ END
 }
 
 
-sub get_execute {
-    my ($self, $ua, $resetkey) = @_;
+sub get_execute($self, $ua, $resetkey) {
 
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
@@ -289,6 +283,14 @@ sub get_execute {
             type    => "text/html",
             data    => $template);
 }
+
+sub defaultwebdata($self, $webdata) {
+
+    # Just allow the "password reset" menu item
+    $webdata->{canResetPassword} = 1;
+    return;
+}
+
 
 1;
 __END__
