@@ -45,7 +45,7 @@ foreach my $file (@files) {
     while((my $line = <$ifh>)) {
         if($line =~ /\_trquote/) {
             #print "< ", $line;
-            $line =~ s/\_trquote\((.+?)\)/\"\[\% tr.trquote\($1\) \%\]\"/g;
+            $line =~ s/\_trquote\((.+?)\)/\"\[\% tr.tr\($1\) \%\]\"/g;
             #print "> ", $line;
         }
         print $ofh $line;
@@ -74,7 +74,7 @@ foreach my $file (@files) {
 }
 
 __DATA__
-canvasuijs/trhelper.js
+#canvasuijs/trhelper.js
 canvasuijs/canvashelpers.js
 canvasuijs/uiview.js
 canvasuijs/uitextbox.js
