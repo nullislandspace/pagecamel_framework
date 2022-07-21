@@ -110,3 +110,6 @@ max_elsif = 20
 
 # I only use those for REAPER functions
 [-Subroutines::ProhibitAmpersandSigils]
+
+# Allow subroutine prototypes
+[-Subroutines::ProhibitSubroutinePrototypes]

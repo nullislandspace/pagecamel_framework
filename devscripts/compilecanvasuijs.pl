@@ -45,7 +45,7 @@ foreach my $file (@files) {
     while((my $line = <$ifh>)) {
         if($line =~ /\_trquote/) {
             #print "< ", $line;
-            $line =~ s/\_trquote\((.+?)\)/\"\[\% tr.trquote\($1\) \%\]\"/g;
+            $line =~ s/\_trquote\((.+?)\)/\"\[\% tr.tr\($1\) \%\]\"/g;
             #print "> ", $line;
         }
         print $ofh $line;
@@ -74,24 +74,23 @@ foreach my $file (@files) {
 }
 
 __DATA__
-#canvasuijs/trhelper.js !! Dummy function for development only
-canvasuijs/uiview.js
-canvasuijs/uitext.js
-canvasuijs/uibutton.js
+#canvasuijs/trhelper.js
 canvasuijs/canvashelpers.js
+canvasuijs/uiview.js
+canvasuijs/uitextbox.js
+canvasuijs/uitext.js
 canvasuijs/uiline.js
 canvasuijs/uilist.js
 canvasuijs/uinumpad.js
 canvasuijs/uiarrowbutton.js
 canvasuijs/uibuttonrow.js
-canvasuijs/uidialog.js
-canvasuijs/uitextbox.js
-canvasuijs/uipaylist.js
+canvasuijs/uiscrolllist.js
 canvasuijs/uilistitem.js
 canvasuijs/uidragndrop.js
-canvasuijs/uitableplan.js
 canvasuijs/uicircle.js
 canvasuijs/uicolorpalet.js
 canvasuijs/uiimage.js
 canvasuijs/uicheckbox.js
 canvasuijs/uitextinput.js
+canvasuijs/uibutton.js
+canvasuijs/uidialog.js
