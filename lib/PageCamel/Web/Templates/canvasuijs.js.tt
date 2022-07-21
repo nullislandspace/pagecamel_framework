@@ -571,8 +571,9 @@ if(!button.border_radius){ctx.fillRect(button.x,button.y,button.width,button.hei
 ctx.fillStyle=button.foreground;ctx.strokeStyle=button.foreground;if(button.displaytext){if(!button.displaytext.includes("\n")){var text_width=ctx.measureText(button.displaytext).width;if(button.align=='right'){ctx.fillText(button.displaytext,button.x+button.width-text_width-8,button.y+(button.height/2)+button.font_size/3.3);}
 else if(button.align=='left'){ctx.fillText(button.displaytext,button.x+8,button.y+(button.height/2)+button.font_size/3.3);}
 else{ctx.fillText(button.displaytext,button.x+(button.width-text_width)/2,button.y+(button.height/2)+button.font_size/3.3);}}else{var blines=button.displaytext.split("\n");var yoffs=button.y+((button.height/2)-(9*(blines.length-1)));var j;for(j=0;j<blines.length;j++){blines[j].replace("\n",'');ctx.fillText(blines[j],button.x+8,yoffs);yoffs=yoffs+18;}}}}}}
-onFileInput(input){for(var i in this.buttons){var button=this.buttons[i];if(button.select_file===true&&button.selector_opened==true){button.selector_opened=false;var callback_button=button;var fr=new FileReader();fr.onload=function(){var bgimage=fr.result;var img=new Image();img.onload=function(){callback_button.callback(bgimage);}
-img.onerror=function(){return;};img.src=bgimage;input.value="";}
+onFileInput(input){for(var i in this.buttons){var button=this.buttons[i];if(button.select_file===true&&button.selector_opened==true){button.selector_opened=false;var callback_button=button;var fr=new FileReader();fr.onload=function(){var bgimage=fr.result;var img=new Image();img.onload=function(){console.log("image is valid");callback_button.callback(bgimage);}
+img.onerror=function(){console.log("image is not valid");return;};img.src=bgimage;input.value="";}
+console.log('File Reader:',fr)
 fr.readAsDataURL(input.files[0]);}}}
 onClick(x,y){for(var i in this.buttons){var button=this.buttons[i];if(button&&button.active){var startx=button.x;var starty=button.y;var endx=startx+button.width;var endy=starty+button.height;button.selector_opened=false;if(x>=startx&&x<=endx&&y>=starty&&y<=endy&&this.mouse_down_on==i){if(button.select_file===true){button.selector_opened=true;$("#upload").trigger('click');}
 else{button.callback(button.callbackData);}
