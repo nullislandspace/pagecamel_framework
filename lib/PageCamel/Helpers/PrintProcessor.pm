@@ -561,7 +561,7 @@ sub reprintDocument($self, $documentid, $printername) {
     $blob->blobClose();
     $dbh->commit;
     
-    my $ofname = makeFName();
+    my $ofname = $self->makeFName();
     print STDERR $ofname, "\n";
 
     writeBinFile($ofname, $imagedata);
