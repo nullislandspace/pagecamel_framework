@@ -189,14 +189,19 @@ sub wsprint($self, $message) {
     
     my $frametype = 'text';
 
-    #print STDERR "Prepareing message ", Dumper($message), "\n";
     my $buffer = encode_json($message);
     #print STDERR "JSON: $buffer\n";
+    
+    my $framedata = $frame->new(buffer => $buffer, type => 'text')->to_bytes;
 
-    if(!webPrint($ua->{realsocket}, $frame->new(buffer => $buffer, type => 'text')->to_bytes)) {
+    #print STDERR "Sending ", length($framedata) , " bytes (= original buffer length ", length($buffer) , " bytes)\n";
+    #my $starttime = time;
+    if(!webPrint($ua->{realsocket}, $framedata)) {
         print STDERR "Write to socket failed, closing connection!\n";
         return 0;
     }
+    #my $endtime = time;
+    #print STDERR "   done, took ", $endtime - $starttime, " seconds\n";
     
     return 1;
 }
