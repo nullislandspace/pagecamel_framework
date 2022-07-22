@@ -106,7 +106,11 @@
     function handleServerRequests(ev) {
         var rawmsg = String(ev.data);
         
+        console.log("Parsing " + rawmsg.length + "  JSON bytes");
+        //var starttime = Date.now();
         var msg = JSON.parse(rawmsg);
+        //var endtime = Date.now();
+        //console.log("   took " + (endtime - starttime) + " milliseconds");
 
         //console.log(msg);
         

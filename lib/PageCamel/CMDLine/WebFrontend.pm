@@ -364,9 +364,11 @@ sub handleClient($self, $client) {
         my $debugoutcapture = '';
         my $clientdisconnect = 0;
         my $backenddisconnect = 0;
+        print STDERR "Handling client...\n";
         while(!$done) {
             if($sigpipeseen > $sigpipehandled) {
                 sleep(0.05);
+                print STDERR "Sleep 0.05\n";
                 $sigpipehandled++;
             }
             if($sigpipehandled > 200) {
@@ -412,53 +414,73 @@ sub handleClient($self, $client) {
                 }
             }
 
-            if(length($toclientbuffer) && !$clientdisconnect) {
-                my $written;
 
-                my $writebuffer = substr($toclientbuffer, 0, 10_000_000); # write at most 10MB at a time
-                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                    $written = syswrite($client, $writebuffer);
-                };
-                if($EVAL_ERROR) {
-                    print STDERR "Write error: $EVAL_ERROR\n";
-                } else {
-                    if($finishcountdown) {
-                        # We are in countdown but could still send data to client. Reset countdown
-                        $finishcountdown = time + 20;
+            my $blocksize = 16384; # Blocksize limit of SSL/TLS lib, it seems
+            my $loopcount = int(10_000_000 / 16384); # Write at max ~10MB in one loop
+
+            my $sendcount = $loopcount;
+            while($sendcount) {
+                if(length($toclientbuffer) && !$clientdisconnect) {
+                    my $written;
+
+                    my $writebuffer = substr($toclientbuffer, 0, $blocksize); # grab $blocksize chunk of data
+                    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                        $written = syswrite($client, $writebuffer);
+                    };
+                    if($EVAL_ERROR) {
+                        print STDERR "Write error: $EVAL_ERROR\n";
+                    } else {
+                        if($finishcountdown) {
+                            # We are in countdown but could still send data to client. Reset countdown
+                            $finishcountdown = time + 20;
+                        }
                     }
-                }
-                if(defined($written) && $written) {
-                    $toclientbuffer = substr($toclientbuffer, $written);
+                    if(defined($written) && $written) {
+                        #print STDERR "< Clientbuffer ", length($toclientbuffer), " Writebuffer ", length($writebuffer), " written ", $written, "\n";
+                        $toclientbuffer = substr($toclientbuffer, $written);
+                    } else {
+                        #print STDERR "No data written to client\n";
+                        last;
+                    }
                 } else {
-                    #print STDERR "No data written to client\n";
+                    last;
                 }
+                $sendcount--;
             }
 
-            if(length($tobackendbuffer) && !$backenddisconnect) {
-                my $written;
+            $sendcount = $loopcount;
+            while($sendcount) {
+                if(length($tobackendbuffer) && !$backenddisconnect) {
+                    my $written;
 
-                my $writebuffer = substr($tobackendbuffer, 0, 10_000_000); # write at most 10MB at a time
-                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                    $written = syswrite($backend, $writebuffer);
-                };
-                if($EVAL_ERROR) {
-                    print STDERR "Write error: $EVAL_ERROR\n";
-                } else {
-                    if($finishcountdown) {
-                        # We are in countdown but could still send data to backend. Reset countdown
-                        $finishcountdown = time + 20;
+                    my $writebuffer = substr($tobackendbuffer, 0, $blocksize); # grab $blocksize chunk of data
+                    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                        $written = syswrite($backend, $writebuffer);
+                    };
+                    if($EVAL_ERROR) {
+                        print STDERR "Write error: $EVAL_ERROR\n";
+                    } else {
+                        if($finishcountdown) {
+                            # We are in countdown but could still send data to backend. Reset countdown
+                            $finishcountdown = time + 20;
+                        }
+
                     }
+                    if(defined($written) && $written) {
+                        #print STDERR "> Backendbuffer ", length($tobackendbuffer), " Writebuffer ", length($writebuffer), " written ", $written, "\n";
+                        $tobackendbuffer = substr($tobackendbuffer, $written);
 
-                }
-                if(defined($written) && $written) {
-                    $tobackendbuffer = substr($tobackendbuffer, $written);
-
-                    # Reset SIGPIPE counter whenever we have success writing to the backend
-                    $sigpipeseen = 0;
-                    $sigpipehandled = 0;
+                        # Reset SIGPIPE counter whenever we have success writing to the backend
+                        $sigpipeseen = 0;
+                        $sigpipehandled = 0;
+                    } else {
+                        #print STDERR "No data written to backend\n";
+                        last;
+                    }
                 } else {
-                    #print STDERR "No data written to backend\n";
+                    last;
                 }
+                $sendcount--;
             }
 
             if($clientdisconnect) {
@@ -487,6 +509,7 @@ sub handleClient($self, $client) {
                 } else {
                     #print STDERR "Countdown remaining: ", $finishcountdown - time, " / Bytes remaining: ", length($toclientbuffer), "\n";
                     sleep(0.05);
+                    print STDERR "Sleep# 0.05\n";
                 }
             }
             
