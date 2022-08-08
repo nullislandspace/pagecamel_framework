@@ -526,11 +526,14 @@ sub reload($self) {
             if(!defined($item->{searchable})) {
                 $item->{searchable} = 0;
             }
-            if($item->{searchable}) {
-                $item->{selecttype} = 'select2';
-            } else {
-                $item->{selecttype} = 'selectmenu';
+            if(!defined($item->{descriptiononly})) {
+                $item->{descriptiononly} = 0;
             }
+            #if($item->{searchable}) {
+            #    $item->{selecttype} = 'select2';
+            #} else {
+            #    $item->{selecttype} = 'selectmenu';
+            #}
 
             if(!defined($item->{enumtable})) {
                 print '    EDIT: Column ', $item->{column}, " does not define \"enumtable\"!\n";
@@ -1727,6 +1730,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     if($newfname ne '' && defined($ua->{files}->{$newfname})) {
                         $tmp = encode_base64($ua->{files}->{$newfname}->{data});
                     }
+                    my $tmpremove = $tmp = $ua->{postparams}->{$column . '__remove'} || '';
+                    if($tmpremove eq "1") {
+                        $tmp = '';
+                    }
                 }
 
                 if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
@@ -2161,6 +2168,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $eselsth->finish;
             $column{enum_values} = \@enum_values;
             $column{searchable} = $item->{searchable};
+            $column{descriptiononly} = $item->{descriptiononly};
         }
 
         # #### SUB-ENUM ####
@@ -2216,6 +2224,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $column{enum_values} = \@enum_values;
             $column{enum_values_json} = encode_base64(encode_json \@enum_values, '');
             $column{searchable} = $item->{searchable};
+            $column{descriptiononly} = $item->{descriptiononly};
         }
 
         if(defined($item->{goto})) {
