@@ -752,7 +752,11 @@ sub reload($self) {
 sub get($self, $ua) {
 
     my $mode = $ua->{postparams}->{'mode'} || 'list';
-    my $primarykey = stripString($ua->{postparams}->{'primary_key'} || '');
+    my $primarykey = '';
+    if(defined($ua->{postparams}->{'primary_key'})) {
+        $primarykey = stripString($ua->{postparams}->{'primary_key'});
+        print STDERR "get() PRIMARY KEY $primarykey\n";
+    }
 
     # Check if we can and are requested to deliver the pagescript.js
     if($ua->{url} =~ /\/pageeditscript\.js/) {
@@ -1552,7 +1556,13 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mode = $ua->{postparams}->{'mode'} || 'list';
-    my $primarykey = stripString($ua->{postparams}->{'primary_key'} || '');
+    my $primarykey = '';
+    if(defined($ua->{postparams}->{'primary_key'})) {
+        $primarykey = stripString($ua->{postparams}->{'primary_key'});
+    }
+
+    print STDERR "************************    Primary key selected: $primarykey\n";
+
     
     if($mode =~ /^select\_(.*)/) {
         $primarykey = $1;
@@ -1671,9 +1681,15 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my @upargs;
         my $fieldsok = 1;
         foreach my $column (@{$self->{editcolumns}}) {
-            my $arraycount = stripString($ua->{postparams}->{$column . '_count'} || '');
+            my $arraycount = '';
+            if(defined($ua->{postparams}->{$column . '_count'})) {
+                $arraycount = stripString($ua->{postparams}->{$column . '_count'});
+            }
             if($arraycount eq '') {
-                my $tmp = stripString($ua->{postparams}->{$column} || '');
+                my $tmp = '';
+                if(defined($ua->{postparams}->{$column})) {
+                    $tmp = stripString($ua->{postparams}->{$column});
+                }
 
                 # Force "restrict" columns
                 if(defined($self->{restrict})) {
@@ -1752,7 +1768,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             } else {
                 my @uparray;
                 for(my $i = 0; $i < $arraycount; $i++) {
-                    my $tmp = stripString($ua->{postparams}->{$column . '_' . $i } || '');
+                    my $tmp = '';
+                    if(defined($ua->{postparams}->{$column . '_' . $i })) {
+                        $tmp = stripString($ua->{postparams}->{$column . '_' . $i });
+                    }
                     if($tmp ne '') {
                         push @uparray, $tmp;
                     }
@@ -1933,7 +1952,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         } else {
             @pkparts = ();
             foreach my $pkcol (@pkcols) {
-                my $tmp = stripString($ua->{postparams}->{$pkcol} || '');
+                my $tmp = '';
+                if(defined($ua->{postparams}->{$pkcol})) {
+                    $tmp = stripString($ua->{postparams}->{$pkcol});
+                }
 
                 if(defined($self->{restrict})) {
                     foreach my $clauseitem (@{$self->{restrict}->{item}}) {
