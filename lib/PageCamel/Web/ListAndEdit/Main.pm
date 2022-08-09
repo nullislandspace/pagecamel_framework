@@ -463,6 +463,10 @@ sub reload($self) {
             }
         }
 
+        if(!defined($item->{linebreak}) || $item->{linebreak} != 0) {
+            $item->{linebreak} = 1;
+        }
+
         if(defined($item->{goto}) && $item->{goto} =~ /\[(.*)\]/) {
             my $tmp = $1;
             if(!contains($tmp, \@gotocolumns)) {
@@ -526,11 +530,14 @@ sub reload($self) {
             if(!defined($item->{searchable})) {
                 $item->{searchable} = 0;
             }
-            if($item->{searchable}) {
-                $item->{selecttype} = 'select2';
-            } else {
-                $item->{selecttype} = 'selectmenu';
+            if(!defined($item->{descriptiononly})) {
+                $item->{descriptiononly} = 0;
             }
+            #if($item->{searchable}) {
+            #    $item->{selecttype} = 'select2';
+            #} else {
+            #    $item->{selecttype} = 'selectmenu';
+            #}
 
             if(!defined($item->{enumtable})) {
                 print '    EDIT: Column ', $item->{column}, " does not define \"enumtable\"!\n";
@@ -749,7 +756,10 @@ sub reload($self) {
 sub get($self, $ua) {
 
     my $mode = $ua->{postparams}->{'mode'} || 'list';
-    my $primarykey = stripString($ua->{postparams}->{'primary_key'} || '');
+    my $primarykey = '';
+    if(defined($ua->{postparams}->{'primary_key'})) {
+        $primarykey = stripString($ua->{postparams}->{'primary_key'});
+    }
 
     # Check if we can and are requested to deliver the pagescript.js
     if($ua->{url} =~ /\/pageeditscript\.js/) {
@@ -1549,8 +1559,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mode = $ua->{postparams}->{'mode'} || 'list';
-    my $primarykey = stripString($ua->{postparams}->{'primary_key'} || '');
-    
+    my $primarykey = '';
+    if(defined($ua->{postparams}->{'primary_key'})) {
+        $primarykey = stripString($ua->{postparams}->{'primary_key'});
+    }
+
     if($mode =~ /^select\_(.*)/) {
         $primarykey = $1;
         $mode = 'select';
@@ -1668,9 +1681,15 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my @upargs;
         my $fieldsok = 1;
         foreach my $column (@{$self->{editcolumns}}) {
-            my $arraycount = stripString($ua->{postparams}->{$column . '_count'} || '');
+            my $arraycount = '';
+            if(defined($ua->{postparams}->{$column . '_count'})) {
+                $arraycount = stripString($ua->{postparams}->{$column . '_count'});
+            }
             if($arraycount eq '') {
-                my $tmp = stripString($ua->{postparams}->{$column} || '');
+                my $tmp = '';
+                if(defined($ua->{postparams}->{$column})) {
+                    $tmp = stripString($ua->{postparams}->{$column});
+                }
 
                 # Force "restrict" columns
                 if(defined($self->{restrict})) {
@@ -1727,6 +1746,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     if($newfname ne '' && defined($ua->{files}->{$newfname})) {
                         $tmp = encode_base64($ua->{files}->{$newfname}->{data});
                     }
+                    my $tmpremove = $ua->{postparams}->{$column . '__remove'} || '';
+                    if($tmpremove eq "1") {
+                        $tmp = '';
+                    }
                 }
 
                 if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
@@ -1745,7 +1768,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             } else {
                 my @uparray;
                 for(my $i = 0; $i < $arraycount; $i++) {
-                    my $tmp = stripString($ua->{postparams}->{$column . '_' . $i } || '');
+                    my $tmp = '';
+                    if(defined($ua->{postparams}->{$column . '_' . $i })) {
+                        $tmp = stripString($ua->{postparams}->{$column . '_' . $i });
+                    }
                     if($tmp ne '') {
                         push @uparray, $tmp;
                     }
@@ -1926,7 +1952,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         } else {
             @pkparts = ();
             foreach my $pkcol (@pkcols) {
-                my $tmp = stripString($ua->{postparams}->{$pkcol} || '');
+                my $tmp = '';
+                if(defined($ua->{postparams}->{$pkcol})) {
+                    $tmp = stripString($ua->{postparams}->{$pkcol});
+                }
 
                 if(defined($self->{restrict})) {
                     foreach my $clauseitem (@{$self->{restrict}->{item}}) {
@@ -1942,13 +1971,46 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         }
         $primarykey = join('$$PKJ$$', @pkparts);
 
-        my $selsth = $dbh->prepare_cached("SELECT * FROM " . $self->{table} .
-                                          " WHERE " . join(' = ? AND ', @pkcols) . " = ? ")
+        # PostgreSQL returns the selected array element without index number, so make an alias that we can reverse-map after the select
+        my @allcolumns = (@pkcols);
+        my %colaliases;
+        foreach my $item ((@{$self->{edit}->{item}})) {
+            if($item->{type} eq 'newtab') {
+                next;
+            }
+            my $alias = $item->{column};
+            if($alias =~ /\[/ || $alias =~ /\./) {
+                $alias =~ s/\[/xxopenbracketxx/g;
+                $alias =~ s/\]/xxclosebracketxx/g;
+                $alias =~ s/\./xxdotxx/g;
+                $colaliases{$alias} = $item->{column};
+                $alias = $item->{column} . ' AS ' . $alias;
+            }
+            if(!contains($alias, \@allcolumns)) {
+                push @allcolumns, $alias;
+            }
+        }
+
+        my $selcolumns = join(', ', @allcolumns);
+
+        my $selstmt = "SELECT " . $selcolumns . " FROM " . $self->{table} . " WHERE " . join(' = ? AND ', @pkcols) . " = ? ";
+        #print STDERR "selstmt: $selstmt\n";
+
+        my $selsth = $dbh->prepare_cached($selstmt)
                 or croak($dbh->errstr);
         $selsth->execute(@pkparts) or croak($dbh->errstr);
         my $found = 0;
         while((my $line = $selsth->fetchrow_hashref)) {
             $found++;
+
+            # Reverse-map the aliases
+            foreach my $alias (sort keys %colaliases) {
+                if(exists($line->{$alias})) {
+                    #print STDERR "Reverse-mapping $alias\n";
+                    $line->{$colaliases{$alias}} = $line->{$alias};
+                    delete $line->{$alias};
+                }
+            }
             foreach my $column (@{$self->{editcolumns}}, @{$self->{readonlycolumns}}) {
                 if(!defined($line->{$column})) {
                     $line->{$column} = '';
@@ -2031,6 +2093,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             columnname   => $item->{column},
             columnvalue  => $colvalues{$item->{column}},
             goto         => 0,
+            linebreak  => $item->{linebreak},
         );
 
         if($column{displaytype} eq 'date') {
@@ -2161,6 +2224,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $eselsth->finish;
             $column{enum_values} = \@enum_values;
             $column{searchable} = $item->{searchable};
+            $column{descriptiononly} = $item->{descriptiononly};
         }
 
         # #### SUB-ENUM ####
@@ -2216,6 +2280,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $column{enum_values} = \@enum_values;
             $column{enum_values_json} = encode_base64(encode_json \@enum_values, '');
             $column{searchable} = $item->{searchable};
+            $column{descriptiononly} = $item->{descriptiononly};
         }
 
         if(defined($item->{goto})) {
@@ -2250,7 +2315,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my ($prevkey, $nextkey) = $self->get_prevnext($ua, $primarykey);
         $webdata{prevprimarykey} = $prevkey;
         $webdata{nextprimarykey} = $nextkey;
-        print STDERR "PREV $prevkey and NEXT $nextkey found for $primarykey\n";
+        #print STDERR "PREV $prevkey and NEXT $nextkey found for $primarykey\n";
     }
 
 
