@@ -102,7 +102,9 @@
                                             [% ELSIF column.displaytype == "image" %]
                                                 <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]"><br/>
                                                 [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
-                                                <input type="file" name="[% tr.quote(column.columnname) %]___new" id="[% tr.quote(column.columnname) %]___new_id">
+                                                <input type="file" name="[% tr.quote(column.columnname) %]___new" id="[% tr.quote(column.columnname) %]___new_id"><br/>
+                                                <input type="checkbox" name="[% tr.quote(column.columnname) %]__remove" id="[% tr.quote(column.columnname) %]_remove_id" realvalue="1" realinactivevalue="0" class="delete">
+                                                [% tr.trquote("Remove image") %]
                                             [% ELSIF column.displaytype == "imagedisplay" %]
                                                 [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
                                             [% ELSIF column.displaytype == "checkbox" %]
@@ -141,7 +143,11 @@
                                                                 selected="selected"
                                                             [% END %]
                                                             >
-                                                                [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
+                                                                [% IF column.descriptiononly == 1 %]
+                                                                    [% enumvalue.selectorenumdescription %]
+                                                                [% ELSE %]
+                                                                    [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
+                                                                [% END %]
                                                             </option>
                                                         [% END %]
                                                     </select>

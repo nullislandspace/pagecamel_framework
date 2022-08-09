@@ -1730,7 +1730,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     if($newfname ne '' && defined($ua->{files}->{$newfname})) {
                         $tmp = encode_base64($ua->{files}->{$newfname}->{data});
                     }
-                    my $tmpremove = $tmp = $ua->{postparams}->{$column . '__remove'} || '';
+                    my $tmpremove = $ua->{postparams}->{$column . '__remove'} || '';
                     if($tmpremove eq "1") {
                         $tmp = '';
                     }
