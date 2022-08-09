@@ -150,12 +150,22 @@ sub getColumnType($self, $table, $column) {
     }
     $sth->finish;
 
-    if(defined($subtype)) {
-        print STDERR "####### Need to solve for subtype $subtype of type $type\n";
-        croak("BLA");
+    $self->{mdbh}->commit;
+
+    if(defined($subtype) && defined($type)) {
+        if($xdebug) {
+            print STDERR "####### Need to solve for subtype $subtype of type $type\n";
+        }
+        $type = $self->getColumnType($type, $subtype);
+        if($xdebug) {
+            if(defined($type)) {
+                print STDERR "#######   resolved to $type\n";
+            } else {
+                print STDERR "#######   FAILED TO RESOLVE!!!!\n";
+            }
+        }
     }
 
-    $self->{mdbh}->commit;
 
     return $type;
 }
