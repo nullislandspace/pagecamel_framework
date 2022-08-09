@@ -43,6 +43,8 @@
                             </ul>
                     [% END %]
 
+                    [% LinebreakActive = "1" %]
+
 
                             [% FOREACH column IN columns %]
                                 [% IF column.displaytype == "newtab"%]
@@ -67,9 +69,12 @@
                                 [% ELSIF column.displaytype == "hidden" %]
                                     <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
                                 [% ELSE %]
+                                    [% IF LinebreakActive == "1" %]
                                     <tr>
                                         <td valign="center">[% tr.trquote(column.displayname) %]</td>
                                         <td valign="center">
+                                    [% END %]
+                                    [% LinebreakActive = column.linebreak %]
                                             [% IF column.displaytype == "text" %]
                                                 <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
                                             [% ELSIF column.displaytype == "date" %]
@@ -192,8 +197,10 @@
                                             [% IF column.goto == 1 %]
                                                 <input type="button" class="gotobutton" goto="[% column.gotourl %]">
                                             [% END %]
+                                    [% IF LinebreakActive == "1" %]
                                         </td>
                                     </tr>
+                                    [% END %]
                                 [% END %]
                             [% END %]
                         </tbody>

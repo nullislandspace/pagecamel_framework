@@ -463,6 +463,10 @@ sub reload($self) {
             }
         }
 
+        if(!defined($item->{linebreak}) || $item->{linebreak} != 0) {
+            $item->{linebreak} = 1;
+        }
+
         if(defined($item->{goto}) && $item->{goto} =~ /\[(.*)\]/) {
             my $tmp = $1;
             if(!contains($tmp, \@gotocolumns)) {
@@ -1975,9 +1979,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                 next;
             }
             my $alias = $item->{column};
-            if($alias =~ /\[/) {
+            if($alias =~ /\[/ || $alias =~ /\./) {
                 $alias =~ s/\[/xxopenbracketxx/g;
                 $alias =~ s/\]/xxclosebracketxx/g;
+                $alias =~ s/\./xxdotxx/g;
                 $colaliases{$alias} = $item->{column};
                 $alias = $item->{column} . ' AS ' . $alias;
             }
@@ -2088,6 +2093,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             columnname   => $item->{column},
             columnvalue  => $colvalues{$item->{column}},
             goto         => 0,
+            linebreak  => $item->{linebreak},
         );
 
         if($column{displaytype} eq 'date') {
