@@ -93,7 +93,10 @@ sub checkDBH($self, $hasforked = false) {
     return;
 }
 
-sub getColumnType($self, $table, $column) {
+sub getColumnType($self, $xtable, $xcolumn) {
+
+    my $table = '' . $xtable;
+    my $column = '' . $xcolumn;
 
     $self->checkDBH();
 

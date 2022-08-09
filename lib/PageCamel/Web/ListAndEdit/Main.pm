@@ -755,7 +755,6 @@ sub get($self, $ua) {
     my $primarykey = '';
     if(defined($ua->{postparams}->{'primary_key'})) {
         $primarykey = stripString($ua->{postparams}->{'primary_key'});
-        print STDERR "get() PRIMARY KEY $primarykey\n";
     }
 
     # Check if we can and are requested to deliver the pagescript.js
@@ -1561,9 +1560,6 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         $primarykey = stripString($ua->{postparams}->{'primary_key'});
     }
 
-    print STDERR "************************    Primary key selected: $primarykey\n";
-
-    
     if($mode =~ /^select\_(.*)/) {
         $primarykey = $1;
         $mode = 'select';
@@ -1971,13 +1967,45 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         }
         $primarykey = join('$$PKJ$$', @pkparts);
 
-        my $selsth = $dbh->prepare_cached("SELECT * FROM " . $self->{table} .
-                                          " WHERE " . join(' = ? AND ', @pkcols) . " = ? ")
+        # PostgreSQL returns the selected array element without index number, so make an alias that we can reverse-map after the select
+        my @allcolumns = (@pkcols);
+        my %colaliases;
+        foreach my $item ((@{$self->{edit}->{item}})) {
+            if($item->{type} eq 'newtab') {
+                next;
+            }
+            my $alias = $item->{column};
+            if($alias =~ /\[/) {
+                $alias =~ s/\[/xxopenbracketxx/g;
+                $alias =~ s/\]/xxclosebracketxx/g;
+                $colaliases{$alias} = $item->{column};
+                $alias = $item->{column} . ' AS ' . $alias;
+            }
+            if(!contains($alias, \@allcolumns)) {
+                push @allcolumns, $alias;
+            }
+        }
+
+        my $selcolumns = join(', ', @allcolumns);
+
+        my $selstmt = "SELECT " . $selcolumns . " FROM " . $self->{table} . " WHERE " . join(' = ? AND ', @pkcols) . " = ? ";
+        #print STDERR "selstmt: $selstmt\n";
+
+        my $selsth = $dbh->prepare_cached($selstmt)
                 or croak($dbh->errstr);
         $selsth->execute(@pkparts) or croak($dbh->errstr);
         my $found = 0;
         while((my $line = $selsth->fetchrow_hashref)) {
             $found++;
+
+            # Reverse-map the aliases
+            foreach my $alias (sort keys %colaliases) {
+                if(exists($line->{$alias})) {
+                    #print STDERR "Reverse-mapping $alias\n";
+                    $line->{$colaliases{$alias}} = $line->{$alias};
+                    delete $line->{$alias};
+                }
+            }
             foreach my $column (@{$self->{editcolumns}}, @{$self->{readonlycolumns}}) {
                 if(!defined($line->{$column})) {
                     $line->{$column} = '';
@@ -2281,7 +2309,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my ($prevkey, $nextkey) = $self->get_prevnext($ua, $primarykey);
         $webdata{prevprimarykey} = $prevkey;
         $webdata{nextprimarykey} = $nextkey;
-        print STDERR "PREV $prevkey and NEXT $nextkey found for $primarykey\n";
+        #print STDERR "PREV $prevkey and NEXT $nextkey found for $primarykey\n";
     }
 
 
