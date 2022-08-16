@@ -533,6 +533,9 @@ sub reload($self) {
             if(!defined($item->{descriptiononly})) {
                 $item->{descriptiononly} = 0;
             }
+            if(!defined($item->{multilanguage})) {
+                $item->{multilanguage} = 0;
+            }
             #if($item->{searchable}) {
             #    $item->{selecttype} = 'select2';
             #} else {
@@ -2225,6 +2228,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $column{enum_values} = \@enum_values;
             $column{searchable} = $item->{searchable};
             $column{descriptiononly} = $item->{descriptiononly};
+            $column{multilanguage} = $item->{multilanguage};
         }
 
         # #### SUB-ENUM ####
