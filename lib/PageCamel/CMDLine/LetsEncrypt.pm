@@ -234,7 +234,10 @@ sub work {
     if (-r $opt->{'csr'}) {
         $self->debuglog("Loading a CSR from $opt->{'csr'}");
         $le->load_csr($opt->{'csr'}, $opt->{'domains'}) == OK or return $self->_error("Could not load a CSR: " . $le->error_details, 'CSR_LOAD');
-        return $self->_error("For multi-webroot path usage, the amount of paths given should match the amount of domain names listed.", 'WEBROOT_MISMATCH') if _path_mismatch($le, $opt);
+        if(_path_mismatch($le, $opt)) {
+            $self->debuglog("!!! ERROR: For multi-webroot path usage, the amount of paths given should match the amount of domain names listed.");
+            return $self->_error("For multi-webroot path usage, the amount of paths given should match the amount of domain names listed.", 'WEBROOT_MISMATCH');
+        }
         # Load existing CSR key if specified, even if we have CSR (for example for PFX export).
         if ($opt->{'csr-key'} and -e $opt->{'csr-key'}) {
             return $self->_error("Could not load existing CSR key from $opt->{'csr-key'} - " . $le->error_details, 'CSR_KEY_LOAD') if $le->load_csr_key($opt->{'csr-key'});
@@ -256,12 +259,16 @@ sub work {
             $self->debuglog("Saving a new CSR key into $opt->{'csr-key'}");
             return $self->_error("Failed to save a CSR key", 'CSR_SAVE') if $self->_write($opt->{'csr-key'}, $le->csr_key);
         }
-        return $self->_error("For multi-webroot path usage, the amount of paths given should match the amount of domain names listed.", 'WEBROOT_MISMATCH') if _path_mismatch($le, $opt);
+        if(_path_mismatch($le, $opt)) {
+            $self->debuglog("!!! ERROR: For multi-webroot path usage, the amount of paths given should match the amount of domain names listed.");
+            return $self->_error("For multi-webroot path usage, the amount of paths given should match the amount of domain names listed.", 'WEBROOT_MISMATCH');
+        }
     }
 
     return if $opt->{'generate-only'};
 
     if ($opt->{'renew'}) {
+        $self->debuglog("RENEW CHECK ACTIVE");
         if ($opt->{'crt'} and -r $opt->{'crt'}) {
             $self->debuglog("Checking certificate for expiration (local file).");
             $opt->{'expires'} = $le->check_expiration($opt->{'crt'});
@@ -284,12 +291,15 @@ sub work {
                }
             }
         }
+
         return $self->_error("Could not get the certificate expiration value, cannot renew.", 'EXPIRATION_GET') unless (defined $opt->{'expires'});
         if ($opt->{'expires'} > $opt->{'renew'}) {
             # A bit specific case - this is not an error technically but some might want an error code.
             # So the message is displayed on "info" level to prevent getting through "quiet" mode, but an error can still be set.
             $self->debuglog("Too early for renewal, certificate expires in $opt->{'expires'} days.");
             return $self->_error("", 'EXPIRATION_EARLY');
+        } else {
+            $self->debuglog("Certificate needs renewal!");
         }
         $self->debuglog("Expiration threshold set at $opt->{'renew'} days, the certificate " . ($opt->{'expires'} < 0 ? "has already expired" : "expires in $opt->{'expires'} days") . " - will be renewing.");
     }
