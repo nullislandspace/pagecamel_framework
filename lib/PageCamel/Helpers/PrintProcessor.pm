@@ -1,4 +1,5 @@
 package PageCamel::Helpers::PrintProcessor;
+
 #---AUTOPRAGMASTART---
 use v5.36;
 use strict;
@@ -33,6 +34,10 @@ sub new($proto, $config) {
     }
     
     $self->{imagecache} = {};
+
+    if(!defined($self->{reph})) {
+        croak('PageCamel::Helpers::PrintProcessor needs reph');
+    }
     
     return $self;
 }
@@ -49,7 +54,8 @@ sub printStartDocument($self) {
     return;
 }
 
-sub printEndDocument($self, $printername = '') {
+sub printEndDocument($self, $cupsprinters = []) {
+    my $reph = $self->{reph};
     
     # Need to downsize image to minimum required length
     my $cropped = GD::Image->new($self->{width}, $self->{imgoffs});
@@ -73,52 +79,33 @@ sub printEndDocument($self, $printername = '') {
 
     my $printimagedata = $imagedata;
 
-    if($printername eq 'CTS801' && $self->{width} < 640) {
-        # Experimental for Citizen CT-S801: Make wider Canvas, center document in it
-
-        # Allocate canvas and colors
-        my $ctsimg = GD::Image->new(640, $self->{imgoffs});
-        my $ctsblack = $ctsimg->colorAllocate(0, 0, 0);
-        my $ctswhite = $ctsimg->colorAllocate(255, 255, 255);
-
-        # X Offset in large canvas
-        my $ctsoffs = int((640 - $self->{width}) / 2);
-
-        # Fill background with white
-        $ctsimg->filledRectangle(0, 0, 640, $self->{imgoffs}, $ctswhite);
-
-        # Copy invoice image
-        $ctsimg->copyResized($self->{img},
-                              $ctsoffs, 0, # DEST X Y
-                              0, 0, # SRC X Y
-                              $self->{width}, $self->{imgoffs}, # DEST W H
-                              $self->{width}, $self->{imgoffs}, # SRC W H
-                              );
-        $printimagedata = $ctsimg->png;
-    }
-
     writeBinFile($ofname, $printimagedata);
     
     if($self->{use_eog}) {
         my $cmd = 'gimp ' . $ofname;
         `$cmd`;
     } else {
-        my $cmd = $self->{printcommand};
-        if(defined($printername) && $printername ne '') {
-            print "Got printer name: $printername\n";
-            $cmd .= ' -P ' . $printername;
-        } else {
-            print "No printer name given!!!!!!\n";
-            if(defined($self->{defaultprinter})) {
-                print "Using default printer ", $self->{defaultprinter}, "\n";
-                $cmd .= ' -P ' . $self->{defaultprinter};
+        if(ref $cupsprinters ne 'ARRAY') {
+            my @tmp;
+            if(!defined($cupsprinters) || $cupsprinters eq '') {
+                $reph->debuglog("No printer name given!!!!!!");
+                if(!defined($self->{defaultprinter})) {
+                    $reph->debuglog("...and no default printer set!!!!");
+                } else {
+                    push @tmp, $self->{defaultprinter};
+                }
             } else {
-                print "...and no default printer set!!!!\n";
+                push @tmp, $cupsprinters . '';
             }
+
+            $cupsprinters = \@tmp;
         }
-        $cmd .= ' ' . $ofname;
-        print "Running print command: $cmd\n";
-        `$cmd`;
+
+        foreach my $printername (@{$cupsprinters}) {
+            my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
+            $reph->debuglog("Running print command: $cmd");
+            `$cmd`;
+        }
     }
     
     unlink $ofname;
