@@ -43,6 +43,8 @@
                             </ul>
                     [% END %]
 
+                    [% LinebreakActive = "1" %]
+
 
                             [% FOREACH column IN columns %]
                                 [% IF column.displaytype == "newtab"%]
@@ -67,9 +69,12 @@
                                 [% ELSIF column.displaytype == "hidden" %]
                                     <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
                                 [% ELSE %]
+                                    [% IF LinebreakActive == "1" %]
                                     <tr>
                                         <td valign="center">[% tr.trquote(column.displayname) %]</td>
                                         <td valign="center">
+                                    [% END %]
+                                    [% LinebreakActive = column.linebreak %]
                                             [% IF column.displaytype == "text" %]
                                                 <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
                                             [% ELSIF column.displaytype == "date" %]
@@ -102,7 +107,9 @@
                                             [% ELSIF column.displaytype == "image" %]
                                                 <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]"><br/>
                                                 [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
-                                                <input type="file" name="[% tr.quote(column.columnname) %]___new" id="[% tr.quote(column.columnname) %]___new_id">
+                                                <input type="file" name="[% tr.quote(column.columnname) %]___new" id="[% tr.quote(column.columnname) %]___new_id"><br/>
+                                                <input type="checkbox" name="[% tr.quote(column.columnname) %]__remove" id="[% tr.quote(column.columnname) %]_remove_id" realvalue="1" realinactivevalue="0" class="delete">
+                                                [% tr.trquote("Remove image") %]
                                             [% ELSIF column.displaytype == "imagedisplay" %]
                                                 [% IF column.imagedata != '' %]<img src="[% column.imagedata %]"><br/>[% END %]
                                             [% ELSIF column.displaytype == "checkbox" %]
@@ -141,7 +148,23 @@
                                                                 selected="selected"
                                                             [% END %]
                                                             >
-                                                                [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
+                                                                [% IF column.descriptiononly == 1 %]
+                                                                    [% IF column.multilanguage == 1%]
+                                                                        [% tr.trquote(enumvalue.selectorenumdescription) %]
+                                                                    [% ELSE %]
+                                                                        [% enumvalue.selectorenumdescription %]
+                                                                    [% END %]
+                                                                [% ELSE %]
+                                                                    [% IF column.multilanguage == 1%]
+                                                                        [% IF enumvalue.hasdescription == 1 %]
+                                                                            [% tr.trquote(enumvalue.selectorenumvalue _ ' : ' _ enumvalue.selectorenumdescription) %]
+                                                                        [% ELSE %]
+                                                                            [% tr.trquote(enumvalue.selectorenumvalue) %]
+                                                                        [% END %]
+                                                                    [% ELSE %]
+                                                                        [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
+                                                                    [% END %]
+                                                                [% END %]
                                                             </option>
                                                         [% END %]
                                                     </select>
@@ -186,8 +209,10 @@
                                             [% IF column.goto == 1 %]
                                                 <input type="button" class="gotobutton" goto="[% column.gotourl %]">
                                             [% END %]
+                                    [% IF LinebreakActive == "1" %]
                                         </td>
                                     </tr>
+                                    [% END %]
                                 [% END %]
                             [% END %]
                         </tbody>

@@ -93,28 +93,82 @@ sub checkDBH($self, $hasforked = false) {
     return;
 }
 
-sub getColumnType($self, $table, $column) {
+sub getColumnType($self, $xtable, $xcolumn) {
+
+    my $table = '' . $xtable;
+    my $column = '' . $xcolumn;
 
     $self->checkDBH();
 
+    my $xdebug = 0;
+    if($table eq 'pos.workstations' && $column =~ /printerqueue/) {
+        $xdebug = 1;
+    }
+
     my $schema = 'public';
+    my $subtype;
     if($table =~ /\./) {
         ($schema, $table) = split/\./, $table;
     }
 
+    if($column =~ /\./) {
+        ($column, $subtype) = split/\./, $column;
+    }
+
+    if($xdebug) {
+        print STDERR "###### $schema / $table \n";
+    }
+
+    # Normalize array element to the base array
+    if($column =~ /\[\d+\]$/) {
+        $column =~ s/\[\d+\]$//;
+    }
+
+    if($xdebug) {
+        print STDERR "###### $schema / $table \n";
+    }
+
     my $type;
-    my $sth = $self->{mdbh}->prepare_cached("SELECT data_type FROM information_schema.columns
-                                    WHERE table_schema = ?
-                                    AND table_name = ?
-                                    AND column_name = ?")
+    my $backuptype;
+
+    my $sth = $self->{mdbh}->prepare_cached("SELECT pg_catalog.format_type(c.atttypid, NULL) AS data_type
+                                                FROM pg_attribute c
+                                                  JOIN pg_class t on c.attrelid = t.oid
+                                                  JOIN pg_namespace n on t.relnamespace = n.oid
+                                                WHERE 
+                                                  n.nspname = ?
+                                                  AND t.relname = ?
+                                                  AND c.attname = ?
+                                                  AND c.attnum >= 0")
             or croak($self->{mdbh}->errstr);
     $sth->execute($schema, $table, $column) or croak($self->{mdbh}->errstr);
     while ((my $line = $sth->fetchrow_hashref)) {
         $type = lc $line->{data_type};
+        if($type =~ /\[\]$/) {
+            $type =~ s/\[\]$//;
+        }
+        if($xdebug) {
+            print STDERR "###### $type \n";
+        }
     }
     $sth->finish;
 
-    $self->{mdbh}->rollback;
+    $self->{mdbh}->commit;
+
+    if(defined($subtype) && defined($type)) {
+        if($xdebug) {
+            print STDERR "####### Need to solve for subtype $subtype of type $type\n";
+        }
+        $type = $self->getColumnType($type, $subtype);
+        if($xdebug) {
+            if(defined($type)) {
+                print STDERR "#######   resolved to $type\n";
+            } else {
+                print STDERR "#######   FAILED TO RESOLVE!!!!\n";
+            }
+        }
+    }
+
 
     return $type;
 }
