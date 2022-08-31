@@ -3,6 +3,8 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
+        [% IF BaseHREFUrl != "" %]<base href="[% BaseHREFUrl %]">[% END %]
+
         [%IF EnableRemoteConsoleLog == "1" %]
             <script type="text/javascript" src="/static/remoteconsolelog.js[% URLReloadPostfix %]"></script>
         [% END %]
@@ -497,6 +499,7 @@
             data-pagecamelversion="[% PageCamelVersion %]"
             data-isaprilfoolsday="[% IsAprilFoolsDay %]"
             data-urlreloadpostfix="[% URLReloadPostfix %]"
+            data-lastreloaddate="[% LastReloadDate %]"
             data-webappshoweyes="[% WebAppShowEyes %]"
             data-webappshowsanta="[% WebAppShowSanta %]"
             data-webappusemousetrail="[% WebAppUseMouseTrail %]"
