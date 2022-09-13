@@ -1,14 +1,4 @@
-export class CXDefault {
-    /**
-     * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
-     * @param {number} x - the x position of the element
-     * @param {number} y - the y position of the element
-     * @param {number} width - the width of the element
-     * @param {number} height - the height of the element
-     * @param {boolean} is_relative - if the element is relative to the canvas or absolute
-     * @param {boolean} redraw - if the element can redraw itself
-    */
-    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative?: boolean, redraw?: boolean);
+export declare class CXDefault {
     /** @protected  */
     protected _ctx: CanvasRenderingContext2D;
     /** @protected  */
@@ -52,10 +42,18 @@ export class CXDefault {
     /** @protected  */
     protected _pheight: number;
     /** @protected  */
-    protected _font_size_pixel: number;
-    /** @protected  */
-    protected _font_size: number;
+    protected _name: string;
     /**
+     * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
+     * @param {number} x - the x position of the element
+     * @param {number} y - the y position of the element
+     * @param {number} width - the width of the element
+     * @param {number} height - the height of the element
+     * @param {boolean} is_relative - if the element is relative to the canvas or absolute
+     * @param {boolean} redraw - if the element can redraw itself
+    */
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative?: boolean, redraw?: boolean);
+    /**code to calculate the relative positions of the element
      * @param {number} px - x position of the element in pixels
      * @param {number} py - y position of the element in pixels
      * @param {number} pwidth - width of the element in pixels
@@ -63,11 +61,16 @@ export class CXDefault {
      */
     draw(px?: number, py?: number, pwidth?: number, pheight?: number): void;
     /**
-     * @param {event} event - the event to get the mouse position from
+     * @protected
+     * @description Converts the relative position to pixel position
+    */
+    protected _convertToPixel(): void;
+    /**
+     * @param {MouseEvent} event - the event to get the mouse position from
      * @returns {Array} [x, y] - the mouse position relative to the canvas
      * @protected - should only be called by the child class
      */
-    protected _eventToXY(event: Event): any[];
+    protected _eventToXY(event: MouseEvent): number[];
     /** @protected  */
     protected _clear(): void;
     /** @protected  */
@@ -81,7 +84,7 @@ export class CXDefault {
     /**
      * @protected - should only be called by the child class
      */
-    protected _calcRelativePositions(px: any, py: any, pwidth: any, pheight: any): number[];
+    protected _calcRelativePositions(px: number, py: number, pwidth: number, pheight: number): number[];
     /** @protected  */
     protected _getViewInfo(): void;
     /** @protected  */
@@ -89,34 +92,33 @@ export class CXDefault {
     /** @protected  */
     protected _getMaxSize(): void;
     /** @protected  */
-    protected _checkEvent(event: any): boolean;
+    protected _checkEvent(event: Event): boolean;
     /**
      * @param {event} event - the event to check
      * @returns {boolean} - if the event needs to be handled
      */
     checkEvent(event: Event): boolean;
     /** @protected  */
-    protected _checkClick(x: any, y: any): boolean;
+    protected _checkClick(x: number, y: number): boolean;
     /** @protected  */
-    protected _checkMouseDown(x: any, y: any): boolean;
+    protected _checkMouseDown(x: number, y: number): boolean;
     /** @protected  */
-    protected _checkMouseMove(x: any, y: any): boolean;
+    protected _checkMouseMove(x: number, y: number): boolean;
     /** @protected  */
-    protected _checkMouseUp(x: any, y: any): boolean;
+    protected _checkMouseUp(x: number, y: number): boolean;
     /** @protected  */
-    protected _checkMouseLeave(x: any, y: any): boolean;
+    protected _checkMouseLeave(x: number, y: number): boolean;
     /** @protected  */
     protected _checkKeyDown(): boolean;
     /** @protected  */
     protected _checkKeyUp(): boolean;
     /**
-     * @param {event} event - the event to check
-     * @param {callback} function
+     * @param {Event} event - the event to check
      * @returns {boolean} - if the event needs to be handled
      */
-    handleEvent(event: Event, callback: any): boolean;
+    handleEvent(event: Event): boolean;
     /** @protected  */
-    protected _checkOverflow(x: any, y: any, width: any, height: any): boolean;
+    protected _checkOverflow(x: number, y: number, width: number, height: number): boolean;
     /**
     * @param {number} width
     * @public - accessible from outside the class
@@ -163,14 +165,13 @@ export class CXDefault {
     get widthpixel(): number;
     get heightpixel(): number;
     /**
-     * @param {number} font_size
-     * @public - accessible from outside the class
-     */
-    set font_size(arg: number);
-    get font_size(): number;
-    /**
      * @param {boolean} state - if the element is visible or not
      */
     set active(arg: boolean);
     get active(): boolean;
+    /**
+     * @param {string} name - the name of the element
+     */
+    set name(arg: string);
+    get name(): string;
 }

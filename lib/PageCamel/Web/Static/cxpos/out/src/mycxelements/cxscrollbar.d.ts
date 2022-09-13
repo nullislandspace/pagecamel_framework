@@ -1,5 +1,6 @@
 export class CXScrollBar extends CXBox {
     constructor(ctx: any, x: any, y: any, width: any, height: any, is_relative?: boolean, redraw?: boolean);
+    background: string;
     scrollbar: CXBox;
     _rows: number;
     _rows_per_page: number;

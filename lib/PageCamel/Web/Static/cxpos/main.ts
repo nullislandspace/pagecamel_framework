@@ -1,14 +1,14 @@
-import { CXDefault } from "./src/mycxelements/cxdefault.js";
-import { CXFrame } from "./src/mycxelements/cxframe.js";
-import { CXTestView } from "./src/testview.js";
-
+import {CXDefaultView} from "./src/mycxelements/cxdefaultview.js";
+import {CXTablePlanView} from "./src/cxtableplanview.js";
 
 
 let htmlppidiv: string = `<div id='testdiv' style='height: 1in; left: -100%; position: absolute; top: -100%; width: 1in;'></div>`;
 document.body.innerHTML = htmlppidiv;
+
 let devicePixelRatio = window.devicePixelRatio || 1;
 let dpi_x = document.getElementById('testdiv').offsetWidth * devicePixelRatio;
 let dpi_y = document.getElementById('testdiv').offsetHeight * devicePixelRatio;
+
 const min_dpi = 96;
 const min_width = 1024;
 const min_height = 768;
@@ -16,28 +16,19 @@ console.log(dpi_x, dpi_y);
 
 
 document.body.onload = bodyOnLoad;
-let htmlcanvas: string = `<div style = 'text-align:center;background-color:white;'>
-        <canvas id='CXcanvas' style='background-color:#b3b3b3ff;'></canvas></div>`;
-let w = window.innerWidth;
-let h = window.innerHeight;
+
+
+// Adds the canvas element to the document.
 let viewelements: any[] = [];
+let htmlcanvas: string = `<canvas id='CXcanvas' style='background-color: #b3b3b3ff; '></canvas>`;
 document.body.innerHTML = htmlcanvas;
+
 const htmlcnv = document.getElementById("CXcanvas") as HTMLCanvasElement;
-htmlcnv.width = 1000;
-htmlcnv.height = 900;
-const ctx = htmlcnv.getContext("2d") as CanvasRenderingContext2D;
+const ctx = htmlcnv.getContext("2d") as CanvasRenderingContext2D; //canvas context
+
 
 export function bodyOnLoad() {
-
-
-
-    let testView = new CXTestView(ctx, 0, 0, 1, 1, true, true);
-
-
-
-    viewelements.push(testView);
-    initialize();
-
+    main();
     return true;
 }
 
@@ -89,7 +80,6 @@ function resizeCanvas() {
     if (dpi_x > min_dpi || dpi_y > min_dpi) {
         w = Math.round(w * dpi_x / min_dpi);
         h = Math.round(h * dpi_y / min_dpi);
-        console.log("New w,h: " + w.toString() + "," + h.toString());
     }
 
 
@@ -99,35 +89,24 @@ function resizeCanvas() {
     else {
         w = 4 / 3 * h;
     }
+    console.log("New w,h: " + w.toString() + "," + h.toString());
     htmlcnv.width = w;
     htmlcnv.height = h;
-
     drawCanvas();
 }
 
 // Redraw canvas.
 function drawCanvas() {
-
     for (let i = 0; i < viewelements.length; ++i) {
         viewelements[i].draw();
     }
 }
 
-function registerEventListeners() {
-    // Register an event listener to call the resizeCanvas() function 
-    // each time the window is resized.
-    window.addEventListener('resize', resizeCanvas, false);
-    // Register an event lister to call the drawLine() function
-    // each time the user clicks the left mouse
-    htmlcnv.addEventListener('click', onEvent, false);
-    htmlcnv.addEventListener('mousedown', onEvent, false);
-    htmlcnv.addEventListener('mousemove', onEvent, false);
-    htmlcnv.addEventListener('mouseup', onEvent, false);
-    htmlcnv.addEventListener('mouseleave', onEvent, false);
-    document.addEventListener('keydown', onEvent, false);
-}
-
 
 function main() {
-
+    initialize();
+    let defaultview = new CXTablePlanView(ctx, 0, 0, 1, 1, true, true);
+    viewelements.push(defaultview);
+    defaultview.background_color = "#b3b3b3ff";
+    drawCanvas();
 }

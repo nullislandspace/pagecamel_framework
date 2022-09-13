@@ -2,9 +2,11 @@ export class CXTextBox extends CXBox {
     constructor(ctx: any, x: any, y: any, width: any, height: any, is_relative?: boolean, redraw?: boolean);
     _text_color: string;
     _font_family: string;
+    _font_size: number;
     _text: string;
     _text_alignment: string;
     _auto_line_break: boolean;
+    _font_size_pixel: number;
     _drawText(): void;
     _autoLineBreak(ctx: any, text: any, maxWidth: any): string[];
     _drawTextBox(): void;

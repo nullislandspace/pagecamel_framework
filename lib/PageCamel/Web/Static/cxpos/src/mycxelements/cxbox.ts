@@ -1,5 +1,12 @@
 import { CXFrame } from "./cxframe.js";
 export class CXBox extends CXFrame {
+    /** @protected */
+    protected _background_color: string;
+    /** @protected */
+    protected _gradient: string[];
+    /** @protected */
+    protected _first_gradient_color: string;
+ 
     /**
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
@@ -9,7 +16,7 @@ export class CXBox extends CXFrame {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
     */
-    constructor(ctx, x, y, width, height, is_relative = true, redraw = true) {
+     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         /** @protected */
         this._background_color = "green";
@@ -24,7 +31,7 @@ export class CXBox extends CXFrame {
      * @description Draws the box
      * @protected
      */
-    _drawBox() {
+     protected _drawBox(): void {
         this._ctx.fillStyle = this._background_color;
         if (this._gradient.length > 0) {
             var grd = this._ctx.createLinearGradient(this.xpixel, this.ypixel, this.xpixel, this.ypixel + this.heightpixel);
@@ -52,19 +59,19 @@ export class CXBox extends CXFrame {
      * @description Draws everything
      * @protected
      */
-    _draw() {
+    protected _draw(): void {
         this._drawBox();
     }
     /**
      * @param {string} color - Color of the box
      */
-    set background_color(arg) {
+     set background_color(arg: string) {
         this._background_color = arg;
     }
     /**
      * @returns {string} Color of the box
      */
-    get background_color() {
+     get background_color(): string {
         return this._background_color;
     }
     /**
@@ -75,14 +82,14 @@ export class CXBox extends CXFrame {
      * //Example of a gradient
      * var gradient = ["#ff0000", "#00ff00", "#0000ff"];
      */
-    set gradient(arg) {
+     set gradient(arg: string[]) {
         this._gradient = arg;
         this._first_gradient_color = arg[0];
     }
     /**
      * @returns {array} Gradient
      */
-    get gradient() {
+     get gradient(): string[] {
         return this._gradient;
     }
 }

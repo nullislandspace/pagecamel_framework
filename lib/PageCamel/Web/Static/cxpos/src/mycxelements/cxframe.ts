@@ -1,5 +1,18 @@
 import { CXDefault } from "./cxdefault.js";
 export class CXFrame extends CXDefault {
+    /** @protected */
+    protected _border_color: string;
+    /** @protected */
+    protected _radius: number;
+    /** @protected */
+    protected _radius_pixel: number;
+    /** @protected */
+    protected _border_width: number;
+    /** @protected */
+    protected _border_width_pixel: number;
+    /** @protected */
+    protected _name: string;
+
     /**
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
@@ -9,7 +22,7 @@ export class CXFrame extends CXDefault {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
      */
-    constructor(ctx, x, y, width, height, is_relative = true, redraw = true) {
+     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         /** @protected */
         this._border_color = "black";
@@ -31,29 +44,29 @@ export class CXFrame extends CXDefault {
      * @description Checks if the mouse is inside the frame
      * @return {boolean} - if the mouse is inside the frame
      */
-    _isInside(x, y) {
+     protected _isInside(x: number, y: number): boolean {
         return (x >= this._xpixel && x <= this._xpixel + this._widthpixel && y >= this._ypixel && y <= this._ypixel + this._heightpixel);
     }
     /**
      * @description converts the radius to pixel and the border width to pixel
      * @protected
      */
-    _convertFrameToPixel() {
+     protected _convertFrameToPixel() {
         this._border_width_pixel = this._calcRelXToPixel(this._border_width, this._heightpixel);
         this._radius_pixel = this._calcRelXToPixel(this._radius, this._heightpixel);
     }
-    /**
-     * @protected
+    /** 
+     * @protected   
      * @description Converts the relative position to pixel position
     */
-    _convertToPixel() {
+     protected _convertToPixel(): void {
         this._convertFrameToPixel();
     }
     /**
      * @protected
      * @description draws the frame with a radius
      */
-    _drawRadius() {
+     protected _drawRadius(): void {
         // draw rounded rectangle
         this._ctx.beginPath();
         this._ctx.moveTo(this.xpixel + this._radius_pixel + Math.ceil(this._border_width_pixel / 2), this.ypixel + Math.ceil(this._border_width_pixel / 2));
@@ -68,11 +81,12 @@ export class CXFrame extends CXDefault {
         if (this._border_width_pixel > 0) {
             this._ctx.stroke();
         }
+
     }
     /**
      * @protected
      */
-    _drawFrame() {
+     protected _drawFrame(): void {
         this._ctx.strokeStyle = this._border_color;
         this._ctx.lineWidth = this._border_width_pixel;
         if (this._radius_pixel > 0) {
@@ -84,34 +98,36 @@ export class CXFrame extends CXDefault {
             }
         }
     }
-    _draw() {
+
+    protected _draw(): void {
         this._drawFrame();
     }
     /**
      * @param {string} color - Color of the frame
      */
-    set border_color(arg) {
+     set border_color(arg: string) {
         this._border_color = arg;
     }
-    get border_color() {
+    get border_color(): string {
         return this._border_color;
     }
     /**
      * @param {number} r - Radius of the frame
      */
-    set radius(arg) {
+     set radius(arg: number) {
         this._radius = arg;
     }
-    get radius() {
+    get radius(): number {
         return this._radius;
     }
     /**
      * @param {number} w - Width of the frame
      */
-    set border_width(arg) {
+     set border_width(arg: number) {
         this._border_width = arg;
     }
-    get border_width() {
+    get border_width(): number {
         return this._border_width;
     }
+
 }

@@ -1,5 +1,6 @@
 export class CXScrollList extends CXBox {
     constructor(ctx: any, x: any, y: any, width: any, height: any, is_relative?: boolean, redraw?: boolean);
+    _background: string;
     _render_list: any[];
     _scroll_list_items: any[];
     _scroll_list_text: any[];
@@ -36,6 +37,11 @@ export class CXScrollList extends CXBox {
      */
     set scroll_bar_width(arg: number);
     get scroll_bar_width(): number;
+    /**
+     * @param {String} value - background color of the scroll list
+     */
+    set background(arg: string);
+    get background(): string;
 }
 import { CXBox } from "./cxbox.js";
 import { CXScrollBar } from "./cxscrollbar.js";

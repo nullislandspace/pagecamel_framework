@@ -1,4 +1,4 @@
-import { CXDefault } from "./mycxelements/cxdefault.js"; 
+/* import { CXDefault } from "./mycxelements/cxdefault.js"; 
 import { CXFrame }   from "./mycxelements/cxframe.js";
 import { CXBox}  from "./mycxelements/cxbox.js";
 import { CXTextBox}  from "./mycxelements/cxtextbox.js";
@@ -95,4 +95,4 @@ export class CXTestView extends CXDefault {
    
 
     
-} 
+}  */

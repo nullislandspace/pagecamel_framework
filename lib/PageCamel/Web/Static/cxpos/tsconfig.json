@@ -7,7 +7,7 @@
       // normally they are ignored as source files
       "allowJs": true,
       // Generate d.ts files
-      "declaration": false,
+      "declaration": true,
       // This compiler run should
       // only output d.ts files
       "emitDeclarationOnly": false,

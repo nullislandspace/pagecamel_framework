@@ -1,4 +1,49 @@
 export class CXDefault {
+    /** @protected  */
+    protected _ctx: CanvasRenderingContext2D;
+    /** @protected  */
+    protected _is_relative: boolean;
+    /** @protected  */
+    protected _elements: any[];
+    /** @protected  */
+    protected _xpos: number;
+    /** @protected  */
+    protected _ypos: number;
+    /** @protected  */
+    protected _width: number;
+    /** @protected  */
+    protected _height: number;
+    /** @protected  */
+    protected _redraw: boolean;
+    /** @protected  */
+    protected _xpixel: number;
+    /** @protected  */
+    protected _ypixel: number;
+    /** @protected  */
+    protected _widthpixel: number;
+    /** @protected  */
+    protected _heightpixel: number;
+    /** @protected  */
+    protected _mouse_down: boolean;
+    /** @protected  */
+    protected _mouse_over: boolean;
+    /** @protected  */
+    protected _has_changed: boolean;
+    /** @protected  */
+    protected _takes_keyboard_input: boolean;
+    /** @protected  */
+    protected _active: boolean;
+    /** @protected  */
+    protected _px: number;
+    /** @protected  */
+    protected _py: number;
+    /** @protected  */
+    protected _pwidth: number;
+    /** @protected  */
+    protected _pheight: number;
+    /** @protected  */
+    protected _name: string;
+    
     /**
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
@@ -8,7 +53,7 @@ export class CXDefault {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
     */
-    constructor(ctx, x, y, width, height, is_relative = true, redraw = true) {
+     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         /** @protected  */
         this._ctx = ctx;
         /** @protected  */
@@ -52,29 +97,25 @@ export class CXDefault {
         /** @protected  */
         this._pheight = 0;
         /** @protected  */
-        this._font_size_pixel = 0;
-        /** @protected  */
-        this._font_size = 0;
-        
+        this._name = 'CXDefault';
     }
-    /**
+    /**code to calculate the relative positions of the element
      * @param {number} px - x position of the element in pixels
      * @param {number} py - y position of the element in pixels
      * @param {number} pwidth - width of the element in pixels
      * @param {number} pheight - height of the element in pixels
      */
-    draw(px = 0, py = 0, pwidth = this._ctx.canvas.width, pheight = this._ctx.canvas.height) {
+    draw(px = 0, py = 0, pwidth = this._ctx.canvas.width, pheight = this._ctx.canvas.height): void {
         this._px = px;
         this._py = py;
         this._pwidth = pwidth;
         this._pheight = pheight;
-
         var [xpixel, ypixel, widthpixel, heightpixel] = this._calcRelativePositions(px, py, pwidth, pheight);
         this._xpixel = xpixel;
         this._ypixel = ypixel;
         this._widthpixel = widthpixel;
         this._heightpixel = heightpixel;
-        this._font_size_pixel = this._calcRelYToPixel(this._font_size, this._heightpixel);
+        this._convertToPixel();
         if (this._redraw) {
             this._clear();
         }
@@ -85,17 +126,25 @@ export class CXDefault {
         }
     }
     /**
-     * @param {event} event - the event to get the mouse position from
+     * @protected
+     * @description Converts the relative position to pixel position
+    */
+    protected _convertToPixel(): void {
+        // override this function in child classes to convert the relative position to pixel position
+    }
+    /**
+     * @param {MouseEvent} event - the event to get the mouse position from
      * @returns {Array} [x, y] - the mouse position relative to the canvas
      * @protected - should only be called by the child class
      */
-    _eventToXY(event) {
+    protected _eventToXY(event: MouseEvent): number[] {
+        
         var x = event.offsetX;
         var y = event.offsetY;
         return [x, y];
     }
     /** @protected  */
-    _clear() {
+    protected _clear(): void {
         if (this._redraw) {
             this._ctx.clearRect(this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
             this._ctx.fillStyle = "#b3b3b3ff";
@@ -103,34 +152,34 @@ export class CXDefault {
         }
     }
     /** @protected  */
-    _tryRedraw(px = 0, py = 0, pwidth = this._ctx.canvas.width, pheight = this._ctx.canvas.height) {
+    protected _tryRedraw(px = 0, py = 0, pwidth = this._ctx.canvas.width, pheight = this._ctx.canvas.height): void {
         if (this._redraw && this._has_changed) {
             this.draw(px, py, pwidth, pheight);
         }
     }
     /** @protected  */
-    _draw() {
+    protected _draw(): void {
         // override this function in child classes to draw the element
     }
     /** @protected  */
-    _calcRelXToPixel(rel_x = 0, max_width = this._ctx.canvas.width) {
+    protected _calcRelXToPixel(rel_x = 0, max_width = this._ctx.canvas.width):number {
         /* rel_x = relative position | size to convert to pixel position | max_width = pixel width of the area to draw in */
         var x = rel_x;
         if (this._is_relative) {
             // calculate the x position of the element relative to the canvas
-            if (!isNaN(parseFloat(rel_x))) {
+            if (!isNaN(rel_x)) {
                 x = rel_x * max_width;
             }
         }
         return x;
     }
     /** @protected  */
-    _calcRelYToPixel(rel_y = 0, max_height = this._ctx.canvas.height) {
+    protected _calcRelYToPixel(rel_y = 0, max_height = this._ctx.canvas.height):number {
         /* rel_y = relative position | size to convert to pixel position | max_height = pixel height of the area to draw in */
         var y = rel_y;
         if (this._is_relative) {
             // calculate the y position of the element relative to the canvas
-            if (!isNaN(parseFloat(rel_y))) {
+            if (!isNaN(rel_y)) {
                 y = rel_y * max_height;
             }
         }
@@ -139,7 +188,7 @@ export class CXDefault {
     /**
      * @protected - should only be called by the child class
      */
-    _calcRelativePositions(px, py, pwidth, pheight) {
+     protected _calcRelativePositions(px: number, py: number, pwidth: number, pheight: number): number[] {
         var xpixel = Math.floor(px + this._calcRelXToPixel(this._xpos, pwidth));
         var ypixel = Math.floor(py + this._calcRelYToPixel(this._ypos, pheight));
         var widthpixel = Math.ceil(this._calcRelXToPixel(this._width, pwidth));
@@ -147,33 +196,38 @@ export class CXDefault {
         return [xpixel, ypixel, widthpixel, heightpixel];
     }
     /** @protected  */
-    _getViewInfo() {
+    protected _getViewInfo(): void {
     }
     /** @protected  */
-    _getMinSize() {
+    protected _getMinSize(): void {
     }
     /** @protected  */
-    _getMaxSize() {
+    protected _getMaxSize(): void {
     }
     /** @protected  */
-    _checkEvent(event) {
-        var [mouse_x, mouse_y] = this._eventToXY(event);
+    protected _checkEvent(event: Event): boolean {
+        
         if (this._active) {
             switch (event.type) {
                 case 'click':
+                    var [mouse_x, mouse_y] = this._eventToXY(event as MouseEvent);
                     return this._checkClick(mouse_x, mouse_y);
                 case 'mousemove':
+                    var [mouse_x, mouse_y] = this._eventToXY(event as MouseEvent);
                     return this._checkMouseMove(mouse_x, mouse_y);
                 case 'mousedown':
+                    var [mouse_x, mouse_y] = this._eventToXY(event as MouseEvent);
                     return this._checkMouseDown(mouse_x, mouse_y);
                 case 'mouseup':
+                    var [mouse_x, mouse_y] = this._eventToXY(event as MouseEvent);
                     return this._checkMouseUp(mouse_x, mouse_y);
                 case 'mouseleave':
+                    var [mouse_x, mouse_y] = this._eventToXY(event as MouseEvent);
                     return this._checkMouseLeave(mouse_x, mouse_y);
                 case 'keydown':
-                    return this._checkKeyDown(event);
+                    return this._checkKeyDown();
                 case 'keyup':
-                    return this._checkKeyUp(event);
+                    return this._checkKeyUp();
             }
         }
         return false;
@@ -182,21 +236,21 @@ export class CXDefault {
      * @param {event} event - the event to check
      * @returns {boolean} - if the event needs to be handled
      */
-    checkEvent(event) {
+     checkEvent(event: Event): boolean {
         /* check if the event is affecting the element and if so return true
            else return false
            */
         return this._checkEvent(event);
     }
     /** @protected  */
-    _checkClick(x, y) {
+    protected _checkClick(x: number, y: number): boolean {
         if (x >= this._xpixel && x <= this._xpixel + this._widthpixel && y >= this._ypixel && y <= this._ypixel + this._heightpixel) {
             return true;
         }
         return false;
     }
     /** @protected  */
-    _checkMouseDown(x, y) {
+    protected _checkMouseDown(x: number, y: number): boolean {
         if (x >= this._xpixel && x <= this._xpixel + this._widthpixel && y >= this._ypixel && y <= this._ypixel + this._heightpixel) {
             this._mouse_down = true;
             return true;
@@ -205,21 +259,22 @@ export class CXDefault {
         return false;
     }
     /** @protected  */
-    _checkMouseMove(x, y) {
+    protected _checkMouseMove(x: number, y: number): boolean {
         if (this._mouse_down) {
             return true;
         }
         if (x >= this.xpixel && x <= this.xpixel + this.widthpixel && y >= this.ypixel && y <= this.ypixel + this.heightpixel) {
             this._mouse_over = true;
             return true;
-        } else if (this._mouse_over) {
+        }
+        else if (this._mouse_over) {
             this._mouse_over = false;
             return true;
         }
         return false;
     }
     /** @protected  */
-    _checkMouseUp(x, y) {
+    protected _checkMouseUp(x: number, y: number): boolean {
         if (this._mouse_down) {
             this._mouse_down = false;
             return true;
@@ -227,39 +282,35 @@ export class CXDefault {
         return false;
     }
     /** @protected  */
-    _checkMouseLeave(x, y) {
+    protected _checkMouseLeave(x: number, y: number): boolean {
         this._mouse_down = false;
         this._mouse_over = false;
         return true;
     }
     /** @protected  */
-    _checkKeyDown() {
-
+    protected _checkKeyDown(): boolean {
         if (this._takes_keyboard_input) {
             return true;
         }
         return false;
     }
     /** @protected  */
-    _checkKeyUp() {
+    protected _checkKeyUp(): boolean {
         if (this._takes_keyboard_input) {
             return true;
         }
         return false;
     }
     /**
-     * @param {event} event - the event to check
-     * @param {callback} function
+     * @param {Event} event - the event to check
      * @returns {boolean} - if the event needs to be handled
      */
-    handleEvent(event, callback) {
-        // either override this function in child classes or give a custom callback function to handle events
-        if (callback) {
-            callback(event);
-        }
+     handleEvent(event: Event): boolean {
+        // override this function in child classes
+        return false;
     }
     /** @protected  */
-    _checkOverflow(x, y, width, height) {
+    protected _checkOverflow(x: number, y: number, width: number, height: number): boolean {
         if (this._is_relative) {
             if (x < 0 || x > 1 || y < 0 || y > 1) {
                 console.warn("Position is outside drawing area");
@@ -267,7 +318,8 @@ export class CXDefault {
             if (x + width > 1 || y + height > 1) {
                 console.warn("Position and size is outside drawing area");
             }
-        } else {
+        }
+        else {
             if (x < 0 || x > this._ctx.canvas.width || y < 0 || y > this._ctx.canvas.height) {
                 console.warn("Position is outside drawing area");
             }
@@ -281,100 +333,99 @@ export class CXDefault {
     * @param {number} width
     * @public - accessible from outside the class
     */
-    set width(width) {
-        this._width = width;
+    set width(arg: number) {
+        this._width = arg;
     }
-    get width() {
+    get width(): number {
         return this._width;
     }
     /**
      * @param {number} height
      * @public - accessible from outside the class
      */
-    set height(height) {
-        this._height = height;
+    set height(arg: number) {
+        this._height = arg;
     }
-    get height() {
+    get height(): number {
         return this._height;
     }
     /**
      * @param {number} x
      * @public - accessible from outside the class
      */
-    set xpos(x) {
-        this._xpos = x;
+    set xpos(arg: number) {
+        this._xpos = arg;
     }
-    get xpos() {
+    get xpos(): number {
         return this._xpos;
     }
     /**
      * @param {number} y
      * @public - accessible from outside the class
      */
-    set ypos(y) {
-        this._ypos = y;
+    set ypos(arg: number) {
+        this._ypos = arg;
     }
-    get ypos() {
+    get ypos(): number {
         return this._ypos;
     }
     /**
      * @param {boolean} state
      * @public - accessible from outside the class
      */
-    set is_relative(state) {
-        this._is_relative = state;
+    set is_relative(arg: boolean) {
+        this._is_relative = arg;
     }
-    get is_relative() {
+    get is_relative(): boolean {
         return this._is_relative;
     }
     /**
      * @param {CanvasRenderingContext2D} value
      * @public - accessible from outside the class
      */
-    set ctx(value) {
-        this._ctx = value;
+    set ctx(arg: CanvasRenderingContext2D) {
+        this._ctx = arg;
     }
-    get ctx() {
+    get ctx(): CanvasRenderingContext2D {
         return this._ctx;
     }
     /**
      * @param {boolean} changed
      */
-    set has_changed(changed) {
-        this._has_changed = changed;
+    set has_changed(arg: boolean) {
+        this._has_changed = arg;
     }
-    get has_changed() {
+    get has_changed(): boolean {
         return this._has_changed;
     }
-    get xpixel() {
+    get xpixel(): number {
         return this._xpixel;
     }
-    get ypixel() {
+    get ypixel(): number {
         return this._ypixel;
     }
-    get widthpixel() {
+    get widthpixel(): number {
         return this._widthpixel;
     }
-    get heightpixel() {
+    get heightpixel(): number {
         return this._heightpixel;
-    }
-    /**
-     * @param {number} font_size
-     * @public - accessible from outside the class
-     */
-    set font_size(font_size) {
-        this._font_size = font_size;
-    }
-    get font_size() {
-        return this._font_size;
     }
     /**
      * @param {boolean} state - if the element is visible or not
      */
-    set active(state) {
-        this._active = state;
+    set active(arg: boolean) {
+        this._active = arg;
     }
-    get active() {
+    get active(): boolean {
         return this._active;
+    }
+    /**
+     * @param {string} name - the name of the element
+     */
+    set name(arg: string) {
+        this._name = arg;
+    }
+    get name(): string {
+        return this._name;
     }
 }

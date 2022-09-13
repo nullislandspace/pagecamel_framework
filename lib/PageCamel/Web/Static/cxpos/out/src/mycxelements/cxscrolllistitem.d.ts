@@ -4,11 +4,8 @@ export class CXScrollListItem extends CXBox {
     _listitem: any[];
     _selected: boolean;
     _selected_color: string;
-    /**
-     * @param {event} event - the event to check
-     * @returns {boolean} - if the event needs to be handled
-     */
-    handleEvent(event: Event): boolean;
+    _background: string;
+    background: string;
     /**
      * @param {Array} list - Array of strings
      */
