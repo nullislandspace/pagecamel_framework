@@ -1,0 +1,31 @@
+export class CXButton extends CXTextBox {
+    constructor(ctx: any, x: any, y: any, width: any, height: any, is_relative?: boolean, redraw?: boolean);
+    allow_hover: boolean;
+    _mouseInHandler: () => boolean;
+    _default_frame_color: any;
+    _frame_color: any;
+    _default_text_color: any;
+    _text_color: any;
+    _default_background: any;
+    _background: any;
+    _mouseOutHandler: () => boolean;
+    _mouseDownHandler: () => boolean;
+    _mouseUpHandler: () => boolean;
+    onClick: () => void;
+    handleEvent(event: any): void;
+    is_mouse_down: boolean;
+    set frame_color(arg: any);
+    get frame_color(): any;
+    set background(arg: any);
+    get background(): any;
+    set hover_frame_color(arg: any);
+    get hover_frame_color(): any;
+    _hover_frame_color: any;
+    set hover_background(arg: any);
+    get hover_background(): any;
+    _hover_background: any;
+    set hover_text_color(arg: any);
+    get hover_text_color(): any;
+    _hover_text_color: any;
+}
+import { CXTextBox } from "./cxtextbox.js";
