@@ -45,6 +45,7 @@ export class CXDefault {
     protected _name: string;
     
     /**
+     * @constructor 
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
      * @param {number} y - the y position of the element
@@ -54,49 +55,27 @@ export class CXDefault {
      * @param {boolean} redraw - if the element can redraw itself
     */
      constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
-        /** @protected  */
         this._ctx = ctx;
-        /** @protected  */
         this._is_relative = is_relative;
-        /** @protected  */
         this._elements = [];
-        /** @protected  */
         this._xpos = x;
-        /** @protected  */
         this._ypos = y;
-        /** @protected  */
         this._width = width;
-        /** @protected  */
         this._height = height;
-        /** @protected  */
         this._redraw = redraw;
-        /** @protected  */
         this._xpixel = 0;
-        /** @protected  */
         this._ypixel = 0;
-        /** @protected  */
         this._widthpixel = 0;
-        /** @protected  */
         this._heightpixel = 0;
-        /** @protected  */
         this._mouse_down = false;
-        /** @protected  */
         this._mouse_over = false;
-        /** @protected  */
         this._has_changed = false;
-        /** @protected  */
         this._takes_keyboard_input = false;
-        /** @protected  */
         this._active = true;
-        /** @protected  */
         this._px = 0;
-        /** @protected  */
         this._py = 0;
-        /** @protected  */
         this._pwidth = 0;
-        /** @protected  */
         this._pheight = 0;
-        /** @protected  */
         this._name = 'CXDefault';
     }
     /**code to calculate the relative positions of the element
@@ -301,13 +280,18 @@ export class CXDefault {
         }
         return false;
     }
+
+    /** @protected  */
+    protected _handleEvent(event: Event): boolean {
+        // override this function in child classes
+        return false;
+    } 
     /**
      * @param {Event} event - the event to check
      * @returns {boolean} - if the event needs to be handled
      */
-     handleEvent(event: Event): boolean {
-        // override this function in child classes
-        return false;
+    handleEvent(event: Event): boolean {
+        return this._handleEvent(event);
     }
     /** @protected  */
     protected _checkOverflow(x: number, y: number, width: number, height: number): boolean {
@@ -333,8 +317,8 @@ export class CXDefault {
     * @param {number} width
     * @public - accessible from outside the class
     */
-    set width(arg: number) {
-        this._width = arg;
+    set width(width: number) {
+        this._width = width;
     }
     get width(): number {
         return this._width;
@@ -343,8 +327,8 @@ export class CXDefault {
      * @param {number} height
      * @public - accessible from outside the class
      */
-    set height(arg: number) {
-        this._height = arg;
+    set height(height: number) {
+        this._height = height;
     }
     get height(): number {
         return this._height;
@@ -353,8 +337,8 @@ export class CXDefault {
      * @param {number} x
      * @public - accessible from outside the class
      */
-    set xpos(arg: number) {
-        this._xpos = arg;
+    set xpos(x: number) {
+        this._xpos = x;
     }
     get xpos(): number {
         return this._xpos;
@@ -363,8 +347,8 @@ export class CXDefault {
      * @param {number} y
      * @public - accessible from outside the class
      */
-    set ypos(arg: number) {
-        this._ypos = arg;
+    set ypos(y: number) {
+        this._ypos = y;
     }
     get ypos(): number {
         return this._ypos;
@@ -373,8 +357,8 @@ export class CXDefault {
      * @param {boolean} state
      * @public - accessible from outside the class
      */
-    set is_relative(arg: boolean) {
-        this._is_relative = arg;
+    set is_relative(state: boolean) {
+        this._is_relative = state;
     }
     get is_relative(): boolean {
         return this._is_relative;
@@ -383,8 +367,8 @@ export class CXDefault {
      * @param {CanvasRenderingContext2D} value
      * @public - accessible from outside the class
      */
-    set ctx(arg: CanvasRenderingContext2D) {
-        this._ctx = arg;
+    set ctx(value: CanvasRenderingContext2D) {
+        this._ctx = value;
     }
     get ctx(): CanvasRenderingContext2D {
         return this._ctx;
@@ -392,8 +376,8 @@ export class CXDefault {
     /**
      * @param {boolean} changed
      */
-    set has_changed(arg: boolean) {
-        this._has_changed = arg;
+    set has_changed(changed: boolean) {
+        this._has_changed = changed;
     }
     get has_changed(): boolean {
         return this._has_changed;
@@ -413,8 +397,8 @@ export class CXDefault {
     /**
      * @param {boolean} state - if the element is visible or not
      */
-    set active(arg: boolean) {
-        this._active = arg;
+    set active(state: boolean) {
+        this._active = state;
     }
     get active(): boolean {
         return this._active;
@@ -422,8 +406,8 @@ export class CXDefault {
     /**
      * @param {string} name - the name of the element
      */
-    set name(arg: string) {
-        this._name = arg;
+    set name(name: string) {
+        this._name = name;
     }
     get name(): string {
         return this._name;

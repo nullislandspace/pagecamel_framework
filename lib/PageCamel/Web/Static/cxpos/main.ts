@@ -1,6 +1,7 @@
 import {CXTablePlanView} from "./src/cxtableplanview.js";
 import { CXTable } from "./src/mycxelements/cxtable.js";
-
+import {CXTextInput} from "./src/mycxelements/cxtextinput.js";
+import { CXButton } from "./src/mycxelements/cxbutton.js";
 
 let htmlppidiv: string = `<div id='testdiv' style='height: 1in; left: -100%; position: absolute; top: -100%; width: 1in;'></div>`;
 document.body.innerHTML = htmlppidiv;
@@ -133,12 +134,21 @@ class test extends CXTable implements first, second {
 
 function main() {
     initialize();
-    let defaultview = new CXTablePlanView(ctx, 0, 0, 1, 1, true, true);
-    defaultview.onBackButtonClicked = () => {
-        console.log("BackButtonClicked");
-    }
-    viewelements.push(defaultview);
-    defaultview.background_color = "#b3b3b3ff";
+    //let defaultview = new CXTablePlanView(ctx, 0, 0, 1, 1, true, true);
+    //defaultview.onBackButtonClicked = () => {
+    //    console.log("BackButtonClicked");
+    //}
+    //viewelements.push(defaultview);
+    //defaultview.background_color = "#b3b3b3ff";
+
+    let textinput = new CXTextInput(ctx, 0.1, 0.1, 0.2, 0.05, true, true);
+    textinput.border_width = 0.05;
+    let button = new CXButton(ctx, 0.1, 0.2, 0.2, 0.05, true, true);
+    button.text = "Button";
+    button.gradient = ['#ff0000ff', '#00ff00ff'];
+    button.radius = 0.05;
+    viewelements.push(button);
+    viewelements.push(textinput);
     drawCanvas();
     
 }
