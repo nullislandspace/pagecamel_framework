@@ -1,5 +1,5 @@
-import {CXDefaultView} from "./src/mycxelements/cxdefaultview.js";
 import {CXTablePlanView} from "./src/cxtableplanview.js";
+import { CXTable } from "./src/mycxelements/cxtable.js";
 
 
 let htmlppidiv: string = `<div id='testdiv' style='height: 1in; left: -100%; position: absolute; top: -100%; width: 1in;'></div>`;
@@ -101,12 +101,44 @@ function drawCanvas() {
         viewelements[i].draw();
     }
 }
+/* interface first {
+    name: string,
+    age: number
+}
 
+interface second {
+    product: string,
+    available: boolean,
+    amount: number
+}
+
+class test extends CXTable implements first, second {
+    name: string;
+    age: number;
+    product: string;
+    available: boolean;
+    amount: number;
+    constructor(name: string, age: number, product: string, available: boolean, amount: number) {
+        super();
+        this.name = name;
+        this.age = age;
+        this.product = product;
+        this.available = available;
+        this.amount = amount;
+    }
+    getName() {
+        return this.name;
+    }
+} */
 
 function main() {
     initialize();
     let defaultview = new CXTablePlanView(ctx, 0, 0, 1, 1, true, true);
+    defaultview.onBackButtonClicked = () => {
+        console.log("BackButtonClicked");
+    }
     viewelements.push(defaultview);
     defaultview.background_color = "#b3b3b3ff";
     drawCanvas();
+    
 }
