@@ -1,8 +1,9 @@
-import {CXTablePlanView} from "./src/cxtableplanview.js";
 import { CXTable } from "./src/mycxelements/cxtable.js";
-import {CXTextInput} from "./src/mycxelements/cxtextinput.js";
+import { CXTextInput } from "./src/mycxelements/cxtextinput.js";
 import { CXButton } from "./src/mycxelements/cxbutton.js";
 import { CXScrollList } from "./src/mycxelements/cxscrolllist.js";
+import { CXDragView } from "./src/cxdragview.js";
+import { CXDropDown } from "./src/mycxelements/cxdropdown.js";
 let htmlppidiv: string = `<div id='testdiv' style='height: 1in; left: -100%; position: absolute; top: -100%; width: 1in;'></div>`;
 document.body.innerHTML = htmlppidiv;
 
@@ -52,11 +53,13 @@ function initialize() {
 function onEvent(e: Event) {
 
     let reDR = false;
-    console.log("Event-Type: " + e.type);
+    //console.log("Event-Type: " + e.type);
     for (let i = 0; i < viewelements.length; ++i) {
         if (viewelements[i].checkEvent(e)) {
             viewelements[i].handleEvent(e);
-            reDR = true;
+            if (viewelements[i].has_changed) {
+                reDR = true;
+            }
         }
     }
     if (reDR) {
@@ -98,6 +101,10 @@ function resizeCanvas() {
 
 // Redraw canvas.
 function drawCanvas() {
+    // Clear the entire canvas
+    ctx.clearRect(0, 0, htmlcnv.width, htmlcnv.height);
+    ctx.fillStyle = "#b3b3b3ff";
+    ctx.fillRect(0, 0, htmlcnv.width, htmlcnv.height);
     for (let i = 0; i < viewelements.length; ++i) {
         viewelements[i].draw();
     }
@@ -134,34 +141,43 @@ class test extends CXTable implements first, second {
 
 function main() {
     initialize();
-    //let defaultview = new CXTablePlanView(ctx, 0, 0, 1, 1, true, true);
-    //defaultview.onBackButtonClicked = () => {
-    //    console.log("BackButtonClicked");
-    //}
-    //viewelements.push(defaultview);
-    //defaultview.background_color = "#b3b3b3ff";
-
-    let textinput = new CXTextInput(ctx, 0.1, 0.1, 0.2, 0.05, true, true);
-    textinput.border_width = 0.05;
-    let button = new CXButton(ctx, 0.1, 0.2, 0.2, 0.05, true, true);
-    button.text = "Button";
-    button.gradient = ['#ff0000ff', '#00ff00ff'];
-    button.radius = 0.05;
-    let scrolllist = new CXScrollList(ctx, 0.1, 0.3, 0.7, 0.6, true, true);
-    //generate some test data
-    let data: string[][] = [];
-    for (let i = 0; i < 100; ++i) {
-        let row: string[] = [];
-        for (let j = 0; j < 3; ++j) {
-            row.push("Row " + i.toString() + " Col " + j.toString());
+    /*     let defaultview = new CXDragView(ctx, 0, 0, 1, 1, true, true);
+        defaultview.onBackButtonClicked = () => {
+            console.log("BackButtonClicked");
         }
-        data.push(row);
-    }
-    scrolllist.list = data;
+        defaultview.background_color = "#00ff00";
+        viewelements.push(defaultview); */
 
-    viewelements.push(scrolllist);
-    viewelements.push(button);
-    viewelements.push(textinput);
-    drawCanvas();
+    let dropdown = new CXDropDown(ctx, 0.8, 0.5, 0.15, 0.2, true, false);
+    dropdown.text = 'Name';
+    dropdown.field_width = 0.8;
+    dropdown.field_height = 0.2;
+    dropdown.list = [['Test 1'], ['Test 2'], ['Test 3'], ['Test 4'], ['Test 5'], ['Test 6'], ['Test 7'], ['Test 8'], ['Test 9'], ['Test 10'], ['Test 11'], ['Test 12'], ['Test 13'], ['Test 14'], ['Test 15']];
+    dropdown.background_color = '#ff0000';
+    viewelements.push(dropdown);
+
+    //let textinput = new CXTextInput(ctx, 0.1, 0.1, 0.2, 0.05, true, true);
+    //textinput.border_width = 0.05;
+    //let button = new CXButton(ctx, 0.1, 0.2, 0.2, 0.05, true, true);
+    //button.text = "Button";
+    //button.gradient = ['#ff0000ff', '#00ff00ff'];
+    //button.radius = 0.05;
+    //let scrolllist = new CXScrollList(ctx, 0.1, 0.3, 0.7, 0.6, true, true);
+    ////generate some test data
+    //let data: string[][] = [];
+    //for (let i = 0; i < 100; ++i) {
+    //    let row: string[] = [];
+    //    for (let j = 0; j < 3; ++j) {
+    //        row.push("Row " + i.toString() + " Col " + j.toString());
+    //    }
+    //    data.push(row);
+    //}
+    //scrolllist.list = data;
+    //
+    //viewelements.push(scrolllist);
+    //viewelements.push(button);
+    //viewelements.push(textinput);
     
+    drawCanvas();
+
 }

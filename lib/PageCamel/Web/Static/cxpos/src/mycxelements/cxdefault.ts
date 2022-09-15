@@ -43,7 +43,7 @@ export class CXDefault {
     protected _pheight: number;
     /** @protected  */
     protected _name: string;
-    
+
     /**
      * @constructor 
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
@@ -54,7 +54,7 @@ export class CXDefault {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
     */
-     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         this._ctx = ctx;
         this._is_relative = is_relative;
         this._elements = [];
@@ -84,7 +84,7 @@ export class CXDefault {
      * @param {number} pwidth - width of the element in pixels
      * @param {number} pheight - height of the element in pixels
      */
-    draw(px = 0, py = 0, pwidth = this._ctx.canvas.width, pheight = this._ctx.canvas.height): void {
+    draw(px: number = 0, py: number = 0, pwidth: number = this._ctx.canvas.width, pheight: number = this._ctx.canvas.height): void {
         this._px = px;
         this._py = py;
         this._pwidth = pwidth;
@@ -117,7 +117,7 @@ export class CXDefault {
      * @protected - should only be called by the child class
      */
     protected _eventToXY(event: MouseEvent): number[] {
-        
+
         var x = event.offsetX;
         var y = event.offsetY;
         return [x, y];
@@ -141,7 +141,7 @@ export class CXDefault {
         // override this function in child classes to draw the element
     }
     /** @protected  */
-    protected _calcRelXToPixel(rel_x = 0, max_width = this._ctx.canvas.width):number {
+    protected _calcRelXToPixel(rel_x = 0, max_width = this._ctx.canvas.width): number {
         /* rel_x = relative position | size to convert to pixel position | max_width = pixel width of the area to draw in */
         var x = rel_x;
         if (this._is_relative) {
@@ -153,7 +153,7 @@ export class CXDefault {
         return x;
     }
     /** @protected  */
-    protected _calcRelYToPixel(rel_y = 0, max_height = this._ctx.canvas.height):number {
+    protected _calcRelYToPixel(rel_y = 0, max_height = this._ctx.canvas.height): number {
         /* rel_y = relative position | size to convert to pixel position | max_height = pixel height of the area to draw in */
         var y = rel_y;
         if (this._is_relative) {
@@ -167,7 +167,7 @@ export class CXDefault {
     /**
      * @protected - should only be called by the child class
      */
-     protected _calcRelativePositions(px: number, py: number, pwidth: number, pheight: number): number[] {
+    protected _calcRelativePositions(px: number, py: number, pwidth: number, pheight: number): number[] {
         var xpixel = Math.floor(px + this._calcRelXToPixel(this._xpos, pwidth));
         var ypixel = Math.floor(py + this._calcRelYToPixel(this._ypos, pheight));
         var widthpixel = Math.ceil(this._calcRelXToPixel(this._width, pwidth));
@@ -185,7 +185,7 @@ export class CXDefault {
     }
     /** @protected  */
     protected _checkEvent(event: Event): boolean {
-        
+
         if (this._active) {
             switch (event.type) {
                 case 'click':
@@ -215,7 +215,7 @@ export class CXDefault {
      * @param {event} event - the event to check
      * @returns {boolean} - if the event needs to be handled
      */
-     checkEvent(event: Event): boolean {
+    checkEvent(event: Event): boolean {
         /* check if the event is affecting the element and if so return true
            else return false
            */
@@ -285,13 +285,17 @@ export class CXDefault {
     protected _handleEvent(event: Event): boolean {
         // override this function in child classes
         return false;
-    } 
+    }
     /**
      * @param {Event} event - the event to check
      * @returns {boolean} - if the event needs to be handled
      */
     handleEvent(event: Event): boolean {
-        return this._handleEvent(event);
+        var handled : boolean = false;
+        if (this._active) {
+            handled = this._handleEvent(event);
+        }
+        return handled;
     }
     /** @protected  */
     protected _checkOverflow(x: number, y: number, width: number, height: number): boolean {
@@ -398,9 +402,11 @@ export class CXDefault {
      * @param {boolean} state - if the element is visible or not
      */
     set active(state: boolean) {
+        this._tryRedraw();
         this._active = state;
     }
     get active(): boolean {
+        this._tryRedraw();
         return this._active;
     }
     /**
