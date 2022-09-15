@@ -29,18 +29,18 @@ export class CXTextBox extends CXBox {
      */
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        
+
         this._text_color = "black";
         this._font_family = "Arial";
         this._font_size_pixel = 0;
-        
+
         this._font_size = 0;
         if (is_relative) {
             this._font_size = 0.5;
         } else {
             this._font_size = 12;
         }
-        
+
         this._text = "";
         this._text_alignment = "center";
         this._auto_line_break = true;
@@ -70,18 +70,18 @@ export class CXTextBox extends CXBox {
         this._ctx.textAlign = 'start';
 
         if (this._text) {
-            var text_array: string[]  = [];
+            var text_array: string[] = [];
             if (!Array.isArray(this._text)) { // check if it's an array
                 text_array = [this._text];
             }
             else {
                 text_array = this._text;
             }
-            var new_displaytext: string[]  = [];
+            var new_displaytext: string[] = [];
             var text_lines_height = 0;
             if (this._auto_line_break) {
                 for (var j in text_array) {
-                    var new_lines: string[]  = [];
+                    var new_lines: string[] = [];
                     if (this.border_width > 0) {
                         new_lines = this._autoLineBreak(text_array[j], this.widthpixel - this.border_width * 2);
                     } else {
@@ -112,7 +112,7 @@ export class CXTextBox extends CXBox {
                 if (new_displaytext.length == 1) {
                     start_y = this.ypixel + (this.heightpixel / 2 - actualHeight / 2) + actualHeight;
                 }
-                var text_x;
+                var text_x: number = this.xpixel + 8;
                 if (this._text_alignment == "center") {
                     text_x = this.xpixel + this.widthpixel / 2 - text_metrics.width / 2;
                 }
@@ -138,10 +138,10 @@ export class CXTextBox extends CXBox {
      * @description autoLineBreak will break the text into lines if it is too long preferably at a space and if there is no space it will break it at a word
      * @returns {string[]}
      */
-     protected _autoLineBreak(text: string, maxWidth: any): string[] {
+    protected _autoLineBreak(text: string, maxWidth: any): string[] {
         //automatically line breaks. Breaks preferably at spaces and if not possible at other places.
         var words = text.split(' ');
-        var lines: string[]  = [];
+        var lines: string[] = [];
         var currentLine = '';
         for (var i = 0; i < words.length; i++) {
             var word = words[i];
@@ -258,7 +258,7 @@ export class CXTextBox extends CXBox {
      * @param {number} fsize
      * @public - accessible from outside the class
      */
-     set font_size(fsize: number) {
+    set font_size(fsize: number) {
         this._font_size = fsize;
     }
     get font_size() {

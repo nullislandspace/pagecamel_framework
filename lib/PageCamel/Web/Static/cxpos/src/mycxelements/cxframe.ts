@@ -13,7 +13,7 @@ export class CXFrame extends CXDefault {
     protected _border_width: number;
     /** @protected */
     protected _border_width_pixel: number;
-    
+
     /**
      * @constructor 
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
@@ -26,7 +26,7 @@ export class CXFrame extends CXDefault {
     */
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        
+
         this._border_color = "black";
         this._radius = 0;
         this._radius_pixel = 0;
@@ -41,14 +41,14 @@ export class CXFrame extends CXDefault {
      * @description Checks if the mouse is inside the frame
      * @return {boolean} - if the mouse is inside the frame
      */
-     protected _isInside(x: number, y: number): boolean {
+    public isInside(x: number, y: number): boolean {
         return (x >= this._xpixel && x <= this._xpixel + this._widthpixel && y >= this._ypixel && y <= this._ypixel + this._heightpixel);
     }
     /**
      * @description converts the radius to pixel and the border width to pixel
      * @protected
      */
-     protected _convertFrameToPixel() {
+    protected _convertFrameToPixel() {
         this._border_width_pixel = this._calcRelXToPixel(this._border_width, this._heightpixel);
         this._radius_pixel = this._calcRelXToPixel(this._radius, this._heightpixel);
     }
@@ -56,14 +56,14 @@ export class CXFrame extends CXDefault {
      * @protected   
      * @description Converts the relative position to pixel position
     */
-     protected _convertToPixel(): void {
+    protected _convertToPixel(): void {
         this._convertFrameToPixel();
     }
     /**
      * @protected
      * @description draws the frame with a radius
      */
-     protected _drawRadius(): void {
+    protected _drawRadius(): void {
         // draw rounded rectangle
         this._ctx.beginPath();
         this._ctx.moveTo(this.xpixel + this._radius_pixel + Math.ceil(this._border_width_pixel / 2), this.ypixel + Math.ceil(this._border_width_pixel / 2));
@@ -83,7 +83,7 @@ export class CXFrame extends CXDefault {
     /**
      * @protected
      */
-     protected _drawFrame(): void {
+    protected _drawFrame(): void {
         this._ctx.strokeStyle = this._border_color;
         this._ctx.lineWidth = this._border_width_pixel;
         if (this._radius_pixel > 0) {

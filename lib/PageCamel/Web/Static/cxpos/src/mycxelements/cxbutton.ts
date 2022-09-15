@@ -1,7 +1,7 @@
 import { CXTextBox } from './cxtextbox.js';
 export class CXButton extends CXTextBox {
     /**@protected */
-    protected allow_hover: boolean;
+    protected _allow_hover: boolean;
     /**@protected */
     protected _default_border_color: string;
     /**@protected */
@@ -11,12 +11,12 @@ export class CXButton extends CXTextBox {
     /**@protected */
     protected _is_mouse_down: boolean;
     /**@protected */
-    protected _hover_border_color: string;
+    protected _hover_border_color?: string | undefined;
     /**@protected */
-    protected _hover_text_color: string;
+    protected _hover_text_color?: string | undefined;
     /**@protected */
-    protected _hover_background_color: string;
-    
+    protected _hover_background_color?: string | undefined;
+
     /**
      * @constructor 
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
@@ -29,10 +29,17 @@ export class CXButton extends CXTextBox {
      */
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean, redraw: boolean) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        
-        this.allow_hover = false; // if true, the button will change colors when the mouse is over it
-        this._name = "CXButton"; 
+
+        this._allow_hover = false; // if true, the button will change colors when the mouse is over it
+        this._name = "CXButton";
         this._is_mouse_down = false;
+        this._default_border_color = this._border_color;
+        this._default_text_color = this._text_color;
+        this._default_background_color = this._background_color;
+
+        this._hover_border_color = this._border_color;
+        this._hover_text_color = this._text_color;
+        this._hover_background_color = this._background_color;
 
     }
     /**
@@ -47,9 +54,9 @@ export class CXButton extends CXTextBox {
      * @protected 
      * @returns {boolean}
      */
-     protected _mouseInHandler:  () => boolean = (): boolean => {
+    protected _mouseInHandler: () => boolean = (): boolean => {
         var changed = false;
-        if (this.allow_hover) {
+        if (this._allow_hover) {
             if (this.hover_border_color != undefined && this._border_color != this.hover_border_color) {
                 this._default_border_color = this._border_color;
                 this._border_color = this.hover_border_color;
@@ -75,7 +82,7 @@ export class CXButton extends CXTextBox {
      */
     protected _mouseOutHandler: () => boolean = (): boolean => {
         var changed = false;
-        if (this.allow_hover) {
+        if (this._allow_hover) {
             if (this._default_border_color != undefined && this._border_color == this._hover_border_color) {
                 this._border_color = this._default_border_color;
                 changed = true;
@@ -121,9 +128,9 @@ export class CXButton extends CXTextBox {
      */
     onClick: () => void = (): void => {
     }
-    
-    _handleEvent(event: Event): boolean {
-        
+
+    protected _handleEvent(event: Event): boolean {
+
         var redraw = false;
         switch (event.type) {
             case "mousedown":
@@ -132,13 +139,13 @@ export class CXButton extends CXTextBox {
                 if (this._mouseDownHandler()) {
                     this._has_changed = true;
                     redraw = true;
-                    
+
                 }
 
                 break;
             case "mouseup":
                 var [x, y] = this._eventToXY(event as MouseEvent);
-                if (this._is_mouse_down && this._isInside(x, y)) {
+                if (this._is_mouse_down && this.isInside(x, y)) {
                     this.onClick();
                     console.log("clicked");
                 }
@@ -149,8 +156,8 @@ export class CXButton extends CXTextBox {
                 }
             case "mousemove":
                 var [x, y] = this._eventToXY(event as MouseEvent);
-                if (this.allow_hover) {
-                    if (this._isInside(x, y)) {
+                if (this._allow_hover) {
+                    if (this.isInside(x, y)) {
                         if (this._mouseInHandler()) {
                             this._has_changed = true;
                             redraw = true;
@@ -184,7 +191,7 @@ export class CXButton extends CXTextBox {
         this._default_border_color = color;
     }
     /**
-     * @returns {color}
+     * @returns {string}
      */
     get border_color(): string {
         return this._border_color;
@@ -196,25 +203,31 @@ export class CXButton extends CXTextBox {
         this._background_color = color;
         this._default_background_color = color;
     }
-    get background_color() {
+    get background_color(): string {
         return this._background_color;
     }
-    set hover_border_color(color) {
+    set hover_border_color(color: string | undefined) {
         this._hover_border_color = color;
     }
-    get hover_border_color() {
+    get hover_border_color(): string | undefined {
         return this._hover_border_color;
     }
-    set hover_background_color(color) {
+    set hover_background_color(color: string | undefined) {
         this._hover_background_color = color;
     }
-    get hover_background_color() {
+    get hover_background_color(): string | undefined {
         return this._hover_background_color;
     }
-    set hover_text_color(color) {
+    set hover_text_color(color: string | undefined) {
         this._hover_text_color = color;
     }
-    get hover_text_color() {
+    get hover_text_color(): string | undefined {
         return this._hover_text_color;
+    }
+    set allow_hover(allow: boolean) {
+        this._allow_hover = allow;
+    }
+    get allow_hover(): boolean {
+        return this._allow_hover;
     }
 }

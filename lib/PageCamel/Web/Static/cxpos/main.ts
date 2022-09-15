@@ -2,13 +2,13 @@ import {CXTablePlanView} from "./src/cxtableplanview.js";
 import { CXTable } from "./src/mycxelements/cxtable.js";
 import {CXTextInput} from "./src/mycxelements/cxtextinput.js";
 import { CXButton } from "./src/mycxelements/cxbutton.js";
-
+import { CXScrollList } from "./src/mycxelements/cxscrolllist.js";
 let htmlppidiv: string = `<div id='testdiv' style='height: 1in; left: -100%; position: absolute; top: -100%; width: 1in;'></div>`;
 document.body.innerHTML = htmlppidiv;
 
 let devicePixelRatio = window.devicePixelRatio || 1;
-let dpi_x = document.getElementById('testdiv').offsetWidth * devicePixelRatio;
-let dpi_y = document.getElementById('testdiv').offsetHeight * devicePixelRatio;
+let dpi_x = document.getElementById('testdiv')!.offsetWidth * devicePixelRatio;
+let dpi_y = document.getElementById('testdiv')!.offsetHeight * devicePixelRatio;
 
 const min_dpi = 96;
 const min_width = 1024;
@@ -147,6 +147,19 @@ function main() {
     button.text = "Button";
     button.gradient = ['#ff0000ff', '#00ff00ff'];
     button.radius = 0.05;
+    let scrolllist = new CXScrollList(ctx, 0.1, 0.3, 0.7, 0.6, true, true);
+    //generate some test data
+    let data: string[][] = [];
+    for (let i = 0; i < 100; ++i) {
+        let row: string[] = [];
+        for (let j = 0; j < 3; ++j) {
+            row.push("Row " + i.toString() + " Col " + j.toString());
+        }
+        data.push(row);
+    }
+    scrolllist.list = data;
+
+    viewelements.push(scrolllist);
     viewelements.push(button);
     viewelements.push(textinput);
     drawCanvas();

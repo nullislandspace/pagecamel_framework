@@ -21,7 +21,7 @@ export class CXTextInput extends CXTextBox {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
      */
-    constructor(ctx, x, y, width, height, is_relative, redraw) {
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean, redraw: boolean) {
         super(ctx, x, y, width, height, is_relative, redraw);
         super._text_alignment = 'left';
         super._takes_keyboard_input = true;
@@ -234,7 +234,7 @@ export class CXTextInput extends CXTextBox {
             }
         } else if (event.type == 'mousedown') {
             var [x, y] = this._eventToXY(event as MouseEvent);
-            if (this._isInside(x, y)) {
+            if (this.isInside(x, y)) {
                 this._showCursor(x);
             }
             else {
@@ -243,7 +243,7 @@ export class CXTextInput extends CXTextBox {
         } else if (event.type == 'mousemove') {
             var [x, y] = this._eventToXY(event as MouseEvent);
             //change pointer to text cursor if cursor is inside the text input area 
-            if (this._isInside(x, y)) {
+            if (this.isInside(x, y)) {
                 this._ctx.canvas.style.cursor = 'text';
             }
             else {
