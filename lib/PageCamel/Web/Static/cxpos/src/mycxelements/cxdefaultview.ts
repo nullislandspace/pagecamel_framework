@@ -12,4 +12,7 @@ export class CXDefaultView extends CXBox {
     get Table(): CXTable {
         return this._table;
     }
+    public onBackButtonClicked() {
+
+    }
 }

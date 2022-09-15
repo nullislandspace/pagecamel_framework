@@ -44,6 +44,7 @@ export declare class CXDefault {
     /** @protected  */
     protected _name: string;
     /**
+     * @constructor
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
      * @param {number} y - the y position of the element
@@ -112,6 +113,8 @@ export declare class CXDefault {
     protected _checkKeyDown(): boolean;
     /** @protected  */
     protected _checkKeyUp(): boolean;
+    /** @protected  */
+    protected _handleEvent(event: Event): boolean;
     /**
      * @param {Event} event - the event to check
      * @returns {boolean} - if the event needs to be handled
@@ -123,42 +126,42 @@ export declare class CXDefault {
     * @param {number} width
     * @public - accessible from outside the class
     */
-    set width(arg: number);
+    set width(width: number);
     get width(): number;
     /**
      * @param {number} height
      * @public - accessible from outside the class
      */
-    set height(arg: number);
+    set height(height: number);
     get height(): number;
     /**
      * @param {number} x
      * @public - accessible from outside the class
      */
-    set xpos(arg: number);
+    set xpos(x: number);
     get xpos(): number;
     /**
      * @param {number} y
      * @public - accessible from outside the class
      */
-    set ypos(arg: number);
+    set ypos(y: number);
     get ypos(): number;
     /**
      * @param {boolean} state
      * @public - accessible from outside the class
      */
-    set is_relative(arg: boolean);
+    set is_relative(state: boolean);
     get is_relative(): boolean;
     /**
      * @param {CanvasRenderingContext2D} value
      * @public - accessible from outside the class
      */
-    set ctx(arg: CanvasRenderingContext2D);
+    set ctx(value: CanvasRenderingContext2D);
     get ctx(): CanvasRenderingContext2D;
     /**
      * @param {boolean} changed
      */
-    set has_changed(arg: boolean);
+    set has_changed(changed: boolean);
     get has_changed(): boolean;
     get xpixel(): number;
     get ypixel(): number;
@@ -167,11 +170,11 @@ export declare class CXDefault {
     /**
      * @param {boolean} state - if the element is visible or not
      */
-    set active(arg: boolean);
+    set active(state: boolean);
     get active(): boolean;
     /**
      * @param {string} name - the name of the element
      */
-    set name(arg: string);
+    set name(name: string);
     get name(): string;
 }

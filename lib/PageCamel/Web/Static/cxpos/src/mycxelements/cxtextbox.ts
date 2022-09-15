@@ -1,42 +1,91 @@
-import { CXBox } from "./cxbox.js"; 
+import { CXBox } from "./cxbox.js";
+/**
+ * @extends CXBox 
+ */
 export class CXTextBox extends CXBox {
-    constructor(ctx, x, y, width, height, is_relative = true, redraw = true) {
+    /** @protected */
+    protected _text_color: string;
+    /** @protected */
+    protected _font_family: string;
+    /** @protected  */
+    protected _font_size_pixel: number;
+    /** @protected  */
+    protected _font_size: number;
+    /** @protected */
+    protected _text: string;
+    /** @protected */
+    protected _text_alignment: string;
+    /** @protected */
+    protected _auto_line_break: boolean;
+    /**
+     * @constructor 
+     * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
+     * @param {number} x - the x position of the element
+     * @param {number} y - the y position of the element
+     * @param {number} width - the width of the element
+     * @param {number} height - the height of the element
+     * @param {boolean} is_relative - if the element is relative to the canvas or absolute
+     * @param {boolean} redraw - if the element can redraw itself
+     */
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
+        
         this._text_color = "black";
         this._font_family = "Arial";
+        this._font_size_pixel = 0;
+        
+        this._font_size = 0;
         if (is_relative) {
             this._font_size = 0.5;
         } else {
             this._font_size = 12;
         }
+        
         this._text = "";
         this._text_alignment = "center";
         this._auto_line_break = true;
-
-        this._font_size_pixel = 0;
+        this._name = 'CXTextBox';
     }
-    _drawText() {
+    /**
+     * @description converts the font size to pixel size
+     * @protected
+     */
+    protected _convertFontSizeToPixel(): void {
+        this._font_size_pixel = this._calcRelYToPixel(this._font_size, this._heightpixel);
+    }
+    /** 
+     * @protected   
+     * @description Converts the relative position to pixel position
+    */
+    protected _convertToPixel(): void {
+        this._convertFrameToPixel();
+        this._convertFontSizeToPixel();
+    }
+    /**
+     * @protected
+     */
+    protected _drawText(): void {
         this._ctx.fillStyle = this._text_color;
         this._ctx.font = this._font_size_pixel + "px " + this._font_family;
         this._ctx.textAlign = 'start';
 
         if (this._text) {
-            var text_array = [];
+            var text_array: string[]  = [];
             if (!Array.isArray(this._text)) { // check if it's an array
                 text_array = [this._text];
             }
             else {
                 text_array = this._text;
             }
-            var new_displaytext = [];
+            var new_displaytext: string[]  = [];
             var text_lines_height = 0;
             if (this._auto_line_break) {
                 for (var j in text_array) {
-                    var new_lines = [];
+                    var new_lines: string[]  = [];
                     if (this.border_width > 0) {
-                        new_lines = this._autoLineBreak(this._ctx, text_array[j], this.widthpixel - this.border_width * 2);
+                        new_lines = this._autoLineBreak(text_array[j], this.widthpixel - this.border_width * 2);
                     } else {
-                        new_lines = this._autoLineBreak(this._ctx, text_array[j], this.widthpixel);
+                        new_lines = this._autoLineBreak(text_array[j], this.widthpixel);
                     }
                     if (new_lines.length > 0) {
                         new_displaytext = [...new_displaytext, ...new_lines];
@@ -56,11 +105,11 @@ export class CXTextBox extends CXBox {
             var line_height = text_lines_height / new_displaytext.length; // get the average line height
             var yoffs = 0;
             var start_y = this.ypixel + this.heightpixel / 2 - (text_lines_height - 1.8 * line_height) / 2; // get the starting y position
-            for (j = 0; j < new_displaytext.length; j++) {
-                var text_line = new_displaytext[j];
+            for (var k = 0; k < new_displaytext.length; k++) {
+                var text_line = new_displaytext[k];
                 var text_metrics = this._ctx.measureText(text_line); // get the metrics of the text
                 var actualHeight = text_metrics.actualBoundingBoxAscent + text_metrics.actualBoundingBoxDescent; // get the actual height of the text
-                if(new_displaytext.length == 1) {
+                if (new_displaytext.length == 1) {
                     start_y = this.ypixel + (this.heightpixel / 2 - actualHeight / 2) + actualHeight;
                 }
                 var text_x;
@@ -82,15 +131,22 @@ export class CXTextBox extends CXBox {
             //this._ctx.strokeRect(this.xpixel + 10, start_y, this.widthpixel - 20, yoffs);
         }
     }
-    _autoLineBreak(ctx, text, maxWidth) {
+    /**
+     * @protected 
+     * @param {string} text - Text to break into lines if it is too long
+     * @param {number} max_width - Maximum width of the text
+     * @description autoLineBreak will break the text into lines if it is too long preferably at a space and if there is no space it will break it at a word
+     * @returns {string[]}
+     */
+     protected _autoLineBreak(text: string, maxWidth: any): string[] {
         //automatically line breaks. Breaks preferably at spaces and if not possible at other places.
         var words = text.split(' ');
-        var lines = [];
+        var lines: string[]  = [];
         var currentLine = '';
         for (var i = 0; i < words.length; i++) {
             var word = words[i];
-            var wordWidth = ctx.measureText(word).width;
-            var width = ctx.measureText(currentLine + word).width;
+            var wordWidth = this._ctx.measureText(word).width;
+            var width = this._ctx.measureText(currentLine + word).width;
             if (wordWidth > maxWidth) { //if word is too long, break it up into multiple lines
                 if (currentLine.length > 0) {
                     lines.push(currentLine);
@@ -99,7 +155,7 @@ export class CXTextBox extends CXBox {
                 var letters_width = 0;
                 for (var j = 0; j < word.length; j++) {
                     var letter = word[j];
-                    var letterWidth = ctx.measureText(letter).width;
+                    var letterWidth = this._ctx.measureText(letter).width;
                     if (letters_width + letterWidth > maxWidth) {
                         lines.push(currentLine);
                         letters_width = 0;
@@ -126,31 +182,37 @@ export class CXTextBox extends CXBox {
         }
         return lines;
     }
-    _drawTextBox() {
+    /**
+     * @protected
+     */
+    protected _drawTextBox(): void {
         super._draw();
         this._drawText();
     }
-    _draw() {
+    /**
+     * @protected
+     */
+    protected _draw(): void {
         this._drawTextBox();
     }
     /**
      * @param {string} color - Color of the text
      * @default "black"
      */
-    set text_color(color) {
+    set text_color(color: string) {
         this._text_color = color;
     }
-    get text_color() {
+    get text_color(): string {
         return this._text_color;
     }
     /**
-     * @param {string} font_family - Font family of the text
+     * @param {string} font - Font family of the text
      * @default "Arial"
      */
-    set font_family(font_family) {
-        this._font_family = font_family;
+    set font_family(font: string) {
+        this._font_family = font;
     }
-    get font_family() {
+    get font_family(): string {
         return this._font_family;
     }
     /**
@@ -164,32 +226,42 @@ export class CXTextBox extends CXBox {
      * @description If the text is an array, each element will be displayed on a new line
      * @default ""
      */
-    set text(text) {
+    set text(text: string) {
         this._text = text;
     }
-    get text() {
+    get text(): string {
         return this._text;
     }
     /**
-     * @param {string} text_alignment - Text alignment
+     * @param {string} textalign - Text alignment
      * @description Possible values are "left", "center" and "right"
      * @default "center"
      */
-    set text_alignment(text_alignment) {
-        this._text_alignment = text_alignment;
+    set text_alignment(textalign: string) {
+        this._text_alignment = textalign;
     }
-    get text_alignment() {
+    get text_alignment(): string {
         return this._text_alignment;
     }
     /**
-     * @param {boolean} auto_line_break - Auto line break
+     * @param {boolean} lbreak - Auto line break
      * @description If true, the text will be automatically line broken
      * @default true
      */
-    set auto_line_break(auto_line_break) {
-        this._auto_line_break = auto_line_break;
+    set auto_line_break(lbreak: boolean) {
+        this._auto_line_break = lbreak;
     }
-    get auto_line_break() {
+    get auto_line_break(): boolean {
         return this._auto_line_break;
+    }
+    /**
+     * @param {number} fsize
+     * @public - accessible from outside the class
+     */
+     set font_size(fsize: number) {
+        this._font_size = fsize;
+    }
+    get font_size() {
+        return this._font_size;
     }
 }

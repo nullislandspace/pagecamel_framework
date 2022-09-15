@@ -5,4 +5,5 @@ export declare class CXDefaultView extends CXBox {
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative?: boolean, redraw?: boolean);
     set Table(table: CXTable);
     get Table(): CXTable;
+    onBackButtonClicked(): void;
 }

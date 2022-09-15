@@ -1,4 +1,7 @@
 import { CXDefault } from "./cxdefault.js";
+/**
+ * @extends CXDefault
+ */
 export declare class CXFrame extends CXDefault {
     /** @protected */
     protected _border_color: string;
@@ -10,9 +13,8 @@ export declare class CXFrame extends CXDefault {
     protected _border_width: number;
     /** @protected */
     protected _border_width_pixel: number;
-    /** @protected */
-    protected _name: string;
     /**
+     * @constructor
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
      * @param {number} y - the y position of the element
@@ -20,7 +22,7 @@ export declare class CXFrame extends CXDefault {
      * @param {number} height - the height of the element
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
-     */
+    */
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative?: boolean, redraw?: boolean);
     /**
      * @protected
@@ -53,16 +55,16 @@ export declare class CXFrame extends CXDefault {
     /**
      * @param {string} color - Color of the frame
      */
-    set border_color(arg: string);
+    set border_color(color: string);
     get border_color(): string;
     /**
      * @param {number} r - Radius of the frame
      */
-    set radius(arg: number);
+    set radius(r: number);
     get radius(): number;
     /**
      * @param {number} w - Width of the frame
      */
-    set border_width(arg: number);
+    set border_width(w: number);
     get border_width(): number;
 }

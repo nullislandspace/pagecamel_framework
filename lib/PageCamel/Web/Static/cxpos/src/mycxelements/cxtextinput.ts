@@ -1,19 +1,38 @@
-//rewrite UITextInput to CXTextInput
-class CXTextInput extends CXTextBox {
+import { CXTextBox } from "./cxtextbox.js";
+export class CXTextInput extends CXTextBox {
+    /** @protected */
+    protected _cursorPos: number;
+    /** @protected */
+    protected _cursor_color: string;
+    /** @protected */
+    protected _cursor_width: number;
+    /** @protected */
+    protected _cursor_active: boolean;
+    /** @protected */
+    protected _cursor_blink_interval: number;
+    /** @protected */
+    protected _cursor_visible_blink: boolean;
+    /**
+     * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
+     * @param {number} x - the x position of the element
+     * @param {number} y - the y position of the element
+     * @param {number} width - the width of the element
+     * @param {number} height - the height of the element
+     * @param {boolean} is_relative - if the element is relative to the canvas or absolute
+     * @param {boolean} redraw - if the element can redraw itself
+     */
     constructor(ctx, x, y, width, height, is_relative, redraw) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        this._text_alignment = 'left';
+        super._text_alignment = 'left';
         super._takes_keyboard_input = true;
-        this._takes_keyboard_input = true;
-        this.type = 'text'; //text, number, float, euro
-        this._always_active = false;
+        super._auto_line_break = false;
         this._cursorPos = 0;
         this._cursor_color = '#000000';
         this._cursor_width = 1;
         this._cursor_active = false;
         this._cursor_blink_interval = 500;
         this._cursor_visible_blink = false;
-        this._auto_line_break = false;
+        this._name = 'CXTextInput';
         setInterval(() => {
             if (this._cursor_active) {
                 this._cursor_visible_blink = !this._cursor_visible_blink;
@@ -21,7 +40,11 @@ class CXTextInput extends CXTextBox {
             this.draw(this._px, this._py, this._pwidth, this._pheight);
         }, this._cursor_blink_interval);
     }
-    _showCursor(x) {
+    /**
+     * @param {number} x the x coordinate of the mouse 
+     * @description converts the mouse coordinates to the cursor position in the text
+     */
+    _showCursor(x: number): void {
         var startx = this.xpixel + this._border_width;
         this._ctx.font = this._font_size_pixel + "px " + this._font_family;
         if (this.text.length > 0) {
@@ -54,11 +77,13 @@ class CXTextInput extends CXTextBox {
         }
         this._cursor_active = true;
         this._has_changed = true;
-        if (this._redraw) {
-            this.draw(this._px, this._py, this._pwidth, this._pheight);
-        }
+        this._tryRedraw();
     }
-    _moveCursorLeft(ctrl) {
+    /**
+     * @param {boolean} ctrl - if the control key is pressed
+     * @protected
+     */
+    protected _moveCursorLeft(ctrl: boolean): void {
         this._cursor_visible_blink = true;
         if (this._cursorPos > 0) {
             if (ctrl) {
@@ -77,7 +102,11 @@ class CXTextInput extends CXTextBox {
             this._has_changed = true;
         }
     }
-    _moveCursorRight(ctrl) {
+    /**
+     * @param {boolean} ctrl - if the control key is pressed
+     * @protected
+     */
+    protected _moveCursorRight(ctrl: boolean): void {
         this._cursor_visible_blink = true;
         if (this._cursorPos < this.text.length) {
             if (ctrl) {
@@ -98,8 +127,12 @@ class CXTextInput extends CXTextBox {
             this._has_changed = true;
         }
     }
-    _checkMouseDown(x, y) {
-        // overwritten the checkMouseDown function to handle event when clicked outside the text input
+    /**
+     * @protected
+     * @description overwritten the checkMouseDown function to handle event when clicked outside the text input, so the cursor gets disabled 
+     */
+    protected _checkMouseDown(x: number, y: number): boolean {
+        // overwritten the checkMouseDown function to handle event when clicked outside the text input, so the cursor gets disabled
         if (x >= this._xpixel && x <= this._xpixel + this._widthpixel && y >= this._ypixel && y <= this._ypixel + this._heightpixel) {
             this._mouse_down = true;
             return true;
@@ -107,7 +140,12 @@ class CXTextInput extends CXTextBox {
         this._mouse_down = false;
         return true;
     }
-    _changeText(event) {
+    /**
+     * @param {event} event - the event object
+     * @protected
+     * @description changes the text when a key is pressed
+     */
+    protected _changeText(event: KeyboardEvent): void {
         var ctrl = event.ctrlKey;
         console.log(event)
         if (event.key == 'ArrowLeft') {
@@ -140,12 +178,12 @@ class CXTextInput extends CXTextBox {
             if (this._cursorPos < this.text.length) {
                 if (ctrl) {
                     //delete one word
-                    var new_text = this.text.substring(0, this._cursorPos);
+                    var new_text2 = this.text.substring(0, this._cursorPos);
                     var new_text_next = this.text.substring(this._cursorPos + 1);
                     var new_text_next_words = new_text_next.split(' ');
                     new_text_next_words.shift();
-                    new_text += new_text_next_words.join(' ');
-                    this.text = new_text;
+                    new_text2 += new_text_next_words.join(' ');
+                    this.text = new_text2;
                 }
                 else {
                     this.text = this.text.substring(0, this._cursorPos) + this.text.substring(this._cursorPos + 1);
@@ -156,10 +194,9 @@ class CXTextInput extends CXTextBox {
             }
         }
         else if (event.key.length == 1) {
-            var new_text = this.text.substring(0, this._cursorPos) + event.key + this.text.substring(this._cursorPos);
-            console.log('new text width: ' + this._ctx.measureText(new_text).width, 'max width: ' + this._widthpixel);
-            if (this._ctx.measureText(new_text).width <= this._widthpixel - this._border_width * 2 - 8) {
-                this.text = new_text;
+            var new_text3 = this.text.substring(0, this._cursorPos) + event.key + this.text.substring(this._cursorPos);
+            if (this._ctx.measureText(new_text3).width <= this._widthpixel - this._border_width * 2 - 8) {
+                this.text = new_text3;
                 this._cursorPos++;
                 this._has_changed = true;
                 this._cursor_visible_blink = true;
@@ -167,25 +204,36 @@ class CXTextInput extends CXTextBox {
             }
         }
     }
-    // return true if the text should be changed by the event
-    // return false if the event should be ignored
-    _onKeyDown(event) {
+    /**
+     * @protected
+     * @description return true if the text should be changed by the event | false if not
+     * @param {event} event - the event object
+     * @returns {boolean}
+     */
+    protected _onKeyDown(event: KeyboardEvent): boolean {
         //overwrite if different behaviour is needed
         return true;
     }
-    handleEvent(event) {
-        super.handleEvent(event);
-        var [x, y] = this._eventToXY(event);
-        console.log(event.type);
+    /**
+     * @description handles the event
+     * @params {event} event - the event
+     * @protected
+     */
+    protected _handleEvent(event: Event): boolean {
+        super._handleEvent(event);
+
+        console.log('TextInput Event:', event.type);
         if (event.type == 'keydown') {
-            console.log(event.key);
+            var e = event as KeyboardEvent;
+            console.log(e.key);
             if (this._cursor_active) {
-                var handlekey = this._onKeyDown(event);
+                var handlekey = this._onKeyDown(e);
                 if (handlekey) {
-                    this._changeText(event);
+                    this._changeText(e);
                 }
             }
         } else if (event.type == 'mousedown') {
+            var [x, y] = this._eventToXY(event as MouseEvent);
             if (this._isInside(x, y)) {
                 this._showCursor(x);
             }
@@ -193,6 +241,7 @@ class CXTextInput extends CXTextBox {
                 this._cursor_active = false;
             }
         } else if (event.type == 'mousemove') {
+            var [x, y] = this._eventToXY(event as MouseEvent);
             //change pointer to text cursor if cursor is inside the text input area 
             if (this._isInside(x, y)) {
                 this._ctx.canvas.style.cursor = 'text';
@@ -203,8 +252,12 @@ class CXTextInput extends CXTextBox {
 
         }
         this._tryRedraw();
+        return this._has_changed;
     }
-    _drawCursor() {
+    /**
+     * @protected
+     */
+    protected _drawCursor(): void {
         if (this._cursor_active && this._cursor_visible_blink) {
             this._ctx.fillStyle = this._cursor_color;
             var cursor_x = this._ctx.measureText(this.text.substring(0, this._cursorPos)).width + this.xpixel + this._border_width + 8;
@@ -213,9 +266,11 @@ class CXTextInput extends CXTextBox {
             this._ctx.fillRect(Math.round(cursor_x), cursor_y, this._cursor_width, this._font_size_pixel);
         }
     }
-    _draw() {
+    /**
+     * @protected
+     */
+    _draw(): void {
         super._draw();
         this._drawCursor();
     }
-
 }

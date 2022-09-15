@@ -1,4 +1,7 @@
 import { CXFrame } from "./cxframe.js";
+/**
+ * @extends CXFrame 
+ */
 export class CXBox extends CXFrame {
     /** @protected */
     protected _background_color: string;
@@ -8,6 +11,7 @@ export class CXBox extends CXFrame {
     protected _first_gradient_color: string;
  
     /**
+     * @constructor  
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
      * @param {number} y - the y position of the element
@@ -18,13 +22,9 @@ export class CXBox extends CXFrame {
     */
      constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        /** @protected */
         this._background_color = "green";
-        /** @protected */
         this._gradient = [];
-        /** @protected */
         this._first_gradient_color = "";
-        /** @protected */
         this._name = "CXBox";
     }
     /**
@@ -65,8 +65,8 @@ export class CXBox extends CXFrame {
     /**
      * @param {string} color - Color of the box
      */
-     set background_color(arg: string) {
-        this._background_color = arg;
+     set background_color(color: string) {
+        this._background_color = color;
     }
     /**
      * @returns {string} Color of the box
@@ -82,9 +82,9 @@ export class CXBox extends CXFrame {
      * //Example of a gradient
      * var gradient = ["#ff0000", "#00ff00", "#0000ff"];
      */
-     set gradient(arg: string[]) {
-        this._gradient = arg;
-        this._first_gradient_color = arg[0];
+     set gradient(gradient: string[]) {
+        this._gradient = gradient;
+        this._first_gradient_color = gradient[0];
     }
     /**
      * @returns {array} Gradient

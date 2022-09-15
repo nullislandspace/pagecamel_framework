@@ -1,4 +1,7 @@
 import { CXFrame } from "./cxframe.js";
+/**
+ * @extends CXFrame
+ */
 export declare class CXBox extends CXFrame {
     /** @protected */
     protected _background_color: string;
@@ -7,6 +10,7 @@ export declare class CXBox extends CXFrame {
     /** @protected */
     protected _first_gradient_color: string;
     /**
+     * @constructor
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
      * @param {number} y - the y position of the element
@@ -29,7 +33,7 @@ export declare class CXBox extends CXFrame {
     /**
      * @param {string} color - Color of the box
      */
-    set background_color(arg: string);
+    set background_color(color: string);
     /**
      * @returns {string} Color of the box
      */
@@ -42,7 +46,7 @@ export declare class CXBox extends CXFrame {
      * //Example of a gradient
      * var gradient = ["#ff0000", "#00ff00", "#0000ff"];
      */
-    set gradient(arg: string[]);
+    set gradient(gradient: string[]);
     /**
      * @returns {array} Gradient
      */

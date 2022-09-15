@@ -1,4 +1,7 @@
 import { CXDefault } from "./cxdefault.js";
+/**
+ * @extends CXDefault 
+ */
 export class CXFrame extends CXDefault {
     /** @protected */
     protected _border_color: string;
@@ -10,10 +13,9 @@ export class CXFrame extends CXDefault {
     protected _border_width: number;
     /** @protected */
     protected _border_width_pixel: number;
-    /** @protected */
-    protected _name: string;
-
+    
     /**
+     * @constructor 
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
      * @param {number} y - the y position of the element
@@ -21,20 +23,15 @@ export class CXFrame extends CXDefault {
      * @param {number} height - the height of the element
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
-     */
-     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
+    */
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        /** @protected */
+        
         this._border_color = "black";
-        /** @protected */
         this._radius = 0;
-        /** @protected */
         this._radius_pixel = 0;
-        /** @protected */
         this._border_width = 0.01;
-        /** @protected */
         this._border_width_pixel = 0;
-        /** @protected */
         this._name = "CXFrame";
     }
     /**
@@ -105,8 +102,8 @@ export class CXFrame extends CXDefault {
     /**
      * @param {string} color - Color of the frame
      */
-     set border_color(arg: string) {
-        this._border_color = arg;
+    set border_color(color: string) {
+        this._border_color = color;
     }
     get border_color(): string {
         return this._border_color;
@@ -114,8 +111,8 @@ export class CXFrame extends CXDefault {
     /**
      * @param {number} r - Radius of the frame
      */
-     set radius(arg: number) {
-        this._radius = arg;
+    set radius(r: number) {
+        this._radius = r;
     }
     get radius(): number {
         return this._radius;
@@ -123,8 +120,8 @@ export class CXFrame extends CXDefault {
     /**
      * @param {number} w - Width of the frame
      */
-     set border_width(arg: number) {
-        this._border_width = arg;
+    set border_width(w: number) {
+        this._border_width = w;
     }
     get border_width(): number {
         return this._border_width;
