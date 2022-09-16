@@ -1,13 +1,13 @@
 {
     // Change this to match your project
-    "include": ["src/**/*.js", "*.ts"],
+    "include": ["src/**/*.ts", "*.ts"],
     "exclude": ["*.d.ts"],
     "compilerOptions": {
       // Tells TypeScript to read JS files, as
       // normally they are ignored as source files
       "allowJs": true,
       // Generate d.ts files
-      "declaration": true,
+      "declaration": false,
       // This compiler run should
       // only output d.ts files
       "emitDeclarationOnly": false,
@@ -20,5 +20,7 @@
       "declarationMap": false,
       "target": "ES6",
       "module": "ES6",
+      "strict": true,
+      "removeComments": true,
     }
   }
