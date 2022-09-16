@@ -5,11 +5,16 @@ export class CXDragView extends CXDefaultView {
     private _draganddrop: CXDragAndDrop;
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        this.border_width = 0.0;
-        this.background_color = '#ff0000';
+        this.border_width = 0.001;
+        this.background_color = '#fff';
         this._draganddrop = new CXDragAndDrop(ctx, 0.1, 0.1, 0.1, 0.1, is_relative, false);
+        this._draganddrop.attributes = {
+            text: "Drag me",
+            background_color: "#0000ff",
+        };
         this._draganddrop.text = "123";
-        this._draganddrop.background_color = '#ff0000';
+        this._draganddrop.background_color = '#0000ff';
+
     }
     _draw() {
         super._draw();
