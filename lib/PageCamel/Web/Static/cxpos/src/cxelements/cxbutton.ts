@@ -206,28 +206,45 @@ export class CXButton extends CXTextBox {
     get background_color(): string {
         return this._background_color;
     }
+    /**
+     * if allow_hover is true, the button will change border color when the mouse is over it
+     * @param color
+     */
     set hover_border_color(color: string | undefined) {
         this._hover_border_color = color;
     }
     get hover_border_color(): string | undefined {
         return this._hover_border_color;
     }
+    /**
+     * if allow_hover is true, the button will change the background color when the mouse is over it
+     * @param color
+     */
     set hover_background_color(color: string | undefined) {
         this._hover_background_color = color;
     }
     get hover_background_color(): string | undefined {
         return this._hover_background_color;
     }
+    /**
+     * if allow_hover is true, the button will change text color when the mouse is over it
+     * @param color
+     */
     set hover_text_color(color: string | undefined) {
         this._hover_text_color = color;
     }
     get hover_text_color(): string | undefined {
         return this._hover_text_color;
     }
+    /**
+     * if true, the button will change color when the mouse is over it
+     * @param allow
+     */
     set allow_hover(allow: boolean) {
         this._allow_hover = allow;
     }
     get allow_hover(): boolean {
         return this._allow_hover;
     }
+
 }

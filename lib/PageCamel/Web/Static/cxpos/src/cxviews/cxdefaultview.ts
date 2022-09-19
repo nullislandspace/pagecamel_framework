@@ -16,7 +16,6 @@ export class CXDefaultView extends CXBox {
         gradient: ['#80b3ffff', '#1193eeff'],
         border_color: '#eeeeeeff',
         border_width: 0.02,
-        allow_hover: true,
     };
     // attributes for a "BAR-Button"
     protected _bar_buttons: {} = {
@@ -24,7 +23,6 @@ export class CXDefaultView extends CXBox {
         gradient: ['#87de87ff', '#008000ff'],
         border_color: '#eeeeeeff',
         border_width: 0.02,
-        allow_hover: true,
     };
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
