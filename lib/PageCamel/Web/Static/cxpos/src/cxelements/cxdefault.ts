@@ -43,7 +43,6 @@ export class CXDefault {
     protected _pheight: number;
     /** @protected  */
     protected _name: string;
-
     /**
      * @constructor 
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
@@ -291,7 +290,7 @@ export class CXDefault {
      * @returns {boolean} - if the event needs to be handled
      */
     handleEvent(event: Event): boolean {
-        var handled : boolean = false;
+        var handled: boolean = false;
         if (this._active) {
             handled = this._handleEvent(event);
         }
@@ -417,5 +416,51 @@ export class CXDefault {
     }
     get name(): string {
         return this._name;
+    }
+    /**
+     * @param attributes - the attributes to set
+     * @example element.attributes = {xpos: 0.5, ypos: 0.5, width: 0.5, height: 0.5}
+     * @description sets the attributes of the element if they are public and are valid attributes
+     */
+    set attributes(attributes: object) {
+        console.log(attributes);
+        var valid_attributes: any = {};
+        // get the keys of the attributes object
+        var keys = Object.keys(attributes);
+        //console.log();
+        // loop through the keys
+        for (var i = 0; i < keys.length; i++) {
+            // get the key
+            var key = keys[i];
+            // check if the key has a setter
+            var descriptor = Object.getOwnPropertyDescriptor(CXDefault.prototype, key);
+            console.log(descriptor, key);
+            //if (descriptor && descriptor.set) {
+            //    // set the attribute
+            //    valid_attributes[key] = (<any>attributes)[key];
+            //}
+        }
+        Object.assign(this, valid_attributes);
+    }
+    /**
+     * @returns {object} - the attributes of the element
+     * @description returns the attributes of the element if they are public and are valid attributes
+     */
+    get attributes(): object {
+        // returns all public attributes
+        var attributes: any = {};
+        // get the keys of the attributes object
+        var keys = Object.keys(this);
+        // loop through the keys
+        for (var i = 0; i < keys.length; i++) {
+            // get the key
+            var key = keys[i];
+            // check if the key is a valid attribute and check if public
+            if (!key.startsWith("_")) {
+                // set the attribute does not work in typescript
+                attributes[key] = (<any>this)[key];
+            }
+        }
+        return attributes;
     }
 }
