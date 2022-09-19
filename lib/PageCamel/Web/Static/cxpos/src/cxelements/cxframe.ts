@@ -31,7 +31,7 @@ export class CXFrame extends CXDefault {
         this._border_color = "black";
         this._radius = 0;
         this._radius_pixel = 0;
-        this._border_width = 0.01;
+        this._border_width = 0.02;
         this._border_width_pixel = 0;
         this._border_relative = is_relative;
     }

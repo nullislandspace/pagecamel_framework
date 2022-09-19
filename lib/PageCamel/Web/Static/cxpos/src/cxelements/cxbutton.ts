@@ -54,21 +54,22 @@ export class CXButton extends CXTextBox {
      * @returns {boolean}
      */
     protected _mouseInHandler: () => boolean = (): boolean => {
+        console.log("Hover Mouse In", this._name);
         var changed = false;
         if (this._allow_hover) {
-            if (this.hover_border_color != undefined && this._border_color != this.hover_border_color) {
+            if (this._hover_border_color != undefined && this._border_color != this._hover_border_color) {
                 this._default_border_color = this._border_color;
-                this._border_color = this.hover_border_color;
+                this._border_color = this._hover_border_color;
                 changed = true;
             }
-            if (this.hover_text_color != undefined && this._text_color != this.hover_text_color) {
+            if (this._hover_text_color != undefined && this._text_color != this._hover_text_color) {
                 this._default_text_color = this._text_color;
-                this._text_color = this.hover_text_color;
+                this._text_color = this._hover_text_color;
                 changed = true;
             }
-            if (this.hover_background_color != undefined && this._background_color != this.hover_background_color) {
+            if (this._hover_background_color != undefined && this._background_color != this._hover_background_color) {
                 this._default_background_color = this._background_color;
-                this._background_color = this.hover_background_color;
+                this._background_color = this._hover_background_color;
                 changed = true;
             }
         }

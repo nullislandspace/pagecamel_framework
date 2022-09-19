@@ -22,5 +22,7 @@
       "module": "ES6",
       "strict": true,
       "removeComments": true,
+      "strictNullChecks": true,
+      "sourceMap": true,
     }
   }

@@ -9,7 +9,7 @@ export class CXBox extends CXFrame {
     protected _gradient: string[];
     /** @protected */
     protected _first_gradient_color: string;
- 
+
     /**
      * @constructor  
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
@@ -20,7 +20,7 @@ export class CXBox extends CXFrame {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
     */
-     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this._background_color = "green";
         this._gradient = [];
@@ -30,9 +30,10 @@ export class CXBox extends CXFrame {
      * @description Draws the box
      * @protected
      */
-     protected _drawBox(): void {
+    protected _drawBox(): void {
         this._ctx.fillStyle = this._background_color;
         if (this._gradient.length > 0) {
+            console.log("Gradient Render");
             var grd = this._ctx.createLinearGradient(this.xpixel, this.ypixel, this.xpixel, this.ypixel + this.heightpixel);
             var step_size = 1 / (this._gradient.length - 1);
             for (var i = 0; i < this._gradient.length; i++) {
@@ -64,31 +65,30 @@ export class CXBox extends CXFrame {
     /**
      * @param {string} color - Color of the box
      */
-     set background_color(color: string) {
+    set background_color(color: string) {
         this._background_color = color;
     }
     /**
      * @returns {string} Color of the box
      */
-     get background_color(): string {
+    get background_color(): string {
         return this._background_color;
     }
     /**
+     * Gradient is an array of hex color values
      * @param {array} gradient - Gradient
-     * @description Gradient is an array of hex color values
      * @default []
-     * @example
      * //Example of a gradient
      * var gradient = ["#ff0000", "#00ff00", "#0000ff"];
      */
-     set gradient(gradient: string[]) {
+    set gradient(gradient: string[]) {
         this._gradient = gradient;
         this._first_gradient_color = gradient[0];
     }
     /**
      * @returns {array} Gradient
      */
-     get gradient(): string[] {
+    get gradient(): string[] {
         return this._gradient;
     }
 }

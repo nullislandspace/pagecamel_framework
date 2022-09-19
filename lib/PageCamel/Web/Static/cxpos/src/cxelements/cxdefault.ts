@@ -414,14 +414,15 @@ export class CXDefault {
      * @example element.attributes = {xpos: 0.5, ypos: 0.5, width: 0.5, height: 0.5}
      */
     set attributes(attributes: object) {
+        var attr = JSON.parse(JSON.stringify(attributes)); // deep copy to remove references to the original object 
+        var keys = Object.keys(attr);
         // walk through the entire prototype chain
-        var keys = Object.keys(attributes);
         for (let o = Object.getPrototypeOf(this); o && o != Object.prototype; o = Object.getPrototypeOf(o)) {
             keys.forEach((key) => {
                 var descriptor = Object.getOwnPropertyDescriptor(o, key);
                 // check if the attribute has a setter
                 if (descriptor && descriptor.set) {
-                    descriptor.set.call(this, (<any>attributes)[key]);
+                    descriptor.set.call(this, (<any>attr)[key]);
                 }
             });
         }
