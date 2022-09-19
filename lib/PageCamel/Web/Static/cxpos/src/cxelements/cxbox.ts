@@ -25,7 +25,6 @@ export class CXBox extends CXFrame {
         this._background_color = "green";
         this._gradient = [];
         this._first_gradient_color = "";
-        this._name = "CXBox";
     }
     /**
      * @description Draws the box

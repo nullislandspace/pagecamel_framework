@@ -24,7 +24,6 @@ export class CXArrowButton extends CXButton {
 
         this._arrow_width_pixel = 0;
         this._arrow_height_pixel = 0;
-        this._name = "CXArrowButton";
     }
     /**
      * @description draws the arrow

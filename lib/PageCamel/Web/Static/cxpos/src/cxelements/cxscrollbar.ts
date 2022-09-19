@@ -48,8 +48,7 @@ export class CXScrollBar extends CXBox {
         /** @protected */
         this._scrollbar_pressed = false;
 
-        /** @protected */
-        this._name = "CXScrollBar";
+
     }
     /**
      * @protected

@@ -65,7 +65,6 @@ export class CXDragAndDrop extends CXButton {
         this._center_y = 0; //center of the dragndrop
         this._rel_center_x = 0; //relative center of the dragndrop
         this._rel_center_y = 0; //relative center of the dragndrop
-        this._name = "DragAndDrop";
     }
     /**
      * @default this._xpos

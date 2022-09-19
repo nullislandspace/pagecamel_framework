@@ -31,7 +31,6 @@ export class CXButton extends CXTextBox {
         super(ctx, x, y, width, height, is_relative, redraw);
 
         this._allow_hover = false; // if true, the button will change colors when the mouse is over it
-        this._name = "CXButton";
         this._is_mouse_down = false;
         this._default_border_color = this._border_color;
         this._default_text_color = this._text_color;

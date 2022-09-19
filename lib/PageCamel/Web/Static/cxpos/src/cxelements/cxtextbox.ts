@@ -44,7 +44,6 @@ export class CXTextBox extends CXBox {
         this._text = "";
         this._text_alignment = "center";
         this._auto_line_break = true;
-        this._name = 'CXTextBox';
     }
     /**
      * @description converts the font size to pixel size

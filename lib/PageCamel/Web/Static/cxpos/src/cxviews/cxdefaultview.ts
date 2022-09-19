@@ -4,7 +4,6 @@ export class CXDefaultView extends CXBox {
     private _table: CXTable;
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        this._name = "CXDefaultView";
         this._table = new CXTable();
     }
     set Table(table: CXTable) {
@@ -12,8 +11,5 @@ export class CXDefaultView extends CXBox {
     }
     get Table(): CXTable {
         return this._table;
-    }
-    public onBackButtonClicked() {
-
     }
 }

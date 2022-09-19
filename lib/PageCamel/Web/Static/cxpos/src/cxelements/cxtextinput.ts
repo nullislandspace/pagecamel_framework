@@ -32,7 +32,6 @@ export class CXTextInput extends CXTextBox {
         this._cursor_active = false;
         this._cursor_blink_interval = 500;
         this._cursor_visible_blink = false;
-        this._name = 'CXTextInput';
         setInterval(() => {
             if (this._cursor_active) {
                 this._cursor_visible_blink = !this._cursor_visible_blink;
