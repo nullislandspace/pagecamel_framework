@@ -18,11 +18,14 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
+use XML::Simple;
 use IO::Compress::Gzip qw(gzip $GzipError);
 use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use CSS::Minifier::XS;
 use File::Type;
+use Cwd;
+use POSIX;
 
 my $cachemodulecount = 0;
 my @knownstaticmodules;
@@ -139,9 +142,27 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
 
     print $ofh "StaticCache loading directory $basedir into $basewebpath...\n";
 
+    my @ignore;
+
+    if(-f $basedir . '/pagecamel.xml') {
+        # Special directives for static loading
+        my ($signore) = $self->process_special_directives($basedir, $ofh);
+        push @ignore, @{$signore};
+        push @ignore, 'pagecamel.xml';
+    }
+
     opendir(my $dfh, $basedir) or croak($ERRNO);
     while((my $fname = readdir($dfh))) {
-        next if($fname =~ /^\./);
+        next if($fname =~ /^\./); # Ignore hidden files and dirs
+
+        next if($fname =~ /\.ts$/); # Ignore typescript files
+        next if(!$self->{isDebugging} && $fname =~ /\.js\.map$/); # Only deliver TS map files when debugging
+
+        if(contains($fname, \@ignore)) {
+            print $ofh "      Ignoring $fname in $basedir\n";
+            next; # Ignore files specified in special directives
+        }
+
         my $nfname = $basedir . "/" . $fname;
         if(-d $nfname) {
             # Got ourself a directory, go recursive
@@ -188,7 +209,6 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
         }
 
         if(0) {
-        #if(!$self->{isDebugging}) {
             # Only minify when not debugging for faster startup
             if($mtype eq "text/css") {
                 my $miniok = 0;
@@ -250,6 +270,87 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
     return $fcount;
 }
 
+sub process_special_directives($self, $basedir, $ofh) {
+    my @ignore;
+
+    my $directivefname = $basedir . '/pagecamel.xml';
+
+    if(!-f $directivefname) {
+        croak("Internal error: File $directivefname not found");
+    }
+
+    my $directives;
+    my $loadok = 0;
+    eval {
+        $directives = XMLin($directivefname,
+                            ForceArray => [ 'item' ],
+                        );
+        $loadok = 1;
+    };
+
+    if(!$loadok || !defined($directives)) {
+        croak("Invalid directives file $directivefname: " . $EVAL_ERROR);
+    }
+
+    if(defined($directives->{ignore}->{item})) {
+        push @ignore, @{$directives->{ignore}->{item}};
+    }
+
+    if(defined($directives->{commands}->{item})) {
+        my $currentwd = getcwd();
+        chdir $basedir;
+        my $newwd = getcwd();
+        print $ofh   "  Changing working directory from $currentwd to $newwd to execute commands\n";
+
+        foreach my $cmd (@{$directives->{commands}->{item}}) {
+            my $ok = $self->execute_external_command($cmd, $ofh);
+            if(!$ok) {
+                croak("Failed to execute external command");
+            }
+        }
+
+        chdir $currentwd;
+
+        if(getcwd() ne $currentwd) {
+            croak("Changing WD back to $currentwd has failed!");
+        }
+    }
+
+
+    return \@ignore;
+
+}
+
+sub execute_external_command($self, $cmd, $ofh) {
+
+    print $ofh "       Executing command $cmd\n";
+
+    my ($child_pid, $child_rc);
+
+    unless ($child_pid = open(OUTPUT, '-|')) {
+      open(STDERR, ">&STDOUT");
+      exec($cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
+      croak("ERROR: Could not execute program: $ERRNO");
+    }
+    waitpid($child_pid, 0);
+    $child_rc = $CHILD_ERROR >> 8;
+
+    my $ok = 1;
+    while(my $line = <OUTPUT>) {
+        chomp $line;
+        if($line =~ /PAGECAMEL_EXECUTE_ERROR/) {
+            $ok = 0;
+            next;
+        }
+        print $ofh ":           $line\n";
+    }
+    eval {
+        close(OUTPUT);
+    };
+
+    return $ok;
+
+}
 
 sub register($self) {
 
