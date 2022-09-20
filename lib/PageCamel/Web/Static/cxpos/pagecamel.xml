@@ -1,0 +1,14 @@
+<pagecamel>
+    <commands>
+        <item>tsc -p tsconfig.json</item>
+    </commands>
+    <ignore>
+        <item>src</item>
+        <item>docs</item>
+        <item>node_modules</item>
+        <item>package.json</item>
+        <item>package-lock.json</item>
+        <item>README.txt</item>
+        <item>.vscode</item>
+    </ignore>
+</pagecamel>
