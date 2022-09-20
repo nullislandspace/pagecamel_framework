@@ -44,7 +44,6 @@ export class CXScrollList extends CXBox {
 
         this._display_scrollbar_if_needed = true; // if true, the scrollbar will only be displayed if the list is longer than the height of the scroll list. 
 
-        this._name = "CXScrollList";
 
         this._elements.push(this._scroll_bar);
     }
@@ -288,7 +287,6 @@ class CXScrollListItem extends CXBox {
         this._selected = false;
         this._selected_color = "cyan";
         this._background_color = "transparent";
-        this._name = "CXScrollListItem";
     }
     /**
      * @protected

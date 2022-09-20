@@ -29,8 +29,6 @@ export class CXCheckBox extends CXButton {
         this._box.text = "";
         /** @protected */
         this._checked = false;
-        /** @protected */
-        this._name = "CXCheckBox";
     }
     /**
      * @protected

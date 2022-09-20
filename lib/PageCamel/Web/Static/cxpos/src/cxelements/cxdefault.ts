@@ -75,7 +75,7 @@ export class CXDefault {
         this._py = 0;
         this._pwidth = 0;
         this._pheight = 0;
-        this._name = 'CXDefault';
+        this._name = Object.getPrototypeOf(this).constructor.name;
     }
     /**code to calculate the relative positions of the element
      * @param {number} px - x position of the element in pixels
@@ -293,6 +293,7 @@ export class CXDefault {
         var handled: boolean = false;
         if (this._active) {
             handled = this._handleEvent(event);
+            console.debug("handled: " + this._name);
         }
         return handled;
     }
@@ -367,16 +368,6 @@ export class CXDefault {
         return this._is_relative;
     }
     /**
-     * @param {CanvasRenderingContext2D} value
-     * @public - accessible from outside the class
-     */
-    set ctx(value: CanvasRenderingContext2D) {
-        this._ctx = value;
-    }
-    get ctx(): CanvasRenderingContext2D {
-        return this._ctx;
-    }
-    /**
      * @param {boolean} changed
      */
     set has_changed(changed: boolean) {
@@ -418,49 +409,40 @@ export class CXDefault {
         return this._name;
     }
     /**
+     * Sets the attributes of the element if they are public
      * @param attributes - the attributes to set
      * @example element.attributes = {xpos: 0.5, ypos: 0.5, width: 0.5, height: 0.5}
-     * @description sets the attributes of the element if they are public and are valid attributes
      */
     set attributes(attributes: object) {
-        console.log(attributes);
-        var valid_attributes: any = {};
-        // get the keys of the attributes object
-        var keys = Object.keys(attributes);
-        //console.log();
-        // loop through the keys
-        for (var i = 0; i < keys.length; i++) {
-            // get the key
-            var key = keys[i];
-            // check if the key has a setter
-            var descriptor = Object.getOwnPropertyDescriptor(CXDefault.prototype, key);
-            console.log(descriptor, key);
-            //if (descriptor && descriptor.set) {
-            //    // set the attribute
-            //    valid_attributes[key] = (<any>attributes)[key];
-            //}
+        var attr = JSON.parse(JSON.stringify(attributes)); // deep copy to remove references to the original object 
+        var keys = Object.keys(attr);
+        // walk through the entire prototype chain
+        for (let o = Object.getPrototypeOf(this); o && o != Object.prototype; o = Object.getPrototypeOf(o)) {
+            keys.forEach((key) => {
+                var descriptor = Object.getOwnPropertyDescriptor(o, key);
+                // check if the attribute has a setter
+                if (descriptor && descriptor.set) {
+                    descriptor.set.call(this, (<any>attr)[key]);
+                }
+            });
         }
-        Object.assign(this, valid_attributes);
     }
     /**
-     * @returns {object} - the attributes of the element
-     * @description returns the attributes of the element if they are public and are valid attributes
+     * Returns all the attributes of the element if they are public and are valid attributes
+     * @returns - the public attributes of the element
      */
     get attributes(): object {
-        // returns all public attributes
-        var attributes: any = {};
-        // get the keys of the attributes object
-        var keys = Object.keys(this);
-        // loop through the keys
-        for (var i = 0; i < keys.length; i++) {
-            // get the key
-            var key = keys[i];
-            // check if the key is a valid attribute and check if public
-            if (!key.startsWith("_")) {
-                // set the attribute does not work in typescript
-                attributes[key] = (<any>this)[key];
-            }
+        var attr = {};
+        // walk through the entire prototype chain
+        for (let o = Object.getPrototypeOf(this); o && o != Object.prototype; o = Object.getPrototypeOf(o)) {
+            Object.getOwnPropertyNames(o).forEach((key) => {
+                var descriptor = Object.getOwnPropertyDescriptor(o, key);
+                // check if the attribute has a getter and prevent the attributes from calling itself recursively
+                if (descriptor && descriptor.get && key != "attributes") {
+                    (<any>attr)[key] = descriptor.get.call(this);
+                }
+            });
         }
-        return attributes;
+        return attr;
     }
 }

@@ -8,12 +8,15 @@ export class CXDragView extends CXDefaultView {
         this.border_width = 0.001;
         this.background_color = '#fff';
         this._draganddrop = new CXDragAndDrop(ctx, 0.1, 0.1, 0.1, 0.1, is_relative, false);
+        this._draganddrop.border_width = 10;
+        this._draganddrop.border_relative = false;
         this._draganddrop.attributes = {
             text: "Drag me",
-            background_color: "#0000ff",
+            background_color: "#00ffff",
+            border_color: "#ff0000",
         };
-        this._draganddrop.text = "123";
-        this._draganddrop.background_color = '#0000ff';
+
+        console.log('get attributes:', this._draganddrop.attributes);
 
     }
     _draw() {

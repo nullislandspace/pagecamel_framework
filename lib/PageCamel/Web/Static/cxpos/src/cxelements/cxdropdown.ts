@@ -55,7 +55,6 @@ export class CXDropDown extends CXTextBox {
         this._elements.push(this._dropdown_arrow);
         this._elements.push(this._dropdown_list);
         /**@protected */
-        this._name = "CXDropDown";
         //defines what happens when the dropdown button is clicked on
         this._onClick = () => {
             console.log('Clicked on dropdown button');

@@ -31,7 +31,6 @@ export class CXButton extends CXTextBox {
         super(ctx, x, y, width, height, is_relative, redraw);
 
         this._allow_hover = false; // if true, the button will change colors when the mouse is over it
-        this._name = "CXButton";
         this._is_mouse_down = false;
         this._default_border_color = this._border_color;
         this._default_text_color = this._text_color;
@@ -55,21 +54,22 @@ export class CXButton extends CXTextBox {
      * @returns {boolean}
      */
     protected _mouseInHandler: () => boolean = (): boolean => {
+        console.log("Hover Mouse In", this._name);
         var changed = false;
         if (this._allow_hover) {
-            if (this.hover_border_color != undefined && this._border_color != this.hover_border_color) {
+            if (this._hover_border_color != undefined && this._border_color != this._hover_border_color) {
                 this._default_border_color = this._border_color;
-                this._border_color = this.hover_border_color;
+                this._border_color = this._hover_border_color;
                 changed = true;
             }
-            if (this.hover_text_color != undefined && this._text_color != this.hover_text_color) {
+            if (this._hover_text_color != undefined && this._text_color != this._hover_text_color) {
                 this._default_text_color = this._text_color;
-                this._text_color = this.hover_text_color;
+                this._text_color = this._hover_text_color;
                 changed = true;
             }
-            if (this.hover_background_color != undefined && this._background_color != this.hover_background_color) {
+            if (this._hover_background_color != undefined && this._background_color != this._hover_background_color) {
                 this._default_background_color = this._background_color;
-                this._background_color = this.hover_background_color;
+                this._background_color = this._hover_background_color;
                 changed = true;
             }
         }
@@ -206,28 +206,45 @@ export class CXButton extends CXTextBox {
     get background_color(): string {
         return this._background_color;
     }
+    /**
+     * if allow_hover is true, the button will change border color when the mouse is over it
+     * @param color
+     */
     set hover_border_color(color: string | undefined) {
         this._hover_border_color = color;
     }
     get hover_border_color(): string | undefined {
         return this._hover_border_color;
     }
+    /**
+     * if allow_hover is true, the button will change the background color when the mouse is over it
+     * @param color
+     */
     set hover_background_color(color: string | undefined) {
         this._hover_background_color = color;
     }
     get hover_background_color(): string | undefined {
         return this._hover_background_color;
     }
+    /**
+     * if allow_hover is true, the button will change text color when the mouse is over it
+     * @param color
+     */
     set hover_text_color(color: string | undefined) {
         this._hover_text_color = color;
     }
     get hover_text_color(): string | undefined {
         return this._hover_text_color;
     }
+    /**
+     * if true, the button will change color when the mouse is over it
+     * @param allow
+     */
     set allow_hover(allow: boolean) {
         this._allow_hover = allow;
     }
     get allow_hover(): boolean {
         return this._allow_hover;
     }
+
 }

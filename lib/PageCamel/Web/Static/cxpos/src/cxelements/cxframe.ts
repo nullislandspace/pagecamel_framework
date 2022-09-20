@@ -13,6 +13,7 @@ export class CXFrame extends CXDefault {
     protected _border_width: number;
     /** @protected */
     protected _border_width_pixel: number;
+    protected _border_relative: boolean;
 
     /**
      * @constructor 
@@ -30,9 +31,9 @@ export class CXFrame extends CXDefault {
         this._border_color = "black";
         this._radius = 0;
         this._radius_pixel = 0;
-        this._border_width = 0.01;
+        this._border_width = 0.02;
         this._border_width_pixel = 0;
-        this._name = "CXFrame";
+        this._border_relative = is_relative;
     }
     /**
      * @protected
@@ -49,7 +50,11 @@ export class CXFrame extends CXDefault {
      * @protected
      */
     protected _convertFrameToPixel() {
-        this._border_width_pixel = this._calcRelXToPixel(this._border_width, this._heightpixel);
+        if (this._border_relative) {
+            this._border_width_pixel = this._calcRelXToPixel(this._border_width, this._heightpixel);
+        } else {
+            this._border_width_pixel = this._border_width;
+        }
         this._radius_pixel = this._calcRelXToPixel(this._radius, this._heightpixel);
     }
     /** 
@@ -125,6 +130,9 @@ export class CXFrame extends CXDefault {
     }
     get border_width(): number {
         return this._border_width;
+    }
+    set border_relative(state: boolean) {
+        this._border_relative = state;
     }
 
 }
