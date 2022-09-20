@@ -177,7 +177,9 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
 
         # Now update MIME type from file extensions
         my ($kname, $type);
-        if($fname =~ /(.*)\.([a-zA-Z0-9]+)$/) {
+        if($fname =~ /\.js\.map$/) {
+            $mtype = "application/json";
+        } elsif($fname =~ /(.*)\.([a-zA-Z0-9]+)$/) {
             ($kname, $type) = ($1, $2);
             if($type =~ /htm/i) {
                 $mtype = "text/html";
