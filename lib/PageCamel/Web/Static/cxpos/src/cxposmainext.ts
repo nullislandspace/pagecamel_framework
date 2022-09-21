@@ -23,7 +23,6 @@ function initialize() {
     window.addEventListener('resize', resizeCanvas, false);
     // Register an event lister to call the drawLine() function
     // each time the user clicks the left mouse
-    htmlcnv.addEventListener('click', onEvent, false);
     htmlcnv.addEventListener('mousedown', onEvent, false);
     htmlcnv.addEventListener('mousemove', onEvent, false);
     htmlcnv.addEventListener('mouseup', onEvent, false);
@@ -96,7 +95,7 @@ function drawCanvas() {
 export function cxposmainext() {
     initialize();
     let tableplan = new cxv.CXTablePlanView(ctx);
-    
+    console.log(window);
     
     viewelements.push(tableplan);
     drawCanvas();
