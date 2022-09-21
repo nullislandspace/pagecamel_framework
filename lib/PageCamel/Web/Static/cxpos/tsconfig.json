@@ -24,5 +24,6 @@
       "removeComments": true,
       "strictNullChecks": true,
       "sourceMap": true,
+      "noImplicitAny": true
     }
   }
