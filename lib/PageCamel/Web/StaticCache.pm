@@ -135,7 +135,7 @@ sub reload($self, $ofh = undef) {
 
 }
 
-sub load_dir($self, $basedir, $basewebpath, $ofh) {
+sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
 
     my $fcount = 0;
     my $ft = File::Type->new();
@@ -146,7 +146,8 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
 
     if(-f $basedir . '/pagecamel.xml') {
         # Special directives for static loading
-        my ($signore) = $self->process_special_directives($basedir, $ofh);
+        my $signore;
+        ($signore, $dynamic) = $self->process_special_directives($basedir, $ofh);
         push @ignore, @{$signore};
         push @ignore, 'pagecamel.xml';
     }
@@ -166,7 +167,7 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
         my $nfname = $basedir . "/" . $fname;
         if(-d $nfname) {
             # Got ourself a directory, go recursive
-            $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $ofh);
+            $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $ofh, $dynamic);
             next;
         }
 
@@ -212,24 +213,6 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
             $mtype = 'application/octet-stream';
         }
 
-        if(0) {
-            # Only minify when not debugging for faster startup
-            if($mtype eq "text/css") {
-                my $miniok = 0;
-                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                    print $ofh ("   MINIFY $nfname\n");
-                    my $tmp = CSS::Minifier::XS::minify($data);
-                    print $ofh ("   MINIFY $nfname OK\n");
-                    $data = $tmp;
-                    $miniok = 1;
-                };
-
-                if(!$miniok) {
-                    print $ofh "MINIFY ERROR: ", $EVAL_ERROR, "\n";
-                }
-            }
-        }
-
         my $lastmodified = getLastModifiedWebdate($nfname);
         my $tmp = parseWebdate($lastmodified);
         $lastmodified = getWebdate($tmp);
@@ -240,11 +223,14 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
                     etag    => sha1_hex($self->{reloadTime} . sha1_hex($data)), # Force browser reload after pagecamel reload with timestamp
                     "Last-Modified" => $lastmodified,
                     disable_compression => 0,
+                    dynamic => $dynamic,
                     );
 
         # !!! only store the data itself in RAM if the file is small enough !!!
         if($self->{isDebugging}) {
             #print $ofh "   !Debugging mode, will only cache metadata: $nfname\n";
+        } elsif($dynamic) {
+            #print $ofh "   !Dynamic file, will only cache metadata: $nfname\n";
         } elsif(!$self->{sizelimit}) {
             print $ofh "   !Size limit = 0, will only cache metadata: $nfname\n";
         } elsif($entry{size} > $self->{sizelimit}) {
@@ -296,6 +282,11 @@ sub process_special_directives($self, $basedir, $ofh) {
         croak("Invalid directives file $directivefname: " . $EVAL_ERROR);
     }
 
+    my $dynamic = 0;
+    if($self->{isDebugging} && defined($directives->{dynamic}) && $directives->{dynamic}) {
+        $dynamic = 1;
+    }
+
     if(defined($directives->{ignore}->{item})) {
         push @ignore, @{$directives->{ignore}->{item}};
     }
@@ -321,7 +312,7 @@ sub process_special_directives($self, $basedir, $ofh) {
     }
 
 
-    return \@ignore;
+    return \@ignore, $dynamic;
 
 }
 
@@ -381,6 +372,28 @@ sub get($self, $ua) {
 
     return (status  =>  404) unless defined($self->{cache}->{$name});
 
+    my $cachecontrol = $self->{cache_control}; 
+    my $expires = $self->{expires}; 
+
+    if($self->{cache}->{$name}->{dynamic}) {
+        print STDERR "------ $name is a dynamic file, checking for newer version\n";
+        my $newlastmodified = getLastModifiedWebdate($self->{cache}->{$name}->{fullname});
+        my $tmp = parseWebdate($newlastmodified);
+        $newlastmodified = getWebdate($tmp);
+
+        if($self->{cache}->{$name}->{"Last-Modified"} ne $newlastmodified) {
+            print STDERR "------ $name is a dynamic file and has a newer version available, reloading metadata\n";
+            my $data = slurpBinFile($self->{cache}->{$name}->{fullname});
+            $self->{cache}->{$name}->{size} = length($data);
+            $self->{cache}->{$name}->{"Last-Modified"} = $newlastmodified;
+            $self->{cache}->{$name}->{etag} = sha1_hex($newlastmodified) . sha1_hex($data);
+
+            $cachecontrol = "no-cache, no-store, must-revalidate";
+            $expires = 'now';
+        }
+    }
+
+
     my $lastetag = $ua->{headers}->{'If-None-Match'} || '';
 
     if(defined($self->{cache}->{$name}->{etag}) &&
@@ -407,8 +420,8 @@ sub get($self, $ua) {
     my %retpage = (status          =>  200,
             type            => $self->{cache}->{$name}->{type},
             data            => $self->{cache}->{$name}->{data},
-            expires         => $self->{expires},
-            cache_control   =>  $self->{cache_control},
+            expires         => $expires,
+            cache_control   =>  $cachecontrol,
             );
 
     if(defined($self->{cache}->{$name}->{data})) {

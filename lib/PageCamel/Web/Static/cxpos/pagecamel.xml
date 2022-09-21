@@ -2,6 +2,7 @@
     <commands>
         <item>tsc -p tsconfig.json</item>
     </commands>
+    <dynamic>1</dynamic>
     <ignore>
         <!--<item>src</item>-->
         <item>docs</item>
