@@ -156,7 +156,7 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
     while((my $fname = readdir($dfh))) {
         next if($fname =~ /^\./); # Ignore hidden files and dirs
 
-        #next if($fname =~ /\.ts$/); # Ignore typescript files
+        next if(!$self->{isDebugging} && $fname =~ /\.ts$/); # Only deliver typescript files when debugging
         next if(!$self->{isDebugging} && $fname =~ /\.js\.map$/); # Only deliver TS map files when debugging
 
         if(contains($fname, \@ignore)) {
@@ -291,13 +291,18 @@ sub process_special_directives($self, $basedir, $ofh) {
         push @ignore, @{$directives->{ignore}->{item}};
     }
 
-    if(defined($directives->{commands}->{item})) {
+    my $commandpath = "livecommands";
+    if($self->{isDebugging}) {
+        $commandpath = "debugcommands";
+    }
+
+    if(defined($directives->{$commandpath}->{item})) {
         my $currentwd = getcwd();
         chdir $basedir;
         my $newwd = getcwd();
         print $ofh   "  Changing working directory from $currentwd to $newwd to execute commands\n";
 
-        foreach my $cmd (@{$directives->{commands}->{item}}) {
+        foreach my $cmd (@{$directives->{$commandpath}->{item}}) {
             my $ok = $self->execute_external_command($cmd, $ofh);
             if(!$ok) {
                 croak("Failed to execute external command");

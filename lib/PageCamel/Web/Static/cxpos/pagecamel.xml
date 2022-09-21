@@ -1,7 +1,10 @@
 <pagecamel>
-    <commands>
-        <item>tsc -p tsconfig.json</item>
-    </commands>
+    <livecommands>
+        <item>tsc -p tsconfig_live.json</item>
+    </livecommands>
+    <debugcommands>
+        <item>tsc -p tsconfig_debug.json</item>
+    </debugcommands>
     <dynamic>1</dynamic>
     <ignore>
         <!--<item>src</item>-->
