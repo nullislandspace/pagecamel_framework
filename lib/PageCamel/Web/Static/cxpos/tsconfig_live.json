@@ -1,0 +1,22 @@
+{
+  "include": [
+    "src/**/*.ts",
+    "*.ts"
+  ],
+  "exclude": [
+    "*.d.ts"
+  ],
+  "compilerOptions": {
+    "allowJs": true,
+    "declaration": false,
+    "emitDeclarationOnly": false,
+    "outDir": "out",
+    "declarationMap": false,
+    "target": "ES6",
+    "module": "ES6",
+    "strict": true,
+    "removeComments": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true
+  }
+}

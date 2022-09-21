@@ -38,7 +38,7 @@ export class CXCheckBox extends CXButton {
         this._checked = !this._checked;
         this._box.text = this._checked ? "X" : "";
         this._has_changed = true;
-        this._checked ? this.onCheck() : this.onUncheck();
+        this._checked ? this.onCheck(this) : this.onUncheck(this);
         if (this._redraw) {
             this.draw(this._px, this._py, this._pwidth, this._pheight);
         }
@@ -47,14 +47,14 @@ export class CXCheckBox extends CXButton {
      * @public
      * @description Callback function when the checkbox gets unchecked
      */
-    public onUncheck = (): void => {
+    public onUncheck = (object: this): void => {
         // override this function to do something when the checkbox is unchecked
     }
     /**
      * @public
      * @description Callback function when the checkbox gets checked
      */
-    public onCheck = (): void => {
+    public onCheck = (object: this): void => {
         // override this function to do something when the checkbox is checked
     }
     /**
