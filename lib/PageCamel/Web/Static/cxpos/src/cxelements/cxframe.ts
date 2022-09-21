@@ -116,10 +116,10 @@ export class CXFrame extends CXDefault {
     /**
      * @param {number} r - Radius of the frame
      */
-    set radius(r: number) {
+    set border_radius(r: number) {
         this._radius = r;
     }
-    get radius(): number {
+    get border_radius(): number {
         return this._radius;
     }
     /**

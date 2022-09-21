@@ -2,8 +2,8 @@ import * as cxv from './cxviews/cxviews.js';
 
 
 let devicePixelRatio = window.devicePixelRatio || 1;
-let dpi_x = document.getElementById('testdiv')!.offsetWidth * devicePixelRatio;
-let dpi_y = document.getElementById('testdiv')!.offsetHeight * devicePixelRatio;
+let dpi_x = /*document.getElementById('testdiv')!.offsetWidth * */devicePixelRatio;
+let dpi_y = /*document.getElementById('testdiv')!.offsetHeight * */devicePixelRatio;
 
 const min_dpi = 96;
 const min_width = 1024;

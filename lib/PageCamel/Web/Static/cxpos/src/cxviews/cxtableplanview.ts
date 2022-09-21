@@ -33,7 +33,7 @@ export class CXTablePlanView extends CXDefaultView {
         undo_btn.text = '⮪';
 
         var redo_btn = new cxe.CXButton(this._ctx, 0.07, 0.94, 0.05, 0.05, true, false);
-        redo_btn.radius = 0.1;
+        redo_btn.border_radius = 0.1;
         redo_btn.gradient = ['#80b3ffff', '#1193eeff'];
         redo_btn.border_color = '#eeeeeeff';
         redo_btn.border_width = 0.02;

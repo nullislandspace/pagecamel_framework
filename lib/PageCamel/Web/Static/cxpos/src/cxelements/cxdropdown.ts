@@ -40,7 +40,7 @@ export class CXDropDown extends CXTextBox {
         this._dropdown_button.text_alignment = "center";
         this._dropdown_button.background_color = "transparent";
 
-        this._dropdown_list.radius = 0;
+        this._dropdown_list.border_radius = 0;
         this._dropdown_list.item_height = 0.2 * 0.8;
         this._dropdown_list.active = false;
         this._dropdown_list.scroll_bar_width = 0.1;

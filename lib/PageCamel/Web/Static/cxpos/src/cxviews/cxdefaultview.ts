@@ -5,21 +5,21 @@ export class CXDefaultView extends CXBox {
 
     // attributes for a button with a general function 
     protected _general_func_buttons: {} = {
-        radius: 0.1,
+        border_radius: 0.1,
         gradient: ['#80b3ffff', '#1193eeff'],
         border_color: '#eeeeeeff',
         border_width: 0.02,
     };
     // attributes for a button with a special function
     protected _special_func_buttons: {} = {
-        radius: 0.1,
+        border_radius: 0.1,
         gradient: ['#80b3ffff', '#1193eeff'],
         border_color: '#eeeeeeff',
         border_width: 0.02,
     };
     // attributes for a "BAR-Button"
     protected _bar_buttons: {} = {
-        radius: 0.1,
+        border_radius: 0.1,
         gradient: ['#87de87ff', '#008000ff'],
         border_color: '#eeeeeeff',
         border_width: 0.02,
