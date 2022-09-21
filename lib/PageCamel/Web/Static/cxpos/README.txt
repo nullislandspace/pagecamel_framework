@@ -13,5 +13,7 @@ typedoc --entryPointStrategy expand --exclude "**/*+(.js)" --readme ./src/cxelem
 typedoc --entryPointStrategy expand --exclude "**/*+(.js)" --readme ./src/cxviews/README.md -out ./docs/cxviews ./src/cxviews
 typedoc --entryPointStrategy expand --exclude "**/*+(.js)" --readme ./src/cxadds/README.md -out ./docs/cxadds ./src/cxadds
 
+Rene:
+ tsc src/cxposmain.ts --target ES6 --module ES6 --strict --removeComments --strictNullChecks --sourceMap --noImplicitAny --outdir out
 
 */

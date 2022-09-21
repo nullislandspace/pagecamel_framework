@@ -1,9 +1,6 @@
 import * as cxv from './cxviews/cxviews.js';
 
 
-let htmlppidiv: string = `<div id='testdiv' style='height: 1in; left: -100%; position: absolute; top: -100%; width: 1in;'></div>`;
-document.body.innerHTML = htmlppidiv;
-
 let devicePixelRatio = window.devicePixelRatio || 1;
 let dpi_x = document.getElementById('testdiv')!.offsetWidth * devicePixelRatio;
 let dpi_y = document.getElementById('testdiv')!.offsetHeight * devicePixelRatio;
@@ -13,18 +10,11 @@ const min_width = 1024;
 const min_height = 768;
 // console.log(dpi_x, dpi_y);
 
-
-
-
 // Adds the canvas element to the document.
 let viewelements: any[] = [];
-let htmlcanvas: string = `<canvas id='CXcanvas' style='background-color: #b3b3b3ff; '></canvas>`;
-document.body.innerHTML = htmlcanvas;
 
 const htmlcnv = document.getElementById("CXcanvas") as HTMLCanvasElement;
 const ctx = htmlcnv.getContext("2d") as CanvasRenderingContext2D; //canvas context
-
-
 
 
 function initialize() {

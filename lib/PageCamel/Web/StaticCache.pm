@@ -155,7 +155,7 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
     while((my $fname = readdir($dfh))) {
         next if($fname =~ /^\./); # Ignore hidden files and dirs
 
-        next if($fname =~ /\.ts$/); # Ignore typescript files
+        #next if($fname =~ /\.ts$/); # Ignore typescript files
         next if(!$self->{isDebugging} && $fname =~ /\.js\.map$/); # Only deliver TS map files when debugging
 
         if(contains($fname, \@ignore)) {
@@ -199,6 +199,8 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
                 $mtype = "image/png";
             } elsif($type =~ /(jpg|jpeg|jpe)/i) {
                 $mtype = "image/jpeg";
+            } elsif($type eq 'ts') {
+                $mtype = "application/typescript";
             }
         } else {
             # File without extension

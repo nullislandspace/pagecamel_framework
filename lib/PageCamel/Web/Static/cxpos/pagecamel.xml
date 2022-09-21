@@ -3,7 +3,7 @@
         <item>tsc -p tsconfig.json</item>
     </commands>
     <ignore>
-        <item>src</item>
+        <!--<item>src</item>-->
         <item>docs</item>
         <item>node_modules</item>
         <item>package.json</item>
