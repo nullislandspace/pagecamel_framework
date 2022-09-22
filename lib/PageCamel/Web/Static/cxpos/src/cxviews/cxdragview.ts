@@ -12,7 +12,7 @@ export class CXDragView extends CXDefaultView {
         this._draganddrop.border_width = 10;
         this._draganddrop.border_relative = false;
         this._draganddrop.attributes = {
-            text: "Drag me",
+            text: "Move me",
             background_color: "#00ffff",
             border_color: "#ff0000",
         };

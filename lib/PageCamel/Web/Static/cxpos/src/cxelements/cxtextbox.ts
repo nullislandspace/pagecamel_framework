@@ -27,7 +27,7 @@ export class CXTextBox extends CXBox {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
      */
-    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
 
         this._text_color = "black";

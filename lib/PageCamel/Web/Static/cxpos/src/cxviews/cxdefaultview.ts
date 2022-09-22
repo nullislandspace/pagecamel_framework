@@ -24,6 +24,7 @@ export class CXDefaultView extends CXBox {
         border_color: '#eeeeeeff',
         border_width: 0.02,
     };
+    protected _elements: any[] = [];
     constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this._table = new CXTable();

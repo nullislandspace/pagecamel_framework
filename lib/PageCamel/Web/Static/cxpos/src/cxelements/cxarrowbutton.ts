@@ -15,7 +15,7 @@ export class CXArrowButton extends CXButton {
      * @param {boolean} is_relative if true, the x, y, width and height are relative to the parent and between 0 and 1
      * @param {boolean} redraw if true, the button can redraw itself
      */
-    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean, redraw: boolean) {
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this._arrow_color = "black";
         this._arrow_width = 0.8;
