@@ -27,7 +27,7 @@ export class CXScrollList extends CXBox {
     */
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean, redraw: boolean) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        super.radius = 0.02;
+        super.border_radius = 0.02;
         super.border_width = 0.02;
 
         this._background_color = 'transparent';
@@ -164,7 +164,7 @@ export class CXScrollList extends CXBox {
         this._scroll_list_text.push(item);
         var list_item = new CXScrollListItem(this._ctx, 0.0, this._item_height * this._scroll_list_items.length, 1 - this._scroll_bar.width, this._item_height, true, false);
         list_item.listitem = item;
-        list_item.radius = 0.1;
+        list_item.border_radius = 0.1;
         list_item.border_width = 0;
         list_item.background_color = this._background_color;
         this._scroll_list_items.push(list_item);
@@ -187,7 +187,7 @@ export class CXScrollList extends CXBox {
         for (let i = 0; i < list.length; i++) {
             var list_item = new CXScrollListItem(this._ctx, 0.0, this._item_height * i, 1 - this._scroll_bar.width, this._item_height, true, false);
             list_item.listitem = list[i];
-            list_item.radius = 0.1;
+            list_item.border_radius = 0.1;
             list_item.background_color = this._background_color;
             list_item.border_width = 0;
             this._scroll_list_items.push(list_item);

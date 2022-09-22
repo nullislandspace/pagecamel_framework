@@ -33,7 +33,6 @@ export class CXBox extends CXFrame {
     protected _drawBox(): void {
         this._ctx.fillStyle = this._background_color;
         if (this._gradient.length > 0) {
-            console.log("Gradient Render");
             var grd = this._ctx.createLinearGradient(this.xpixel, this.ypixel, this.xpixel, this.ypixel + this.heightpixel);
             var step_size = 1 / (this._gradient.length - 1);
             for (var i = 0; i < this._gradient.length; i++) {
@@ -86,7 +85,7 @@ export class CXBox extends CXFrame {
         this._first_gradient_color = gradient[0];
     }
     /**
-     * @returns {array} Gradient
+     * @returns - Gradient
      */
     get gradient(): string[] {
         return this._gradient;

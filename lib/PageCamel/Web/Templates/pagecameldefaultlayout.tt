@@ -51,6 +51,9 @@
         [% FOREACH HeadExtraModuleScript IN HeadExtraModuleScripts %]
             <script type="module" src="[% HeadExtraModuleScript %][% URLReloadPostfix %]"></script>
         [% END %]
+        [% FOREACH HeadExtraModuleScript IN HeadExtraModuleScriptsNoPostfix %]
+            <script type="module" src="[% HeadExtraModuleScript %]"></script>
+        [% END %]
 
         <script type="text/javascript">
             var logoutDialog;

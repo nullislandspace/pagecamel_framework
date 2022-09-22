@@ -18,11 +18,14 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
+use XML::Simple;
 use IO::Compress::Gzip qw(gzip $GzipError);
 use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use CSS::Minifier::XS;
 use File::Type;
+use Cwd;
+use POSIX;
 
 my $cachemodulecount = 0;
 my @knownstaticmodules;
@@ -132,20 +135,39 @@ sub reload($self, $ofh = undef) {
 
 }
 
-sub load_dir($self, $basedir, $basewebpath, $ofh) {
+sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
 
     my $fcount = 0;
     my $ft = File::Type->new();
 
     print $ofh "StaticCache loading directory $basedir into $basewebpath...\n";
 
+    my @ignore;
+
+    if(-f $basedir . '/pagecamel.xml') {
+        # Special directives for static loading
+        my $signore;
+        ($signore, $dynamic) = $self->process_special_directives($basedir, $ofh);
+        push @ignore, @{$signore};
+        push @ignore, 'pagecamel.xml';
+    }
+
     opendir(my $dfh, $basedir) or croak($ERRNO);
     while((my $fname = readdir($dfh))) {
-        next if($fname =~ /^\./);
+        next if($fname =~ /^\./); # Ignore hidden files and dirs
+
+        next if(!$self->{isDebugging} && $fname =~ /\.ts$/); # Only deliver typescript files when debugging
+        next if(!$self->{isDebugging} && $fname =~ /\.js\.map$/); # Only deliver TS map files when debugging
+
+        if(contains($fname, \@ignore)) {
+            print $ofh "      Ignoring $fname in $basedir\n";
+            next; # Ignore files specified in special directives
+        }
+
         my $nfname = $basedir . "/" . $fname;
         if(-d $nfname) {
             # Got ourself a directory, go recursive
-            $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $ofh);
+            $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $ofh, $dynamic);
             next;
         }
 
@@ -156,7 +178,9 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
 
         # Now update MIME type from file extensions
         my ($kname, $type);
-        if($fname =~ /(.*)\.([a-zA-Z0-9]+)$/) {
+        if($fname =~ /\.js\.map$/) {
+            $mtype = "application/json";
+        } elsif($fname =~ /(.*)\.([a-zA-Z0-9]+)$/) {
             ($kname, $type) = ($1, $2);
             if($type =~ /htm/i) {
                 $mtype = "text/html";
@@ -176,6 +200,8 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
                 $mtype = "image/png";
             } elsif($type =~ /(jpg|jpeg|jpe)/i) {
                 $mtype = "image/jpeg";
+            } elsif($type eq 'ts') {
+                $mtype = "application/typescript";
             }
         } else {
             # File without extension
@@ -185,25 +211,6 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
         if(!defined($mtype) || $mtype eq '') {
             # Whoops. Just use the most generic mime type available
             $mtype = 'application/octet-stream';
-        }
-
-        if(0) {
-        #if(!$self->{isDebugging}) {
-            # Only minify when not debugging for faster startup
-            if($mtype eq "text/css") {
-                my $miniok = 0;
-                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                    print $ofh ("   MINIFY $nfname\n");
-                    my $tmp = CSS::Minifier::XS::minify($data);
-                    print $ofh ("   MINIFY $nfname OK\n");
-                    $data = $tmp;
-                    $miniok = 1;
-                };
-
-                if(!$miniok) {
-                    print $ofh "MINIFY ERROR: ", $EVAL_ERROR, "\n";
-                }
-            }
         }
 
         my $lastmodified = getLastModifiedWebdate($nfname);
@@ -216,11 +223,14 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
                     etag    => sha1_hex($self->{reloadTime} . sha1_hex($data)), # Force browser reload after pagecamel reload with timestamp
                     "Last-Modified" => $lastmodified,
                     disable_compression => 0,
+                    dynamic => $dynamic,
                     );
 
         # !!! only store the data itself in RAM if the file is small enough !!!
         if($self->{isDebugging}) {
             #print $ofh "   !Debugging mode, will only cache metadata: $nfname\n";
+        } elsif($dynamic) {
+            #print $ofh "   !Dynamic file, will only cache metadata: $nfname\n";
         } elsif(!$self->{sizelimit}) {
             print $ofh "   !Size limit = 0, will only cache metadata: $nfname\n";
         } elsif($entry{size} > $self->{sizelimit}) {
@@ -250,6 +260,97 @@ sub load_dir($self, $basedir, $basewebpath, $ofh) {
     return $fcount;
 }
 
+sub process_special_directives($self, $basedir, $ofh) {
+    my @ignore;
+
+    my $directivefname = $basedir . '/pagecamel.xml';
+
+    if(!-f $directivefname) {
+        croak("Internal error: File $directivefname not found");
+    }
+
+    my $directives;
+    my $loadok = 0;
+    eval {
+        $directives = XMLin($directivefname,
+                            ForceArray => [ 'item' ],
+                        );
+        $loadok = 1;
+    };
+
+    if(!$loadok || !defined($directives)) {
+        croak("Invalid directives file $directivefname: " . $EVAL_ERROR);
+    }
+
+    my $dynamic = 0;
+    if($self->{isDebugging} && defined($directives->{dynamic}) && $directives->{dynamic}) {
+        $dynamic = 1;
+    }
+
+    if(defined($directives->{ignore}->{item})) {
+        push @ignore, @{$directives->{ignore}->{item}};
+    }
+
+    my $commandpath = "livecommands";
+    if($self->{isDebugging}) {
+        $commandpath = "debugcommands";
+    }
+
+    if(defined($directives->{$commandpath}->{item})) {
+        my $currentwd = getcwd();
+        chdir $basedir;
+        my $newwd = getcwd();
+        print $ofh   "  Changing working directory from $currentwd to $newwd to execute commands\n";
+
+        foreach my $cmd (@{$directives->{$commandpath}->{item}}) {
+            my $ok = $self->execute_external_command($cmd, $ofh);
+            if(!$ok) {
+                croak("Failed to execute external command");
+            }
+        }
+
+        chdir $currentwd;
+
+        if(getcwd() ne $currentwd) {
+            croak("Changing WD back to $currentwd has failed!");
+        }
+    }
+
+
+    return \@ignore, $dynamic;
+
+}
+
+sub execute_external_command($self, $cmd, $ofh) {
+
+    print $ofh "       Executing command $cmd\n";
+
+    my ($child_pid, $child_rc);
+
+    unless ($child_pid = open(OUTPUT, '-|')) {
+      open(STDERR, ">&STDOUT");
+      exec($cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
+      croak("ERROR: Could not execute program: $ERRNO");
+    }
+    waitpid($child_pid, 0);
+    $child_rc = $CHILD_ERROR >> 8;
+
+    my $ok = 1;
+    while(my $line = <OUTPUT>) {
+        chomp $line;
+        if($line =~ /PAGECAMEL_EXECUTE_ERROR/) {
+            $ok = 0;
+            next;
+        }
+        print $ofh ":           $line\n";
+    }
+    eval {
+        close(OUTPUT);
+    };
+
+    return $ok;
+
+}
 
 sub register($self) {
 
@@ -275,6 +376,28 @@ sub get($self, $ua) {
     print STDERR "##########   $name\n";
 
     return (status  =>  404) unless defined($self->{cache}->{$name});
+
+    my $cachecontrol = $self->{cache_control}; 
+    my $expires = $self->{expires}; 
+
+    if($self->{cache}->{$name}->{dynamic}) {
+        print STDERR "------ $name is a dynamic file, checking for newer version\n";
+        my $newlastmodified = getLastModifiedWebdate($self->{cache}->{$name}->{fullname});
+        my $tmp = parseWebdate($newlastmodified);
+        $newlastmodified = getWebdate($tmp);
+
+        if($self->{cache}->{$name}->{"Last-Modified"} ne $newlastmodified) {
+            print STDERR "------ $name is a dynamic file and has a newer version available, reloading metadata\n";
+            my $data = slurpBinFile($self->{cache}->{$name}->{fullname});
+            $self->{cache}->{$name}->{size} = length($data);
+            $self->{cache}->{$name}->{"Last-Modified"} = $newlastmodified;
+            $self->{cache}->{$name}->{etag} = sha1_hex($newlastmodified) . sha1_hex($data);
+
+            $cachecontrol = "no-cache, no-store, must-revalidate";
+            $expires = 'now';
+        }
+    }
+
 
     my $lastetag = $ua->{headers}->{'If-None-Match'} || '';
 
@@ -302,8 +425,8 @@ sub get($self, $ua) {
     my %retpage = (status          =>  200,
             type            => $self->{cache}->{$name}->{type},
             data            => $self->{cache}->{$name}->{data},
-            expires         => $self->{expires},
-            cache_control   =>  $self->{cache_control},
+            expires         => $expires,
+            cache_control   =>  $cachecontrol,
             );
 
     if(defined($self->{cache}->{$name}->{data})) {

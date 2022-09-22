@@ -38,7 +38,7 @@ export class CXNumPad extends CXDefault {
                 button.text_color = '#000000';
                 button.border_color = '#ff0000';
                 button.font_size = this._font_size;
-                button.radius = 0.1;
+                button.border_radius = 0.1;
                 row.push(button);
             }
             this._buttons.push(row);

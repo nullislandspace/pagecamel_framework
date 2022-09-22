@@ -414,7 +414,7 @@ export class CXDefault {
      * @example element.attributes = {xpos: 0.5, ypos: 0.5, width: 0.5, height: 0.5}
      */
     set attributes(attributes: object) {
-        var attr = JSON.parse(JSON.stringify(attributes)); // deep copy to remove references to the original object 
+        var attr = JSON.parse(JSON.stringify(attributes)); // copy to remove references to the original object 
         var keys = Object.keys(attr);
         // walk through the entire prototype chain
         for (let o = Object.getPrototypeOf(this); o && o != Object.prototype; o = Object.getPrototypeOf(o)) {

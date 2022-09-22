@@ -3,7 +3,8 @@ import { CXDragAndDrop } from '../cxelements/cxdraganddrop.js';
 
 export class CXDragView extends CXDefaultView {
     private _draganddrop: CXDragAndDrop;
-    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
+    protected _draw_mode: string = 'none';
+    constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this.border_width = 0.001;
         this.background_color = '#fff';
@@ -16,10 +17,15 @@ export class CXDragView extends CXDefaultView {
             border_color: "#ff0000",
         };
 
+
         console.log('get attributes:', this._draganddrop.attributes);
 
     }
-    _draw() {
+    protected _initialize(): void {
+    
+    }
+
+    protected _draw(): void {
         super._draw();
         this._draganddrop.draw(this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
     }
@@ -32,5 +38,12 @@ export class CXDragView extends CXDefaultView {
         }
         this._tryRedraw();
         return this._has_changed;
+    }
+    /**
+     * Set the draw mode of the view (none, rect, circle, img, text) for drawing a new dragable element
+     * @param mode
+     */
+    set draw_mode(mode: string) {
+        this._draw_mode = mode;
     }
 }
