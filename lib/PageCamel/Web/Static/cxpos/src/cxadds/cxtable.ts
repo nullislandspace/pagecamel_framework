@@ -43,16 +43,24 @@ export function createOrderList(order_items: []) {
     return obj;
 }
 export class CXTable {
-    protected _order_list: [];
-    protected _name: string;
-    protected _number: number | null;
-    protected _visible: boolean;
+    protected _order_list: OrderList = createOrderList([]);
+    protected _name: string = "";
+    protected _number: number | null = null;
+    protected _visible: boolean = true;
     protected _parentnumber: number = 0;
     protected _booked: boolean = false;
+    /**
+     * array of order items
+     */
     set order_list(order_items: []) {
+        this._order_list = createOrderList(order_items);
     }
+    /**
+     * @todo: needs to return order list
+     */
     get order_list(): [] {
-        return this._order_list;
+        return [];
+        //return this._order_list;
     }
     /**
      * Add orders to the order list
