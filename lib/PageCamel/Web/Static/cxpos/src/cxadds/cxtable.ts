@@ -27,10 +27,12 @@ export function createOrderItem(article: {}, id: number = 0, timestamp: number =
     }
     return obj;
 }
-
 export function createOrderList(order_items: []) {
+    var items = order_items.map(function (item: OrderItem) {
+        return createOrderItem(item.article, item.id, item.timestamp, item.quantity, item.booked);
+    });
     var obj: OrderList = {
-        order_items: order_items,
+        order_items: items,
         toStringArray: function (params: string[]) {
         },
         sum: function () {
