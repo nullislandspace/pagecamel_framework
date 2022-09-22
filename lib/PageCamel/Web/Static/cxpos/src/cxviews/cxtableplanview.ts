@@ -26,11 +26,15 @@ export class CXTablePlanView extends CXDefaultView {
     }]
     */
     protected _initialize(): void {
-
         this._border_width = 0.0;
         var dragview: CXDragView = new CXDragView(this._ctx, 0.0, 0.0, 0.8, 0.8, true, false);
+        function onDrawButtonClick(obj: cxe.CXButton) {
+            console.log('draw button', obj.name, 'clicked');
+            obj.border_width = 0.1;
+            dragview.draw_mode = obj.name;
+        }
         var undo_btn = new cxe.CXButton(this._ctx, 0.01, 0.94, 0.05, 0.05, true, false);
-        undo_btn.attributes = this._special_func_buttons
+        undo_btn.attributes = this._special_func_buttons;
         undo_btn.text = '⮪';
 
         var redo_btn = new cxe.CXButton(this._ctx, 0.07, 0.94, 0.05, 0.05, true, false);
@@ -39,21 +43,25 @@ export class CXTablePlanView extends CXDefaultView {
 
         var draw_rect_btn = new cxe.CXButton(this._ctx, 0.13, 0.94, 0.05, 0.05, true, false);
         draw_rect_btn.attributes = this._special_func_buttons;
+        draw_rect_btn.onClick = onDrawButtonClick;
         draw_rect_btn.name = 'rect';
         draw_rect_btn.text = '⬛';
 
         var draw_circle_btn = new cxe.CXButton(this._ctx, 0.19, 0.94, 0.05, 0.05, true, false);
         draw_circle_btn.attributes = this._special_func_buttons;
+        draw_circle_btn.onClick = onDrawButtonClick;
         draw_circle_btn.name = 'circle';
         draw_circle_btn.text = '⬤';
 
         var draw_img_btn = new cxe.CXButton(this._ctx, 0.25, 0.94, 0.05, 0.05, true, false);
         draw_img_btn.attributes = this._special_func_buttons;
+        draw_img_btn.onClick = onDrawButtonClick;
         draw_img_btn.name = 'img';
         draw_img_btn.text = '🖼';
 
         var draw_text_btn = new cxe.CXButton(this._ctx, 0.31, 0.94, 0.05, 0.05, true, false);
         draw_text_btn.attributes = this._special_func_buttons;
+        draw_text_btn.onClick = onDrawButtonClick;
         draw_text_btn.name = 'text';
         draw_text_btn.text = '📝';
 

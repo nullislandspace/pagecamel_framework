@@ -95,9 +95,9 @@ function drawCanvas() {
 
 export function cxposmainext() {
     initialize();
-    var table = new cxa.CXTable();
-    table.name = "Tisch 1";
-    table.number = 1;
+    //var table = new cxa.CXTable();
+    //table.name = "Tisch 1";
+    //table.number = 1;
 
     let tableplan = new cxv.CXTablePlanView(ctx);
     console.log(window);

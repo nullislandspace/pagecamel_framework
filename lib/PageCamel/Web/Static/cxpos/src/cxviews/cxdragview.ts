@@ -16,8 +16,6 @@ export class CXDragView extends CXDefaultView {
             background_color: "#00ffff",
             border_color: "#ff0000",
         };
-
-
         console.log('get attributes:', this._draganddrop.attributes);
 
     }
