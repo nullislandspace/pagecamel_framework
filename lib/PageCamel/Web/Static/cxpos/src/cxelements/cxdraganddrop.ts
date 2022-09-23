@@ -564,4 +564,13 @@ export class CXDragAndDrop extends CXButton {
     get default_cursor(): string {
         return this._default_cursor;
     }
+    /**
+     * if true it shows the frame for resizing around the object
+     */
+    set show_resize_frame(show: boolean) {
+        this._show_resize_frame = show;
+    }
+    get show_resize_frame(): boolean {
+        return this._show_resize_frame;
+    }
 }

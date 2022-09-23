@@ -87,7 +87,6 @@ export class CXFrame extends CXDefault {
         if (this._border_width_pixel > 0) {
             this._ctx.stroke();
         }
-
     }
     /**
      * @protected

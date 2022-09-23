@@ -4,6 +4,7 @@ import { CXDragAndDrop } from '../cxelements/cxdraganddrop.js';
 export class CXDragView extends CXDefaultView {
     private _draganddrop: CXDragAndDrop;
     protected _draw_mode: string = 'none';
+    private _draganddrops: Array<CXDragAndDrop> = [];
     constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this.border_width = 0.001;
@@ -44,6 +45,7 @@ export class CXDragView extends CXDefaultView {
             //show crosshair cursor
             this._ctx.canvas.style.cursor = 'crosshair';
             this._draganddrop.default_cursor = 'crosshair';
+            this._draganddrop.show_resize_frame = false;
         }
         else {
             this._ctx.canvas.style.cursor = 'default';
