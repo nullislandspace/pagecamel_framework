@@ -25,13 +25,17 @@ export class CXFrame extends CXDefault {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
     */
-    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative = true, redraw = true) {
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
 
         this._border_color = "black";
         this._radius = 0;
         this._radius_pixel = 0;
-        this._border_width = 0.02;
+        if (this._is_relative) {
+            this._border_width = 0.02;
+        } else {
+            this._border_width = 2;
+        }
         this._border_width_pixel = 0;
         this._border_relative = is_relative;
     }
@@ -91,6 +95,7 @@ export class CXFrame extends CXDefault {
     protected _drawFrame(): void {
         this._ctx.strokeStyle = this._border_color;
         this._ctx.lineWidth = this._border_width_pixel;
+        console.log(this._border_color);
         if (this._radius_pixel > 0) {
             this._drawRadius();
         }
@@ -134,5 +139,4 @@ export class CXFrame extends CXDefault {
     set border_relative(state: boolean) {
         this._border_relative = state;
     }
-
 }

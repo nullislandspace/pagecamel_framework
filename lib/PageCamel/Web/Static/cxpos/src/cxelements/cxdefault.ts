@@ -164,6 +164,24 @@ export class CXDefault {
         return y;
     }
     /**
+     * Converts a pixel position to a relative position
+     * @protected
+     */
+    protected _calcPixelXToRel(xpixel: number = 0, max_width: number = this._ctx.canvas.width): number {
+        var rel: number = 0;
+        rel = xpixel / max_width;
+        return rel;
+    }
+    /** 
+     * Converts a pixel position to a relative position
+     * @protected  
+     * */
+    protected _calcPixelYToRel(ypixel: number = 0, max_height: number = this._ctx.canvas.height): number {
+        var rel: number = 0;
+        rel = ypixel / max_height;
+        return rel;
+    }
+    /**
      * @protected - should only be called by the child class
      */
     protected _calcRelativePositions(px: number, py: number, pwidth: number, pheight: number): number[] {

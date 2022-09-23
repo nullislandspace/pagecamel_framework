@@ -1,21 +1,21 @@
 interface OrderItem {
     id: number,
     timestamp: number,
-    article: {}, quantity:
-    number,
+    article: OrderArticle,
+    quantity: number,
     booked: boolean,
-    toStringArray: Function
+    toStringArray: (val: string[]) => string[]
 };
 interface OrderList {
-    toStringArray: Function,
-    order_items: OrderItem[],
-    sum: Function,
-    addOrderItem: Function,
-    deleteOrderItem: Function
+    toStringArray: (val: string[]) => string[],
+    orderItems: OrderItem[],
+    sum: () => number,
+    addOrderItem: (val: OrderItem) => void,
+    deleteOrderItem: (index: number) => void
 };
 interface OrderArticle {
 }
-export function createOrderItem(article: {}, id: number = 0, timestamp: number = Date.now(), quantity: number = 1, booked: boolean = false) {
+export function createOrderItem(article: OrderArticle, id: number = 0, timestamp: number = Date.now(), quantity: number = 1, booked: boolean = false): OrderItem {
     var obj: OrderItem = {
         id: id,
         timestamp: timestamp,
@@ -23,29 +23,33 @@ export function createOrderItem(article: {}, id: number = 0, timestamp: number =
         quantity: quantity,
         booked: booked,
         toStringArray: function (params: string[]) {
+            return params;
         }
     }
     return obj;
 }
-export function createOrderList(order_items: []) {
-    var items = order_items.map(function (item: OrderItem) {
+export function createOrderList(OrderItems: []) {
+    var items = OrderItems.map(function (item: OrderItem) {
         return createOrderItem(item.article, item.id, item.timestamp, item.quantity, item.booked);
     });
     var obj: OrderList = {
-        order_items: items,
+        orderItems: items,
         toStringArray: function (params: string[]) {
+            return params;
         },
         sum: function () {
+            return 0;
         },
-        addOrderItem: function (order_item: OrderItem) {
+        addOrderItem: function (val: OrderItem) {
         },
-        deleteOrderItem: function (order_item: OrderItem) {
+        deleteOrderItem: function (index: number) {
+
         }
     }
     return obj;
 }
 export class CXTable {
-    protected _order_list: OrderList = createOrderList([]);
+    protected _orderList: OrderList = createOrderList([]);
     protected _name: string = "";
     protected _number: number | null = null;
     protected _visible: boolean = true;
@@ -54,15 +58,15 @@ export class CXTable {
     /**
      * array of order items
      */
-    set order_list(order_items: []) {
-        this._order_list = createOrderList(order_items);
+    set orderList(orderItems: []) {
+        this._orderList = createOrderList(orderItems);
     }
     /**
      * @todo: needs to return order list
      */
-    get order_list(): [] {
+    get orderList(): [] {
         return [];
-        //return this._order_list;
+        //return this._;
     }
     /**
      * Add orders to the order list

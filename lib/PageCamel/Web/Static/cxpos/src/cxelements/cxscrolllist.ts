@@ -27,8 +27,12 @@ export class CXScrollList extends CXBox {
     */
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
-        super.border_radius = 0.02;
-        super.border_width = 0.02;
+        
+        if (this._is_relative) {
+            super.border_radius = 0.02;
+        } else {
+            super.border_radius = 5;
+        }
 
         this._background_color = 'transparent';
         this._render_list = [];

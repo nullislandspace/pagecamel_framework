@@ -30,6 +30,7 @@ export class CXDragAndDrop extends CXButton {
     protected _rel_center_x: number;
     /** @protected */
     protected _rel_center_y: number;
+    protected _default_cursor: string = 'default';
     protected _mouse_down_corner_distance_x: number;
     protected _mouse_down_corner_distance_y: number;
     protected _save_values: { xpos: number; ypos: number; width: number; height: number; angle: number; center_x: number; center_y: number; };
@@ -445,7 +446,7 @@ export class CXDragAndDrop extends CXButton {
             this._ctx.canvas.style.cursor = 'move';
         }
         else if (this._resize_mode == "none") {
-            this._ctx.canvas.style.cursor = 'default';
+            this._ctx.canvas.style.cursor = this._default_cursor;
         }
         else if (this._mouse_down) {
             this._resize(x, y);
@@ -552,5 +553,15 @@ export class CXDragAndDrop extends CXButton {
             }
         }
         return this._has_changed;
+    }
+    /**
+     * set the default cursor which is used when the mouse is not over the object
+     * tyes of cursors are: https://www.w3schools.com/cssref/pr_class_cursor.asp
+     */
+    set default_cursor(cursor: string) {
+        this._default_cursor = cursor;
+    }
+    get default_cursor(): string {
+        return this._default_cursor;
     }
 }

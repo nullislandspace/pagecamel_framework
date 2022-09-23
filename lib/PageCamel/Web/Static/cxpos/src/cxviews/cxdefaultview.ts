@@ -1,29 +1,41 @@
 import { CXBox } from "../cxelements/cxbox.js";
 import { CXTable } from "../cxadds/cxtable.js";
+
 export class CXDefaultView extends CXBox {
     private _table: CXTable;
 
+
+
     // attributes for a button with a general function 
-    protected _general_func_buttons: {} = {
-        border_radius: 0.1,
-        gradient: ['#80b3ffff', '#1193eeff'],
-        border_color: '#eeeeeeff',
-        border_width: 0.02,
-    };
+    protected _generalFuncButtons: {
+        border_radius: number, gradient: string[],
+        border_color: string, border_width: number
+    } = {
+            border_radius: 0.1,
+            gradient: ['#80b3ffff', '#1193eeff'],
+            border_color: '#eeeeeeff',
+            border_width: 0.02,
+        };
     // attributes for a button with a special function
-    protected _special_func_buttons: {} = {
-        border_radius: 0.1,
-        gradient: ['#80b3ffff', '#1193eeff'],
-        border_color: '#eeeeeeff',
-        border_width: 0.02,
-    };
+    protected _specialFuncButtons: {
+        border_radius: number, gradient: string[],
+        border_color: string, border_width: number
+    } = {
+            border_radius: 0.1,
+            gradient: ['#80b3ffff', '#1193eeff'],
+            border_color: '#eeeeeeff',
+            border_width: 0.02,
+        };
     // attributes for a "BAR-Button"
-    protected _bar_buttons: {} = {
-        border_radius: 0.1,
-        gradient: ['#87de87ff', '#008000ff'],
-        border_color: '#eeeeeeff',
-        border_width: 0.02,
-    };
+    protected _barButtons: {
+        border_radius: number, gradient: string[],
+        border_color: string, border_width: number
+    } = {
+            border_radius: 0.1,
+            gradient: ['#87de87ff', '#008000ff'],
+            border_color: '#eeeeeeff',
+            border_width: 0.02,
+        };
     protected _elements: any[] = [];
     constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);

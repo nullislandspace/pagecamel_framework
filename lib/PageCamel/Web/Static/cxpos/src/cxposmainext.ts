@@ -1,6 +1,4 @@
 import * as cxv from './cxviews/cxviews.js';
-import * as cxa from './cxadds/cxadds.js';
-
 
 let devicePixelRatio = window.devicePixelRatio || 1;
 let dpi_x = /*document.getElementById('testdiv')!.offsetWidth * */devicePixelRatio;
@@ -98,10 +96,8 @@ export function cxposmainext() {
     //var table = new cxa.CXTable();
     //table.name = "Tisch 1";
     //table.number = 1;
-
     let tableplan = new cxv.CXTablePlanView(ctx);
     console.log(window);
-    
     viewelements.push(tableplan);
     drawCanvas();
 }

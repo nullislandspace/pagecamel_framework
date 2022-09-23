@@ -19,7 +19,7 @@ export class CXDragView extends CXDefaultView {
         console.log('get attributes:', this._draganddrop.attributes);
     }
     protected _initialize(): void {
-    
+
     }
     protected _draw(): void {
         super._draw();
@@ -36,10 +36,19 @@ export class CXDragView extends CXDefaultView {
         return this._has_changed;
     }
     /**
-     * Set the draw mode of the view (none, rect, circle, img, text) for drawing a new dragable element
+     * Set the draw mode of the view (rect, circle, img, text, select) for drawing a new dragable element
      * @param mode
      */
     set draw_mode(mode: string) {
+        if (mode !== 'none' && mode !== 'select') {
+            //show crosshair cursor
+            this._ctx.canvas.style.cursor = 'crosshair';
+            this._draganddrop.default_cursor = 'crosshair';
+        }
+        else {
+            this._ctx.canvas.style.cursor = 'default';
+            this._draganddrop.default_cursor = 'default';
+        }
         this._draw_mode = mode;
     }
 }
