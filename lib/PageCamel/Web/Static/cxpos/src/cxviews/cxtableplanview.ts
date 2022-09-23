@@ -25,14 +25,31 @@ export class CXTablePlanView extends CXDefaultView {
         ]. . .
     }]
     */
-    protected _initialize(): void {
-        this._border_width = 0.0;
-        var dragview: CXDragView = new CXDragView(this._ctx, 0.0, 0.0, 0.8, 0.8, true, false);
-        function onDrawButtonClick(obj: cxe.CXButton) {
-            console.log('draw button', obj.name, 'clicked');
-            obj.border_width = 0.1;
-            dragview.draw_mode = obj.name;
+
+    protected _draw_buttons: cxe.CXButton[] = [];
+    protected _dragview: CXDragView = new CXDragView(this._ctx, 0.0, 0.0, 0.8, 0.8, true, false);
+    
+    constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
+        super(ctx, x, y, width, height, is_relative, redraw);
+        this.border_width = 0.001;
+        this.background_color = '#fff';
+        this._initialize();
+    }
+    protected _onDrawButtonClick(obj: cxe.CXButton) {
+        console.log('draw button', obj.name, 'clicked');
+        obj.border_width = 0.1;
+        this._dragview.draw_mode = obj.name;
+        this._draw_buttons.forEach((button: { name: string; border_width: number; }) => {
+            if (button.name != obj.name) {
+                button.border_width = 0.0;
+            }
         }
+        );
+    }
+    protected _initialize(): void {
+        this._draw_buttons = []
+        this._border_width = 0.0;
+
         var undo_btn = new cxe.CXButton(this._ctx, 0.01, 0.94, 0.05, 0.05, true, false);
         undo_btn.attributes = this._special_func_buttons;
         undo_btn.text = '⮪';
@@ -43,27 +60,31 @@ export class CXTablePlanView extends CXDefaultView {
 
         var draw_rect_btn = new cxe.CXButton(this._ctx, 0.13, 0.94, 0.05, 0.05, true, false);
         draw_rect_btn.attributes = this._special_func_buttons;
-        draw_rect_btn.onClick = onDrawButtonClick;
+        draw_rect_btn.onClick = this._onDrawButtonClick;
         draw_rect_btn.name = 'rect';
         draw_rect_btn.text = '⬛';
+        this._draw_buttons.push(draw_rect_btn);
 
         var draw_circle_btn = new cxe.CXButton(this._ctx, 0.19, 0.94, 0.05, 0.05, true, false);
         draw_circle_btn.attributes = this._special_func_buttons;
-        draw_circle_btn.onClick = onDrawButtonClick;
+        draw_circle_btn.onClick = this._onDrawButtonClick;
         draw_circle_btn.name = 'circle';
         draw_circle_btn.text = '⬤';
+        this._draw_buttons.push(draw_circle_btn);
 
         var draw_img_btn = new cxe.CXButton(this._ctx, 0.25, 0.94, 0.05, 0.05, true, false);
         draw_img_btn.attributes = this._special_func_buttons;
-        draw_img_btn.onClick = onDrawButtonClick;
+        draw_img_btn.onClick = this._onDrawButtonClick;
         draw_img_btn.name = 'img';
         draw_img_btn.text = '🖼';
+        this._draw_buttons.push(draw_img_btn);
 
         var draw_text_btn = new cxe.CXButton(this._ctx, 0.31, 0.94, 0.05, 0.05, true, false);
         draw_text_btn.attributes = this._special_func_buttons;
-        draw_text_btn.onClick = onDrawButtonClick;
+        draw_text_btn.onClick = this._onDrawButtonClick;
         draw_text_btn.name = 'text';
         draw_text_btn.text = '📝';
+        this._draw_buttons.push(draw_text_btn);
 
         var duplicate_btn = new cxe.CXButton(this._ctx, 0.37, 0.94, 0.05, 0.05, true, false);
         duplicate_btn.attributes = this._special_func_buttons;
@@ -73,7 +94,7 @@ export class CXTablePlanView extends CXDefaultView {
         delete_btn.attributes = this._special_func_buttons;
         delete_btn.text = '🗑';
 
-        this._elements.push(dragview);
+        this._elements.push(this._dragview);
 
         this._elements.push(undo_btn);
         this._elements.push(redo_btn);
@@ -83,9 +104,8 @@ export class CXTablePlanView extends CXDefaultView {
         this._elements.push(draw_text_btn);
         this._elements.push(duplicate_btn);
         this._elements.push(delete_btn);
-
     }
-    _draw() {
+    protected _draw() {
         super._draw();
         this._elements.forEach(element => {
             element.draw(super._px, super._py, super._pwidth, super._pheight);

@@ -17,12 +17,10 @@ export class CXDragView extends CXDefaultView {
             border_color: "#ff0000",
         };
         console.log('get attributes:', this._draganddrop.attributes);
-
     }
     protected _initialize(): void {
     
     }
-
     protected _draw(): void {
         super._draw();
         this._draganddrop.draw(this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
