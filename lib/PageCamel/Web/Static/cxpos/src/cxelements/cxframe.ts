@@ -94,7 +94,6 @@ export class CXFrame extends CXDefault {
     protected _drawFrame(): void {
         this._ctx.strokeStyle = this._border_color;
         this._ctx.lineWidth = this._border_width_pixel;
-        console.log(this._border_color);
         if (this._radius_pixel > 0) {
             this._drawRadius();
         }

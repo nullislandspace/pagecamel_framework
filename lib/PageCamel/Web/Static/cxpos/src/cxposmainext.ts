@@ -96,8 +96,8 @@ export function cxposmainext() {
     //var table = new cxa.CXTable();
     //table.name = "Tisch 1";
     //table.number = 1;
+    console.log('It compiled');
     let tableplan = new cxv.CXTablePlanView(ctx);
-    console.log(window);
     viewelements.push(tableplan);
     drawCanvas();
 }

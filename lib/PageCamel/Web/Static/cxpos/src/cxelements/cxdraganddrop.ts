@@ -442,10 +442,11 @@ export class CXDragAndDrop extends CXButton {
             //move dragndrop around
             this._move(x, y);
         }
-        if (this.isInside(rotated_x, rotated_y) && this._resize_mode == "none") {
+        if (this.isInside(rotated_x, rotated_y) && this._resize_mode == "none" && this._resizeable && this._show_resize_frame) {
             this._ctx.canvas.style.cursor = 'move';
+            this._has_changed = true;
         }
-        else if (this._resize_mode == "none") {
+        else if (this._resize_mode == "none" && this._resizeable && this._show_resize_frame) {
             this._ctx.canvas.style.cursor = this._default_cursor;
         }
         else if (this._mouse_down) {
@@ -459,6 +460,7 @@ export class CXDragAndDrop extends CXButton {
      * @protected
      */
     protected _checkResizeMode(x: number, y: number) {
+        var prev_resize_mode = this._resize_mode;
         // check if the mouse is over a resize box
         if (this._show_resize_frame) {
             if (x > this._xpixel + this._widthpixel - this._box_size_half && x < this._xpixel + this._widthpixel + this._box_size_half && y > this._ypixel + this._heightpixel - this._box_size_half && y < this._ypixel + this._heightpixel + this._box_size_half) {
@@ -494,6 +496,7 @@ export class CXDragAndDrop extends CXButton {
             if (this._resize_mode != "none") {
                 // set the cursor according to the resize mode
                 this._ctx.canvas.style.cursor = this._resize_mode;
+                this._has_changed = true;
             }
         }
         return this._resize_mode;
@@ -544,6 +547,9 @@ export class CXDragAndDrop extends CXButton {
             }
             else if (event.type == "mousedown" && !this.isInside(rotated_x, rotated_y)) {
                 this._move_dragndrop = false;
+                if (this._resize_mode != 'none') {
+                    this._has_changed = true;
+                }
             }
             else if (event.type == "mouseup") {
                 this._onMouseUp();
@@ -569,8 +575,25 @@ export class CXDragAndDrop extends CXButton {
      */
     set show_resize_frame(show: boolean) {
         this._show_resize_frame = show;
+        this._resize_mode = 'none';
     }
     get show_resize_frame(): boolean {
         return this._show_resize_frame;
+    }
+    set resizeable(resizeable: boolean) {
+        this._resizeable = resizeable;
+        this._resize_mode = 'none';
+    }
+    get resizeable(): boolean {
+        return this._resizeable;
+    }
+    /**
+     * state that shows if the drag and drop is currently being moved
+     */
+    set move_dragndrop(moving: boolean) {
+        this._move_dragndrop = moving;
+    }
+    get move_dragndrop(): boolean {
+        return this._move_dragndrop;
     }
 }

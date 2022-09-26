@@ -27,7 +27,7 @@ export class CXButton extends CXTextBox {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
      */
-    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean, redraw: boolean) {
         super(ctx, x, y, width, height, is_relative, redraw);
 
         this._allow_hover = false; // if true, the button will change colors when the mouse is over it
@@ -181,6 +181,38 @@ export class CXButton extends CXTextBox {
         }
         return this._has_changed;
     }
+
+    /**
+     * Calculates the optimal width to the adjusted height, so that the buttons are squares
+     * 
+     *@return width - in pixel (absolute) or relative (to the parent object)
+     */
+     calcOptimalWidth(): number{
+        let total_width = 0;
+        let button_width = 0;
+        let button_height = this._height;
+        
+        
+        if (this.is_relative){
+            button_width = this._calcRelYToPixel(button_height);
+            total_width = this._calcPixelXToRel(button_width);
+        } 
+        else{
+            button_width = button_height;
+            total_width = button_width;
+        } 
+        
+        
+        
+
+            
+
+                
+        
+        console.debug("cxbutton - calcOptimalWidth:" + total_width.toString());
+        return total_width;
+    } 
+
     /**
      * @param {string} color
      */

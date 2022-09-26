@@ -10,6 +10,16 @@ export class CXNumPad extends CXDefault {
     /** @protected */
     protected _font_size: number;
     /**
+     * Maximum number of columns of the given buttons_text_block
+     */
+    protected _max_number_of_cols: number;
+    /**
+     * Total number of rows of the given buttons_text_block
+     */
+    protected _number_of_rows: number;
+    protected _current_value: string| null ;
+     
+    /**
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
      * @param {number} y - the y position of the element
@@ -21,36 +31,58 @@ export class CXNumPad extends CXDefault {
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean, redraw: boolean) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this._buttons_text_block = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['+/-', '0', ',']];
+        this._max_number_of_cols = 3;
+        this._number_of_rows = 4;
+        this._current_value = null;
 
         this._buttons = [];
         this._gap = 0.02;
         
         this._font_size = 0.5;
+        this._calcButtonHeigth();
         this._createButtons();
         
     }
 
+    //calculate the button heigth relative or in pixel
+    private _calcButtonHeigth() : number{
+        let button_height = 0;
+        if (this.is_relative){ 
+            button_height = (1 - this._gap * (this._number_of_rows-1)) / this._number_of_rows;
+        }
+        else{
+            button_height = (this.height - this._gap * (this._number_of_rows-1)) / this._number_of_rows;
+        } 
+        return button_height;
+    } 
+
+    //calculate the button width relative or in pixel for a given row
+    private _calcButtonWidth(rownumber: number) : number{
+        let button_width = 0;
+        //calculate the button_width
+        if (this.is_relative){
+            button_width = (1 - this._gap * (this._buttons_text_block[rownumber].length-1))/ this._buttons_text_block[rownumber].length;
+        } 
+        else{ 
+            button_width = Math.floor((this.width - this._gap * (this._buttons_text_block[rownumber].length-1))/ this._buttons_text_block[rownumber].length);
+        } 
+        return button_width;
+    } 
+
+    //create the buttons and add it to the _buttons array
     protected _createButtons(): void{
         this._buttons =[]; 
         var button_width = 0;
-        var button_height = 0;
-        if (this.is_relative){ 
-            button_height = (1 - this._gap * (this._buttons_text_block.length-1)) / this._buttons_text_block.length;
-        }
-        else{
-            button_height = (this.height - this._gap * (this._buttons_text_block.length-1)) / this._buttons_text_block.length;
-        } 
+        var button_height = this._calcButtonHeigth();
+    
 
         let xgap = this._gap;
         let ygap = this._gap;
-        for (var rw = 0; rw < this._buttons_text_block.length; rw++) {
+        //for all columns
+        for (var rw = 0; rw < this._number_of_rows; rw++) {
             var row: CXButton[] = [];
-            if (this.is_relative){
-                button_width = (1 - this._gap * (this._buttons_text_block[rw].length-1))/ this._buttons_text_block[rw].length;
-            } 
-            else{ 
-                button_width = (this.width - this._gap * (this._buttons_text_block[rw].length-1))/ this._buttons_text_block[rw].length;
-            } 
+            //calculate the button_width
+            button_width = this._calcButtonWidth(rw);
             for (var col = 0; col < this._buttons_text_block[rw].length; col++) {
                 xgap = this._gap;
                 ygap = this._gap;
@@ -63,8 +95,17 @@ export class CXNumPad extends CXDefault {
                     button.gradient = ['#f9a004', '#ff0202'];
                     button.text_color = '#000000';
                     button.border_color = '#ff0000';
-                    button.font_size = this._font_size;
-                    button.border_radius = 0.1;
+                    
+                    if (this.is_relative){
+                        button.border_radius = 0.1;
+                        button.font_size = this._font_size;
+                    } 
+                    else{
+                        button.border_radius = Math.ceil(0.1*button_height);
+                        button.font_size = Math.ceil(this._font_size*button_height);
+                    } 
+                    //set onclick event callback
+                    button.onClick = (clickedbutton:CXButton) => this._onClickButtonCallback(clickedbutton);
                     row.push(button);
                 } 
             }
@@ -94,14 +135,52 @@ export class CXNumPad extends CXDefault {
      * @public
      */
     protected _handleEvent(event : Event) : boolean {
+        let clicked = false;
+        let handled = false;
         for (var i = 0; i < this._buttons.length; i++) {
             for (var j = 0; j < this._buttons[i].length; j++) {
                 if (this._buttons[i][j].checkEvent(event)) {
                     this._buttons[i][j].handleEvent(event);
+                    handled = true;
                 }
             }
         }
-        return this._has_changed;
+ 
+        //run callback if the value has changed
+        if (this._has_changed) {
+            //Set _has_changed = false after calling the callback-function
+            this.onClick(this,this.currentValue);
+            this._has_changed = false;
+        } 
+        return handled;
+    }
+
+    private _onClickButtonCallback(obj:CXButton):void {
+        this._current_value = obj.text;
+        this._has_changed = true;
+    } 
+
+    private _calcMaxColRowLength() : void{
+        //Get maximum row length
+        let max_row_length = 0;
+        let max_col_length = 0;
+        for (var row = 0; row < this._buttons_text_block.length; row++) {
+            if (this._buttons_text_block[row].length > max_row_length){
+                max_row_length = this._buttons_text_block[row].length;
+            } 
+        }
+        this._max_number_of_cols = max_row_length;
+        this._number_of_rows = this._buttons_text_block.length;
+    } 
+
+    /**
+     * Callback function to handle click events 
+     * 
+     * @param val - the value of the clicked numpad item
+     * @param object - the object of the numpad
+     */
+    onClick: (object: this, val: string|null) => void = (): void => {
+        console.log("Override this callback function");
     }
 
     /**
@@ -113,34 +192,22 @@ export class CXNumPad extends CXDefault {
         let total_width = 0;
         
             let col_length = this._buttons_text_block.length;
-            let max_row_length = 0;
             let button_width = 0;
-            let button_height = 0;
-            let x_gap = 0;
+            let button_height = this._calcButtonHeigth();
             let width = 0;
-            //Get maximum row length
-            for (var row = 0; row < this._buttons_text_block.length; row++) {
-                if (this._buttons_text_block[row].length > max_row_length){
-                    max_row_length = this._buttons_text_block[row].length;
-                } 
-            }
+            
             if (this.is_relative){
-                //Calculate button_height
-                button_height = (1 - this._gap * (this._buttons_text_block.length-1)) / this._buttons_text_block.length; 
                 button_width = this._calcRelYToPixel(button_height*this.height);
-                x_gap = this._gap;
                 width = this._calcPixelXToRel(button_width/this.width);
             } 
             else{
-                button_height = (this.height - this._gap * (this._buttons_text_block.length-1)) / this._buttons_text_block.length; 
                 button_width = button_height;
-                x_gap = this._gap;
                 width = button_width;
             } 
             
             
             //Calculate total width in relative or pixel
-            total_width = max_row_length*width+(max_row_length-1)*this._gap;
+            total_width = this._max_number_of_cols*width+(this._max_number_of_cols-1)*this._gap;
 
             //Calculate relative to the current width if is_relative=true
             if (this.is_relative){ total_width = total_width*this.width};
@@ -149,7 +216,7 @@ export class CXNumPad extends CXDefault {
 
                 
         
-        console.log("cxnumpad - calcOptimalWidth:" + total_width.toString());
+        console.debug("cxnumpad - calcOptimalWidth:" + total_width.toString());
         return total_width;
     } 
 
@@ -165,6 +232,8 @@ export class CXNumPad extends CXDefault {
             }
         }
     }
+
+
     get font_size() : number {
         return this._font_size;
     }
@@ -187,10 +256,24 @@ export class CXNumPad extends CXDefault {
 
     set buttons_text_block(val: (string|null)[][])  {
         this._buttons_text_block=val;
+        this._calcMaxColRowLength();
         this._createButtons();
     } 
 
-    /*draw(px: number = 0, py: number = 0, pwidth: number = this._ctx.canvas.width, pheight: number = this._ctx.canvas.height): void {
-        super.draw(px,py,pwidth,pheight);
-    } */
+    set width(val: number){
+        this._width = val;
+        this._buttons =[];
+        this._createButtons(); 
+    } 
+
+    get width(): number {
+        return this._width;
+    } 
+    
+    /**
+     * returns the value of the last selected item
+     */
+    get currentValue(): string|null {
+        return this._current_value;
+    }   
 }
