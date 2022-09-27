@@ -144,7 +144,7 @@ export class CXSplitView extends CXDefaultView {
         num_field.buttons_text_block = [['1','2','3','4','5','6','7','8','9','0']];
         num_field.gap = 0.015;
         num_field.font_size = bar_btn.font_size;
-        num_field.buttonAttributes ={...this._numpad_buttons};
+        //num_field.buttonAttributes ={...this._numpad_buttons};
         
          
         //First set all values then calculate the optimal width for square buttons

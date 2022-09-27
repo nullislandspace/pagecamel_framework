@@ -1,5 +1,5 @@
 import { CXButton } from "./cxbutton.js";
-export class CXDragAndDrop extends CXButton {
+export class CXDragAndDropRect extends CXButton {
     /** @protected */
     protected _dragable: boolean;
     /** @protected */
@@ -173,6 +173,9 @@ export class CXDragAndDrop extends CXButton {
             this._ctx.closePath(); */
         }
     }
+    /**
+     * Draws the dragndrop on the canvas
+     */
     protected _drawDragndrop(): void {
         super._draw();
     }

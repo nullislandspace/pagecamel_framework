@@ -1,8 +1,9 @@
-import { CXDragAndDrop } from './cxdraganddrop.js';
-export class CXDragAndDropEllipse extends CXDragAndDrop {
+import { CXDragAndDropRect } from './cxdraganddroprect.js';
+export class CXDragAndDropEllipse extends CXDragAndDropRect {
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
     }
+    
     protected _drawDragndrop(): void {
         var center_x: number = this._xpixel + this._widthpixel / 2;
         var center_y: number = this._ypixel + this._heightpixel / 2;

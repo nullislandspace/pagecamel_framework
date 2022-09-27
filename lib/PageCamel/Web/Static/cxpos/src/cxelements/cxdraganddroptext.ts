@@ -1,5 +1,5 @@
-import { CXDragAndDrop } from './cxdraganddrop.js';
-export class CXDragAndDropText extends CXDragAndDrop {
+import { CXDragAndDropRect } from './cxdraganddroprect.js';
+export class CXDragAndDropText extends CXDragAndDropRect {
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
     }
