@@ -182,36 +182,7 @@ export class CXButton extends CXTextBox {
         return this._has_changed;
     }
 
-    /**
-     * Calculates the optimal width to the adjusted height, so that the buttons are squares
-     * 
-     *@return width - in pixel (absolute) or relative (to the parent object)
-     */
-     calcOptimalWidth(): number{
-        let total_width = 0;
-        let button_width = 0;
-        let button_height = this._height;
-        
-        
-        if (this.is_relative){
-            button_width = this._calcRelYToPixel(button_height);
-            total_width = this._calcPixelXToRel(button_width);
-        } 
-        else{
-            button_width = button_height;
-            total_width = button_width;
-        } 
-        
-        
-        
-
-            
-
-                
-        
-        console.debug("cxbutton - calcOptimalWidth:" + total_width.toString());
-        return total_width;
-    } 
+    
 
     /**
      * @param {string} color

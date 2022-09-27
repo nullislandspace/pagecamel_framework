@@ -34,6 +34,7 @@ export class CXDragAndDrop extends CXButton {
     protected _mouse_down_corner_distance_x: number;
     protected _mouse_down_corner_distance_y: number;
     protected _save_values: { xpos: number; ypos: number; width: number; height: number; angle: number; center_x: number; center_y: number; };
+    protected _minWidthHeight: number;
     /**
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
      * @param {number} x - the x position of the element
@@ -66,6 +67,7 @@ export class CXDragAndDrop extends CXButton {
         this._center_y = 0; //center of the dragndrop
         this._rel_center_x = 0; //relative center of the dragndrop
         this._rel_center_y = 0; //relative center of the dragndrop
+        this._minWidthHeight = this._box_size + 5;
     }
     /**
      * @default this._xpos
@@ -171,18 +173,21 @@ export class CXDragAndDrop extends CXButton {
             this._ctx.closePath(); */
         }
     }
+    protected _drawDragndrop(): void {
+        super._draw();
+    }
     /**
      * @description draws the dragndrop
      * @protected
      */
-    protected _draw() {
+    protected _draw(): void {
         this._center_x = this._rel_center_x * this._pwidth + this._px;
         this._center_y = this._rel_center_y * this._pheight + this._py;
         this._ctx.save(); //saves the state of canvas
         this._ctx.translate(this._center_x, this._center_y); //translates the canvas to the center of the dragndrop
         this._ctx.rotate(this._angle); //rotates the canvas
         this._ctx.translate(-this._center_x, -this._center_y); //restores the canvas to the original position
-        super._draw();
+        this._drawDragndrop();
         this._drawResizeFrame();
         this._ctx.restore(); //restore the state of canvas
     }
@@ -304,37 +309,37 @@ export class CXDragAndDrop extends CXButton {
         if (this._resize_mode == 's-resize' || this._resize_mode == 'se-resize' || this._resize_mode == 'sw-resize') {
             //handles down resize
             new_height = rotated_y - this._ypos * this._pheight - this._py;
-            if (new_height <= this._box_size + 5) {
+            if (new_height <= this._minWidthHeight) {
                 //limit the min height to the box size + 5
-                new_height = this._box_size + 5;
+                new_height = this._minWidthHeight;
             }
         }
         if (this._resize_mode == 'e-resize' || this._resize_mode == 'ne-resize' || this._resize_mode == 'se-resize') {
             //handles right resize
             new_width = rotated_x - this._xpos * this._pwidth - this._px;
-            if (new_width <= this._box_size + 5) {
+            if (new_width <= this._minWidthHeight) {
                 //limit the min width to the box size + 5
-                new_width = this._box_size + 5;
+                new_width = this._minWidthHeight;
             }
         }
         if (this._resize_mode == 'n-resize' || this._resize_mode == 'ne-resize' || this._resize_mode == 'nw-resize') {
             //handles up resize
             new_y = rotated_y - this._py;
             new_height = this._height * this._pheight + (this._ypos * this._pheight) - rotated_y + this._py;
-            if (new_height <= this._box_size + 5) {
+            if (new_height <= this._minWidthHeight) {
                 //limit the min height to the box size + 5
-                new_y = new_y - (this._box_size + 5 - new_height);
-                new_height = this._box_size + 5;
+                new_y = new_y - (this._minWidthHeight - new_height);
+                new_height = this._minWidthHeight;
             }
         }
         if (this._resize_mode == 'w-resize' || this._resize_mode == 'nw-resize' || this._resize_mode == 'sw-resize') {
             // handles left resize
             new_x = rotated_x - this._px;
             new_width = this._width * this._pwidth + (this._xpos * this._pwidth) - rotated_x + this._px;
-            if (new_width <= this._box_size + 5) {
+            if (new_width <= this._minWidthHeight) {
                 //limit the min width to the box size + 5
-                new_x = new_x - (this._box_size + 5 - new_width);
-                new_width = this._box_size + 5;
+                new_x = new_x - (this._minWidthHeight - new_width);
+                new_width = this._minWidthHeight;
             }
         }
 
@@ -595,5 +600,8 @@ export class CXDragAndDrop extends CXButton {
     }
     get move_dragndrop(): boolean {
         return this._move_dragndrop;
+    }
+    get minWidthHeight(): number {
+        return this._minWidthHeight;
     }
 }

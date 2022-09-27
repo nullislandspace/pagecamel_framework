@@ -10,3 +10,5 @@ export { CXScrollBar } from './cxscrollbar.js';
 export { CXScrollList } from './cxscrolllist.js';
 export { CXTextBox } from './cxtextbox.js';
 export { CXTextInput } from './cxtextinput.js';
+export { CXDragAndDropEllipse } from './cxdraganddropellipse.js';
+export { CXDragAndDropText } from './cxdraganddroptext.js';

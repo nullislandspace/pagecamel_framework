@@ -1,39 +1,72 @@
 import { CXDefaultView } from './cxdefaultview.js';
 import { CXDragAndDrop } from '../cxelements/cxdraganddrop.js';
+import { CXDragAndDropEllipse } from '../cxelements/cxdraganddropellipse.js';
+import { CXDragAndDropText } from '../cxelements/cxdraganddroptext.js';
 
 export class CXDragView extends CXDefaultView {
     protected _draw_mode: string = 'none';
     private _draganddrops: Array<CXDragAndDrop> = [];
-    protected _draw_rect: CXDragAndDrop | null;
+    protected _draw_draganddrop: any;
     protected _drawMouseDownX: number | null = null;
     protected _drawMouseDownY: number | null = null;
 
+    protected _selectedDragAndDrop: CXDragAndDrop | null = null;
     protected _count: number = 0;
+    protected _drawModes = {
+        'rect': CXDragAndDrop,
+        'circle': CXDragAndDropEllipse,
+        'text': CXDragAndDropText,
+    };
+
     constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this.border_width = 0.001;
         this.background_color = '#fff';
-        this._draw_rect = null;
+        this._draw_draganddrop = null;
     }
     protected _initialize(): void {
-
+        
     }
     protected _draw(): void {
         super._draw();
         this._draganddrops.forEach(draganddrop => {
             draganddrop.draw(this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
         });
-        if (this._draw_rect) {
+        if (this._draw_draganddrop) {
             console.log("draw rect");
-            this._draw_rect.draw(this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
+            this._draw_draganddrop.draw(this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
         }
     }
     protected _finishCreation(): void {
-        if (this._draw_rect && this._drawMouseDownX && this._drawMouseDownY) {
-            this._draganddrops.push(this._draw_rect);
-            this._draw_rect = null;
+        if (this._draw_draganddrop && this._drawMouseDownX && this._drawMouseDownY) {
+            var width: number = this._calcRelXToPixel(this._draw_draganddrop.width, this._widthpixel);
+            var height: number = this._calcRelYToPixel(this._draw_draganddrop.height, this._heightpixel);
+            var min_width_height = this._draw_draganddrop.minWidthHeight;
+
+            //set the minimum width and height
+            if (width < min_width_height) {
+                width = min_width_height;
+            }
+            if (height < min_width_height) {
+                height = min_width_height;
+            }
+            this._draw_draganddrop.width = this._calcPixelXToRel(width, this._widthpixel);
+            this._draw_draganddrop.height = this._calcPixelYToRel(height, this._heightpixel);
+
+            //prevent element from being outside of the view
+            if (this._draw_draganddrop.xpos + this._draw_draganddrop.width > 1.0) {
+                this._draw_draganddrop.xpos = 1.0 - this._draw_draganddrop.width;
+            }
+            if (this._draw_draganddrop.ypos + this._draw_draganddrop.height > 1.0) {
+                this._draw_draganddrop.ypos = 1.0 - this._draw_draganddrop.height;
+            }
+
+            //add the element to the view
+            this._draganddrops.push(this._draw_draganddrop);
+            this._draw_draganddrop = null;
             this._drawMouseDownX = null;
             this._drawMouseDownY = null;
+
         }
     }
     protected _handleEvent(event: Event): boolean {
@@ -42,36 +75,36 @@ export class CXDragView extends CXDefaultView {
         var yrel = this._calcPixelYToRel(y, this._heightpixel);
         if (xrel > 0 && xrel < 1 && yrel > 0 && yrel < 1) {
             if (event.type === 'mousedown') {
-                if (this._draw_mode === 'rect') {
+                if (this._draw_mode !== 'none' && this._draw_mode !== 'select') {
                     this._drawMouseDownX = xrel;
                     this._drawMouseDownY = yrel;
-                    this._draw_rect = new CXDragAndDrop(this._ctx, xrel, yrel, 0.001, 0.001, true, false);
-                    this._draw_rect.name = 'rect' + this._count;
-                    this._draw_rect.text = String(this._draw_rect.name);
+                    this._draw_draganddrop = new (<any>this._drawModes)[this._draw_mode](this._ctx, xrel, yrel, 0.001, 0.001, true, false);
+                    this._draw_draganddrop.name = 'rect' + this._count;
+                    this._draw_draganddrop.text = String(this._draw_draganddrop.name);
                     this._count++;
-                    this._draw_rect.border_relative = false;
-                    this._draw_rect.border_width = 15;
-                    this._draw_rect.resizeable = false;
+                    this._draw_draganddrop.border_relative = false;
+                    this._draw_draganddrop.border_width = 15;
+                    this._draw_draganddrop.resizeable = false;
                 }
             }
             else if (event.type === 'mousemove') {
-                if (this._draw_rect && this._drawMouseDownX && this._drawMouseDownY) {
+                if (this._draw_draganddrop && this._drawMouseDownX && this._drawMouseDownY) {
                     // handles the drawing of the new dragable element
                     if (xrel > this._drawMouseDownX) {
-                        this._draw_rect.xpos = this._drawMouseDownX;
-                        this._draw_rect.width = xrel - this._drawMouseDownX;
+                        this._draw_draganddrop.xpos = this._drawMouseDownX;
+                        this._draw_draganddrop.width = xrel - this._drawMouseDownX;
                     }
                     else {
-                        this._draw_rect.xpos = xrel;
-                        this._draw_rect.width = this._drawMouseDownX - xrel;
+                        this._draw_draganddrop.xpos = xrel;
+                        this._draw_draganddrop.width = this._drawMouseDownX - xrel;
                     }
                     if (yrel > this._drawMouseDownY) {
-                        this._draw_rect.ypos = this._drawMouseDownY;
-                        this._draw_rect.height = yrel - this._drawMouseDownY;
+                        this._draw_draganddrop.ypos = this._drawMouseDownY;
+                        this._draw_draganddrop.height = yrel - this._drawMouseDownY;
                     }
                     else {
-                        this._draw_rect.ypos = yrel;
-                        this._draw_rect.height = this._drawMouseDownY - yrel;
+                        this._draw_draganddrop.ypos = yrel;
+                        this._draw_draganddrop.height = this._drawMouseDownY - yrel;
                     }
                 }
             }
@@ -88,27 +121,38 @@ export class CXDragView extends CXDefaultView {
                 var draganddrop = this._draganddrops[i];
                 if (draganddrop.checkEvent(event)) {
                     if (handled === false) {
+                        //first element that is handled will be on top and will be the one that is selected
                         draganddrop.handleEvent(event);
                     }
-                    if (draganddrop.has_changed) {
+                    if (draganddrop.has_changed && draganddrop.show_resize_frame) {
+                        // the event is handled if the resize frame is shown and the element has changed
                         console.log('draganddrop has changed' + draganddrop.name);
                         handled = true;
                         handled_index = i;
                         this._has_changed = true;
-
                     }
                 }
             }
             if (handled) {
-                //remove draganddrop that was handled and add it to the end of the list
+                //remove draganddrop that was handled and add it to the end of the list so it is drawn on top
                 var handled_draganddrop = this._draganddrops[handled_index];
                 this._draganddrops.splice(handled_index, 1);
                 this._draganddrops.push(handled_draganddrop);
+                this._selectedDragAndDrop = handled_draganddrop;
                 for (var i = 0; i < this._draganddrops.length - 1; i++) {
                     this._draganddrops[i].show_resize_frame = false;
                     this._draganddrops[i].move_dragndrop = false;
                 }
             }
+            else if (event.type === 'mousedown') {
+                //if no draganddrop click was handled, then deselect all draganddrops
+                this._selectedDragAndDrop = null;
+                for (var i = 0; i < this._draganddrops.length; i++) {
+                    this._draganddrops[i].show_resize_frame = false;
+                    this._draganddrops[i].move_dragndrop = false;
+                }
+            }
+
         }
 
         this._tryRedraw();

@@ -463,4 +463,88 @@ export class CXDefault {
         }
         return attr;
     }
+
+    /**
+     * Calculates the optimal width to the adjusted height, so that the buttons are squares
+     * 
+     *@return width - in pixel (absolute) or relative (to the parent object)
+     */
+     calcOptimalWidth(): number{
+        let total_width = 0;
+        let f_width = 0;
+        let f_height = this.height;
+        
+        
+        if (this.is_relative){
+            f_width = this._calcRelYToPixel(f_height);
+            total_width = this._calcPixelXToRel(f_width);
+        } 
+        else{
+            total_width = f_height;
+        } 
+        
+        
+        
+
+            
+
+                
+        
+        console.debug("cxframe - calcOptimalWidth:" + total_width.toString());
+        return total_width;
+    } 
+
+    /**
+     * Calculates the optimal width to the adjusted height, so that the buttons are squares
+     * 
+     *@return width - in pixel (absolute) or relative (to the parent object)
+     */
+     calcOptimalHeight(): number{
+        let total_heigth = 0;
+        let f_width = this.width;
+        let f_height = 0;
+        
+        
+        if (this.is_relative){
+            f_height = this._calcRelXToPixel(f_width);
+            total_heigth = this._calcPixelYToRel(f_height);
+        } 
+        else{
+            total_heigth = f_width;
+        } 
+        
+        
+        
+
+            
+
+                
+        
+        console.debug("cxframe - calcOptimalHeigth:" + total_heigth.toString());
+        return total_heigth;
+    } 
+
+    /**
+     * Set square size.
+     * FIFO: If width not NULL -> calculate the heigth
+     *       If width is NULL and heigth not NULL -> calculate the width
+     * @remarks 
+     * Use setSquareSize() to calculate the width to the already adjusted height
+     * Use setSquareSize(this.width) to calculate the heigth to the already adjusted width
+     * 
+     * @param width - Width in pixel/relativ or NULL
+     * @param height - Heigth in pixel/relativ or NULL   
+     */
+    setSquareSize(width: number|null = null, heigth: number|null = this.height): void{
+        if (width != null){
+            //calculate heigth to the width
+            this.width = width;
+            this.height = this.calcOptimalHeight();
+        } 
+        else if (heigth != null){
+            //calculate width to the heigth
+            this.height = heigth;
+            this.width = this.calcOptimalWidth();
+        } 
+    }
 }
