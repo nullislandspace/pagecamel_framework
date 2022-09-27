@@ -1,19 +1,19 @@
 import { CXDefaultView } from './cxdefaultview.js';
-import { CXDragAndDrop } from '../cxelements/cxdraganddrop.js';
+import { CXDragAndDropRect } from '../cxelements/cxdraganddroprect.js';
 import { CXDragAndDropEllipse } from '../cxelements/cxdraganddropellipse.js';
 import { CXDragAndDropText } from '../cxelements/cxdraganddroptext.js';
 
 export class CXDragView extends CXDefaultView {
     protected _draw_mode: string = 'none';
-    private _draganddrops: Array<CXDragAndDrop> = [];
+    private _draganddrops: Array<CXDragAndDropRect> = [];
     protected _draw_draganddrop: any;
     protected _drawMouseDownX: number | null = null;
     protected _drawMouseDownY: number | null = null;
 
-    protected _selectedDragAndDrop: CXDragAndDrop | null = null;
+    protected _selectedDragAndDrop: CXDragAndDropRect | null = null;
     protected _count: number = 0;
     protected _drawModes = {
-        'rect': CXDragAndDrop,
+        'rect': CXDragAndDropRect,
         'circle': CXDragAndDropEllipse,
         'text': CXDragAndDropText,
     };

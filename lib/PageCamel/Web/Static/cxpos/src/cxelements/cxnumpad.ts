@@ -18,6 +18,8 @@ export class CXNumPad extends CXDefault {
      */
     protected _number_of_rows: number;
     protected _current_value: string| null ;
+
+    protected _button_attributes: object| null = null ; 
      
     /**
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
@@ -96,6 +98,7 @@ export class CXNumPad extends CXDefault {
                     button.text_color = '#000000';
                     button.border_color = '#ff0000';
                     
+                    
                     if (this.is_relative){
                         button.border_radius = 0.1;
                         button.font_size = this._font_size;
@@ -106,6 +109,10 @@ export class CXNumPad extends CXDefault {
                     } 
                     //set onclick event callback
                     button.onClick = (clickedbutton:CXButton) => this._onClickButtonCallback(clickedbutton);
+                    //overwrite default settings with button attributes settings
+                    if (this._button_attributes){
+                        button.attributes = this._button_attributes;
+                    } 
                     row.push(button);
                 } 
             }
@@ -220,6 +227,78 @@ export class CXNumPad extends CXDefault {
         return total_width;
     } 
 
+    /**
+     * Calculates the optimal width to the adjusted height, so that the buttons are squares
+     * 
+     *@return width - in pixel (absolute) or relative (to the parent object)
+     */
+     calcOptimalHeight(): number{
+        let total_heigth = 0;
+        this._calcMaxColRowLength();
+        
+        let col_length = this._buttons_text_block.length;
+        let button_width = this._buttons[0][0].width;
+        let button_height = 0;
+        let height = 0;
+        
+
+        let calc_row = 0;
+        //check all rows and find the minimum button-width
+        for (var row = 0; row < this._number_of_rows; row++) {
+            //is row-length equal maximum row-length
+            if (this._max_number_of_cols == this._buttons[row].length ){
+                //search for the minimum button-width
+                for (var col = 0; col < this._buttons[row].length; col++  ){
+                    if (button_width > this._buttons[row][col].width){
+                        button_width = this._buttons[row][col].width;
+                    } 
+                } 
+            } 
+        }
+        
+        if (this.is_relative){
+            //set relative button_height to button_width in pixel
+            button_height = this._calcRelXToPixel(button_width*this.width);
+            //calculate back to relative height
+            height = this._calcPixelYToRel(button_height/this.height);
+        } 
+        else{
+            height = button_width;
+            
+        } 
+        
+        
+        //Calculate total heigth in relative or pixel
+        total_heigth = this._number_of_rows*height+(this._number_of_rows-1)*this._gap;
+
+        //Calculate relative to the current heigth if is_relative=true
+        if (this.is_relative){ total_heigth = total_heigth*this.height};
+
+            
+
+                
+        
+        console.debug("cxnumpad - calcOptimalHeigth:" + total_heigth.toString());
+        return total_heigth;
+     } 
+
+    /**
+     * Set square size.
+     * FIFO: If width not NULL -> calculate the heigth
+     *       If width is NULL and heigth not NULL -> calculate the width
+     * @remarks 
+     * Use setSquareSize() to calculate the width to the already adjusted height
+     * Use setSquareSize(this.width) to calculate the heigth to the already adjusted width
+     * 
+     * @param width - Width in pixel/relativ or NULL
+     * @param height - Heigth in pixel/relativ or NULL   
+     */
+     setSquareSize(width: number|null = null, heigth: number|null = this.height): void{
+            super.setSquareSize(width,heigth);
+            this._buttons =[];
+            this._createButtons();
+     } 
+
     /** 
      * @param {number} value - Font size in either pixels or relative to button size
      * @description Sets the font size of the text in the button
@@ -269,11 +348,28 @@ export class CXNumPad extends CXDefault {
     get width(): number {
         return this._width;
     } 
+
+    set height(val: number){
+        this._height = val;
+        this._buttons =[];
+        this._createButtons();
+    } 
+
+    get height(): number{
+        return this._height;
+    } 
     
     /**
      * returns the value of the last selected item
      */
     get currentValue(): string|null {
         return this._current_value;
-    }   
+    }  
+    
+    /**
+     * set button attributes
+     */
+    set buttonAttributes(attributes: object| null  ) {
+        this._button_attributes = attributes;
+    } 
 }

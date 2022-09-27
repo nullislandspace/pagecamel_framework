@@ -97,6 +97,9 @@ export function cxposmainext() {
     //table.name = "Tisch 1";
     //table.number = 1;
     let tableplan = new cxv.CXTablePlanView(ctx);
+    tableplan.onAddImageClick = function () {
+        console.log("Add Image");
+    }
     viewelements.push(tableplan);
     drawCanvas();
 }

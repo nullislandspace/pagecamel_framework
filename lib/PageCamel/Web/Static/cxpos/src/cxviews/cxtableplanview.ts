@@ -36,45 +36,54 @@ export class CXTablePlanView extends CXDefaultView {
         this._draw_buttons = []
         this._border_width = 0.0;
 
+        var gap: number = 0.01;
+        var button_height: number = 0.05;
         this._dragview = new CXDragView(this._ctx, 0.0, 0.0, 0.8, 0.8, true, false);
-        var undo_btn = new cxe.CXButton(this._ctx, 0.01, 0.94, 0.05, 0.05, true, false);
+        var undo_btn = new cxe.CXButton(this._ctx, gap, 1 - button_height - gap, 0.05, button_height, true, false);
         undo_btn.attributes = this._special_func_buttons;
+        undo_btn.setSquareSize(null, undo_btn.height);
         undo_btn.text = '⮪';
 
-        var redo_btn = new cxe.CXButton(this._ctx, 0.07, 0.94, 0.05, 0.05, true, false);
+        var redo_btn = new cxe.CXButton(this._ctx, undo_btn.xpos + undo_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         redo_btn.attributes = this._special_func_buttons;
+        redo_btn.setSquareSize(null, redo_btn.height);
         redo_btn.text = '⮫';
 
-        var select_btn = new cxe.CXButton(this._ctx, 0.13, 0.94, 0.05, 0.05, true, false);
+        var select_btn = new cxe.CXButton(this._ctx, redo_btn.xpos + redo_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         select_btn.attributes = this._special_func_buttons;
+        select_btn.setSquareSize(null, select_btn.height);
         select_btn.onClick = this._onDrawButtonClick;
         select_btn.text = '🖰'
         select_btn.name = 'select';
         this._draw_buttons.push(select_btn);
 
-        var draw_rect_btn = new cxe.CXButton(this._ctx, 0.19, 0.94, 0.05, 0.05, true, false);
+        var draw_rect_btn = new cxe.CXButton(this._ctx, select_btn.xpos + select_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         draw_rect_btn.attributes = this._special_func_buttons;
+        draw_rect_btn.setSquareSize(null, draw_rect_btn.height);
         draw_rect_btn.onClick = this._onDrawButtonClick;
         draw_rect_btn.name = 'rect';
         draw_rect_btn.text = '⬛';
         this._draw_buttons.push(draw_rect_btn);
 
-        var draw_circle_btn = new cxe.CXButton(this._ctx, 0.25, 0.94, 0.05, 0.05, true, false);
+        var draw_circle_btn = new cxe.CXButton(this._ctx, draw_rect_btn.xpos + draw_rect_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         draw_circle_btn.attributes = this._special_func_buttons;
+        draw_circle_btn.setSquareSize(null, draw_circle_btn.height);
         draw_circle_btn.onClick = this._onDrawButtonClick;
         draw_circle_btn.name = 'circle';
         draw_circle_btn.text = '⬤';
         this._draw_buttons.push(draw_circle_btn);
 
-        var draw_img_btn = new cxe.CXButton(this._ctx, 0.31, 0.94, 0.05, 0.05, true, false);
+        var draw_img_btn = new cxe.CXButton(this._ctx, draw_circle_btn.xpos + draw_circle_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         draw_img_btn.attributes = this._special_func_buttons;
-        draw_img_btn.onClick = this._onDrawButtonClick;
+        draw_img_btn.setSquareSize(null, draw_img_btn.height);
+        draw_img_btn.onClick = (obj: cxe.CXButton) => this._onAddImageClick(obj);
         draw_img_btn.name = 'img';
         draw_img_btn.text = '🖼';
         this._draw_buttons.push(draw_img_btn);
 
-        var draw_text_btn = new cxe.CXButton(this._ctx, 0.37, 0.94, 0.05, 0.05, true, false);
+        var draw_text_btn = new cxe.CXButton(this._ctx, draw_img_btn.xpos + draw_img_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         draw_text_btn.attributes = this._special_func_buttons;
+        draw_text_btn.setSquareSize(null, draw_text_btn.height);
         draw_text_btn.onClick = this._onDrawButtonClick;
         draw_text_btn.name = 'text';
         draw_text_btn.text = '📝';
@@ -82,12 +91,14 @@ export class CXTablePlanView extends CXDefaultView {
 
 
 
-        var duplicate_btn = new cxe.CXButton(this._ctx, 0.43, 0.94, 0.05, 0.05, true, false);
+        var duplicate_btn = new cxe.CXButton(this._ctx, draw_text_btn.xpos + draw_text_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         duplicate_btn.attributes = this._special_func_buttons;
+        duplicate_btn.setSquareSize(null, duplicate_btn.height);
         duplicate_btn.text = '📋';
 
-        var delete_btn = new cxe.CXButton(this._ctx, 0.49, 0.94, 0.05, 0.05, true, false);
+        var delete_btn = new cxe.CXButton(this._ctx, duplicate_btn.xpos + duplicate_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         delete_btn.attributes = this._special_func_buttons;
+        delete_btn.setSquareSize(null, delete_btn.height);
         delete_btn.text = '🗑';
 
         this._elements.push(this._dragview);
@@ -114,4 +125,25 @@ export class CXTablePlanView extends CXDefaultView {
         obj.border_width = 0.1;
         this._tryRedraw();
     }
+    private _onAddImageClick(obj: cxe.CXButton): void {
+        this._onDrawButtonClick(obj);
+        this.onAddImageClick(obj);
+    }
+    /**
+     * Gets called when the user wants do add an draganddrop image
+     */
+    public onAddImageClick(obj: cxe.CXButton): void {
+        //override this
+    }
+    
+    /**
+     * Callback when the image is loaded
+     * @param img - file reader result from the image
+     */
+    public onImageSelected(img: string): void {
+        //override this
+    }
+
+    
+
 }
