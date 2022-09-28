@@ -94,11 +94,13 @@ export class CXTablePlanView extends CXDefaultView {
         var duplicate_btn = new cxe.CXButton(this._ctx, draw_text_btn.xpos + draw_text_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         duplicate_btn.attributes = this._special_func_buttons;
         duplicate_btn.setSquareSize(null, duplicate_btn.height);
-        duplicate_btn.text = '📋';
+        duplicate_btn.onClick = (obj: cxe.CXButton) => this._onDuplicateClick(obj);
+        duplicate_btn.text = '⎘';
 
         var delete_btn = new cxe.CXButton(this._ctx, duplicate_btn.xpos + duplicate_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         delete_btn.attributes = this._special_func_buttons;
         delete_btn.setSquareSize(null, delete_btn.height);
+        delete_btn.onClick = () => this._dragview.deleteSelectedDragAndDrop();
         delete_btn.text = '🗑';
 
         this._elements.push(this._dragview);
@@ -113,6 +115,10 @@ export class CXTablePlanView extends CXDefaultView {
         this._elements.push(duplicate_btn);
         this._elements.push(delete_btn);
     }
+    protected _onDuplicateClick(obj: cxe.CXButton): void {
+        this._dragview.duplicateSelectedDragAndDrop();
+    }
+
     protected _onDrawButtonClick(obj: cxe.CXButton): void {
         this._dragview.draw_mode = obj.name;
         this._draw_buttons.forEach((button: { name: string; border_width: number; }) => {
@@ -125,6 +131,9 @@ export class CXTablePlanView extends CXDefaultView {
         obj.border_width = 0.1;
         this._tryRedraw();
     }
+    /**
+     * When Image button is clicked, open file dialog
+     */
     private _onAddImageClick(obj: cxe.CXButton): void {
         this._onDrawButtonClick(obj);
         this.onAddImageClick(obj);
@@ -135,15 +144,13 @@ export class CXTablePlanView extends CXDefaultView {
     public onAddImageClick(obj: cxe.CXButton): void {
         //override this
     }
-    
+
     /**
      * Callback when the image is loaded
      * @param img - file reader result from the image
      */
-    public onImageSelected(img: string): void {
-        //override this
+    public onImageSelected = (img: string): void => {
+        console.log('dragview onImageSelected', this._dragview);
+        this._dragview.draganddropImage = img;
     }
-
-    
-
 }

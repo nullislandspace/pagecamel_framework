@@ -1,4 +1,5 @@
 import * as cxv from './cxviews/cxviews.js';
+import * as cxa from './cxadds/cxadds.js';
 
 let devicePixelRatio = window.devicePixelRatio || 1;
 let dpi_x = /*document.getElementById('testdiv')!.offsetWidth * */devicePixelRatio;
@@ -98,7 +99,7 @@ export function cxposmainext() {
     //table.number = 1;
     let tableplan = new cxv.CXTablePlanView(ctx);
     tableplan.onAddImageClick = function () {
-        console.log("Add Image");
+        cxa.openImageFileDialog('upload', tableplan.onImageSelected);
     }
     viewelements.push(tableplan);
     drawCanvas();

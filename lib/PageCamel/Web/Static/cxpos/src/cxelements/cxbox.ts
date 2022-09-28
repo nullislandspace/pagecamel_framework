@@ -9,7 +9,8 @@ export class CXBox extends CXFrame {
     protected _gradient: string[];
     /** @protected */
     protected _first_gradient_color: string;
-
+    /** @protected */
+    protected _background_image: HTMLImageElement = new Image();
     /**
      * @constructor  
      * @param {CanvasRenderingContext2D} ctx - the canvas context to draw on
@@ -19,7 +20,7 @@ export class CXBox extends CXFrame {
      * @param {number} height - the height of the element
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
-    */
+     */
     constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this._background_color = "green";
@@ -43,7 +44,14 @@ export class CXBox extends CXFrame {
         super._draw();
         if (this._radius > 0) {
             //fill rounded rectangle
+            this._ctx.save();
+            this._ctx.clip();
             this._ctx.fill();
+            if(this._background_image.currentSrc != ""){
+                this._ctx.drawImage(this._background_image, this.xpixel, this.ypixel, this.widthpixel, this.heightpixel);
+            }
+            this._ctx.restore();
+            
         }
         else {
             //fill rectangle
@@ -52,6 +60,9 @@ export class CXBox extends CXFrame {
             var width = this.widthpixel - this._border_width_pixel;
             var height = this.heightpixel - this._border_width_pixel;
             this._ctx.fillRect(x, y, width, height);
+            if (this._background_image.currentSrc !== "") {
+                this._ctx.drawImage(this._background_image, x, y, width, height);
+            }
         }
     }
     /**
@@ -89,5 +100,11 @@ export class CXBox extends CXFrame {
      */
     get gradient(): string[] {
         return this._gradient;
+    }
+    set background_image(image: string) {
+        this._background_image.src = image;
+    }
+    get background_image(): string {     
+        return this._background_image.currentSrc;
     }
 }

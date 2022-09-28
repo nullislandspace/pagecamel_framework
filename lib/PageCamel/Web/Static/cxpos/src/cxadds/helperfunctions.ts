@@ -1,4 +1,11 @@
-export function openImageFileDialog(fileInputID: string, callback: (file: null | ArrayBuffer | string) => void) {
+/**
+ * Requires a html file input element with id\
+ * This function triggers the click event of the input element with the given id and returns the selected file.
+ * @example <input type="file" id="upload" accept="image/*">
+ * @param fileInputID The ID of the file input element
+ * @param callback callback function to be called when the file is loaded
+ */
+export function openImageFileDialog(fileInputID: string, callback: (file: string) => void) {
     //select the file input element
     var fileInput = document.getElementById(fileInputID) as HTMLInputElement;
     //add a change listener
