@@ -431,7 +431,7 @@ export class CXDefault {
      * @param attributes - the attributes to set
      * @example element.attributes = {xpos: 0.5, ypos: 0.5, width: 0.5, height: 0.5}
      */
-    set attributes(attributes: object) {
+    set attributes(attributes: {}) {
         var attr = JSON.parse(JSON.stringify(attributes)); // copy to remove references to the original object 
         var keys = Object.keys(attr);
         // walk through the entire prototype chain
@@ -449,7 +449,7 @@ export class CXDefault {
      * Returns all the attributes of the element if they are public and are valid attributes
      * @returns - the public attributes of the element
      */
-    get attributes(): object {
+    get attributes(): {} {
         var attr = {};
         // walk through the entire prototype chain
         for (let o = Object.getPrototypeOf(this); o && o != Object.prototype; o = Object.getPrototypeOf(o)) {
