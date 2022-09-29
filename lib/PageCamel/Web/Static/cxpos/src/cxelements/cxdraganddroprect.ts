@@ -1,5 +1,5 @@
-import { CXButton } from "./cxbutton.js";
-export class CXDragAndDropRect extends CXButton {
+import { CXTextBox } from "./cxtextbox.js";
+export class CXDragAndDropRect extends CXTextBox {
     /** @protected */
     protected _dragable: boolean;
     /** @protected */

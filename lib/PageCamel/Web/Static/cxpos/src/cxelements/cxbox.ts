@@ -99,7 +99,10 @@ export class CXBox extends CXFrame {
      * @returns - Gradient
      */
     get gradient(): string[] {
-        return this._gradient;
+        //returns the gradient that was set
+        var grad = [...this._gradient];
+        grad[0] = this._first_gradient_color;
+        return grad;
     }
     set background_image(image: string) {
         this._background_image.src = image;

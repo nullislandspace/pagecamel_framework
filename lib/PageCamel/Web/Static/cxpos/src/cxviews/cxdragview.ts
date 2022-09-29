@@ -85,7 +85,7 @@ export class CXDragView extends CXDefaultView {
                     this._draw_draganddrop = new (<any>this._drawModes)[this._draw_mode](this._ctx, xrel, yrel, 0.001, 0.001, true, false);
                     this._draw_draganddrop.name = String(this._count);
                     this._draw_draganddrop.text = String(this._draw_draganddrop.name);
-                    if(this._draw_mode === 'img') {
+                    if (this._draw_mode === 'img') {
                         this._draw_draganddrop.background_image = this._draganddropImage;
                     }
                     this._count++;
@@ -197,7 +197,7 @@ export class CXDragView extends CXDefaultView {
     }
     set draganddropImage(image: string) {
         this._draganddropImage = image;
-        if(this._draw_draganddrop && this._draw_mode === 'img') {
+        if (this._draw_draganddrop && this._draw_mode === 'img') {
             this._draw_draganddrop.background_image = image;
         }
     }
@@ -233,12 +233,12 @@ export class CXDragView extends CXDefaultView {
                 //moves the new draganddrop a bit to the right and down
                 new_draganddrop.xpos += 0.05;
                 new_draganddrop.ypos += 0.05;
-            
+
                 //check for overflow of the new draganddrop and move it to start if it is outside the view
-                if(new_draganddrop.xpos + new_draganddrop.width > 1) {
+                if (new_draganddrop.xpos + new_draganddrop.width > 1) {
                     new_draganddrop.xpos = 0;
                 }
-                if(new_draganddrop.ypos + new_draganddrop.height > 1) {
+                if (new_draganddrop.ypos + new_draganddrop.height > 1) {
                     new_draganddrop.ypos = 0;
                 }
                 this._selectedDragAndDrop.show_resize_frame = false;
@@ -250,5 +250,8 @@ export class CXDragView extends CXDefaultView {
             this._has_changed = true;
             this._tryRedraw();
         }
+    }
+    get selectedDragAndDrop(): CXDragAndDropRect | CXDragAndDropEllipse | CXDragAndDropText | null {
+        return this._selectedDragAndDrop;
     }
 }

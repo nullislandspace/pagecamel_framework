@@ -103,6 +103,14 @@ export class CXTablePlanView extends CXDefaultView {
         delete_btn.onClick = () => this._dragview.deleteSelectedDragAndDrop();
         delete_btn.text = '🗑';
 
+        const color_palet = new cxe.CXNumPad(this._ctx, 0.85, 0.5, 0.1, 0.1, this._is_relative, false);
+        color_palet.buttons_text_block = [
+            [{ text: '1', gradient: ['#00ffff', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }],
+            [{ text: '3', gradient: ['#ff0000', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }]
+        ];
+        color_palet.gap = 0.01;
+
+        this._elements.push(color_palet);
         this._elements.push(this._dragview);
 
         this._elements.push(undo_btn);
@@ -152,5 +160,12 @@ export class CXTablePlanView extends CXDefaultView {
     public onImageSelected = (img: string): void => {
         console.log('dragview onImageSelected', this._dragview);
         this._dragview.draganddropImage = img;
+    }
+    private _changeColor(obj: cxe.CXButton): void {
+        if (this._dragview.selectedDragAndDrop) {
+            this._dragview.selectedDragAndDrop!.gradient = [...obj.gradient];
+        }
+        this._has_changed = true;
+        this._tryRedraw();
     }
 }

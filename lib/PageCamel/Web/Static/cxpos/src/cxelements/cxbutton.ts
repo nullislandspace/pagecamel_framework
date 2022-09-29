@@ -182,7 +182,7 @@ export class CXButton extends CXTextBox {
         return this._has_changed;
     }
 
-    
+
 
     /**
      * @param {string} color
@@ -246,6 +246,13 @@ export class CXButton extends CXTextBox {
     }
     get allow_hover(): boolean {
         return this._allow_hover;
+    }
+    set attributes(attributes: object) {
+        super.attributes = attributes;
+        var attr = attributes as any;
+        if (attr.onClick != undefined) {
+            this.onClick = attr.onClick;
+        }
     }
 
 }
