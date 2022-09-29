@@ -101,6 +101,9 @@ export function cxposmainext() {
     tableplan.onAddImageClick = function () {
         cxa.openImageFileDialog('upload', tableplan.onImageSelected);
     }
+    tableplan.onAddBackgroundImageClick = function () {
+        cxa.openImageFileDialog('upload', tableplan.onBackgroundImageSelected);
+    }
     viewelements.push(tableplan);
     drawCanvas();
 }

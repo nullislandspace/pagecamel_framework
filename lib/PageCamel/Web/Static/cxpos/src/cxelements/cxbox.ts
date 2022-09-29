@@ -33,25 +33,19 @@ export class CXBox extends CXFrame {
      */
     protected _drawBox(): void {
         this._ctx.fillStyle = this._background_color;
-        if (this._gradient.length > 0) {
-            var grd = this._ctx.createLinearGradient(this.xpixel, this.ypixel, this.xpixel, this.ypixel + this.heightpixel);
-            var step_size = 1 / (this._gradient.length - 1);
-            for (var i = 0; i < this._gradient.length; i++) {
-                grd.addColorStop(i * step_size, this._gradient[i]);
-            }
-            this._ctx.fillStyle = grd;
-        }
+        //check if gradient exists and set it
+        this._checkGradient();
         super._draw();
         if (this._radius > 0) {
             //fill rounded rectangle
             this._ctx.save();
             this._ctx.clip();
             this._ctx.fill();
-            if(this._background_image.currentSrc != ""){
+            if (this._background_image.currentSrc != "") {
                 this._ctx.drawImage(this._background_image, this.xpixel, this.ypixel, this.widthpixel, this.heightpixel);
             }
             this._ctx.restore();
-            
+
         }
         else {
             //fill rectangle
@@ -65,6 +59,20 @@ export class CXBox extends CXFrame {
             }
         }
     }
+    /**
+     * Checks if gradient was set and changes the fill style to a gradient if it was set
+     */
+    protected _checkGradient(): void {
+        if (this._gradient.length > 1) {
+            var grd = this._ctx.createLinearGradient(this.xpixel, this.ypixel, this.xpixel, this.ypixel + this.heightpixel);
+            var step_size = 1 / (this._gradient.length - 1);
+            for (var i = 0; i < this._gradient.length; i++) {
+                grd.addColorStop(i * step_size, this._gradient[i]);
+            }
+            this._ctx.fillStyle = grd;
+        }
+    }
+
     /**
      * @description Draws everything
      * @protected
@@ -107,7 +115,7 @@ export class CXBox extends CXFrame {
     set background_image(image: string) {
         this._background_image.src = image;
     }
-    get background_image(): string {     
+    get background_image(): string {
         return this._background_image.currentSrc;
     }
 }

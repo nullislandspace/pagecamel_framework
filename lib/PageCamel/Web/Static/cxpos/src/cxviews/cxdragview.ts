@@ -143,6 +143,9 @@ export class CXDragView extends CXDefaultView {
             if (handled) {
                 //remove draganddrop that was handled and add it to the end of the list so it is drawn on top
                 var handled_draganddrop = this._draganddrops[handled_index];
+                /* if (this._draganddrops[handled_index].move_dragndrop) {
+                    console.log('handled draganddrop: ' + handled_draganddrop.name);
+                } */
                 this._draganddrops.splice(handled_index, 1);
                 this._draganddrops.push(handled_draganddrop);
                 this._selectedDragAndDrop = handled_draganddrop;

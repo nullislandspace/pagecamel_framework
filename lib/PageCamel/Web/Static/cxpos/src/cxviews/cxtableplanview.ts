@@ -25,31 +25,55 @@ export class CXTablePlanView extends CXDefaultView {
         ]. . .
     }]
     */
+    protected _editElements: any[] = [];
     protected _draw_buttons: cxe.CXButton[] = [];
     protected _dragview: CXDragView = new CXDragView(this._ctx, 0.0, 0.0, 0.8, 0.8, true, false);
+    protected _edit_btn: cxe.CXButton = new cxe.CXButton(this._ctx, 0.85, 0.5, 0.1, 0.1, true, false);
     constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
         this._initialize();
     }
     protected _initialize(): void {
+        this._border_width = 0.0;
+        this._dragview = new CXDragView(this._ctx, 0.0, 0.0, 0.8, 0.8, true, false);
+        this._initializeEditButtons();
+/*         const color_palet = new cxe.CXNumPad(this._ctx, 0.85, 0.5, 0.1, 0.1, this._is_relative, false);
+        color_palet.buttons_text_block = [
+            [{ text: '1', gradient: ['#00ffff', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }],
+            [{ text: '3', gradient: ['#ff0000', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }]
+        ];
+        color_palet.gap = 0.01;
+
+        this._elements.push(color_palet); */
+        this._edit_btn = new cxe.CXButton(this._ctx, 0.01, 0.94, 0.1, 0.05, true, false);
+        this._edit_btn.attributes = this._special_func_buttons;
+        this._edit_btn.text = "Edit";
+        this._edit_btn.onClick = (obj: cxe.CXButton) => this._edit(true);
+        
+
+        
+        this._elements.push(this._edit_btn);
+        this._elements.push(this._dragview);
+
+    }
+    private _initializeEditButtons() {
         this._onDrawButtonClick = this._onDrawButtonClick.bind(this);
         this._draw_buttons = []
-        this._border_width = 0.0;
 
         var gap: number = 0.01;
         var button_height: number = 0.05;
-        this._dragview = new CXDragView(this._ctx, 0.0, 0.0, 0.8, 0.8, true, false);
         var undo_btn = new cxe.CXButton(this._ctx, gap, 1 - button_height - gap, 0.05, button_height, true, false);
+
         undo_btn.attributes = this._special_func_buttons;
         undo_btn.setSquareSize(null, undo_btn.height);
         undo_btn.text = '⮪';
 
-        var redo_btn = new cxe.CXButton(this._ctx, undo_btn.xpos + undo_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
+        const redo_btn = new cxe.CXButton(this._ctx, undo_btn.xpos + undo_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         redo_btn.attributes = this._special_func_buttons;
         redo_btn.setSquareSize(null, redo_btn.height);
         redo_btn.text = '⮫';
 
-        var select_btn = new cxe.CXButton(this._ctx, redo_btn.xpos + redo_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
+        const select_btn = new cxe.CXButton(this._ctx, redo_btn.xpos + redo_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         select_btn.attributes = this._special_func_buttons;
         select_btn.setSquareSize(null, select_btn.height);
         select_btn.onClick = this._onDrawButtonClick;
@@ -57,7 +81,7 @@ export class CXTablePlanView extends CXDefaultView {
         select_btn.name = 'select';
         this._draw_buttons.push(select_btn);
 
-        var draw_rect_btn = new cxe.CXButton(this._ctx, select_btn.xpos + select_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
+        const draw_rect_btn = new cxe.CXButton(this._ctx, select_btn.xpos + select_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         draw_rect_btn.attributes = this._special_func_buttons;
         draw_rect_btn.setSquareSize(null, draw_rect_btn.height);
         draw_rect_btn.onClick = this._onDrawButtonClick;
@@ -65,7 +89,7 @@ export class CXTablePlanView extends CXDefaultView {
         draw_rect_btn.text = '⬛';
         this._draw_buttons.push(draw_rect_btn);
 
-        var draw_circle_btn = new cxe.CXButton(this._ctx, draw_rect_btn.xpos + draw_rect_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
+        const draw_circle_btn = new cxe.CXButton(this._ctx, draw_rect_btn.xpos + draw_rect_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         draw_circle_btn.attributes = this._special_func_buttons;
         draw_circle_btn.setSquareSize(null, draw_circle_btn.height);
         draw_circle_btn.onClick = this._onDrawButtonClick;
@@ -73,7 +97,7 @@ export class CXTablePlanView extends CXDefaultView {
         draw_circle_btn.text = '⬤';
         this._draw_buttons.push(draw_circle_btn);
 
-        var draw_img_btn = new cxe.CXButton(this._ctx, draw_circle_btn.xpos + draw_circle_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
+        const draw_img_btn = new cxe.CXButton(this._ctx, draw_circle_btn.xpos + draw_circle_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         draw_img_btn.attributes = this._special_func_buttons;
         draw_img_btn.setSquareSize(null, draw_img_btn.height);
         draw_img_btn.onClick = (obj: cxe.CXButton) => this._onAddImageClick(obj);
@@ -81,7 +105,7 @@ export class CXTablePlanView extends CXDefaultView {
         draw_img_btn.text = '🖼';
         this._draw_buttons.push(draw_img_btn);
 
-        var draw_text_btn = new cxe.CXButton(this._ctx, draw_img_btn.xpos + draw_img_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
+        const draw_text_btn = new cxe.CXButton(this._ctx, draw_img_btn.xpos + draw_img_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         draw_text_btn.attributes = this._special_func_buttons;
         draw_text_btn.setSquareSize(null, draw_text_btn.height);
         draw_text_btn.onClick = this._onDrawButtonClick;
@@ -91,27 +115,33 @@ export class CXTablePlanView extends CXDefaultView {
 
 
 
-        var duplicate_btn = new cxe.CXButton(this._ctx, draw_text_btn.xpos + draw_text_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
+        const duplicate_btn = new cxe.CXButton(this._ctx, draw_text_btn.xpos + draw_text_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         duplicate_btn.attributes = this._special_func_buttons;
         duplicate_btn.setSquareSize(null, duplicate_btn.height);
         duplicate_btn.onClick = (obj: cxe.CXButton) => this._onDuplicateClick(obj);
         duplicate_btn.text = '⎘';
 
-        var delete_btn = new cxe.CXButton(this._ctx, duplicate_btn.xpos + duplicate_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
+        const delete_btn = new cxe.CXButton(this._ctx, duplicate_btn.xpos + duplicate_btn.width + gap, 1 - button_height - gap, 0.05, button_height, true, false);
         delete_btn.attributes = this._special_func_buttons;
         delete_btn.setSquareSize(null, delete_btn.height);
         delete_btn.onClick = () => this._dragview.deleteSelectedDragAndDrop();
         delete_btn.text = '🗑';
 
-        const color_palet = new cxe.CXNumPad(this._ctx, 0.85, 0.5, 0.1, 0.1, this._is_relative, false);
-        color_palet.buttons_text_block = [
-            [{ text: '1', gradient: ['#00ffff', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }],
-            [{ text: '3', gradient: ['#ff0000', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }]
-        ];
-        color_palet.gap = 0.01;
+        const background_img_btn = new cxe.CXButton(this._ctx, delete_btn.xpos + delete_btn.width + gap, 1 - button_height - gap, 0.13, button_height, true, false);
+        background_img_btn.attributes = this._special_func_buttons;
+        background_img_btn.onClick = (obj: cxe.CXButton) => this._onAddBackgroundImageClick(obj);
+        background_img_btn.text = '🖻 Background';
 
-        this._elements.push(color_palet);
-        this._elements.push(this._dragview);
+        const cancel_edit_btn = new cxe.CXButton(this._ctx, 1.0 - 0.11, 1.0 - 0.06, 0.1, 0.05, true, false);
+        cancel_edit_btn.attributes = this._special_func_buttons;
+        cancel_edit_btn.onClick = (obj: cxe.CXButton) => this._edit(false);
+        cancel_edit_btn.text = '🗙 Cancel';
+        
+        const save_edit_btn = new cxe.CXButton(this._ctx, 1.0 - 0.22, 1.0 - 0.06, 0.1, 0.05, true, false);
+        save_edit_btn.attributes = this._special_func_buttons;
+        save_edit_btn.onClick = (obj: cxe.CXButton) => this._save();
+        save_edit_btn.text = '💾 Save';
+
 
         this._elements.push(undo_btn);
         this._elements.push(redo_btn);
@@ -122,9 +152,43 @@ export class CXTablePlanView extends CXDefaultView {
         this._elements.push(draw_text_btn);
         this._elements.push(duplicate_btn);
         this._elements.push(delete_btn);
+        this._elements.push(background_img_btn);
+        this._elements.push(cancel_edit_btn);
+        this._elements.push(save_edit_btn);
+
+
+        this._editElements.push(undo_btn);
+        this._editElements.push(redo_btn);
+        this._editElements.push(select_btn);
+        this._editElements.push(draw_rect_btn);
+        this._editElements.push(draw_circle_btn);
+        this._editElements.push(draw_img_btn);
+        this._editElements.push(draw_text_btn);
+        this._editElements.push(duplicate_btn);
+        this._editElements.push(delete_btn);
+        this._editElements.push(background_img_btn);
+        this._editElements.push(cancel_edit_btn);
+        this._editElements.push(save_edit_btn);
+        this._edit(false);
+    }
+    private _save(): void {
+        throw new Error('Method not implemented.');
+    }
+
+    private _onAddBackgroundImageClick(obj: cxe.CXButton): void {
+        this.onAddBackgroundImageClick(obj);
     }
     protected _onDuplicateClick(obj: cxe.CXButton): void {
         this._dragview.duplicateSelectedDragAndDrop();
+    }
+
+    protected _edit(active: boolean): void {
+        this._editElements.forEach(element => {
+            element.active = active;
+        });
+        this._edit_btn.active = !active;
+        this._has_changed = true;
+        this._tryRedraw();
     }
 
     protected _onDrawButtonClick(obj: cxe.CXButton): void {
@@ -152,18 +216,30 @@ export class CXTablePlanView extends CXDefaultView {
     public onAddImageClick(obj: cxe.CXButton): void {
         //override this
     }
+    /**
+     * Gets called when the user wants do change the dragview background image
+     */
+    public onAddBackgroundImageClick(obj: cxe.CXButton): void {
+        //override this
+    }
 
     /**
      * Callback when the image is loaded
      * @param img - file reader result from the image
      */
     public onImageSelected = (img: string): void => {
-        console.log('dragview onImageSelected', this._dragview);
         this._dragview.draganddropImage = img;
     }
+    /**
+     * Callback when the background image is loaded
+     * @param img - file reader result from the image
+     */
+    public onBackgroundImageSelected = (img: string): void => {
+        this._dragview.background_image = img;
+    }
     private _changeColor(obj: cxe.CXButton): void {
-        if (this._dragview.selectedDragAndDrop) {
-            this._dragview.selectedDragAndDrop!.gradient = [...obj.gradient];
+        if (this._dragview.selectedDragAndDrop != null) {
+            this._dragview.selectedDragAndDrop.gradient = [...obj.gradient];
         }
         this._has_changed = true;
         this._tryRedraw();

@@ -249,7 +249,7 @@ export class CXButton extends CXTextBox {
     }
     set attributes(attributes: object) {
         super.attributes = attributes;
-        var attr = attributes as any;
+        var attr = attributes as CXButton;
         if (attr.onClick != undefined) {
             this.onClick = attr.onClick;
         }
