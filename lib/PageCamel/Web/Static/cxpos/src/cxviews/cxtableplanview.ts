@@ -36,22 +36,23 @@ export class CXTablePlanView extends CXDefaultView {
     protected _initialize(): void {
         this._border_width = 0.0;
         this._dragview = new CXDragView(this._ctx, 0.0, 0.0, 0.8, 0.8, true, false);
+        this._dragview.onDragAndDropClick = (obj: cxe.CXButton) => this.onTableSelected(obj);
         this._initializeEditButtons();
-/*         const color_palet = new cxe.CXNumPad(this._ctx, 0.85, 0.5, 0.1, 0.1, this._is_relative, false);
-        color_palet.buttons_text_block = [
-            [{ text: '1', gradient: ['#00ffff', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }],
-            [{ text: '3', gradient: ['#ff0000', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }]
-        ];
-        color_palet.gap = 0.01;
-
-        this._elements.push(color_palet); */
+        /*         const color_palet = new cxe.CXNumPad(this._ctx, 0.85, 0.5, 0.1, 0.1, this._is_relative, false);
+                color_palet.buttons_text_block = [
+                    [{ text: '1', gradient: ['#00ffff', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }],
+                    [{ text: '3', gradient: ['#ff0000', '#ffff00'], onClick: (obj: cxe.CXButton) => this._changeColor(obj) }]
+                ];
+                color_palet.gap = 0.01;
+        
+                this._elements.push(color_palet); */
         this._edit_btn = new cxe.CXButton(this._ctx, 0.01, 0.94, 0.1, 0.05, true, false);
         this._edit_btn.attributes = this._special_func_buttons;
         this._edit_btn.text = "Edit";
         this._edit_btn.onClick = (obj: cxe.CXButton) => this._edit(true);
-        
 
-        
+
+
         this._elements.push(this._edit_btn);
         this._elements.push(this._dragview);
 
@@ -136,7 +137,7 @@ export class CXTablePlanView extends CXDefaultView {
         cancel_edit_btn.attributes = this._special_func_buttons;
         cancel_edit_btn.onClick = (obj: cxe.CXButton) => this._edit(false);
         cancel_edit_btn.text = '🗙 Cancel';
-        
+
         const save_edit_btn = new cxe.CXButton(this._ctx, 1.0 - 0.22, 1.0 - 0.06, 0.1, 0.05, true, false);
         save_edit_btn.attributes = this._special_func_buttons;
         save_edit_btn.onClick = (obj: cxe.CXButton) => this._save();
@@ -172,7 +173,9 @@ export class CXTablePlanView extends CXDefaultView {
         this._edit(false);
     }
     private _save(): void {
-        throw new Error('Method not implemented.');
+        console.log('get all drag and drop elements', this._dragview.getAllDragAndDrops());
+        this._edit(false);
+
     }
 
     private _onAddBackgroundImageClick(obj: cxe.CXButton): void {
@@ -182,15 +185,27 @@ export class CXTablePlanView extends CXDefaultView {
         this._dragview.duplicateSelectedDragAndDrop();
     }
 
+    /**
+     * disble or enable edit mode
+     * @param active - true to enable edit mode and false to disable
+     */
     protected _edit(active: boolean): void {
         this._editElements.forEach(element => {
             element.active = active;
         });
+        this._dragview.allow_editing = active;
         this._edit_btn.active = !active;
         this._has_changed = true;
+        this._dragview.draw_mode = 'none';
+        this._draw_buttons.forEach(element => {
+            element.border_width = this._special_func_buttons.border_width;
+        });
         this._tryRedraw();
     }
-
+    /**
+     * gets called when any of the buttons which are responsible for drawing a draganddrop element is clicked
+     * @param obj - the button which was clicked
+     */
     protected _onDrawButtonClick(obj: cxe.CXButton): void {
         this._dragview.draw_mode = obj.name;
         this._draw_buttons.forEach((button: { name: string; border_width: number; }) => {
@@ -243,5 +258,11 @@ export class CXTablePlanView extends CXDefaultView {
         }
         this._has_changed = true;
         this._tryRedraw();
+    }
+    set tables(tables: object[]) {
+        this._dragview.draganddrops = tables;
+    }
+    onTableSelected = (table: cxe.CXButton): void => {
+        console.log('table selected', table);
     }
 }
