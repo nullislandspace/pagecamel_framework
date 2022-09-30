@@ -134,7 +134,7 @@ export class CXFrame extends CXDefault {
     set border_relative(state: boolean) {
         this._border_relative = state;
     }
-
-      
-
+    get  border_relative(): boolean {
+        return this._border_relative;
+    }
 }

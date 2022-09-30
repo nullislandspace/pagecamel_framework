@@ -16,7 +16,9 @@ export class CXDragView extends CXDefaultView {
         'rect': CXDragAndDropRect,
         'circle': CXDragAndDropEllipse,
         'text': CXDragAndDropText,
+        'img': CXDragAndDropRect
     };
+    protected _draganddropImage: string = "";
 
     constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
@@ -25,7 +27,7 @@ export class CXDragView extends CXDefaultView {
         this._draw_draganddrop = null;
     }
     protected _initialize(): void {
-        
+
     }
     protected _draw(): void {
         super._draw();
@@ -33,10 +35,12 @@ export class CXDragView extends CXDefaultView {
             draganddrop.draw(this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
         });
         if (this._draw_draganddrop) {
-            console.log("draw rect");
             this._draw_draganddrop.draw(this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
         }
     }
+    /**
+     * Gets called when the mouse gets released and it is in the draw mode
+     */
     protected _finishCreation(): void {
         if (this._draw_draganddrop && this._drawMouseDownX && this._drawMouseDownY) {
             var width: number = this._calcRelXToPixel(this._draw_draganddrop.width, this._widthpixel);
@@ -79,8 +83,11 @@ export class CXDragView extends CXDefaultView {
                     this._drawMouseDownX = xrel;
                     this._drawMouseDownY = yrel;
                     this._draw_draganddrop = new (<any>this._drawModes)[this._draw_mode](this._ctx, xrel, yrel, 0.001, 0.001, true, false);
-                    this._draw_draganddrop.name = 'rect' + this._count;
+                    this._draw_draganddrop.name = String(this._count);
                     this._draw_draganddrop.text = String(this._draw_draganddrop.name);
+                    if (this._draw_mode === 'img') {
+                        this._draw_draganddrop.background_image = this._draganddropImage;
+                    }
                     this._count++;
                     this._draw_draganddrop.border_relative = false;
                     this._draw_draganddrop.border_width = 15;
@@ -126,7 +133,7 @@ export class CXDragView extends CXDefaultView {
                     }
                     if (draganddrop.has_changed && draganddrop.show_resize_frame) {
                         // the event is handled if the resize frame is shown and the element has changed
-                        console.log('draganddrop has changed' + draganddrop.name);
+                        //console.log('draganddrop has changed' + draganddrop.name);
                         handled = true;
                         handled_index = i;
                         this._has_changed = true;
@@ -136,6 +143,9 @@ export class CXDragView extends CXDefaultView {
             if (handled) {
                 //remove draganddrop that was handled and add it to the end of the list so it is drawn on top
                 var handled_draganddrop = this._draganddrops[handled_index];
+                /* if (this._draganddrops[handled_index].move_dragndrop) {
+                    console.log('handled draganddrop: ' + handled_draganddrop.name);
+                } */
                 this._draganddrops.splice(handled_index, 1);
                 this._draganddrops.push(handled_draganddrop);
                 this._selectedDragAndDrop = handled_draganddrop;
@@ -172,6 +182,7 @@ export class CXDragView extends CXDefaultView {
             this._draganddrops.forEach(draganddrop => {
                 draganddrop.show_resize_frame = false;
                 draganddrop.resizeable = false;
+                this._selectedDragAndDrop = null;
             });
         }
         else {
@@ -186,5 +197,64 @@ export class CXDragView extends CXDefaultView {
     }
     get draw_mode(): string {
         return this._draw_mode;
+    }
+    set draganddropImage(image: string) {
+        this._draganddropImage = image;
+        if (this._draw_draganddrop && this._draw_mode === 'img') {
+            this._draw_draganddrop.background_image = image;
+        }
+    }
+    get draganddropImage(): string {
+        return this._draganddropImage;
+    }
+    /**
+     * delete the selected drag and drop element
+     */
+    deleteSelectedDragAndDrop() {
+        if (this._selectedDragAndDrop) {
+            var index = this._draganddrops.indexOf(this._selectedDragAndDrop);
+            if (index > -1) {
+                this._draganddrops.splice(index, 1);
+            }
+            this._selectedDragAndDrop = null;
+            this._has_changed = true;
+            this._tryRedraw();
+        }
+    }
+    /**
+     * duplicate the selected drag and drop element
+     */
+    duplicateSelectedDragAndDrop() {
+        if (this._selectedDragAndDrop) {
+            var index = this._draganddrops.indexOf(this._selectedDragAndDrop);
+            if (index > -1) {
+                console.log('duplicate drag and drop');
+                var new_draganddrop = this._selectedDragAndDrop.clone();
+                this._count++;
+                new_draganddrop.name = String(this._count);
+                new_draganddrop.text = String(this._count);
+                //moves the new draganddrop a bit to the right and down
+                new_draganddrop.xpos += 0.05;
+                new_draganddrop.ypos += 0.05;
+
+                //check for overflow of the new draganddrop and move it to start if it is outside the view
+                if (new_draganddrop.xpos + new_draganddrop.width > 1) {
+                    new_draganddrop.xpos = 0;
+                }
+                if (new_draganddrop.ypos + new_draganddrop.height > 1) {
+                    new_draganddrop.ypos = 0;
+                }
+                this._selectedDragAndDrop.show_resize_frame = false;
+                this._selectedDragAndDrop = new_draganddrop;
+                //add the new draganddrop to the list
+                this._draganddrops.push(new_draganddrop);
+
+            }
+            this._has_changed = true;
+            this._tryRedraw();
+        }
+    }
+    get selectedDragAndDrop(): CXDragAndDropRect | CXDragAndDropEllipse | CXDragAndDropText | null {
+        return this._selectedDragAndDrop;
     }
 }

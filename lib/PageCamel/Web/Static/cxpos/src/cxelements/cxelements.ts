@@ -5,7 +5,7 @@ export { CXCheckBox } from './cxcheckbox.js';
 export { CXDragAndDropRect as CXDragAndDrop } from './cxdraganddroprect.js';
 export { CXDropDown } from './cxdropdown.js';
 export { CXFrame } from './cxframe.js';
-export { CXNumPad } from './cxnumpad.js';
+export { CXButtonGrid as CXNumPad } from './cxbuttongrid.js';
 export { CXScrollBar } from './cxscrollbar.js';
 export { CXScrollList } from './cxscrolllist.js';
 export { CXTextBox } from './cxtextbox.js';

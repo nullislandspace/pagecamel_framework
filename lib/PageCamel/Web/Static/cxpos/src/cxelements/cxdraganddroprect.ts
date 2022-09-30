@@ -1,5 +1,5 @@
-import { CXButton } from "./cxbutton.js";
-export class CXDragAndDropRect extends CXButton {
+import { CXTextBox } from "./cxtextbox.js";
+export class CXDragAndDropRect extends CXTextBox {
     /** @protected */
     protected _dragable: boolean;
     /** @protected */
@@ -468,7 +468,6 @@ export class CXDragAndDropRect extends CXButton {
      * @protected
      */
     protected _checkResizeMode(x: number, y: number) {
-        var prev_resize_mode = this._resize_mode;
         // check if the mouse is over a resize box
         if (this._show_resize_frame) {
             if (x > this._xpixel + this._widthpixel - this._box_size_half && x < this._xpixel + this._widthpixel + this._box_size_half && y > this._ypixel + this._heightpixel - this._box_size_half && y < this._ypixel + this._heightpixel + this._box_size_half) {
