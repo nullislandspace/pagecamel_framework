@@ -28,7 +28,7 @@ export function createOrderItem(article: OrderArticle, id: number = 0, timestamp
     }
     return obj;
 }
-export function createOrderList(OrderItems: [{ article: {}, id?: number, timestamp?: number, quantity?: number, booked?: boolean }]): OrderList {
+export function createOrderList(OrderItems: { article: {}, id?: number, timestamp?: number, quantity?: number, booked?: boolean }[]): OrderList {
     var items: OrderItem[] = [];
     for (let i = 0; i < OrderItems.length; ++i) {
         items.push(createOrderItem(OrderItems[i].article));
@@ -61,7 +61,7 @@ export class CXTable {
      * array of order items
      * @example makeOrderList([{article: {}, id: 0, timestamp: Date.now(), quantity: 1, booked: false}, ...])
      */
-    makeOrderList(orderItems: [{ article: {}, id?: number, timestamp?: number, quantity?: number, booked?: boolean }]) {
+    makeOrderList(orderItems: { article: {}, id?: number, timestamp?: number, quantity?: number, booked?: boolean }[]) {
         this._orderList = createOrderList(orderItems);
     }
     get orderList(): OrderList | null {

@@ -218,6 +218,6 @@ export function cxposmainext() {
     drawCanvas();
 
     var test_table: cxa.CXTable = new cxa.CXTable();
-    test_table.makeOrderList([{article: {}}])
+    test_table.makeOrderList([{ article: {}, quantity: 1, booked: false, id: 1, timestamp: 0 }, { article: {}, quantity: 1, booked: false, id: 1, timestamp: 0}]);
     console.log(test_table);
 }
