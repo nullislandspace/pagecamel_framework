@@ -64,6 +64,9 @@ export class CXTable {
     makeOrderList(orderItems: { article: {}, id?: number, timestamp?: number, quantity?: number, booked?: boolean }[]) {
         this._orderList = createOrderList(orderItems);
     }
+    set orderList(orderList: OrderList | null) {
+        this._orderList = orderList;
+    }
     get orderList(): OrderList | null {
         return this._orderList;
     }
