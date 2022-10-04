@@ -24,7 +24,7 @@ use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use CSS::Minifier::XS;
 use File::Type;
-use Cwd;
+#use Cwd;
 use POSIX;
 
 my $cachemodulecount = 0;
@@ -329,7 +329,9 @@ sub execute_external_command($self, $cmd, $ofh) {
 
     unless ($child_pid = open(OUTPUT, '-|')) {
       open(STDERR, ">&STDOUT");
-      exec($cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
+      {
+          exec($cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
+      }
       croak("ERROR: Could not execute program: $ERRNO");
     }
     waitpid($child_pid, 0);
