@@ -1,5 +1,5 @@
-import { CXTextBox } from "./cxtextbox.js";
-export class CXDragAndDropRect extends CXTextBox {
+import { CXButton } from "./cxbutton.js";
+export class CXDragAndDropRect extends CXButton {
     /** @protected */
     protected _dragable: boolean;
     /** @protected */
@@ -556,7 +556,7 @@ export class CXDragAndDropRect extends CXTextBox {
                 this._move_dragndrop = false;
                 if (this._resize_mode != 'none') {
                     this._has_changed = true;
-                }
+                }               
             }
             else if (event.type == "mouseup") {
                 this._onMouseUp();
@@ -605,5 +605,14 @@ export class CXDragAndDropRect extends CXTextBox {
     }
     get minWidthHeight(): number {
         return this._minWidthHeight;
+    }
+    set dragable(dragable: boolean) {
+        this._dragable = dragable;
+    }
+    get dragable(): boolean {
+        return this._dragable;
+    }
+    public onClick = (obj: CXButton) => {
+        console.log("Hello World");
     }
 }

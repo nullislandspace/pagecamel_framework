@@ -2,6 +2,7 @@ import { CXDefaultView } from './cxdefaultview.js';
 import { CXDragAndDropRect } from '../cxelements/cxdraganddroprect.js';
 import { CXDragAndDropEllipse } from '../cxelements/cxdraganddropellipse.js';
 import { CXDragAndDropText } from '../cxelements/cxdraganddroptext.js';
+import { CXButton } from '../cxelements/cxbutton.js';
 
 export class CXDragView extends CXDefaultView {
     protected _draw_mode: string = 'none';
@@ -19,6 +20,7 @@ export class CXDragView extends CXDefaultView {
         'img': CXDragAndDropRect
     };
     protected _draganddropImage: string = "";
+    protected _allow_editing: boolean = false;
 
     constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
         super(ctx, x, y, width, height, is_relative, redraw);
@@ -82,7 +84,9 @@ export class CXDragView extends CXDefaultView {
                 if (this._draw_mode !== 'none' && this._draw_mode !== 'select') {
                     this._drawMouseDownX = xrel;
                     this._drawMouseDownY = yrel;
+                    // creates new draganddrop element depending on the draw mode
                     this._draw_draganddrop = new (<any>this._drawModes)[this._draw_mode](this._ctx, xrel, yrel, 0.001, 0.001, true, false);
+                    this._draw_draganddrop.onClick = (obj: CXButton) => this.onDragAndDropClick(obj);
                     this._draw_draganddrop.name = String(this._count);
                     this._draw_draganddrop.text = String(this._draw_draganddrop.name);
                     if (this._draw_mode === 'img') {
@@ -121,7 +125,7 @@ export class CXDragView extends CXDefaultView {
             this._has_changed = true;
         }
         //loop through all drag and drop elements reverse order
-        if (this._draw_mode === 'select') {
+        if (this._draw_mode === 'select' || this.allow_editing === false) {
             var handled = false;
             var handled_index = -1;
             for (var i = this._draganddrops.length - 1; i >= 0; i--) {
@@ -169,7 +173,7 @@ export class CXDragView extends CXDefaultView {
         return this._has_changed;
     }
     /**
-     * Set the draw mode of the view (rect, circle, img, text, select) for drawing a new dragable element
+     * Set the draw mode of the view (rect, circle, img, text, select, none) for drawing a new dragable element
      * @param mode
      */
     set draw_mode(mode: string) {
@@ -254,7 +258,47 @@ export class CXDragView extends CXDefaultView {
             this._tryRedraw();
         }
     }
+    getAllDragAndDrops(): Array<object> {
+        var draganddrops_attributes: object[] = [];
+        this._draganddrops.forEach(element => {
+            draganddrops_attributes.push(element.attributes);
+        });
+        return draganddrops_attributes;
+    }
+    /**
+     * Set what happens when the user clicks the draganddrop
+     * Ovewrite this function 
+     */
+    onDragAndDropClick = (obj: CXButton) => {
+        console.log('click on draganddrop');
+    }
     get selectedDragAndDrop(): CXDragAndDropRect | CXDragAndDropEllipse | CXDragAndDropText | null {
         return this._selectedDragAndDrop;
     }
+    set allow_editing(allow: boolean) {
+        this._draganddrops.forEach(draganddrop => {
+            if (!allow) {
+                draganddrop.show_resize_frame = allow;
+            }
+            draganddrop.move_dragndrop = allow;
+            draganddrop.resizeable = allow;
+            draganddrop.dragable = allow;
+        });
+        this._allow_editing = allow;
+    }
+    get allow_editing(): boolean {
+        return this._allow_editing;
+    }
+    set draganddrops(draganddrops: Array<object>) {
+        this._draganddrops = [];
+        draganddrops.forEach(element => {
+            var draganddrop = new CXDragAndDropRect(this._ctx, 0, 0, 0, 0, true, false);
+            draganddrop.attributes = element;
+            draganddrop.onClick = (obj:CXButton) => this.onDragAndDropClick(obj);
+            this._draganddrops.push(draganddrop);
+        });
+        this._has_changed = true;
+        this._tryRedraw();
+    }
+
 }

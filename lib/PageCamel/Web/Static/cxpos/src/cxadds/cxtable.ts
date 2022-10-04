@@ -28,10 +28,12 @@ export function createOrderItem(article: OrderArticle, id: number = 0, timestamp
     }
     return obj;
 }
-export function createOrderList(OrderItems: []) {
-    var items = OrderItems.map(function (item: OrderItem) {
-        return createOrderItem(item.article, item.id, item.timestamp, item.quantity, item.booked);
-    });
+export function createOrderList(OrderItems: { article: {}, id?: number, timestamp?: number, quantity?: number, booked?: boolean }[]): OrderList {
+    var items: OrderItem[] = [];
+    for (let i = 0; i < OrderItems.length; ++i) {
+        items.push(createOrderItem(OrderItems[i].article));
+    }
+
     var obj: OrderList = {
         orderItems: items,
         toStringArray: function (params: string[]) {
@@ -49,7 +51,7 @@ export function createOrderList(OrderItems: []) {
     return obj;
 }
 export class CXTable {
-    protected _orderList: OrderList = createOrderList([]);
+    protected _orderList: OrderList | null = null;
     protected _name: string = "";
     protected _number: number | null = null;
     protected _visible: boolean = true;
@@ -57,16 +59,16 @@ export class CXTable {
     protected _booked: boolean = false;
     /**
      * array of order items
+     * @example makeOrderList([{article: {}, id: 0, timestamp: Date.now(), quantity: 1, booked: false}, ...])
      */
-    set orderList(orderItems: []) {
+    makeOrderList(orderItems: { article: {}, id?: number, timestamp?: number, quantity?: number, booked?: boolean }[]) {
         this._orderList = createOrderList(orderItems);
     }
-    /**
-     * @todo: needs to return order list
-     */
-    get orderList(): [] {
-        return [];
-        //return this._;
+    set orderList(orderList: OrderList | null) {
+        this._orderList = orderList;
+    }
+    get orderList(): OrderList | null {
+        return this._orderList;
     }
     /**
      * Add orders to the order list
@@ -108,7 +110,3 @@ export class CXTable {
         return this._booked;
     }
 }
-//var item = Object.create(OrderItem);
-//item.id = 1;
-//console.log(item.id);
-
