@@ -48,10 +48,6 @@ sub new($proto, %config) {
         $self->{blockui} = 1;
     }
 
-    if(!defined($self->{enabledb})) {
-        $self->{enabledb} = 0;
-    }
-
     return $self;
 }
 
@@ -253,9 +249,11 @@ sub get($self, $ua) {
         WSURL           =>  $wsurl,
         Reconnect       =>  $self->{reconnect},
         BlockUI         =>  $self->{blockui},
-        EnableDB        =>  $self->{enabledb},
+        EnableDB        =>  1,
         showads => $self->{showads},
     );
+
+    push @{$webdata{HeadExtraModuleScriptsNoPostfix}}, '/static/pcwebsocket/out/import.js';
     
     $self->wsmaskget($ua, \%settings, \%webdata);
 

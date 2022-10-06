@@ -14,7 +14,7 @@ interface CallbackList { messagename:string, callbacks:CallbackType[] }
      *
      *
      */
-export class CXWebsocket{
+export class PCWebsocket{
 
     //is the server connection established
     private _isconnected;
@@ -115,6 +115,7 @@ export class CXWebsocket{
     } 
 
     private _send():void{
+        wstransmit('name', 'data', 'ID:0815');
 
     } 
 

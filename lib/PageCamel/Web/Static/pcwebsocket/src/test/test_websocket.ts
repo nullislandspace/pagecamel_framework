@@ -1,6 +1,6 @@
-import { CXWebsocket, CallbackType } from "../websocket.js"; 
+import { PCWebsocket, CallbackType } from "../websocket.js"; 
 
-let ws = new CXWebsocket(false, true);
+let ws = new PCWebsocket(false, true);
 
 function onTestMessage(cbname:string, data:string):void{
     console.log("Callback onTestMessage called");
