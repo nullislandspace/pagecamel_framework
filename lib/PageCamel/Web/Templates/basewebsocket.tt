@@ -34,8 +34,8 @@
     function extraOnLoad() {
 
         pagecamelDBInit();
-        window.ws = new PCWebsocket(false, true);
-        window.ws.isconnected = !!wsconnected;
+        //window.pcws = new PCWebsocket(false, true);
+        window.pcws.isconnected = !!wsconnected;
         
         if(window.websocketmaskOnload) {
             websocketmaskOnload();
@@ -73,7 +73,7 @@
                 $('#dataarea').unblock();
             }
             wsconnected = 1;
-            window.ws.isconnected = !!wsconnected;
+            window.pcws.isconnected = !!wsconnected;
             wsfailed = 0;
             lastPing = -1;
             sendPing();
@@ -96,7 +96,7 @@
                 }
             }
             wsconnected = 0;
-            window.ws.isconnected = !!wsconnected;
+            window.pcws.isconnected = !!wsconnected;
             if(window.websocketmaskOnSocketClose) {
                 websocketmaskOnSocketClose();
             }
@@ -128,7 +128,7 @@
             if(window.handleMessage) {
                 handleMessage(msg);
             }
-            window.ws.spoolincoming(msg.type, msg.data);
+            window.pcws.spoolincoming(msg.type, msg.data);
         }
         
     }

@@ -22,7 +22,7 @@ export class PCWebsocket{
     private _iscaching;
 
     //holds the callback messages and functions
-    private _messageList:CallbackList[]  ; 
+    private _messageList:CallbackList[] = [] ; 
 
     //timer delta time in seconds
     private _deltatime;
@@ -93,6 +93,11 @@ export class PCWebsocket{
     } 
 
     spoolincoming(cbname:string, data:string):void{
+        console.log("Type " + cbname + "  Data " + data);
+        if(cbname === 'NOTIFICATION') {
+            wstransmit("TOUPPERCASE", "Hello World!");
+            wstransmit("TESTDATA", "some text", "ID0815");
+        }
 
     } 
 
@@ -115,7 +120,7 @@ export class PCWebsocket{
     } 
 
     private _send():void{
-        wstransmit('name', 'data', 'ID:0815');
+        //wstransmit('name', 'data', 'ID:0815');
 
     } 
 
