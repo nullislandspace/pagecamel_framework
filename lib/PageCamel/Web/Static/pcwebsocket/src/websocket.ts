@@ -1,4 +1,6 @@
-export interface CallbackType { (messagename: string, data:string): void }
+interface CallbackType { (messagename: string, data:string): void }
+
+declare function wstransmit(msgname:string,data:string,msgid?:string):any;
 
 interface CallbackList { messagename:string, callbacks:CallbackType[] } 
 
@@ -27,13 +29,22 @@ export class PCWebsocket{
     //timer delta time in seconds
     private _deltatime;
 
+    private _cached_msgs:{msg:string,data:string,id:string}[];
+    private _last_cached_id:number;
+    private _timer: number;
+
   
     constructor(caching=false,debug=false){
         this._iscaching=caching;
         this._isdebug=debug;
         this._isconnected=false;
         this._messageList=[];
-        this._deltatime=1;
+        this._deltatime=1000; //milliseconds
+        this._cached_msgs = [];
+        this._last_cached_id = 0;
+        //start timer
+        //this._timer=setInterval(()=>this._timerfunc,this._deltatime);
+        this._timer=setInterval(()=>{this._timerfunc()},this._deltatime);
     } 
 
     /**
@@ -45,7 +56,7 @@ export class PCWebsocket{
      * 
     */
     register(msgname:string, callback:CallbackType[]):void{
-
+        msgname=msgname.toUpperCase();
         if (this._messageList.length == 0){
             
             if (this._isdebug) callback.forEach(function (fct) {console.debug("Register " + fct.name + " to messagename " + msgname)});
@@ -54,8 +65,13 @@ export class PCWebsocket{
 
         } 
         else{
+            let msgexist = false;
+            
             for (let i=0; i<this._messageList.length; i++){
-                if (this._messageList[i].messagename == msgname ){
+                //first check if msgname exists
+                if (this._messageList[i].messagename === msgname ){
+                    msgexist = true;
+                    //then check if callback function exists at msgname
                     for (let j=0; j<callback.length; j++){
                         if (this._messageList[i].callbacks.includes(callback[j])){
                             console.info("Callback " + callback[j].name + " already registered");
@@ -67,7 +83,12 @@ export class PCWebsocket{
                     } 
                     
                 } 
-            } 
+            }
+            //add callback to new msgname if msgname doesn't exist 
+            if (!msgexist) {
+                if (this._isdebug) callback.forEach(function (fct) {console.debug("Register " + fct.name + " to messagename " + msgname)});
+                this._messageList.push({messagename:msgname,callbacks:callback});
+            }
         } 
     } 
 
@@ -78,26 +99,83 @@ export class PCWebsocket{
      * @param callback - Callback-Functions
      * 
     */
-    deregister(name:string, callback:CallbackType[]):void{
-        if (this._messageList.length == 0){
+    deregister(msgname:string, callback:CallbackType[]):void{
+        msgname=msgname.toUpperCase();
+        if (this._messageList.length === 0){
             console.log("No callback in the callbacklist");
 
         } 
         else{
+            let msgexist = false;
+            for (let i=0; i<this._messageList.length; i++){
+                //first check if msgname exists
+                if (this._messageList[i].messagename === msgname ){
+                    msgexist = true;
+                    //search remove the callbacks
+                    let cindex = 0;
+                    for (let c=0; c<callback.length; c++) {
+                        cindex = this._messageList[i].callbacks.indexOf(callback[c]);
+                        if (cindex>-1) {
+                            if (this._isdebug) console.debug ("Deregister callback=" + callback + " on messagename=" + msgname);
+                            this._messageList[i].callbacks.splice(cindex,1);
+                        }
+                    }
+                    //check if messagename has any callbacks
+                    if (this._messageList[i].callbacks.length===0){
+                        //remove messagename from messagelist if no callbacks exist
+                        this._messageList.splice(i,1);
+                    }
+                }
+            }
+            if (!msgexist && this._isdebug) {
+                console.debug("No deregister: the messagename: " + msgname + " does not exist");
+            }
         } 
     } 
 
-    send (cbname:string, data:string, caching=false):boolean{
-
-        return false;
+    send (msgname:string, mdata:string, caching=false):boolean{
+        msgname=msgname.toUpperCase();
+        if (this._iscaching && caching) {
+            //increment last cached id
+            ++this._last_cached_id;
+            //cache the message
+            if (this._isdebug) console.debug('Add message to cache: msgname=' + msgname + ' msgid=' + this._last_cached_id);
+            this._cached_msgs.push({msg:msgname,data:mdata,id:this._last_cached_id.toString()});
+            //try to send cached message
+            this._send_cached();
+        }
+        else {
+            //if (this._isdebug) console.debug('Sent message direct: msgname=' + msgname);
+            this._sendmsg(msgname,mdata);
+        }
+        
+        return true;
     } 
 
-    spoolincoming(cbname:string, data:string):void{
-        console.log("Type " + cbname + "  Data " + data);
-        if(cbname === 'NOTIFICATION') {
+    /**
+     * get message from server and call the registered callbacks
+     *
+     * @param msgname - message type
+     * @param data - message data
+     *
+     * 
+    */  
+    spoolincoming(msgname:string, data:string):void{
+        msgname=msgname.toUpperCase();
+        console.log("Type " + msgname + "  Data " + data);
+        /*if(msgname === 'NOTIFICATION') {
             wstransmit("TOUPPERCASE", "Hello World!");
             wstransmit("TESTDATA", "some text", "ID0815");
+        }*/
+
+        //Commit for a cached message sent
+        if (msgname === "RECIEVED") {
+            this._delete_cached(data);
+            //try to send new cached message
+            this._send_cached();
         }
+
+        this._messageList.forEach((messageListItem) => {this._handleMsg(messageListItem, msgname, data)});
 
     } 
 
@@ -115,13 +193,61 @@ export class PCWebsocket{
         
     } 
 
-    private _timer():void{
+    private _timerfunc():void{
+        console.log("Execute timer function...");
+        this._send_cached();
+        
 
     } 
 
-    private _send():void{
-        //wstransmit('name', 'data', 'ID:0815');
+    private _sendmsg(msgname:string, data:string, id:string=''):boolean{
+        let sent = false;
+        if (this._isconnected) {
+            if (this._isdebug)  console.debug("Send message: msgname=" + msgname + " data=" + data + " id=" + id);
+            if (id === '') {
+                wstransmit(msgname, data);
+            }
+            else {
+                wstransmit(msgname, data, id);
+            }
+        }
+        return sent;
 
     } 
+
+
+
+    private _send_cached():void {
+        if (this._isdebug) console.debug("Try to send cached messages...");
+        if (this._cached_msgs.length > 0) {
+            let cached_msg = this._cached_msgs[0];
+            this._sendmsg(cached_msg.msg,cached_msg.data,cached_msg.id);
+        }
+        else {
+            this._last_cached_id = 0;
+        }
+    }
+
+    private _delete_cached(msgid:string):void {
+        if  (this._isdebug) console.debug("Try to delete message from cache: msgid=" + msgid);
+        for (let i=0; i<this._cached_msgs.length; i++) {
+            if (this._cached_msgs[i].id === msgid) {
+                //remove this item and return
+                if  (this._isdebug) console.debug("Delete message from cache: msgid=" + msgid);
+                this._cached_msgs.splice(i,1);
+                return;
+            }
+        }
+        
+    }
+
+    private _handleMsg(messageListItem:CallbackList, msgname:string, data:string):void {
+        console.log("_handleMsg: " + msgname);
+        if (msgname === messageListItem.messagename) {
+            //call the registered callbackfunction
+            console.log("Call callback " + messageListItem.callbacks.toString());
+            messageListItem.callbacks.forEach((cbfunction) => {cbfunction(msgname, data)});
+        }
+    }
 
 } 
