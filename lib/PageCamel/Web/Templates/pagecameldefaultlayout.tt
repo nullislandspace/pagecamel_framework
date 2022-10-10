@@ -141,10 +141,6 @@
 
                 $("span.cavacnote").cavacnote();
 
-                if(ttvars.enabledb == "1") {
-                    pagecamelDBInit();
-                }
-
                 if(window.extraOnLoadBeforeTables) {
                     extraOnLoadBeforeTables();
                 }
@@ -391,6 +387,11 @@
                     setInterval(runFobLogoutReader, 1000);
                 }
 
+                if(ttvars.enabledb == "1") {
+                    pagecamelDBInit();
+                }
+
+
             });
 
             var foblogoutreader = new XMLHttpRequest();
@@ -460,6 +461,7 @@
             var pagecameldbloaded = 0;
 
             function pagecamelDBInit() {
+                console.log("pagecamelDBInit called **************************************");
 
                 var baseUrl = '/static/sqljs/';
 
@@ -467,7 +469,6 @@
                 // doing the loading. So, we help it find the .wasm file with this function.
                 var fname = baseUrl + 'sql-wasm.wasm';
                 var config = {
-                    //locateFile: filename => `${baseUrl}/${filename}`
                     locateFile: filename => fname
                 };
                 initSqlJs(config).then(function (SQL) {
@@ -479,7 +480,10 @@
                         pagecamelDBSave();
                     }
                     pagecameldbloaded = 1;
-                    console.log("Database loaded");
+                    console.log("************************     Database loaded");
+                    if(window.PagecamelDBOnLoad) {
+                        PagecamelDBOnLoad();
+                    }
                 });
             }
 

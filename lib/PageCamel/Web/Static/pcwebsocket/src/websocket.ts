@@ -10,9 +10,19 @@ interface CallbackList { messagename:string, callbacks:CallbackType[] }
      *
      * Use this class to communicate over a websocket. 
      *
-     * * Register some callback-functions for special messagenames.
+     * * Register some callback-functions for special messagenames/messagetypes.
      *
      * * Use send() to send data to the server
+     * * There are some special messagetypes:
+     * * * ISCONNECTED ... this messagetype informs about the websocket connection status
+     * * * RECIEVED ... this messagetype commits the receiving of a cached message
+     * 
+     * @example
+     * Register first and get the connection status at register
+     * // Adds the getConnectionStatus to "ISCONNECTED"-messagetype an calls the new registered functions with data='1' or '0'
+     * function getConnectionStatus(msgname:string, data:string):void{ console.log("Status=" + data)};
+     * pw = new PCWebsocket();
+     * pw.register("ISCONNECTED", [getConnectionStatus]);
      *
      *
      */
@@ -38,7 +48,7 @@ export class PCWebsocket{
         this._iscaching=caching;
         this._isdebug=debug;
         this._isconnected=false;
-        this._messageList=[];
+        this._messageList = [];
         this._deltatime=1000; //milliseconds
         this._cached_msgs = [];
         this._last_cached_id = 0;
@@ -57,15 +67,17 @@ export class PCWebsocket{
     */
     register(msgname:string, callback:CallbackType[]):void{
         msgname=msgname.toUpperCase();
+        let msgexist = false;
         if (this._messageList.length == 0){
             
             if (this._isdebug) callback.forEach(function (fct) {console.debug("Register " + fct.name + " to messagename " + msgname)});
             this._messageList.push({messagename:msgname,callbacks:callback});
+            
 
 
         } 
         else{
-            let msgexist = false;
+            
             
             for (let i=0; i<this._messageList.length; i++){
                 //first check if msgname exists
@@ -90,6 +102,10 @@ export class PCWebsocket{
                 this._messageList.push({messagename:msgname,callbacks:callback});
             }
         } 
+        if (msgname === "ISCONNECTED" && !msgexist) {
+            //call the callbackfunction for ISCONNECTED at register to get the first isconnected status
+            this._handleMsg({messagename:msgname, callbacks:callback}, msgname, this._isconnected?'1':'0');
+        }
     } 
 
     /**
@@ -183,9 +199,17 @@ export class PCWebsocket{
 
     } 
 
+    initializeSQL(pagecameldb:object):boolean {
+        console.log("Got INIT:");
+        console.log(pagecameldb);
+        return true;
+    }
+
     set isconnected(val:boolean){
         if (typeof(val)=="boolean"){
             this._isconnected=val;
+            //handle "ISCONNECTED" callback
+            this._messageList.forEach((messageListItem) => {this._handleMsg(messageListItem, "ISCONNECTED", this._isconnected?'1':'0')});
         } 
         else{
             console.error("CallbackType.isconnected needs a boolean value");
@@ -242,10 +266,10 @@ export class PCWebsocket{
     }
 
     private _handleMsg(messageListItem:CallbackList, msgname:string, data:string):void {
-        console.log("_handleMsg: " + msgname);
+        if  (this._isdebug) console.debug("_handleMsg: Check message " + msgname + " with messageListItem: " + messageListItem.messagename);
         if (msgname === messageListItem.messagename) {
             //call the registered callbackfunction
-            console.log("Call callback " + messageListItem.callbacks.toString());
+            if  (this._isdebug) console.debug("Call callback " + messageListItem.callbacks.toString());
             messageListItem.callbacks.forEach((cbfunction) => {cbfunction(msgname, data)});
         }
     }

@@ -13,12 +13,17 @@ function onTestMessage2(msgname:string, data:string):void{
     console.log("Callback onTestMessage2: "+ data);
 } 
 
+function getConnectionStatus(msgname:string, data:string):void {
+    console.log("Connection status: " + data);
+}
+
 
 function onLoadExt () {
     window.pcws.register("NOTIFICATION",[onTestMessage] );
     window.pcws.register("RECIEVED",[onTestMessage2] );
     window.pcws.register("testmessage",[onTestMessage, onTestMessage2] );
     
+    window.pcws.register("isconnected", [getConnectionStatus]);
 
     window.pcws.isconnected = true;
 

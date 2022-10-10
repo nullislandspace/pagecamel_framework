@@ -19,6 +19,9 @@
         $('#sqlbutton').on('click', executeSQL);
 
         document.onkeydown = captureF5key;
+
+        console.log('##############################   '); 
+        console.log(pagecameldb);
     }
 
     function executeSQL() {
