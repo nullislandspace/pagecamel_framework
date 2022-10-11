@@ -15,4 +15,5 @@ lib/PageCamel/Web/Static/cxpos/docs
 lib/PageCamel/Web/Static/cxpos/out
 lib/PageCamel/Web/Static/pcwebsocket/docs
 lib/PageCamel/Web/Static/pcwebsocket/out
+lib/PageCamel/Web/Static/pcwebsocket/node_modules
 

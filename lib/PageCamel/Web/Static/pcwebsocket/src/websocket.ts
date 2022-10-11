@@ -1,3 +1,6 @@
+import { PCSqlite } from "./sqlite.js";
+
+
 interface CallbackType { (messagename: string, data:string): void }
 
 declare function wstransmit(msgname:string,data:string,msgid?:string):any;
@@ -41,20 +44,26 @@ export class PCWebsocket{
 
     private _cached_msgs:{msg:string,data:string,id:string}[];
     private _last_cached_id:number;
-    private _timer: number;
+    private _timer:number;
+
+    //database object
+    private _db:PCSqlite|null;
+    private _dbtable:string;
 
   
     constructor(caching=false,debug=false){
         this._iscaching=caching;
         this._isdebug=debug;
         this._isconnected=false;
+        this._db=null;
+        this._dbtable="wstransmit_" + Date.now().toString(); 
         this._messageList = [];
         this._deltatime=1000; //milliseconds
         this._cached_msgs = [];
         this._last_cached_id = 0;
         //start timer
         //this._timer=setInterval(()=>this._timerfunc,this._deltatime);
-        this._timer=setInterval(()=>{this._timerfunc()},this._deltatime);
+        this._timer=window.setInterval(()=>{this._timerfunc()},this._deltatime);
     } 
 
     /**
@@ -178,11 +187,8 @@ export class PCWebsocket{
     */  
     spoolincoming(msgname:string, data:string):void{
         msgname=msgname.toUpperCase();
-        console.log("Type " + msgname + "  Data " + data);
-        /*if(msgname === 'NOTIFICATION') {
-            wstransmit("TOUPPERCASE", "Hello World!");
-            wstransmit("TESTDATA", "some text", "ID0815");
-        }*/
+        if (this._isdebug) console.debug("Type " + msgname + "  Data " + data);
+        
 
         //Commit for a cached message sent
         if (msgname === "RECIEVED") {
@@ -199,9 +205,15 @@ export class PCWebsocket{
 
     } 
 
-    initializeSQL(pagecameldb:object):boolean {
+    initializeSQL(db:PCSqlite):boolean {
         console.log("Got INIT:");
-        console.log(pagecameldb);
+        console.log("DBType: " + typeof(db));
+        if (typeof(db) === "object") {
+            this._db = db;
+            let sqlstring:string = "Create table " + this._dbtable + " if not exists";
+            if (this._isdebug) console.debug("Execute SQL: " + sqlstring);
+            this._db.executeSQL(sqlstring);
+        }
         return true;
     }
 
@@ -273,5 +285,9 @@ export class PCWebsocket{
             messageListItem.callbacks.forEach((cbfunction) => {cbfunction(msgname, data)});
         }
     }
+
+    
+    
+
 
 } 

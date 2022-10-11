@@ -1,7 +1,21 @@
 import { PCWebsocket } from '../websocket.js';
+import { PCSqlite } from '../sqlite.js';
 declare var window: any;
 
+
+
+                // Normally Sql.js tries to load sql-wasm.wasm relative to the page, not relative to the javascript
+                // doing the loading. So, we help it find the .wasm file with this function.
+                var fname = './src/sql-wasm.wasm';
+                var config = {
+                    locateFile: (filename:string) => fname
+                };
+
+
+window.sqlite = new PCSqlite(config,"",true);
 window.pcws = new PCWebsocket(true,true);
+window.pcws.initializeSQL(window.sqlite);
+
 function wstransmit(msgname:string, data:string, id:string) {};
 window.wstransmit = wstransmit;
 
