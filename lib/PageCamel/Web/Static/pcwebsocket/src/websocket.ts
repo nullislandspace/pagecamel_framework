@@ -49,6 +49,7 @@ export class PCWebsocket{
     //database object
     private _db:PCSqlite|null;
     private _dbtable:string;
+    private _dbcaching:boolean;
 
   
     constructor(caching=false,debug=false){
@@ -57,13 +58,16 @@ export class PCWebsocket{
         this._isconnected=false;
         this._db=null;
         this._dbtable="wstransmit_" + Date.now().toString(); 
+        this._dbtable="wstransmit"; 
         this._messageList = [];
         this._deltatime=1000; //milliseconds
         this._cached_msgs = [];
         this._last_cached_id = 0;
+        this._dbcaching = false;
         //start timer
         //this._timer=setInterval(()=>this._timerfunc,this._deltatime);
-        this._timer=window.setInterval(()=>{this._timerfunc()},this._deltatime);
+        //this._timer=window.setInterval(()=>{this._timerfunc()},this._deltatime);
+        this._timer = 0;
     } 
 
     /**
@@ -160,21 +164,35 @@ export class PCWebsocket{
 
     send (msgname:string, mdata:string, caching=false):boolean{
         msgname=msgname.toUpperCase();
+        let sent=false;
         if (this._iscaching && caching) {
             //increment last cached id
-            ++this._last_cached_id;
+            //++this._last_cached_id;
             //cache the message
-            if (this._isdebug) console.debug('Add message to cache: msgname=' + msgname + ' msgid=' + this._last_cached_id);
-            this._cached_msgs.push({msg:msgname,data:mdata,id:this._last_cached_id.toString()});
+            if (this._isdebug) console.debug('Add message to cache: msgname=' + msgname);
+            //this._cached_msgs.push({msg:msgname,data:mdata,id:this._last_cached_id.toString()});
+            let sqlstring = "INSERT INTO " + this._dbtable + "(msg, data) VALUES (?, ?);"
+            try {
+                if (this._db && this._dbcaching) {
+                
+                    this._db.executeSQL(sqlstring, [msgname, mdata]);
+                    sent = true;
+                }
+            }
+            catch (err) {
+                console.error(<string>err);
+            }
+            
+            
             //try to send cached message
             this._send_cached();
         }
         else {
             //if (this._isdebug) console.debug('Sent message direct: msgname=' + msgname);
-            this._sendmsg(msgname,mdata);
+            sent = this._sendmsg(msgname,mdata);
         }
         
-        return true;
+        return sent;
     } 
 
     /**
@@ -206,15 +224,28 @@ export class PCWebsocket{
     } 
 
     initializeSQL(db:PCSqlite):boolean {
-        console.log("Got INIT:");
-        console.log("DBType: " + typeof(db));
+        if (this._isdebug) console.debug("**** initalizeSQL ****");
+        if (this._isdebug) console.debug("DBType: " + typeof(db));
         if (typeof(db) === "object") {
             this._db = db;
-            let sqlstring:string = "Create table " + this._dbtable + " if not exists";
+            let sqlstring:string = "CREATE TABLE IF NOT EXISTS " + this._dbtable + " (msg TEXT, data TEXT);";
             if (this._isdebug) console.debug("Execute SQL: " + sqlstring);
-            this._db.executeSQL(sqlstring);
+            try {
+                this._db.executeSQL(sqlstring);
+                //enable dbcaching
+                if (this._iscaching) this._dbcaching = true;
+            }
+            catch (err) {
+                console.error("initializeSQL error: " + err);
+                //disable dbcaching
+                this._dbcaching = false;
+            }
         }
-        return true;
+        else {
+            //disable dbcaching
+            this._dbcaching = false;
+        }
+        return this._dbcaching;
     }
 
     set isconnected(val:boolean){
@@ -241,10 +272,11 @@ export class PCWebsocket{
         if (this._isconnected) {
             if (this._isdebug)  console.debug("Send message: msgname=" + msgname + " data=" + data + " id=" + id);
             if (id === '') {
-                wstransmit(msgname, data);
+                if (wstransmit(msgname, data)) sent = true;
+                
             }
             else {
-                wstransmit(msgname, data, id);
+                if (wstransmit(msgname, data, id)) sent = true;
             }
         }
         return sent;
@@ -255,24 +287,48 @@ export class PCWebsocket{
 
     private _send_cached():void {
         if (this._isdebug) console.debug("Try to send cached messages...");
-        if (this._cached_msgs.length > 0) {
+        /*if (this._cached_msgs.length > 0) {
             let cached_msg = this._cached_msgs[0];
             this._sendmsg(cached_msg.msg,cached_msg.data,cached_msg.id);
         }
         else {
             this._last_cached_id = 0;
+        }*/
+        let sqlstring = "SELECT rowid, msg, data FROM " + this._dbtable + " ORDER BY rowid LIMIT 1;";
+        try {
+            if (this._db && this._dbcaching) {
+                let row = this._db.executeSQL(sqlstring);
+                if (row && row.length == 1) {
+                    this._sendmsg(row[1].toString(),row[2].toString(),row[0].toString());
+                }
+                
+            }
         }
+        catch (err) {
+            console.error(err);
+        }
+    
     }
 
     private _delete_cached(msgid:string):void {
         if  (this._isdebug) console.debug("Try to delete message from cache: msgid=" + msgid);
-        for (let i=0; i<this._cached_msgs.length; i++) {
+        /*for (let i=0; i<this._cached_msgs.length; i++) {
             if (this._cached_msgs[i].id === msgid) {
                 //remove this item and return
                 if  (this._isdebug) console.debug("Delete message from cache: msgid=" + msgid);
                 this._cached_msgs.splice(i,1);
                 return;
             }
+        }*/
+        let sqlstring = "DELETE FROM " + this._dbtable + " WHERE rowid=?;"
+        try {
+            if (this._db && this._dbcaching) {
+                this._db.executeSQL(sqlstring,[msgid]);
+                
+            }
+        }
+        catch (err) {
+            console.error(err);
         }
         
     }

@@ -12,9 +12,8 @@ declare var window: any;
                 };
 
 
-window.sqlite = new PCSqlite(config,"",true);
-window.pcws = new PCWebsocket(true,true);
-window.pcws.initializeSQL(window.sqlite);
+
+
 
 function wstransmit(msgname:string, data:string, id:string) {};
 window.wstransmit = wstransmit;
@@ -41,11 +40,14 @@ function onLoadExt () {
 
     window.pcws.isconnected = true;
 
-    /*window.pcws.send("Testmessage","Meine Daten sind ziemlich kurz!");
-    window.pcws.send("cachemessage","Meine Daten sind ziemlich kurz!", true);
-    window.pcws.send("cachemessage","Meine Daten sind ziemlich kurz!", true);
-    window.pcws.send("cachemessage","Meine Daten sind ziemlich kurz!", true);
-    */
+    window.sqlite.executeSQL("create table test (msg text, data text);");
+    window.sqlite.executeSQL("insert into test (msg ,data) values ('tt1', 'undsowwwweit');");
+
+    //window.pcws.send("Testmessage","Meine Daten sind ziemlich kurz!");
+    //window.pcws.send("cachemessage","Meine Daten sind ziemlich kurz!", true);
+    //window.pcws.send("cachemessage","Meine Daten sind ziemlich kurz!", true);
+    //window.pcws.send("cachemessage","Meine Daten sind ziemlich kurz!", true);
+    
     window.pcws.deregister("testmessage", [] );
     window.pcws.deregister("testmessage", [onTestMessage] );
     window.pcws.deregister("testmessage", [onTestMessage2] );
@@ -55,11 +57,16 @@ function onLoadExt () {
 
 }
 
-
 document.body.onload = bodyOnLoad;
+
 function bodyOnLoad() {
     main();
 }
 function main() {
-    onLoadExt();
+    window.sqlite = new PCSqlite(config,"pagecamel.sqlite",true);
+    window.pcws = new PCWebsocket(true,true);
+    window.sqlite.initialize.then(()=>{
+        //window.pcws.initializeSQL(window.sqlite)
+        onLoadExt();
+    }).catch((msg:string)=>{console.error("Error at SQL initialisation: " + msg)});   
 }

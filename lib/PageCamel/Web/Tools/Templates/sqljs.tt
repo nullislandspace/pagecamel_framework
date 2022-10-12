@@ -16,36 +16,34 @@
 
         noerror();
 
-        $('#sqlbutton').on('click', executeSQL);
+        $('#sqlbutton').on('click', runSQL);
 
         document.onkeydown = captureF5key;
-
-        console.log('##############################   '); 
-        console.log(pagecameldb);
     }
 
-    function executeSQL() {
+    function runSQL() {
         var statement = $('#sqlinput').val();
-        statement = 'PRAGMA foreign_keys = ON;' + statement;
+        //statement = 'PRAGMA foreign_keys = ON;' + statement;
         console.log(statement);
 
         noerror();
         var results;
         try {
-            results = pagecameldb.exec(statement);
+            results = window.sqlite.executeSQL(statement);
         } catch(fail) {
             console.error(fail);
             error(fail);
             return;
         }
+        console.log("Results: ");
         console.log(results);
 
+/*
         outputElm.innerHTML = "";
         for (var i = 0; i < results.length; i++) {
             outputElm.appendChild(tableCreate(results[i].columns, results[i].values));
         }
-
-        pagecamelDBSave();
+*/
     }
 
     function captureF5key(e) {
@@ -54,7 +52,7 @@
             //avoid from refresh
             e.preventDefault()
             e.stopPropagation()
-            executeSQL();
+            runSQL();
         }
     }
 

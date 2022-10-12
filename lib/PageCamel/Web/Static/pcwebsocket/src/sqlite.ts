@@ -36,19 +36,23 @@ export class PCSqlite {
 
     private _db:initSqlJs.Database|null;
     private _dbloaded:boolean;
-    private _isdebug;
+    private _isdebug:boolean;
+    private _dbstring:string;
+    private _promiseInitialize:Promise<string>;
     
     constructor(config:initSqlJs.SqlJsConfig,dbstring='',debug=false){
         this._dbloaded = false;
         this._isdebug = debug;
         this._db = null;
-        
+        this._dbstring = dbstring;
+        this._promiseInitialize = this._initialize(config,dbstring);
     }
 
     save():void {
-        if (this._db) {
+        if (this._db && this._dbstring != '') {
             var dbstr = this._SQLtoBinString(this._db.export());
-            window.localStorage.setItem("pagecamel.sqlite", dbstr);
+            if (this._isdebug) console.debug("*** save database to " + this._dbstring);
+            window.localStorage.setItem(this._dbstring, dbstr);
         }
     }
 
@@ -62,34 +66,42 @@ export class PCSqlite {
         }
     }
 
-    initialize(config:initSqlJs.SqlJsConfig,dbstring=''):void {
-        if ( (initSqlJs) instanceof Function) {
     
-            if (this._isdebug) console.debug("================ sql.js loaded");
+    get initialize():Promise<string> {
+        return this._promiseInitialize;
+    }
+
+    private _initialize(config:initSqlJs.SqlJsConfig,dbstring=''):Promise<string> {
+        return new Promise((resolve,reject) => {
+            if ( (initSqlJs) instanceof Function) {
         
+                if (this._isdebug) console.debug("================ sql.js loaded");
             
+                
+                
             
-        
-            initSqlJs(config).then((SQL) => {
-                if (this._isdebug) console.debug("################## PROMISE CALLED");
-                var dbstr:string|null = null;
-                if (dbstring != '') {
-                dbstr = window.localStorage.getItem(dbstring);
-                }
-                if (dbstr) {
-                    this._db = new SQL.Database(this._SQLtoBinArray(dbstr));
-                } else {
-                    this._db = new SQL.Database();
-                    this.save();
-                }
-                this._dbloaded = true;
-                if (this._isdebug) console.debug("*****************************  PCSqlite Database loaded");
-            
-            });
-        }
-        else {
-            console.error("========= sql.js not loaded =========");
-        }
+                initSqlJs(config).then((SQL) => {
+                    if (this._isdebug) console.debug("####### PROMISE initSqlJs RESOLVED, PROMISE _initalize CALLED #######");
+                    var dbstr:string|null = null;
+                    if (dbstring != '') {
+                    dbstr = window.localStorage.getItem(dbstring);
+                    }
+                    if (dbstr) {
+                        this._db = new SQL.Database(this._SQLtoBinArray(dbstr));
+                    } else {
+                        this._db = new SQL.Database();
+                        this.save();
+                    }
+                    this._dbloaded = true;
+                    if (this._isdebug) console.debug("****  PCSqlite Database loaded ****");
+                    resolve("PCSqlite initialized");
+                });
+            }
+            else {
+                console.error("========= sql.js not loaded =========");
+                reject("sql.js not loaded");
+            }
+        });
     }
 
     private _SQLtoBinArray(str:string):Uint8Array {
@@ -106,33 +118,63 @@ export class PCSqlite {
         var strings:string[] = [], chunksize = 0xffff;
         // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
 
+        console.log("SQL Backup is " + uarr.length + " bytes large");
         for (var i = 0; i * chunksize < uarr.length; i++) {
             var numarr = Array.from(uarr.subarray(i * chunksize, (i + 1) * chunksize));
             strings.push(String.fromCharCode.apply(null, numarr));
         }
+        console.log("DB SAVE IS " + strings.length + " bytes long");
         return strings.join('');
     }
 
+    private _debug(...args:any[]) {
+        if(!this._isdebug) {
+            return;
+        }
+
+        // foreach loop for args
+    }
+
+    /**
+     * Executes an sql statement and returns a result array or NULL
+     *
+     * @param statement - SQL Statement (with placeholders for parameters)
+     * @param args - Array of parameters to bind to the statement (instead placeholder)
+     *
+     * @returns Rows of result objects or NULL (no results for the sql statement execution)
+     * @throws executeSQL error
+     * 
+    */
     executeSQL(statement:string, ...args:any[]):initSqlJs.ParamsObject[]|null{
         //statement = 'PRAGMA foreign_keys = ON;' + statement;
         //noerror();
         if (this._db) {
-            var results:initSqlJs.ParamsObject[] = [];
-            var stmt:initSqlJs.Statement = this._db.prepare(statement);
+            let results:initSqlJs.ParamsObject[] = [];  
+            let stmt:initSqlJs.Statement = this._db.prepare(statement);
             try {
-                stmt.bind(args);
-                while (stmt.step()) { //
-                    var row = stmt.getAsObject();
-                    results.push(row);
+                if(this._isdebug) {
+                    console.debug(statement);
                 }
+                
+                if (stmt.bind(args)) {
+               
+                    while (stmt.step()) { //
+                        var row = stmt.getAsObject();
+                        results.push(row);
+                    }
+                }
+                
             } catch (fail) {
                 results = [];
                 console.error('sqllite error: ', fail);
                 results.push(stmt.getAsObject(args));
-               
+                //stmt.free();
+                //throw new Error(<string>fail);
+                
             }
             stmt.free();
             //pagecamelDBSave();
+            this.save();
             return results;
         }
         else { return null};
