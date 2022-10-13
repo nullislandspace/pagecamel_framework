@@ -274,8 +274,6 @@ sub get_forcelogout($self, $ua) {
 
 sub get_login($self, $ua) {
 
-    print STDERR "LOGIN\n";
-
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{login}->{pagetitle},
@@ -514,6 +512,7 @@ sub get_login($self, $ua) {
     };
     if(!$templateok) {
         print STDERR "EVAL FAIL: ", $EVAL_ERROR, "\n";
+        return (status => 500);
     }
 
 
@@ -759,7 +758,7 @@ sub get_switchfromuser($self, $ua) {
 
     my $template = $self->{server}->{modules}->{templates}->get("users/switchinguser", 1, %webdata);
     return (status  =>  404) unless $template;
-    print STDERR "***************************** $startpage\n";
+    #print STDERR "***************************** $startpage\n";
     return (status  =>  303,
             location => $startpage,
             type    => "text/html",
@@ -862,8 +861,8 @@ sub adminSwitchToUser($self, $username, $ua) {
 
     $self->{server}->{modules}->{$self->{memcache}}->set($session, $user);
 
-    print STDERR "***************************** User\n";
-    print STDERR Dumper($user);
+    #print STDERR "***************************** User\n";
+    #print STDERR Dumper($user);
 
     return $user->{startpage};
 }
@@ -908,8 +907,8 @@ sub adminSwitchFromUser($self, $ua) {
 
     $self->{server}->{modules}->{$self->{memcache}}->set($session, $user);
 
-    print STDERR "***************************** User\n";
-    print STDERR Dumper($user);
+    #print STDERR "***************************** User\n";
+    #print STDERR Dumper($user);
 
     return $user->{startpage};
 }
@@ -1268,6 +1267,11 @@ sub get_defaultwebdata($self, $webdata) {
 
     if(defined($self->{currentData})) {
         $webdata->{userData} = $self->{currentData};
+    }
+    if(contains('has_developer', $webdata->{userData}->{rights})) {
+        $webdata->{UserIsDeveloper} = 1;
+    } else {
+        $webdata->{UserIsDeveloper} = 0;
     }
     $webdata->{isPublicUrl} = $self->{isPublicUrl};
 
