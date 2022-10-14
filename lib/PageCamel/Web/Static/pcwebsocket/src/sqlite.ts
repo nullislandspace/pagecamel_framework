@@ -1,4 +1,6 @@
 import { exit } from 'process';
+import { InitSqlJsStatic, SqlJsStatic } from 'sql.js';
+import { Database } from 'sql.js';
 //import initSqlJs from 'sql.js';
 //import * as SQLDB from './sql-wasm.js';
 
@@ -7,22 +9,12 @@ const initSqlJs = window.initSqlJs;
 
 
 /**
- * What is the class's single responsibility?
+ * Sqlite database connection class
  * @remarks
  *
- * When should use use the class? What performance benefits, functionality, or other magical power does it confer upon you?
+ * Use this class to create and connect to a local sqlite database
  *
- * * When shouldn't you use the class?
- *
- * * What states does this class furnish?
- *
- * * What behaviors does this class furnish?
- *
- * * Can you inject dependencies into this class?
- *
- * * Are there any situations where it makes sense to extend this class, rather than inject dependencies into it?
- *
- * * How does the code in this class work?
+ * * This class can store a database in a window string or in memory 
  *
  * @example
  * ```typescript
@@ -37,22 +29,25 @@ export class PCSqlite {
     private _db:initSqlJs.Database|null;
     private _dbloaded:boolean;
     private _isdebug:boolean;
-    private _dbstring:string;
+    private _dbname:string;
     private _promiseInitialize:Promise<string>;
+    private _SQL:SqlJsStatic|null;
     
-    constructor(config:initSqlJs.SqlJsConfig,dbstring='',debug=false){
+    
+    constructor(config:initSqlJs.SqlJsConfig,dbname='',debug=false){
         this._dbloaded = false;
         this._isdebug = debug;
         this._db = null;
-        this._dbstring = dbstring;
-        this._promiseInitialize = this._initialize(config,dbstring);
+        this._dbname = dbname;
+        this._SQL = null;
+        this._promiseInitialize = this._initialize(config,dbname);
     }
 
     save():void {
-        if (this._db && this._dbstring != '') {
+        if (this._db && this._dbname != '') {
             var dbstr = this._SQLtoBinString(this._db.export());
-            if (this._isdebug) console.debug("*** save database to " + this._dbstring);
-            window.localStorage.setItem(this._dbstring, dbstr);
+            if (this._isdebug) console.debug("*** save database to " + this._dbname);
+            window.localStorage.setItem(this._dbname, dbstr);
         }
     }
 
@@ -71,7 +66,7 @@ export class PCSqlite {
         return this._promiseInitialize;
     }
 
-    private _initialize(config:initSqlJs.SqlJsConfig,dbstring=''):Promise<string> {
+    private _initialize(config:initSqlJs.SqlJsConfig,dbname=''):Promise<string> {
         return new Promise((resolve,reject) => {
             if ( (initSqlJs) instanceof Function) {
         
@@ -83,8 +78,9 @@ export class PCSqlite {
                 initSqlJs(config).then((SQL) => {
                     if (this._isdebug) console.debug("####### PROMISE initSqlJs RESOLVED, PROMISE _initalize CALLED #######");
                     var dbstr:string|null = null;
-                    if (dbstring != '') {
-                    dbstr = window.localStorage.getItem(dbstring);
+                    this._SQL = SQL;
+                    if (dbname != '') {
+                    dbstr = window.localStorage.getItem(dbname);
                     }
                     if (dbstr) {
                         this._db = new SQL.Database(this._SQLtoBinArray(dbstr));
@@ -123,7 +119,7 @@ export class PCSqlite {
             var numarr = Array.from(uarr.subarray(i * chunksize, (i + 1) * chunksize));
             strings.push(String.fromCharCode.apply(null, numarr));
         }
-        console.log("DB SAVE IS " + strings.length + " bytes long");
+        //console.log("DB SAVE IS " + strings.length + " bytes long");
         return strings.join('');
     }
 
@@ -145,7 +141,7 @@ export class PCSqlite {
      * @throws executeSQL error
      * 
     */
-    executeSQL(statement:string, ...args:any[]):initSqlJs.ParamsObject[]|null{
+    executeSQL(statement:string, ...args:string[]):initSqlJs.ParamsObject[]|null{
         //statement = 'PRAGMA foreign_keys = ON;' + statement;
         //noerror();
         if (this._db) {
@@ -155,13 +151,24 @@ export class PCSqlite {
                 if(this._isdebug) {
                     console.debug(statement);
                 }
+
+                let dbstr:string|null = null;
+                if (this._dbname != '') {
+                    dbstr = window.localStorage.getItem(this._dbname);
+                    if (dbstr && this._SQL) {
+                        this._db = new this._SQL.Database(this._SQLtoBinArray(dbstr));
+                        stmt = this._db.prepare(statement);
+                    }
+                }
                 
                 if (stmt.bind(args)) {
-               
+                    this._logdebug("Execute statement SQL: " + stmt.getNormalizedSQL());
                     while (stmt.step()) { //
                         var row = stmt.getAsObject();
                         results.push(row);
+                        this._logdebug(["row: ", row]);
                     }
+                    this._logdebug(["results: ", results]);
                 }
                 
             } catch (fail) {
@@ -174,13 +181,21 @@ export class PCSqlite {
             }
             stmt.free();
             //pagecamelDBSave();
-            this.save();
+            if( !statement.match(/^select /i)) {
+                this.save();
+            }
+            
             return results;
         }
         else { return null};
         
     }
 
-
+    private _logdebug(...args:any[]):void {
+        if(!this._isdebug) {
+            return;
+        }
+        args.forEach((val)=>{console.debug(val)});
+    }
 
 }

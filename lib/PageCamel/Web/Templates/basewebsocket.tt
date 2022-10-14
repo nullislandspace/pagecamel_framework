@@ -33,7 +33,6 @@
     
     function extraOnLoad() {
 
-        window.pcws = new PCWebsocket(true, true);
         window.pcws.isconnected = !!wsconnected;
         
         if(window.websocketmaskOnload) {
