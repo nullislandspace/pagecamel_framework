@@ -126,7 +126,7 @@ export class CXButton extends CXTextBox {
     /**
      * @description override this to execute code when the button is clicked
      */
-    public onClick: (object: this) => void = (): void => {
+    onClick: (object: this) => void = (): void => {
     }
 
     protected _handleEvent(event: Event): boolean {
@@ -145,6 +145,7 @@ export class CXButton extends CXTextBox {
                 var [x, y] = this._eventToXY(event as MouseEvent);
                 if (this._is_mouse_down && this.isInside(x, y)) {
                     this.onClick(this);
+                    console.log("clicked");
                 }
                 this._is_mouse_down = false;
                 if (this._mouseUpHandler()) {
@@ -252,9 +253,6 @@ export class CXButton extends CXTextBox {
         if (attr.onClick != undefined) {
             this.onClick = attr.onClick;
         }
-    }
-    get attributes(): object {
-        return super.attributes;
     }
 
 }

@@ -40,6 +40,7 @@
 
         [% IF EnableDB == "1" %]
             <script type="text/javascript" src="/static/sqljs/sql-wasm.js[% URLReloadPostfix %]"></script>
+            <script type="module" src="/static/pcwebsocket/import_sqlite.js[% URLReloadPostfix %]"></script>
         [% END %]
 
         [% FOREACH HeadExtraScript IN HeadExtraScripts %]
@@ -140,10 +141,6 @@
                 $("input.gotobutton[type=button]").gotobutton();
 
                 $("span.cavacnote").cavacnote();
-
-                if(ttvars.enabledb == "1") {
-                    pagecamelDBInit();
-                }
 
                 if(window.extraOnLoadBeforeTables) {
                     extraOnLoadBeforeTables();
@@ -391,6 +388,11 @@
                     setInterval(runFobLogoutReader, 1000);
                 }
 
+                if(ttvars.enabledb == "1") {
+                    pagecamelDBInit();
+                }
+
+
             });
 
             var foblogoutreader = new XMLHttpRequest();
@@ -437,55 +439,15 @@
                 return false;
             }
 
-            function SQLtoBinArray(str) {
-                var l = str.length,
-                    arr = new Uint8Array(l);
-                for (var i = 0; i < l; i++) {
-                    arr[i] = str.charCodeAt(i);
-                }
-                return arr;
-            }
-
-            function SQLtoBinString(arr) {
-                var uarr = new Uint8Array(arr);
-                var strings = [], chunksize = 0xffff;
-                // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
-                for (var i = 0; i * chunksize < uarr.length; i++) {
-                    strings.push(String.fromCharCode.apply(null, uarr.subarray(i * chunksize, (i + 1) * chunksize)));
-                }
-                return strings.join('');
-            }
-
-            var pagecameldb;
-            var pagecameldbloaded = 0;
 
             function pagecamelDBInit() {
+                console.log("pagecamelDBInit called **************************************");
 
-                var baseUrl = '/static/sqljs/';
-
-                // Normally Sql.js tries to load sql-wasm.wasm relative to the page, not relative to the javascript
-                // doing the loading. So, we help it find the .wasm file with this function.
-                var fname = baseUrl + 'sql-wasm.wasm';
-                var config = {
-                    //locateFile: filename => `${baseUrl}/${filename}`
-                    locateFile: filename => fname
-                };
-                initSqlJs(config).then(function (SQL) {
-                    var dbstr = window.localStorage.getItem("pagecamel.sqlite");
-                    if (dbstr) {
-                        pagecameldb = new SQL.Database(SQLtoBinArray(dbstr));
-                    } else {
-                        pagecameldb = new SQL.Database();
-                        pagecamelDBSave();
+                window.sqlite.initialize.then(()=>{
+                    if(window.pcws) {
+                        window.pcws.initializeSQL(window.sqlite);
                     }
-                    pagecameldbloaded = 1;
-                    console.log("Database loaded");
-                });
-            }
-
-            function pagecamelDBSave() {
-                var dbstr = SQLtoBinString(pagecameldb.export());
-                window.localStorage.setItem("pagecamel.sqlite", dbstr);
+                }).catch((msg)=>{console.error("Error at SQL initialisation: " + msg)});
             }
 
         </script>

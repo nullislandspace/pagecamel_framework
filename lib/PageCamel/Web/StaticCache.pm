@@ -329,9 +329,12 @@ sub execute_external_command($self, $cmd, $ofh) {
 
     unless ($child_pid = open(OUTPUT, '-|')) {
       open(STDERR, ">&STDOUT");
-      exec($cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
+      {
+          exec('/bin/true | ' . $cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
+      }
       croak("ERROR: Could not execute program: $ERRNO");
     }
+    print "Waiting for child $child_pid\n";
     waitpid($child_pid, 0);
     $child_rc = $CHILD_ERROR >> 8;
 
@@ -347,6 +350,10 @@ sub execute_external_command($self, $cmd, $ofh) {
     eval {
         close(OUTPUT);
     };
+
+    if(!$ok) {
+        print "ERROR EXECUTING CHILD!\n";
+    }
 
     return $ok;
 

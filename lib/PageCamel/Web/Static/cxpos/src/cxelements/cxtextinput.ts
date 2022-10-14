@@ -21,7 +21,7 @@ export class CXTextInput extends CXTextBox {
      * @param {boolean} is_relative - if the element is relative to the canvas or absolute
      * @param {boolean} redraw - if the element can redraw itself
      */
-    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean = true, redraw: boolean = true) {
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, is_relative: boolean, redraw: boolean) {
         super(ctx, x, y, width, height, is_relative, redraw);
         super._text_alignment = 'left';
         super._takes_keyboard_input = true;
