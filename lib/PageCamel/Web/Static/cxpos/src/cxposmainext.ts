@@ -166,6 +166,7 @@ function drawCanvas() {
     ctx.clearRect(0, 0, htmlcnv.width, htmlcnv.height);
     ctx.fillStyle = "#b3b3b3ff";
     ctx.fillRect(0, 0, htmlcnv.width, htmlcnv.height);
+    console.log("drawing Viewelements");
     for (let i = 0; i < viewelements.length; ++i) {
         viewelements[i].draw();
     }
@@ -190,8 +191,9 @@ export function cxposmainext() {
     //table.number = 1;
     let tableplan = new cxv.CXTablePlanView(ctx);
     tableplan.tables = temporary_tables;
+    tableplan.active = false;
     var posview = new cxv.CXPosView(ctx);
-    posview.active = false;
+    //posview.active = false;
 
     tableplan.onAddImageClick = function () {
         cxa.openImageFileDialog('upload', tableplan.onImageSelected);
@@ -206,7 +208,7 @@ export function cxposmainext() {
     tableplan.onTableSelected = (obj: CXButton) => {
         table_list.forEach(table => {
             if (String(table.number) == obj.name) { // select table where the name matches
-                posview.selectedTable = table;
+                // posview.selectedTable = table;
             }
         });
         posview.active = true;
@@ -219,5 +221,5 @@ export function cxposmainext() {
 
     var test_table: cxa.CXTable = new cxa.CXTable();
     test_table.makeOrderList([{ article: {}, quantity: 1, booked: false, id: 1, timestamp: 0 }, { article: {}, quantity: 1, booked: false, id: 1, timestamp: 0}]);
-    console.log(test_table.orderList);
+    console.log('it made it here');
 }

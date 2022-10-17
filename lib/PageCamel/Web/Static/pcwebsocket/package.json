@@ -2,5 +2,9 @@
   "dependencies": {
     "@types/sql.js": "^1.4.4",
     "sql.js": "^1.8.0"
+  },
+  "devDependencies": {
+    "eslint-plugin-tsdoc": "^0.2.17",
+    "typedoc": "^0.23.16"
   }
 }

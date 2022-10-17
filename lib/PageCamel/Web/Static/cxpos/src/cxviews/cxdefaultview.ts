@@ -57,6 +57,7 @@ export class CXDefaultView extends CXBox {
 
     protected _draw() {
         super._draw();
+        console.log("CXDefaultView: _draw()");
         this._elements.forEach(element => {
             element.draw(super._px, super._py, super._pwidth, super._pheight);
         });

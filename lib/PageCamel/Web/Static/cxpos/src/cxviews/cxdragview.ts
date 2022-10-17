@@ -300,5 +300,4 @@ export class CXDragView extends CXDefaultView {
         this._has_changed = true;
         this._tryRedraw();
     }
-
 }

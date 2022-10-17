@@ -410,8 +410,8 @@ export class CXDefault {
      * @param {boolean} state - if the element is visible or not
      */
     set active(state: boolean) {
-        this._tryRedraw();
         this._active = state;
+        this._tryRedraw();
     }
     get active(): boolean {
         this._tryRedraw();
