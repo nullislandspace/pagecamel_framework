@@ -67,7 +67,7 @@ export class CXDefaultView extends CXBox {
         super(ctx, x, y, width, height, is_relative, redraw);
         this._table = new CXTable();
         this.background_color = '#b3b3b3ff';
-
+        this.border_width = 0;
     }
 
     set Table(table: CXTable) {
