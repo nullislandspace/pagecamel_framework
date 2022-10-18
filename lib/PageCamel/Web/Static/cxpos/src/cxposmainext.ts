@@ -1,6 +1,7 @@
 import * as cxv from './cxviews/cxviews.js';
 import * as cxa from './cxadds/cxadds.js';
 import { CXButton } from './cxelements/cxbutton.js';
+declare var window: any;
 var temporary_tables = [
     {
         "default_cursor": "default",
@@ -184,6 +185,7 @@ function generateTableList(tableplan_tables: any[]) {
     return table_list;
 }
 
+
 export function cxposmainext() {
     initialize();
     //var table = new cxa.CXTable();
@@ -193,6 +195,15 @@ export function cxposmainext() {
     tableplan.tables = temporary_tables;
     tableplan.active = false;
     var posview = new cxv.CXPosView(ctx);
+
+    console.log("**********************++++++++++++******");
+    posview.pcwebsocket = window.pcws;
+    console.log("got websocket", window.pcws);
+    console.log("set websocket", window.pcws);
+    posview.processArticlesCB = function () {
+        console.log("Got articles");
+    }
+    posview.sendMsgGetArticles();
     //posview.active = false;
 
     tableplan.onAddImageClick = function () {
@@ -201,8 +212,6 @@ export function cxposmainext() {
     tableplan.onAddBackgroundImageClick = function () {
         cxa.openImageFileDialog('upload', tableplan.onBackgroundImageSelected);
     }
-
-
     var table_list = generateTableList(temporary_tables); // list of tables
 
     tableplan.onTableSelected = (obj: CXButton) => {
@@ -220,6 +229,5 @@ export function cxposmainext() {
     drawCanvas();
 
     var test_table: cxa.CXTable = new cxa.CXTable();
-    test_table.makeOrderList([{ article: {}, quantity: 1, booked: false, id: 1, timestamp: 0 }, { article: {}, quantity: 1, booked: false, id: 1, timestamp: 0}]);
-    console.log('it made it here');
+    test_table.makeOrderList([{ article: {}, quantity: 1, booked: false, id: 1, timestamp: 0 }, { article: {}, quantity: 1, booked: false, id: 1, timestamp: 0 }]);
 }

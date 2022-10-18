@@ -1,8 +1,9 @@
 import { CXBox } from "../cxelements/cxbox.js";
 import { CXTable } from "../cxadds/cxtable.js";
+import { PCWebsocket } from "../../../pcwebsocket/src/websocket.js";
 export class CXDefaultView extends CXBox {
     private _table: CXTable;
-
+    protected _pcwebsocket: PCWebsocket | null = null;
     // attributes for a button with a general function 
     protected _general_func_buttons: { border_radius: number, gradient: string[], border_color: string, border_width: number } = {
         border_radius: 0.1,
@@ -39,7 +40,12 @@ export class CXDefaultView extends CXBox {
         border_width: 0.02,
         background_color: '#ffffffff',
     };
-
+    constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
+        super(ctx, x, y, width, height, is_relative, redraw);
+        this._table = new CXTable();
+        this.background_color = '#b3b3b3ff';
+        this.border_width = 0;
+    }
 
 
     protected _handleEvent(event: Event): boolean {
@@ -62,19 +68,17 @@ export class CXDefaultView extends CXBox {
             element.draw(super._px, super._py, super._pwidth, super._pheight);
         });
     }
-
-    constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
-        super(ctx, x, y, width, height, is_relative, redraw);
-        this._table = new CXTable();
-        this.background_color = '#b3b3b3ff';
-        this.border_width = 0;
-    }
-
     set Table(table: CXTable) {
         this._table = table;
     }
-
     get Table(): CXTable {
         return this._table;
     }
+    set pcwebsocket(pcwebsocket: PCWebsocket | null) {
+        this._pcwebsocket = pcwebsocket;
+    }
+    get pcwebsocket(): PCWebsocket | null {
+        return this._pcwebsocket;
+    }
+    
 }
