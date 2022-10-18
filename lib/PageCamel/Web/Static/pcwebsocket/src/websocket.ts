@@ -54,6 +54,12 @@ export class PCWebsocket{
     private _getrowsql:string;
     private _deleterowsql:string;
     private _insertrowsql:string;
+    private _countcacheditemssql:string;
+
+    //internal operation messages
+    private _msgoutboxempty:string="OUTBOXEMPTY";
+    private _msgrecieved:string="RECIEVED";
+    private _msgisconnected:string="ISCONNECTED";
 
   /**
    * Constructor for class
@@ -76,6 +82,7 @@ export class PCWebsocket{
         this._deleterowsql="DELETE FROM " + this._dbtable + " WHERE rowid=?;";
         this._insertrowsql="INSERT INTO " + this._dbtable + "(time, msg, data) VALUES (strftime('%f','now'),?, ?);";
         //this._insertrowsql="INSERT INTO " + this._dbtable + "(msg, data) VALUES (?, ?);";
+        this._countcacheditemssql= "SELECT count(*) as num FROM " + this._dbtable + ";";
 
 
         this._messageList = [];
@@ -134,7 +141,7 @@ export class PCWebsocket{
                 this._messageList.push({messagename:msgname,callbacks:callback});
             }
         } 
-        if (msgname === "ISCONNECTED" && !msgexist) {
+        if (msgname === this._msgisconnected && !msgexist) {
             //call the callbackfunction for ISCONNECTED at register to get the first isconnected status
             this._handleMsg({messagename:msgname, callbacks:callback}, msgname, this._isconnected?'1':'0');
         }
@@ -244,7 +251,7 @@ export class PCWebsocket{
         
 
         //Commit for a cached message sent
-        if (msgname === "RECIEVED") {
+        if (msgname === this._msgrecieved) {
             this._delete_cached(data);
             //try to send new cached message
             this._send_cached();
@@ -305,7 +312,7 @@ export class PCWebsocket{
         if (typeof(val)=="boolean"){
             this._isconnected=val;
             //handle "ISCONNECTED" callback
-            this._messageList.forEach((messageListItem) => {this._handleMsg(messageListItem, "ISCONNECTED", this._isconnected?'1':'0')});
+            this._messageList.forEach((messageListItem) => {this._handleMsg(messageListItem, this._msgisconnected, this._isconnected?'1':'0')});
         } 
         else{
             console.error("CallbackType.isconnected needs a boolean value");
@@ -378,7 +385,12 @@ export class PCWebsocket{
         try {
             if (this._db && this._dbcaching) {
                 this._db.executeSQL(this._deleterowsql,msgid);
-                
+                //if dbcache is empty send an OUTBOXEMPTY message
+                let num = this._db.executeSQL(this._countcacheditemssql);
+                this._logdebug("Number of cached items: ", num![0].num);
+                if (num![0].num == 0) {
+                    this.send(this._msgoutboxempty,"",false);
+                }
             }
         }
         catch (err) {
