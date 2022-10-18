@@ -167,9 +167,9 @@ function drawCanvas() {
     ctx.fillStyle = "#b3b3b3ff";
     ctx.fillRect(0, 0, htmlcnv.width, htmlcnv.height);
     console.log("drawing Viewelements");
-    for (let i = 0; i < viewelements.length; ++i) {
-        viewelements[i].draw();
-    }
+    viewelements.forEach(viewelement => {
+        viewelement.draw();
+    });
 }
 
 
