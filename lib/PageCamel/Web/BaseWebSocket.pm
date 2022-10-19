@@ -404,6 +404,7 @@ sub sockethandler($self, $ua) {
                     $socketclosed = 1;
                     last;
                 }
+                print STDERR "******************** " . Dumper($realmsg) . " **********************\n";
 
                 if($realmsg->{type} eq 'PING') {
                     $timeout = time + $settings{client_disconnect_timeout};

@@ -199,13 +199,12 @@ export function cxposmainext() {
     console.log("**********************++++++++++++******");
     posview.pcwebsocket = window.pcws;
     console.log("got websocket", window.pcws);
-    console.log("set websocket", window.pcws);
+    console.log("set websocket", posview.pcwebsocket);
     posview.processArticlesCB = function () {
         console.log("Got articles");
     }
     posview.sendMsgGetArticles();
     //posview.active = false;
-
     tableplan.onAddImageClick = function () {
         cxa.openImageFileDialog('upload', tableplan.onImageSelected);
     }
