@@ -191,6 +191,21 @@ export class PCSqlite {
         
     }
 
+    reset(): boolean {
+        if (this._SQL) {
+            this._logdebug("Create new database and save it");
+            this._db = new this._SQL.Database();
+            this.save();
+            return true;
+        }
+        else {
+            console.error("No PCSqlite._SQL object available. Can't create a new database.");
+            return false;
+        }
+        
+        
+    }
+
     private _logdebug(...args:any[]):void {
         if(!this._isdebug) {
             return;
