@@ -59,6 +59,8 @@ function onLoadExt () {
     window.pcws.deregister("testmessage", [onTestMessage2] );
     window.pcws.deregister("testmessage2", [onTestMessage2] );
 
+    window.pcws.reset();
+
 
 
 }

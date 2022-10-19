@@ -28,12 +28,12 @@ export function onLoadExt () {
 
     //dirbutton.addEventListener('click', (e:Event) => onDirectClick());
 
-    window.pcws.register("NOTIFICATION",[onTestMessage] );
+    window.pcws.register("UPPERCASED",[onTestMessage] );
     window.pcws.register("RECIEVED",[onTestMessage2] );
     window.pcws.register("RECIEVED",[onTestMessage] );
     window.pcws.register("ISCONNECTED", [getConnectionStatus]);
 
-    window.pcws.send("Testmessage","Meine Daten sind ziemlich kurz!");
+    window.pcws.send("TOUPPERCASE","Meine Daten sind ziemlich kurz!", false);
     window.pcws.send("cachemessage","Meine 1. cached Daten sind ziemlich kurz!", true);
     window.pcws.send("cachemessage","Meine 2. cached Daten sind ziemlich kurz!", true);
     window.pcws.send("cachemessage","Meine 3. cached Daten sind ziemlich kurz!", true);

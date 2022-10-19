@@ -50,11 +50,12 @@ export class PCWebsocket{
     private _db:PCSqlite|null;
     private _dbtable:string;
     private _dbcaching:boolean;
-    private _createdbsql:string;
+    private _createtablesql:string;
     private _getrowsql:string;
     private _deleterowsql:string;
     private _insertrowsql:string;
     private _countcacheditemssql:string;
+    private _droptablesql:string;
 
     //internal operation messages
     private _msgoutboxempty:string="OUTBOXEMPTY";
@@ -75,8 +76,9 @@ export class PCWebsocket{
         this._db=null;
         this._dbtable="wstransmit_" + Date.now().toString(); 
         this._dbtable="wstransmit"; 
-        this._createdbsql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (time INT, msg TEXT, data TEXT);";
+        this._createtablesql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (time INT, msg TEXT, data TEXT);";
         //this._createdbsql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (msg TEXT, data TEXT);";
+        this._droptablesql="DROP TABLE " + this._dbtable + ";";
         this._getrowsql="SELECT rowid, msg, data FROM " + this._dbtable + " ORDER BY time,rowid LIMIT 1;";
         //this._getrowsql="SELECT rowid, msg, data FROM " + this._dbtable + " ORDER BY rowid LIMIT 1;";
         this._deleterowsql="DELETE FROM " + this._dbtable + " WHERE rowid=?;";
@@ -238,6 +240,25 @@ export class PCWebsocket{
     } 
 
     /**
+     * Reset the cache database and remove all external callbacks and message types
+     * 
+     * 
+     * 
+    */
+    reset(): void {
+        this._messageList=[];
+        if (this._db && this._db.reset()) {
+            this._logdebug("DB reseted");
+            this._db.executeSQL(this._createtablesql);
+        }
+        else if (this._db) {
+            this._logdebug("try to remove the table");
+            this._db.executeSQL(this._droptablesql);
+            this._db.executeSQL(this._createtablesql);
+        }
+    }
+
+    /**
      * get message from server and call the registered callbacks
      *
      * @param msgname - message type
@@ -289,9 +310,9 @@ export class PCWebsocket{
         if (typeof(db) === "object") {
             this._db = db;
             
-            this._logdebug("Execute SQL: " + this._createdbsql);
+            this._logdebug("Execute SQL: " + this._createtablesql);
             try {
-                this._db.executeSQL(this._createdbsql);
+                this._db.executeSQL(this._createtablesql);
                 //enable dbcaching
                 if (this._iscaching) this._dbcaching = true;
             }
