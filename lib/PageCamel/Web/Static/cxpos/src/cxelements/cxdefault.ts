@@ -313,7 +313,7 @@ export class CXDefault {
         var handled: boolean = false;
         if (this._active) {
             handled = this._handleEvent(event);
-            console.debug("handled: " + this._name);
+            // console.debug("handled: " + this._name);
         }
         return handled;
     }

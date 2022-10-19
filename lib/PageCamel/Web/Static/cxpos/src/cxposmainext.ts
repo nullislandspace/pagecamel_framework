@@ -193,18 +193,18 @@ export function cxposmainext() {
     //table.number = 1;
     let tableplan = new cxv.CXTablePlanView(ctx);
     tableplan.tables = temporary_tables;
-    tableplan.active = false;
+    //tableplan.active = false;
     var posview = new cxv.CXPosView(ctx);
 
-    console.log("**********************++++++++++++******");
     posview.pcwebsocket = window.pcws;
     console.log("got websocket", window.pcws);
     console.log("set websocket", posview.pcwebsocket);
     posview.processArticlesCB = function () {
         console.log("Got articles");
     }
-    posview.sendMsgGetArticles();
-    //posview.active = false;
+    // posview.sendMsgGetArticles();
+
+    posview.active = false;
     tableplan.onAddImageClick = function () {
         cxa.openImageFileDialog('upload', tableplan.onImageSelected);
     }

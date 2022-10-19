@@ -64,6 +64,7 @@ export class CXBox extends CXFrame {
      */
     protected _checkGradient(): void {
         if (this._gradient.length > 1) {
+            console.log("gradient", this._xpixel, this._ypixel, this._widthpixel, this._heightpixel);
             var grd = this._ctx.createLinearGradient(this.xpixel, this.ypixel, this.xpixel, this.ypixel + this.heightpixel);
             var step_size = 1 / (this._gradient.length - 1);
             for (var i = 0; i < this._gradient.length; i++) {

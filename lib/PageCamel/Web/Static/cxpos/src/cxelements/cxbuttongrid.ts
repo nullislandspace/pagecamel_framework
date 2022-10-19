@@ -136,7 +136,7 @@ export class CXButtonGrid extends CXDefault {
     /**
      * @protected
      */
-    _draw() {
+    _draw(): void {
         this._drawNumpad();
     }
     /**

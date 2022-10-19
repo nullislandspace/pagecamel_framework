@@ -3,6 +3,8 @@ import { CXTable } from "../cxadds/cxtable.js";
 import { PCWebsocket } from "../../../pcwebsocket/src/websocket.js";
 export class CXDefaultView extends CXBox {
     private _table: CXTable;
+    private _isconnected : boolean = false;
+
     protected _pcwebsocket: PCWebsocket | null = null;
     // attributes for a button with a general function 
     protected _general_func_buttons: { border_radius: number, gradient: string[], border_color: string, border_width: number } = {
@@ -49,14 +51,18 @@ export class CXDefaultView extends CXBox {
 
 
     protected _handleEvent(event: Event): boolean {
+        console.log('elements: ' + this._elements.length);
         this._elements.forEach(element => {
             if (element.checkEvent(event)) {
                 element.handleEvent(event);
+                console.log('element handled event', element.has_changed);
                 if (element.has_changed) {
                     this._has_changed = true;
                 }
             }
         });
+        console.log('has_changed: ' + this._has_changed);
+        console.log('try to redraw');
         this._tryRedraw();
         return this._has_changed;
     }
@@ -68,6 +74,24 @@ export class CXDefaultView extends CXBox {
             element.draw(super._px, super._py, super._pwidth, super._pheight);
         });
     }
+
+    protected _connectStatusChanged(messagename : string, isconnected : string):void {
+        this._isconnected = (isconnected == '1');
+        if(this._isconnected) {
+            this._handleWebsocketConnect();
+        } else {
+            this._handleWebsocketDisconnect();
+        }
+    }
+
+    protected _handleWebsocketConnect():void {
+        return;
+    }
+
+    protected _handleWebsocketDisconnect():void {
+        return;
+    }
+
     set Table(table: CXTable) {
         this._table = table;
     }
@@ -76,6 +100,7 @@ export class CXDefaultView extends CXBox {
     }
     set pcwebsocket(pcwebsocket: PCWebsocket | null) {
         this._pcwebsocket = pcwebsocket;
+        this._pcwebsocket?.register('ISCONNECTED', [this._connectStatusChanged.bind(this)]);
     }
     get pcwebsocket(): PCWebsocket | null {
         return this._pcwebsocket;
