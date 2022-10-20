@@ -1,8 +1,11 @@
 import { CXBox } from "../cxelements/cxbox.js";
 import { CXTable } from "../cxadds/cxtable.js";
+import { PCWebsocket } from "../../../pcwebsocket/src/websocket.js";
 export class CXDefaultView extends CXBox {
     private _table: CXTable;
+    private _isconnected : boolean = false;
 
+    protected _pcwebsocket: PCWebsocket | null = null;
     // attributes for a button with a general function 
     protected _general_func_buttons: { border_radius: number, gradient: string[], border_color: string, border_width: number } = {
         border_radius: 0.1,
@@ -39,7 +42,12 @@ export class CXDefaultView extends CXBox {
         border_width: 0.02,
         background_color: '#ffffffff',
     };
-
+    constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
+        super(ctx, x, y, width, height, is_relative, redraw);
+        this._table = new CXTable();
+        this.background_color = '#b3b3b3ff';
+        this.border_width = 0;
+    }
 
 
     protected _handleEvent(event: Event): boolean {
@@ -62,18 +70,35 @@ export class CXDefaultView extends CXBox {
         });
     }
 
-    constructor(ctx: CanvasRenderingContext2D, x: number = 0, y: number = 0, width: number = 1.0, height: number = 1.0, is_relative = true, redraw = true) {
-        super(ctx, x, y, width, height, is_relative, redraw);
-        this._table = new CXTable();
-        this.background_color = '#b3b3b3ff';
+    protected _connectStatusChanged(messagename : string, isconnected : string):void {
+        this._isconnected = (isconnected == '1');
+        if(this._isconnected) {
+            this._handleWebsocketConnect();
+        } else {
+            this._handleWebsocketDisconnect();
+        }
+    }
 
+    protected _handleWebsocketConnect():void {
+        return;
+    }
+
+    protected _handleWebsocketDisconnect():void {
+        return;
     }
 
     set Table(table: CXTable) {
         this._table = table;
     }
-
     get Table(): CXTable {
         return this._table;
     }
+    set pcwebsocket(pcwebsocket: PCWebsocket | null) {
+        this._pcwebsocket = pcwebsocket;
+        this._pcwebsocket?.register('ISCONNECTED', [this._connectStatusChanged.bind(this)]);
+    }
+    get pcwebsocket(): PCWebsocket | null {
+        return this._pcwebsocket;
+    }
+    
 }

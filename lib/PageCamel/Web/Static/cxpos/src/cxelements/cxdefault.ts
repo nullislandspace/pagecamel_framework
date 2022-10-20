@@ -84,23 +84,25 @@ export class CXDefault {
      * @param {number} pheight - height of the element in pixels
      */
     draw(px: number = 0, py: number = 0, pwidth: number = this._ctx.canvas.width, pheight: number = this._ctx.canvas.height): void {
-        this._px = px;
-        this._py = py;
-        this._pwidth = pwidth;
-        this._pheight = pheight;
-        var [xpixel, ypixel, widthpixel, heightpixel] = this._calcRelativePositions(px, py, pwidth, pheight);
-        this._xpixel = xpixel;
-        this._ypixel = ypixel;
-        this._widthpixel = widthpixel;
-        this._heightpixel = heightpixel;
-        this._convertToPixel();
-        if (this._redraw) {
-            this._clear();
-        }
-        this._has_changed = false;
         if (this._active) {
-            this._checkOverflow(this._xpos, this._ypos, this._width, this._height);
-            this._draw();
+            this._px = px;
+            this._py = py;
+            this._pwidth = pwidth;
+            this._pheight = pheight;
+            var [xpixel, ypixel, widthpixel, heightpixel] = this._calcRelativePositions(px, py, pwidth, pheight);
+            this._xpixel = xpixel;
+            this._ypixel = ypixel;
+            this._widthpixel = widthpixel;
+            this._heightpixel = heightpixel;
+            this._convertToPixel();
+            if (this._redraw) {
+                this._clear();
+            }
+            this._has_changed = false;
+            if (this._active) {
+                this._checkOverflow(this._xpos, this._ypos, this._width, this._height);
+                this._draw();
+            }
         }
     }
     /**
@@ -311,7 +313,7 @@ export class CXDefault {
         var handled: boolean = false;
         if (this._active) {
             handled = this._handleEvent(event);
-            console.debug("handled: " + this._name);
+            // console.debug("handled: " + this._name);
         }
         return handled;
     }
@@ -410,8 +412,8 @@ export class CXDefault {
      * @param {boolean} state - if the element is visible or not
      */
     set active(state: boolean) {
-        this._tryRedraw();
         this._active = state;
+        this._tryRedraw();
     }
     get active(): boolean {
         this._tryRedraw();
