@@ -87,6 +87,9 @@ export class CXDefaultView extends CXBox {
         return;
     }
 
+    /**
+     * @param table - The table for the view to work with
+     */
     set Table(table: CXTable) {
         this._table = table;
     }

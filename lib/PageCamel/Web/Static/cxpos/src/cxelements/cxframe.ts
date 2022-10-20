@@ -131,6 +131,9 @@ export class CXFrame extends CXDefault {
     get border_width(): number {
         return this._border_width;
     }
+    /**
+     * @param state - If the border width is relative to the height
+     */
     set border_relative(state: boolean) {
         this._border_relative = state;
     }
