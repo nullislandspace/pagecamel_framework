@@ -544,10 +544,13 @@
                     [% ELSE %]
                         [% IF userData.keyfob_logout %]<i>[% END %]
                         [% IF IsAprilFoolsDay == "1" %]
-                            <div class="webgui_projectusername">The great and powerful [% tr.quote(userData.first_name) %]&nbsp;/&nbsp;
+                            <div class="webgui_projectusername">Sir [% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %]
+                        [% ELSIF UserIsDeveloper == "1" %]
+                            <div class="webgui_projectusername">The great and powerful [% tr.quote(userData.first_name) %]
                         [% ELSE %]
-                            <div class="webgui_projectusername">[% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %][% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
+                            <div class="webgui_projectusername">[% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %]
                         [% END %]
+                        [% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
                         <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a>
                         [% IF userData.hasrealuser == 1 %]
                             / <a class="webgui_projectloginlink" href="/user/switchback">[% tr.trquote("Back") %]</a>

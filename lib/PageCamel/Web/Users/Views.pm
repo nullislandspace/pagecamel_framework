@@ -210,23 +210,25 @@ sub get_late_defaultwebdata($self, $webdata) {
     }
 
     # First, fake the active url if it's some aliasfor entry
-    my $activeURL = $webdata->{userData}->{activeurl};
-    foreach my $aliasurl (keys %{$self->{aliases}}) {
-        if($activeURL =~ /^$aliasurl/) {
-            $activeURL = $self->{aliases}->{$aliasurl};
+    if(defined($webdata->{userData}->{activeurl})) {
+        my $activeURL = $webdata->{userData}->{activeurl};
+        foreach my $aliasurl (keys %{$self->{aliases}}) {
+            if($activeURL =~ /^$aliasurl/) {
+                $activeURL = $self->{aliases}->{$aliasurl};
+            }
         }
+
+        # Calculate dropdownmenu
+        my @rights = @{$webdata->{userData}->{rights}};
+        my @dropdownmenu;
+        my @activeview;
+
+        $self->iterateViews($webdata, \@dropdownmenu, \@activeview, \@rights, $activeURL, $self->{views}->{view});
+
+        $webdata->{DropDownMenu} = \@dropdownmenu;
+        $webdata->{DropDownMenuCount} = scalar @dropdownmenu;
+        $webdata->{QuickNavBar} = \@activeview;
     }
-
-    # Calculate dropdownmenu
-    my @rights = @{$webdata->{userData}->{rights}};
-    my @dropdownmenu;
-    my @activeview;
-
-    $self->iterateViews($webdata, \@dropdownmenu, \@activeview, \@rights, $activeURL, $self->{views}->{view});
-
-    $webdata->{DropDownMenu} = \@dropdownmenu;
-    $webdata->{DropDownMenuCount} = scalar @dropdownmenu;
-    $webdata->{QuickNavBar} = \@activeview;
 
     return;
 }
