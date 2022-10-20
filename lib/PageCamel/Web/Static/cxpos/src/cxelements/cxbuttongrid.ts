@@ -108,14 +108,15 @@ export class CXButtonGrid extends CXDefault {
                         button.border_radius = Math.ceil(0.1 * button_height);
                         button.font_size = Math.ceil(this._font_size * button_height);
                     }
+                    //overwrite default settings with the given button attributes
+                    if (this._button_attributes) {
+                        button.attributes = this._button_attributes;
+                    }
                     if (typeof this._buttons_text_block[rw][col] != 'string') {
                         //if object overwrite the default values
                         button.attributes = <object>this._buttons_text_block[rw][col];
                     }
-                    //overwrite all settings with button attributes settings
-                    if (this._button_attributes) {
-                        button.attributes = this._button_attributes;
-                    }
+                    
                     row.push(button);
                 }
             }

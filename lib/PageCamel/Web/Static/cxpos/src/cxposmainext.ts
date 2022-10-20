@@ -216,7 +216,7 @@ export function cxposmainext() {
     tableplan.onTableSelected = (obj: CXButton) => {
         table_list.forEach(table => {
             if (String(table.number) == obj.name) { // select table where the name matches
-                // posview.selectedTable = table;
+                posview.selectedTable = table;
             }
         });
         posview.active = true;

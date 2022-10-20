@@ -51,25 +51,20 @@ export class CXDefaultView extends CXBox {
 
 
     protected _handleEvent(event: Event): boolean {
-        console.log('elements: ' + this._elements.length);
         this._elements.forEach(element => {
             if (element.checkEvent(event)) {
                 element.handleEvent(event);
-                console.log('element handled event', element.has_changed);
                 if (element.has_changed) {
                     this._has_changed = true;
                 }
             }
         });
-        console.log('has_changed: ' + this._has_changed);
-        console.log('try to redraw');
         this._tryRedraw();
         return this._has_changed;
     }
 
     protected _draw() {
         super._draw();
-        console.log("CXDefaultView: _draw()");
         this._elements.forEach(element => {
             element.draw(super._px, super._py, super._pwidth, super._pheight);
         });

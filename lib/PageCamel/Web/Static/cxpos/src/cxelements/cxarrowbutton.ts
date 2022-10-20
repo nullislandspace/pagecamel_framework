@@ -44,17 +44,18 @@ export class CXArrowButton extends CXButton {
             this._ctx.lineTo(this.xpixel + this._arrow_width_pixel, this.ypixel + this.heightpixel / 2 - this._arrow_height_pixel / 2);
             this._ctx.lineTo(this.xpixel + this._arrow_width_pixel, this.ypixel + this.heightpixel / 2 + this._arrow_height_pixel / 2);
         }
-        else if (this._arrow_direction == "up") {
-            // draw an arrow pointing to the top
-            this._ctx.moveTo(this.xpixel + this.widthpixel / 2, this.ypixel);
-            this._ctx.lineTo(this.xpixel + this.widthpixel / 2 - this._arrow_width_pixel / 2, this.ypixel + this._arrow_height_pixel);
-            this._ctx.lineTo(this.xpixel + this.widthpixel / 2 + this._arrow_width_pixel / 2, this.ypixel + this._arrow_height_pixel);
-        }
+        
         else if (this._arrow_direction == "down") {
             // draw an arrow pointing to the bottom
             this._ctx.moveTo(this.xpixel + this.widthpixel / 2, this.ypixel + this.heightpixel - this.heightpixel / 2 + this._arrow_height_pixel / 2);
             this._ctx.lineTo(this.xpixel + this.widthpixel / 2 - this._arrow_width_pixel / 2, this.ypixel + this.heightpixel - this._arrow_height_pixel);
             this._ctx.lineTo(this.xpixel + this.widthpixel / 2 + this._arrow_width_pixel / 2, this.ypixel + this.heightpixel - this._arrow_height_pixel);
+        }
+        else if (this._arrow_direction == "up") {
+            // draw an arrow pointing to the top
+            this._ctx.moveTo(this.xpixel + this.widthpixel / 2, this.ypixel + this.heightpixel / 2 - this._arrow_height_pixel / 2);
+            this._ctx.lineTo(this.xpixel + this.widthpixel / 2 - this._arrow_width_pixel / 2, this.ypixel + this._arrow_height_pixel);
+            this._ctx.lineTo(this.xpixel + this.widthpixel / 2 + this._arrow_width_pixel / 2, this.ypixel + this._arrow_height_pixel);
         }
         this._ctx.closePath();
         this._ctx.fill();
