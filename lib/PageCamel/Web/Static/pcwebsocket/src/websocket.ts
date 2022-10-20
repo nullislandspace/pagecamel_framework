@@ -341,8 +341,12 @@ export class PCWebsocket{
         
     } 
 
+    get isconnected():boolean {
+        return this._isconnected;
+    }
+
     private _timerfunc():void{
-        console.log("Execute timer function...");
+        this._logdebug("Execute timer function...");
         this._send_cached();
         
 

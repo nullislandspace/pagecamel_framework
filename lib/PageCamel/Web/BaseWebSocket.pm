@@ -253,7 +253,6 @@ sub get($self, $ua) {
         showads => $self->{showads},
     );
 
-    #push @{$webdata{HeadExtraModuleScriptsNoPostfix}}, '/static/pcwebsocket/out/import.js';
     push @{$webdata{HeadExtraModuleScriptsNoPostfix}}, '/static/pcwebsocket/import_pcwebsocket.js';
     
     $self->wsmaskget($ua, \%settings, \%webdata);
@@ -404,7 +403,6 @@ sub sockethandler($self, $ua) {
                     $socketclosed = 1;
                     last;
                 }
-                print STDERR "******************** " . Dumper($realmsg) . " **********************\n";
 
                 if($realmsg->{type} eq 'PING') {
                     $timeout = time + $settings{client_disconnect_timeout};
