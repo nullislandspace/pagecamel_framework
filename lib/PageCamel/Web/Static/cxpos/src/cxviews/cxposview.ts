@@ -83,9 +83,7 @@ export class CXPosView extends CXDefaultView {
         this._right_button_bar = new CXButtonGrid(this._ctx, this._numfield.xpos - this._padding - 0.08, this._left_button_bar.ypos, 0.08, this._left_button_bar.height, true, false);
         this._right_button_bar.buttonAttributes = { ...{ font_size: 0.3 }, ...this._general_func_buttons };
         this._right_button_bar.buttons_text_block = [[{ text: 'Storno' }], [{ text: 'Rabatt' }], [{ text: 'PLU' }], [{ text: 'X' }]];
-        this._right_button_bar.onClick = (object: CXButtonGrid, key: string | null): void => {
-        
-        }
+        this._right_button_bar.onClick = (object: CXButtonGrid, key: string | null): void => this._rightButtonBarClick(object, key);
         var arrow_attr = { background_color: '#fff' }
         // arrows bellow scroll list
         this._page_up_arrow = new CXArrowButton(this._ctx, this._padding, this._invoice_list.ypos + this._invoice_list.height + this._padding, 0.07, 0.06, true, false);
@@ -128,13 +126,6 @@ export class CXPosView extends CXDefaultView {
             if (key == 'C') {
                 this._input_field.text = '';
             }
-            else if (key == ',') {
-                if (this._input_field.text.indexOf(',') > -1) {
-                }
-                else {
-                    this._input_field.text += ',';
-                }
-            }
             else if (key == '+/-') {
                 if (this._input_field.text.indexOf('-') > -1) {
                     this._input_field.text = this._input_field.text.replace('-', '');
@@ -143,6 +134,18 @@ export class CXPosView extends CXDefaultView {
                     this._input_field.text = '-' + this._input_field.text;
                 }
             }
+            else if (this._input_field.text.includes('×')) {
+                // prevents from adding numbers behind multiplier
+                return;
+            }
+            else if (key == ',') {
+                if (this._input_field.text.indexOf(',') > -1) {
+                }
+                else {
+                    this._input_field.text += ',';
+                }
+            }
+
             else if (key == '0') {
                 if (this._input_field.text.length == 0) {
                 }
@@ -153,13 +156,6 @@ export class CXPosView extends CXDefaultView {
             else if (parseInt(key) >= 0 && parseInt(key) <= 9) {
                 this._input_field.text += key;
             }
-            /* else if (key == 'X' && this._input_field.text.includes(',') == false && this._input_field.text.length == 0) {
-                if(this._input_field.text.includes('X')) {
-                    this._input_field.text = this._input_field.text.replace('X', '');
-                } else {
-                    this._input_field.text += 'X';
-                }
-            } */
             //remove digits after comma if more than 2
             if (this._input_field.text.includes(',')) {
                 var comma_index = this._input_field.text.indexOf(',');
@@ -179,6 +175,18 @@ export class CXPosView extends CXDefaultView {
         }
 
     }
+    private _rightButtonBarClick(object: CXButtonGrid, key: string | null): void {
+        if (key == 'X' && this._input_field.text.includes(',') == false && this._input_field.text.length > 0) {
+            if (this._input_field.text.includes('×')) {
+                this._input_field.text = this._input_field.text.replace('×', '');
+            } else {
+                this._input_field.text += '×';
+            }
+        }
+        this._has_changed = true;
+        this._tryRedraw();
+    }
+
 
     private _onBarButtonClick(): void {
         this.onBarButtonClick();
