@@ -39,6 +39,7 @@ export class CXPosView extends CXDefaultView {
         this._select_table_button = new CXButton(this._ctx, this._padding, 0.01, 0.1, 0.05, true, false);
         this._select_table_button.attributes = this._special_func_buttons;
         this._select_table_button.text = "Tisch";
+        this._select_table_button.onClick = (obj: CXButton) => this._onSelectTableButtonClick(obj);
 
 
         // textbox top left shows which table is selected
@@ -54,6 +55,7 @@ export class CXPosView extends CXDefaultView {
         this._logout_button = new CXButton(this._ctx, this._invoice_list.xpos + this._invoice_list.width - 0.1, this._padding, 0.1, 0.05, true, false);
         this._logout_button.attributes = this._special_func_buttons;
         this._logout_button.text = "Abmelden";
+        this._logout_button.onClick = (obj: CXButton) => this._onLogoutButtonClick(obj);
 
 
         // add numfield
@@ -67,25 +69,15 @@ export class CXPosView extends CXDefaultView {
 
         // left aligned buttons
         this._left_button_bar = new CXButtonGrid(this._ctx, this._padding, this._numfield.ypos + this._numfield.height / 5, 0.11, this._numfield.height - this._numfield.height / 5, true, false);
-        var bar_btn_attr = { ...{ text: 'BAR', font_size: 0.3 }, ...this._bar_buttons };
+        var bar_btn_attr = { ...{ text: 'BAR', font_size: 0.3, onClick: (obj: CXButton) => this._onBarButtonClick(obj) }, ...this._bar_buttons };
         this._left_button_bar.buttonAttributes = { ...{ font_size: 0.3 }, ...this._general_func_buttons };
-        this._left_button_bar.buttons_text_block = [[bar_btn_attr], [{ text: 'Rechnung' }], [{ text: 'Splitten' }], [{ text: 'ZWS' }]];
-        this._left_button_bar.onClick = (object: CXButtonGrid, key: string | null): void => {
-            if (key == 'BAR') {
-                this._onBarButtonClick();
-            }
-            /* else if (key == 'Rechnung') {
-                this._onBarButtonClick();
-            } */
-        }
+        this._left_button_bar.buttons_text_block = [[bar_btn_attr], [{ text: 'Rechnung', onClick: (obj: CXButton) => this._onInvoiceButtonClick(obj) }], [{ text: 'Splitten' , onClick: (obj: CXButton) => this.onSplitButtonClick(obj)}], [{ text: 'ZWS' }]];
 
         // right aligned buttons
         this._right_button_bar = new CXButtonGrid(this._ctx, this._numfield.xpos - this._padding - 0.08, this._left_button_bar.ypos, 0.08, this._left_button_bar.height, true, false);
         this._right_button_bar.buttonAttributes = { ...{ font_size: 0.3 }, ...this._general_func_buttons };
         this._right_button_bar.buttons_text_block = [[{ text: 'Storno' }], [{ text: 'Rabatt' }], [{ text: 'PLU' }], [{ text: 'X' }]];
-        this._right_button_bar.onClick = (object: CXButtonGrid, key: string | null): void => {
-        
-        }
+        this._right_button_bar.onClick = (object: CXButtonGrid, key: string | null): void => this._rightButtonBarClick(object, key);
         var arrow_attr = { background_color: '#fff' }
         // arrows bellow scroll list
         this._page_up_arrow = new CXArrowButton(this._ctx, this._padding, this._invoice_list.ypos + this._invoice_list.height + this._padding, 0.07, 0.06, true, false);
@@ -121,19 +113,14 @@ export class CXPosView extends CXDefaultView {
         this._elements.push(this._sum_text);
         this._elements.push(this._logout_button);
     }
+
     private _handleNumfieldInput(object: object, key: string | null): void {
+        // (0-9, +/-, ., C) click handler
         console.log('key: ' + key);
         // handle key input
         if (key != null) {
             if (key == 'C') {
                 this._input_field.text = '';
-            }
-            else if (key == ',') {
-                if (this._input_field.text.indexOf(',') > -1) {
-                }
-                else {
-                    this._input_field.text += ',';
-                }
             }
             else if (key == '+/-') {
                 if (this._input_field.text.indexOf('-') > -1) {
@@ -143,6 +130,18 @@ export class CXPosView extends CXDefaultView {
                     this._input_field.text = '-' + this._input_field.text;
                 }
             }
+            else if (this._input_field.text.includes('×')) {
+                // prevents from adding numbers behind multiplier
+                return;
+            }
+            else if (key == ',') {
+                if (this._input_field.text.indexOf(',') > -1) {
+                }
+                else {
+                    this._input_field.text += ',';
+                }
+            }
+
             else if (key == '0') {
                 if (this._input_field.text.length == 0) {
                 }
@@ -153,13 +152,6 @@ export class CXPosView extends CXDefaultView {
             else if (parseInt(key) >= 0 && parseInt(key) <= 9) {
                 this._input_field.text += key;
             }
-            /* else if (key == 'X' && this._input_field.text.includes(',') == false && this._input_field.text.length == 0) {
-                if(this._input_field.text.includes('X')) {
-                    this._input_field.text = this._input_field.text.replace('X', '');
-                } else {
-                    this._input_field.text += 'X';
-                }
-            } */
             //remove digits after comma if more than 2
             if (this._input_field.text.includes(',')) {
                 var comma_index = this._input_field.text.indexOf(',');
@@ -179,16 +171,68 @@ export class CXPosView extends CXDefaultView {
         }
 
     }
+    private _rightButtonBarClick(object: CXButtonGrid, key: string | null): void {
+        // handles the click of 'Storno', 'Rabatt', 'PLU' and 'X' buttons
+        if (key == 'X' && this._input_field.text.includes(',') == false && this._input_field.text.length > 0) {
+            if (this._input_field.text.includes('×')) {
+                this._input_field.text = this._input_field.text.replace('×', '');
+            } else {
+                this._input_field.text += '×';
+            }
+        }
+        this._has_changed = true;
+        this._tryRedraw();
+    }
 
-    private _onBarButtonClick(): void {
-        this.onBarButtonClick();
+    private _onBarButtonClick(obj: CXButton): void {
+        this.onBarButtonClick(obj);
+    }
+    private _onInvoiceButtonClick(obj: CXButton): void {
+        this.onInvoiceButtonClick(obj);
+    }
+    private _onSplitButtonClick(obj: CXButton): void {
+        this.onSplitButtonClick(obj);
+    }
+    private _onLogoutButtonClick(obj: CXButton): void {
+        this.onLogoutButtonClick(obj);
+    }
+    private _onSelectTableButtonClick(obj: CXButton): void {
+        this.onSelectTableButtonClick(obj);
     }
     /**
      * Callback function to handle bar button click
      */
-    public onBarButtonClick(): void {
+    public onBarButtonClick(obj: CXButton): void {
         console.log("Override onBarButtonClick callback function");
     }
+    /**
+     * Callback function to handle invoice button click
+     */
+    public onInvoiceButtonClick(obj: CXButton): void {
+        console.log("Override onInvoiceButtonClick callback function");
+    }
+    /**
+     * Callback function to handle split button click
+     */
+    public onSplitButtonClick(obj: CXButton): void {
+        console.log("Override onSplitButtonClick callback function");
+    }
+    /**
+     * Callback function to handle logout button click
+     */
+    public onLogoutButtonClick(obj: CXButton): void {
+        console.log("Override onLogoutButtonClick callback function");
+    }
+    /**
+     * Callback function to handle select table button click
+     */
+    public onSelectTableButtonClick(obj: CXButton): void {
+        console.log("Override onSelectTableButtonClick callback function");
+    }
+    /**
+     * The selected table
+     * @param table
+     */
     set selectedTable(table: CXTable | null) {
         this._selected_table = table;
         if (table != null) {

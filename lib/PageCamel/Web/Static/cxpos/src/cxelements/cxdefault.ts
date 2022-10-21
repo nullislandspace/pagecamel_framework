@@ -396,15 +396,27 @@ export class CXDefault {
     get has_changed(): boolean {
         return this._has_changed;
     }
+    /**
+     * get x position in pixels
+     */
     get xpixel(): number {
         return this._xpixel;
     }
+    /**
+     * get y position in pixel
+     */
     get ypixel(): number {
         return this._ypixel;
     }
+    /**
+     * get width in pixels
+     */
     get widthpixel(): number {
         return this._widthpixel;
     }
+    /**
+     * get height in pixels
+     */
     get heightpixel(): number {
         return this._heightpixel;
     }

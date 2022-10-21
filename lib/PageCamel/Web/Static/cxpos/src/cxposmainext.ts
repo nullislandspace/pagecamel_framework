@@ -195,7 +195,6 @@ export function cxposmainext() {
     tableplan.tables = temporary_tables;
     //tableplan.active = false;
     var posview = new cxv.CXPosView(ctx);
-
     posview.pcwebsocket = window.pcws;
     console.log("got websocket", window.pcws);
     console.log("set websocket", posview.pcwebsocket);

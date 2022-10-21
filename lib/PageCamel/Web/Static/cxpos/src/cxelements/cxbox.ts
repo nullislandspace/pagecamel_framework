@@ -112,6 +112,10 @@ export class CXBox extends CXFrame {
         grad[0] = this._first_gradient_color;
         return grad;
     }
+    /**
+     * @param image - possible values are a string or an image object see at: 
+     * {@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/Image}
+     */
     set background_image(image: string) {
         this._background_image.src = image;
     }
