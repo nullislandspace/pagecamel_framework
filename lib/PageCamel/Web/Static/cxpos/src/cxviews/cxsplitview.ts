@@ -346,11 +346,7 @@ export class CXSplitView extends CXDefaultView {
         this._leftList = Array.from(this._tableList);
         this._leftListIndex = Array.from({length: this._leftList.length}, (_, index: number) => index);
       
-    } 
-
-    
-
-    
+    }     
     /*
         mofifies the left and right list according to the given index-numbers;
         if left index is null, the right index must be a number;

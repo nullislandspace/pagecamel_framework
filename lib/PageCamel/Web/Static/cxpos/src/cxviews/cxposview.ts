@@ -20,6 +20,9 @@ export class CXPosView extends CXDefaultView {
     private _page_up_arrow: CXArrowButton;
     private _page_down_arrow: CXArrowButton;
 
+    private _categorys: CXButtonGrid;
+    private _articles: CXButtonGrid;
+
 
     private _sum_text: CXTextBox;
 
@@ -83,10 +86,16 @@ export class CXPosView extends CXDefaultView {
         this._page_up_arrow = new CXArrowButton(this._ctx, this._padding, this._invoice_list.ypos + this._invoice_list.height + this._padding, 0.07, 0.06, true, false);
         this._page_up_arrow.arrow_direction = 'up';
         this._page_up_arrow.attributes = arrow_attr;
+        this._page_up_arrow.onClick = (obj: CXArrowButton) => {
+            this._invoice_list.pageUp();
+        }
 
         this._page_down_arrow = new CXArrowButton(this._ctx, this._page_up_arrow.xpos + this._page_up_arrow.width + this._padding, this._invoice_list.ypos + this._invoice_list.height + this._padding, 0.07, 0.06, true, false);
         this._page_down_arrow.arrow_direction = 'down';
         this._page_down_arrow.attributes = arrow_attr;
+        this._page_down_arrow.onClick = (obj: CXArrowButton) => {
+            this._invoice_list.pageDown();
+        }
 
         // sum textbox
         this._sum_text = new CXTextBox(this._ctx, this._page_down_arrow.xpos + this._page_down_arrow.width + this._padding, this._invoice_list.ypos + this._invoice_list.height + this._padding, 0.2, 0.06, true, false);
@@ -101,6 +110,15 @@ export class CXPosView extends CXDefaultView {
         this._input_field = new CXTextBox(this._ctx, this._numfield.xpos, this._numfield.ypos, this._numfield.width / 3 * 2, this._numfield.height / 5 - this._numfield.gap / 3, true, false);
         this._input_field.attributes = this._textbox;
 
+        // categorys
+        this._categorys = new CXButtonGrid(this._ctx, this._invoice_list.xpos + this._invoice_list.width + this._padding, this._padding, 1 - this._invoice_list.xpos - this._invoice_list.width - this._padding * 2, 0.3, true, false);
+        this._categorys.buttonAttributes = { ...{ font_size: 0.3 }, ...this._general_func_buttons };
+        this._categorys.buttons_text_block = [['Category 1', 'Category 2', 'Category 3'], ['Category 4', 'Category 5', 'Category 6'], ['Category 7', 'Category 8', 'Category 9'], ['Category 10', 'Category 11', 'Category 12']];
+        // articles
+        this._articles = new CXButtonGrid(this._ctx, this._categorys.xpos, this._categorys.ypos + this._categorys.height + this._padding, this._categorys.width, 1 - this._categorys.ypos - this._categorys.height - this._padding * 2, true, false);
+        this._articles.buttonAttributes = { ...{ font_size: 0.2 }, ...this._general_func_buttons };
+        this._articles.buttons_text_block = [['Article 1', 'Article 2', 'Article 3'], ['Article 4', 'Article 5', 'Article 6'], ['Article 7', 'Article 8', 'Article 9'], ['Article 10', 'Article 11', 'Article 12']];
+        
         this._elements.push(this._input_field);
         this._elements.push(this._selected_table_textbox);
         this._elements.push(this._page_up_arrow);
@@ -112,6 +130,8 @@ export class CXPosView extends CXDefaultView {
         this._elements.push(this._numfield);
         this._elements.push(this._sum_text);
         this._elements.push(this._logout_button);
+        this._elements.push(this._categorys);
+        this._elements.push(this._articles);
     }
 
     private _handleNumfieldInput(object: object, key: string | null): void {
@@ -142,13 +162,7 @@ export class CXPosView extends CXDefaultView {
                 }
             }
 
-            else if (key == '0') {
-                if (this._input_field.text.length == 0) {
-                }
-                else {
-                    this._input_field.text += '0';
-                }
-            }
+           
             else if (parseInt(key) >= 0 && parseInt(key) <= 9) {
                 this._input_field.text += key;
             }

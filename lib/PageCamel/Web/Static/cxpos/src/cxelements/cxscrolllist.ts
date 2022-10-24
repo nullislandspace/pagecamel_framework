@@ -182,6 +182,23 @@ export class CXScrollList extends CXBox {
         }
     }
     /**
+     * jump on page up
+     */
+    public pageUp(): void {
+        this._scroll_bar.pageUp();
+        this._has_changed = true;
+        this._tryRedraw();
+    }
+    /**
+     * jump on page down
+     */
+    public pageDown(): void {
+        this._scroll_bar.pageDown();
+        this._has_changed = true;
+        this._tryRedraw();
+    }
+
+    /**
      * @param {Array} list - Array of strings in the format [[item1, item2, item3], [item4, item5, item6]]
      * @description Sets the list of items to be displayed in the scroll list
      */

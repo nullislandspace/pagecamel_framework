@@ -118,16 +118,14 @@ export class CXScrollBar extends CXBox {
                 }
                 if (x >= this.xpixel && x <= this.xpixel + this.widthpixel && y >= this.ypixel && y <= this.ypixel + this.heightpixel) {
                     if (y < this.scrollbar.ypixel && y > this.ypixel) {
-                        // jump one page up                
-                        this._scroll_position -= this._rows_per_page;
+                        // jump one page up
+                        this.pageUp();                
                         redraw = true;
-                        this._has_changed = true;
                     }
                     else if (y > this.scrollbar.ypixel + this.scrollbar.heightpixel && y < this.ypixel + this.heightpixel) {
                         // jump one page down
-                        this._scroll_position += this._rows_per_page;
+                        this.pageDown();
                         redraw = true;
-                        this._has_changed = true;
                     }
                     this._getScrollbarYPos();
                 }
@@ -148,6 +146,24 @@ export class CXScrollBar extends CXBox {
             this.draw(this._px, this._py, this._pwidth, this._pheight);
         }
         return this._has_changed;
+    }
+    /**
+     * jumps one page up
+     */
+    public pageUp() {
+        this._scroll_position -= this._rows_per_page;
+        this._getScrollbarYPos();
+        this._has_changed = true;
+        this._tryRedraw();
+    }
+    /**
+     * jumps one page down
+     */
+    public pageDown() {
+        this._scroll_position += this._rows_per_page;
+        this._getScrollbarYPos();
+        this._has_changed = true;
+        this._tryRedraw();
     }
     /**
      * @param {number} rows
