@@ -31,6 +31,10 @@ my $currentdir = getcwd();
 my @typescriptdirs = getTypescriptDirs($currentdir);
 foreach my $scriptdir (@typescriptdirs) {
     print "PRECOMPILING TYPESCRIPT IN $scriptdir\n";
+    if(-l $scriptdir) {
+        print "   Softlink to another repository, assuming it's already precompiled\n";
+        next;
+    }
     chdir $scriptdir;
     my @lines = `tsc -p tsconfig_live.json 2>&1`;
     chdir $currentdir;
