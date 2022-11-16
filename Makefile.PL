@@ -1,6 +1,48 @@
 use 5.022;
 use ExtUtils::MakeMaker;
 
+######### PRECOMPILE TYPESCRIPT FILES ##########
+use POSIX;
+use Data::Dumper;
+sub getTypescriptDirs {
+    my ($startdir) = @_;
+    my @dirs;
+    my @recursedirs;
+    my $dirfh;
+    opendir($dirfh, $startdir) or die($!);
+    while((my $entry = readdir($dirfh))) {
+        next if ($entry =~ /^\./);
+        if($entry eq 'tsconfig_live.json') {
+            push @dirs, $startdir;
+            next;
+        }
+        my $recursename = $startdir . '/' . $entry;
+        if(1 && -d $recursename) {
+            push @recursedirs, $recursename;
+        }
+    }
+    closedir $dirfh;
+    foreach my $recursename (@recursedirs) {
+        push @dirs, getTypescriptDirs($recursename);
+    }
+    return @dirs;
+}
+my $currentdir = getcwd();
+my @typescriptdirs = getTypescriptDirs($currentdir);
+foreach my $scriptdir (@typescriptdirs) {
+    print "PRECOMPILING TYPESCRIPT IN $scriptdir\n";
+    chdir $scriptdir;
+    my @lines = `tsc -p tsconfig_live.json 2>&1`;
+    chdir $currentdir;
+    if(scalar @lines) {
+        print "    Typescript compilation failed:\n";
+        foreach my $line (@lines) {
+            chomp $line;
+            print "####    ", $line, "\n";
+        }
+        exit(1);
+    }
+}
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
