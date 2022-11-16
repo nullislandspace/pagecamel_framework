@@ -1,0 +1,18 @@
+<pagecamel>
+    <livecommands>
+        <item>tsc -p tsconfig_live.json</item>
+    </livecommands>
+    <debugcommands>
+        <!--<item>tsc -p tsconfig_debug.json</item>-->
+    </debugcommands>
+    <dynamic>1</dynamic>
+    <ignore>
+        <!--<item>src</item>-->
+        <item>docs</item>
+        <item>node_modules</item>
+        <item>package.json</item>
+        <item>package-lock.json</item>
+        <item>README.txt</item>
+        <item>.vscode</item>
+    </ignore>
+</pagecamel>
