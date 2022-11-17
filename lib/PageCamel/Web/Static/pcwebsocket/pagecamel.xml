@@ -1,6 +1,6 @@
 <pagecamel>
     <livecommands>
-        <item>tsc -p tsconfig_live.json</item>
+        <!--<item>tsc -p tsconfig_live.json</item>-->
     </livecommands>
     <debugcommands>
         <!--<item>tsc -p tsconfig_debug.json</item>-->
