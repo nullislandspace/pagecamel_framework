@@ -73,6 +73,10 @@
                 loadTTVars('#websocketmasktemplatedataset');
                 loadTTVars('#autodialogstemplatedataset');
 
+                if(ttvars.isdebugging == "1") {
+                    console.log("%c 🐞DEBUG MODE 🐞", "color:blue; font-size:50px");
+                }
+
                 console.log("PageCamel Version " + ttvars.pagecamelversion);
 
                 $('#mobiledesktopselect_mobile').on('click', function() {
@@ -496,6 +500,7 @@
             data-fontface="[% UIThemeFontFace %]"
             data-keyfoblogout="[% userData.keyfob_logout %]"
             data-trquote-keyfoblogout="[% tr.trquote("Key fob logout...") %]"
+            data-isdebugging="[% isDebugging %]"
         ></span>
         <!-- master template TT vars dataset -->
 
