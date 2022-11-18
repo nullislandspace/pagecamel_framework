@@ -12,7 +12,7 @@ sub getTypescriptDirs {
     opendir($dirfh, $startdir) or die($!);
     while((my $entry = readdir($dirfh))) {
         next if ($entry =~ /^\./);
-        if($entry eq 'tsconfig_live.json') {
+        if($entry eq 'tsconfig.json') {
             push @dirs, $startdir;
             next;
         }
@@ -36,7 +36,7 @@ foreach my $scriptdir (@typescriptdirs) {
         next;
     }
     chdir $scriptdir;
-    my @lines = `tsc -p tsconfig_live.json 2>&1`;
+    my @lines = `tsc -p tsconfig.json 2>&1`;
     chdir $currentdir;
     if(scalar @lines) {
         print "    Typescript compilation failed:\n";

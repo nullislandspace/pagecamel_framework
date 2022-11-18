@@ -2331,8 +2331,7 @@ lib/PageCamel/Web/Static/pcwebsocket/src/test/index.html
 lib/PageCamel/Web/Static/pcwebsocket/src/test/test_websocket.ts
 lib/PageCamel/Web/Static/pcwebsocket/src/test/test_websocket_local.ts
 lib/PageCamel/Web/Static/pcwebsocket/src/websocket.ts
-lib/PageCamel/Web/Static/pcwebsocket/tsconfig_debug.json
-lib/PageCamel/Web/Static/pcwebsocket/tsconfig_live.json
+lib/PageCamel/Web/Static/pcwebsocket/tsconfig.json
 lib/PageCamel/Web/Static/remoteconsolelog.js
 lib/PageCamel/Web/Static/service_worker.js
 lib/PageCamel/Web/Static/sha256.js
