@@ -179,7 +179,7 @@ sub work($self) {
     return $workCount;
 }
 
-sub runCommand($self, $command, $option) {
+sub runCommand($self, $command, $option = undef) {
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

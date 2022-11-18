@@ -114,7 +114,7 @@ export class PCSqlite {
         var strings:string[] = [], chunksize = 0xffff;
         // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
 
-        console.log("SQL Backup is " + uarr.length + " bytes large");
+        //console.log("SQL Backup is " + uarr.length + " bytes large");
         for (var i = 0; i * chunksize < uarr.length; i++) {
             var numarr = Array.from(uarr.subarray(i * chunksize, (i + 1) * chunksize));
             strings.push(String.fromCharCode.apply(null, numarr));

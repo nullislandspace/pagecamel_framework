@@ -24,7 +24,6 @@ use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use CSS::Minifier::XS;
 use File::Type;
-use Cwd;
 use POSIX;
 
 my $cachemodulecount = 0;
