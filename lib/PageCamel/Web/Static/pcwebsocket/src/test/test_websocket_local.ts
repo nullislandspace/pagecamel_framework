@@ -71,7 +71,7 @@ function bodyOnLoad() {
     main();
 }
 function main() {
-    window.sqlite = new PCSqlite(config,"pagecamel.sqlite",true);
+    window.sqlite = new PCSqlite(config,"pagecamel.sqlite",false);
     window.pcws = new PCWebsocket(true,true);
     window.sqlite.initialize.then(()=>{
         window.pcws.initializeSQL(window.sqlite)
