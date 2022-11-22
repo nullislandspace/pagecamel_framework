@@ -58,3 +58,8 @@
 
 # Avoid Devel::Cover files.
 \bcover_db\b
+
+# cxpos
+lib/PageCamel/Web/Static/pcwebsocket/docs
+lib/PageCamel/Web/Static/pcwebsocket/out
+lib/PageCamel/Web/Static/pcwebsocket/node_modules

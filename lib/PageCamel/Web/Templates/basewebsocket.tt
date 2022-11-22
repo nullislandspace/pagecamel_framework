@@ -32,6 +32,8 @@
     var stayoffline = 0;
     
     function extraOnLoad() {
+
+        window.pcws.isconnected = !!wsconnected;
         
         if(window.websocketmaskOnload) {
             websocketmaskOnload();
@@ -69,6 +71,7 @@
                 $('#dataarea').unblock();
             }
             wsconnected = 1;
+            window.pcws.isconnected = !!wsconnected;
             wsfailed = 0;
             lastPing = -1;
             sendPing();
@@ -91,6 +94,7 @@
                 }
             }
             wsconnected = 0;
+            window.pcws.isconnected = !!wsconnected;
             if(window.websocketmaskOnSocketClose) {
                 websocketmaskOnSocketClose();
             }
@@ -118,11 +122,53 @@
             lastPing = Math.round(Date.now() / 1000);
         } else if(msg.type === "CONSOLELOG") {
             console.log(msg.logline);
-        } else if(window.handleMessage) {
-            handleMessage(msg);
+        } else {
+            if(window.handleMessage) {
+                handleMessage(msg);
+            }
+            window.pcws.spoolincoming(msg.type, msg.data);
         }
         
     }
+
+    // new send interface
+    function wstransmit(mtype, mdata, mdbid) {
+        if(!wsconnected) {
+            return false;
+        }
+
+        if(wsIsJson(mdata)) {
+            mdata = JSON.parse(mdata);
+        }
+
+        var outmsg = {
+            type: mtype,
+            data: mdata,
+            dbid: mdbid
+        };
+        
+        ws.send(JSON.stringify(outmsg));
+        return true;
+    }
+
+    function wsIsJson(mdata) {
+        mdata = typeof mdata !== "string"
+            ? JSON.stringify(mdata)
+            : mdata;
+
+        try {
+            mdata = JSON.parse(mdata);
+        } catch (e) {
+            return false;
+        }
+
+        if (typeof mdata === "object" && mdata !== null) {
+            return true;
+        }
+
+        return false;
+    }
+        
     
     function isValidNumber(n) {
         return !isNaN(parseFloat(n)) && isFinite(n) && n > 0;

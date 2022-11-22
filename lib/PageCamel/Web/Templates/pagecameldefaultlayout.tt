@@ -3,13 +3,14 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
+        [% IF BaseHREFUrl != "" %]<base href="[% BaseHREFUrl %]">[% END %]
+
         [%IF EnableRemoteConsoleLog == "1" %]
             <script type="text/javascript" src="/static/remoteconsolelog.js[% URLReloadPostfix %]"></script>
         [% END %]
 
         <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
         <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
-
         <link REL="stylesheet" TYPE="text/css" href="/layout/pagecamel_webgui.css[% URLReloadPostfix %]"></link>
 
         [% FOREACH HeadExtraCS IN HeadExtraCSS %]
@@ -38,6 +39,7 @@
 
         [% IF EnableDB == "1" %]
             <script type="text/javascript" src="/static/sqljs/sql-wasm.js[% URLReloadPostfix %]"></script>
+            <script type="module" src="/static/pcwebsocket/import_sqlite.js[% URLReloadPostfix %]"></script>
         [% END %]
 
         [% FOREACH HeadExtraScript IN HeadExtraScripts %]
@@ -45,6 +47,12 @@
         [% END %]
         [% FOREACH HeadExtraScript IN HeadExtraScriptsNoPostfix %]
             <script type="text/javascript" src="[% HeadExtraScript %]"></script>
+        [% END %]
+        [% FOREACH HeadExtraModuleScript IN HeadExtraModuleScripts %]
+            <script type="module" src="[% HeadExtraModuleScript %][% URLReloadPostfix %]"></script>
+        [% END %]
+        [% FOREACH HeadExtraModuleScript IN HeadExtraModuleScriptsNoPostfix %]
+            <script type="module" src="[% HeadExtraModuleScript %]"></script>
         [% END %]
 
         <script type="text/javascript">
@@ -63,6 +71,10 @@
                 loadTTVars('#submasktemplatedataset');
                 loadTTVars('#websocketmasktemplatedataset');
                 loadTTVars('#autodialogstemplatedataset');
+
+                if(ttvars.isdebugging == "1") {
+                    console.log("%c 🐞DEBUG MODE 🐞", "color:blue; font-size:50px");
+                }
 
                 console.log("PageCamel Version " + ttvars.pagecamelversion);
 
@@ -132,10 +144,6 @@
                 $("input.gotobutton[type=button]").gotobutton();
 
                 $("span.cavacnote").cavacnote();
-
-                if(ttvars.enabledb == "1") {
-                    pagecamelDBInit();
-                }
 
                 if(window.extraOnLoadBeforeTables) {
                     extraOnLoadBeforeTables();
@@ -383,6 +391,11 @@
                     setInterval(runFobLogoutReader, 1000);
                 }
 
+                if(ttvars.enabledb == "1") {
+                    pagecamelDBInit();
+                }
+
+
             });
 
             var foblogoutreader = new XMLHttpRequest();
@@ -429,55 +442,15 @@
                 return false;
             }
 
-            function SQLtoBinArray(str) {
-                var l = str.length,
-                    arr = new Uint8Array(l);
-                for (var i = 0; i < l; i++) {
-                    arr[i] = str.charCodeAt(i);
-                }
-                return arr;
-            }
-
-            function SQLtoBinString(arr) {
-                var uarr = new Uint8Array(arr);
-                var strings = [], chunksize = 0xffff;
-                // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
-                for (var i = 0; i * chunksize < uarr.length; i++) {
-                    strings.push(String.fromCharCode.apply(null, uarr.subarray(i * chunksize, (i + 1) * chunksize)));
-                }
-                return strings.join('');
-            }
-
-            var pagecameldb;
-            var pagecameldbloaded = 0;
 
             function pagecamelDBInit() {
+                console.log("pagecamelDBInit called **************************************");
 
-                var baseUrl = '/static/sqljs/';
-
-                // Normally Sql.js tries to load sql-wasm.wasm relative to the page, not relative to the javascript
-                // doing the loading. So, we help it find the .wasm file with this function.
-                var fname = baseUrl + 'sql-wasm.wasm';
-                var config = {
-                    //locateFile: filename => `${baseUrl}/${filename}`
-                    locateFile: filename => fname
-                };
-                initSqlJs(config).then(function (SQL) {
-                    var dbstr = window.localStorage.getItem("pagecamel.sqlite");
-                    if (dbstr) {
-                        pagecameldb = new SQL.Database(SQLtoBinArray(dbstr));
-                    } else {
-                        pagecameldb = new SQL.Database();
-                        pagecamelDBSave();
+                window.sqlite.initialize.then(()=>{
+                    if(window.pcws) {
+                        window.pcws.initializeSQL(window.sqlite);
                     }
-                    pagecameldbloaded = 1;
-                    console.log("Database loaded");
-                });
-            }
-
-            function pagecamelDBSave() {
-                var dbstr = SQLtoBinString(pagecameldb.export());
-                window.localStorage.setItem("pagecamel.sqlite", dbstr);
+                }).catch((msg)=>{console.error("Error at SQL initialisation: " + msg)});
             }
 
         </script>
@@ -497,6 +470,7 @@
             data-pagecamelversion="[% PageCamelVersion %]"
             data-isaprilfoolsday="[% IsAprilFoolsDay %]"
             data-urlreloadpostfix="[% URLReloadPostfix %]"
+            data-lastreloaddate="[% LastReloadDate %]"
             data-webappshoweyes="[% WebAppShowEyes %]"
             data-webappshowsanta="[% WebAppShowSanta %]"
             data-webappusemousetrail="[% WebAppUseMouseTrail %]"
@@ -525,6 +499,7 @@
             data-fontface="[% UIThemeFontFace %]"
             data-keyfoblogout="[% userData.keyfob_logout %]"
             data-trquote-keyfoblogout="[% tr.trquote("Key fob logout...") %]"
+            data-isdebugging="[% isDebugging %]"
         ></span>
         <!-- master template TT vars dataset -->
 
@@ -573,10 +548,13 @@
                     [% ELSE %]
                         [% IF userData.keyfob_logout %]<i>[% END %]
                         [% IF IsAprilFoolsDay == "1" %]
-                            <div class="webgui_projectusername">The great and powerful [% tr.quote(userData.first_name) %]&nbsp;/&nbsp;
+                            <div class="webgui_projectusername">Sir [% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %]
+                        [% ELSIF UserIsDeveloper == "1" %]
+                            <div class="webgui_projectusername">The great and powerful [% tr.quote(userData.first_name) %]
                         [% ELSE %]
-                            <div class="webgui_projectusername">[% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %][% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
+                            <div class="webgui_projectusername">[% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %]
                         [% END %]
+                        [% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
                         <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a>
                         [% IF userData.hasrealuser == 1 %]
                             / <a class="webgui_projectloginlink" href="/user/switchback">[% tr.trquote("Back") %]</a>
