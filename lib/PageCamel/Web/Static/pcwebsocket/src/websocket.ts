@@ -40,11 +40,14 @@ export class PCWebsocket{
     private _messageList:CallbackList[] = [] ; 
 
     //timer delta time in seconds
-    private _deltatime;
+    private _deltatime:number = 1000;
 
     private _cached_msgs:{msg:string,data:string,id:string}[];
     private _last_cached_id:number;
     private _timer:number;
+    private _last_cache_sent:number;
+    //Cache send delta time in ms
+    private _cache_delta_time:number=5000;
 
     //database object
     private _db:PCSqlite|null;
@@ -79,18 +82,20 @@ export class PCWebsocket{
         this._createtablesql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (time INT, msg TEXT, data TEXT);";
         //this._createdbsql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (msg TEXT, data TEXT);";
         this._droptablesql="DROP TABLE " + this._dbtable + ";";
-        this._getrowsql="SELECT rowid, msg, data FROM " + this._dbtable + " ORDER BY time,rowid LIMIT 1;";
+        this._getrowsql="SELECT CAST(rowid as text) || '_' || CAST(time as text) AS dbid, msg, data FROM " + this._dbtable + " ORDER BY time,rowid LIMIT 1;";
         //this._getrowsql="SELECT rowid, msg, data FROM " + this._dbtable + " ORDER BY rowid LIMIT 1;";
-        this._deleterowsql="DELETE FROM " + this._dbtable + " WHERE rowid=?;";
-        this._insertrowsql="INSERT INTO " + this._dbtable + "(time, msg, data) VALUES (strftime('%f','now'),?, ?);";
+        this._deleterowsql="DELETE FROM " + this._dbtable + " WHERE CAST(rowid as text) || '_' || CAST(time as text) = ?;";
+        //this._insertrowsql="INSERT INTO " + this._dbtable + "(time, msg, data) VALUES (strftime('%f','now'),?, ?);";
+        this._insertrowsql="INSERT INTO " + this._dbtable + "(time, msg, data) VALUES ((strftime('%s','now') || substr(strftime('%f','now'),4)),?, ?);";
         //this._insertrowsql="INSERT INTO " + this._dbtable + "(msg, data) VALUES (?, ?);";
         this._countcacheditemssql= "SELECT count(*) as num FROM " + this._dbtable + ";";
 
 
         this._messageList = [];
-        this._deltatime=1000; //milliseconds
+        //this._deltatime=1000; //milliseconds
         this._cached_msgs = [];
         this._last_cached_id = 0;
+        this._last_cache_sent = 0;
         this._dbcaching = false;
         //start timer
         //this._timer=setInterval(()=>this._timerfunc,this._deltatime);
@@ -210,7 +215,9 @@ export class PCWebsocket{
             this._logdebug('Add message to cache: msgname=' + msgname);
             //this._cached_msgs.push({msg:msgname,data:mdata,id:this._last_cached_id.toString()});
             try {
+                
                 if (this._db && this._dbcaching) {
+                    
                     //let str = "INSERT INTO " + this._dbtable + "(msg, data) VALUES ('" + msgname + "','" + mdata + "');";
                     //this._logdebug("Execute SQL: " + str)
                     this._db.executeSQL(this._insertrowsql, msgname, mdata);
@@ -381,12 +388,19 @@ export class PCWebsocket{
             this._last_cached_id = 0;
         }*/
         try {
+
             if (this._db && this._dbcaching) {
-                let row = this._db.executeSQL(this._getrowsql);
-                if (row && row.length == 1) {
-                    console.log(row);
-                     this._sendmsg(<string>row[0]["msg"],<string>row[0]["data"],<string>row[0]["rowid"]);
+                //Check if delta time is expired
+                if ((Date.now() - this._last_cache_sent)>=this._cache_delta_time ) {
+                    let row = this._db.executeSQL(this._getrowsql);
+                    if (row && row.length == 1) {
+                        console.log(row);
+                         //this._sendmsg(<string>row[0]["msg"],<string>row[0]["data"],<string>row[0]["rowid"]);
+                         this._sendmsg(<string>row[0]["msg"],<string>row[0]["data"],<string>row[0]["dbid"]);
+                         this._last_cache_sent = Date.now();
+                    }  
                 }
+                
                 
             }
         }
@@ -416,6 +430,8 @@ export class PCWebsocket{
                 if (num![0].num == 0) {
                     this.send(this._msgoutboxempty,"",false);
                 }
+                //Reset last cache sent time -> next cache could be send immediately
+                this._last_cache_sent = 0;
             }
         }
         catch (err) {

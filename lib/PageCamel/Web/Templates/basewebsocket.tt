@@ -136,6 +136,11 @@
         if(!wsconnected) {
             return false;
         }
+
+        if(wsIsJson(mdata)) {
+            mdata = JSON.parse(mdata);
+        }
+
         var outmsg = {
             type: mtype,
             data: mdata,
@@ -144,6 +149,24 @@
         
         ws.send(JSON.stringify(outmsg));
         return true;
+    }
+
+    function wsIsJson(mdata) {
+        mdata = typeof mdata !== "string"
+            ? JSON.stringify(mdata)
+            : mdata;
+
+        try {
+            mdata = JSON.parse(mdata);
+        } catch (e) {
+            return false;
+        }
+
+        if (typeof mdata === "object" && mdata !== null) {
+            return true;
+        }
+
+        return false;
     }
         
     
