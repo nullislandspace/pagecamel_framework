@@ -39,6 +39,9 @@ export function onLoadExt () {
     window.pcws.send("cachemessage","Meine 1. cached Daten sind ziemlich kurz!", true);
     window.pcws.send("cachemessage","Meine 2. cached Daten sind ziemlich kurz!", true);
     window.pcws.send("cachemessage","Meine 3. cached Daten sind ziemlich kurz!", true);*/
+
+    //Test timer
+    window.pcws.send("SLEEP","Sleep message wartet 7 Sekunden", true);
     let data = {
         'table':'10',
         'type': 'delta',
