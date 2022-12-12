@@ -1267,6 +1267,7 @@ sub get_defaultwebdata($self, $webdata) {
 
     if(defined($self->{currentData})) {
         $webdata->{userData} = $self->{currentData};
+        $webdata->{ConfigObject}->{permissions} = $webdata->{userData}->{rights};
     }
     if(defined($webdata->{userData}->{rights}) && contains('has_developer', $webdata->{userData}->{rights})) {
         $webdata->{UserIsDeveloper} = 1;

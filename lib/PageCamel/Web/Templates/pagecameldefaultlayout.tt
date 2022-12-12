@@ -61,6 +61,8 @@
             ttvars['trquote'] = new Object;
             ttvars['json'] = new Object;
 
+            window.maskconfig = new Object;
+
             $(document).ready(function(){
                 // auto-uninline onfoo html tags to JS file
                 XX_ON_EVENT_HANDLERS_XX
@@ -71,6 +73,13 @@
                 loadTTVars('#submasktemplatedataset');
                 loadTTVars('#websocketmasktemplatedataset');
                 loadTTVars('#autodialogstemplatedataset');
+
+                if($('#maskconfigobject').length) {
+                    var confdata = $('#maskconfigobject').data('config');
+                    //console.log(confdata);
+                    window.maskconfig = JSON.parse(window.atob(confdata));
+                    console.log(window.maskconfig);
+                }
 
                 if(ttvars.isdebugging == "1") {
                     console.log("%c 🐞DEBUG MODE 🐞", "color:blue; font-size:50px");
@@ -502,6 +511,13 @@
             data-isdebugging="[% isDebugging %]"
         ></span>
         <!-- master template TT vars dataset -->
+
+        <!-- config object -->
+        [% IF MaskHasConfigObject == "1" %]
+        <span id="maskconfigobject"
+            data-config="[% MaskConfigObject %]"
+        ></span>
+        [% END %]
 
 
         [% IF header_info %]

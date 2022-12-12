@@ -21,6 +21,9 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use Sys::Hostname;
 
+use JSON::XS;
+use MIME::Base64 qw(encode_base64);
+
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
@@ -108,6 +111,7 @@ sub reload($self) {
 
 sub register($self) {
     $self->register_defaultwebdata("get_defaultwebdata");
+    $self->register_prerender("prerender");
     return;
 }
 
@@ -191,6 +195,19 @@ sub get_defaultwebdata($self, $webdata) {
 
     $webdata->{isDebugging} = $self->{isDebugging};
 
+    return;
+}
+
+sub prerender($self, $webdata) {
+    if(!defined($webdata->{MaskHasConfigObject})) {
+        $webdata->{MaskHasConfigObject} = 0;
+    } elsif($webdata->{MaskHasConfigObject}) {
+        if(!defined($webdata->{ConfigObject})) {
+            my %tmp;
+            $webdata->{ConfigObject} = \%tmp;
+        }
+        $webdata->{MaskConfigObject} = encode_base64(encode_json($webdata->{ConfigObject}), '');
+    }
     return;
 }
 
