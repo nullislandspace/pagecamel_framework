@@ -66,6 +66,12 @@ sub do_dyndns($self, $ua) {
 
     my $host = $ua->{remote_addr} || '--unknown--';
 
+    # Override IP with the one given explicitely in the webcall (if any)
+    # Allows using internal IPs via DynDNS
+    if(defined($ua->{uriparams}->{ip})) {
+        $host = $ua->{uriparams}->{ip};
+    }
+
     if($host eq '--unknown--') {
         return (status => 500,
                 statustext => 'Couldn\'t get your IP',
