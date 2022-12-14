@@ -162,7 +162,7 @@ export class PCSqlite {
 
                 let dbstr:string|null = null;
                 if (this._dbname != '') {
-                    var storeddbid = window.localStorage.getItem(this._dbname + '_dbid');
+                    var storeddbid:string|null = window.localStorage.getItem(this._dbname + '_dbid');
                     if (storeddbid != this._dbid) {
                         console.log("^^^^^  RELOAD DB");
                         dbstr = window.localStorage.getItem(this._dbname);
@@ -170,6 +170,9 @@ export class PCSqlite {
                             this._db = null;
                             this._db = new this._SQL.Database(this._SQLtoBinArray(dbstr));
                             stmt = this._db.prepare(statement);
+                            if (storeddbid) {
+                                this._dbid = storeddbid;
+                            }
                         }
                     } else {
                         console.log("^^^^^  DO NOT RELOAD DB");
