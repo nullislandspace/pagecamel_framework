@@ -27,6 +27,8 @@ export class PCSqlite {
 
 
     private _db:initSqlJs.Database|null;
+    private _dbid:string;
+    private _autocommit:boolean;
     private _dbloaded:boolean;
     private _isdebug:boolean;
     private _dbname:string;
@@ -39,18 +41,17 @@ export class PCSqlite {
         this._isdebug = debug;
         this._db = null;
         this._dbname = dbname;
+        this._autocommit = true;
         this._SQL = null;
         this._promiseInitialize = this._initialize(config,dbname);
+        this._dbid = 'X'; // Init with invalid ID to force loading DB on startup
     }
 
-    save():void {
-        if (this._db && this._dbname != '') {
-            var dbstr = this._SQLtoBinString(this._db.export());
-            if (this._isdebug) console.debug("*** save database to " + this._dbname);
-            window.localStorage.setItem(this._dbname, dbstr);
-        }
+    private _randomDBID():string {
+        return Date.now().toString() + '_' + (Math.random()*100000).toString();
     }
 
+    
     get dbstring():string {
         if (this._db) {
             var dbstr:string = this._SQLtoBinString(this._db.export());
@@ -64,6 +65,11 @@ export class PCSqlite {
     
     get initialize():Promise<string> {
         return this._promiseInitialize;
+    }
+
+    
+    set autocommit(ac:boolean) {
+        this._autocommit = ac;
     }
 
     private _initialize(config:initSqlJs.SqlJsConfig,dbname=''):Promise<string> {
@@ -123,12 +129,14 @@ export class PCSqlite {
         return strings.join('');
     }
 
-    private _debug(...args:any[]) {
+
+
+
+    private _logdebug(...args:any[]):void {
         if(!this._isdebug) {
             return;
         }
-
-        // foreach loop for args
+        args.forEach((val)=>{console.debug(val)});
     }
 
     /**
@@ -154,10 +162,20 @@ export class PCSqlite {
 
                 let dbstr:string|null = null;
                 if (this._dbname != '') {
-                    dbstr = window.localStorage.getItem(this._dbname);
-                    if (dbstr && this._SQL) {
-                        this._db = new this._SQL.Database(this._SQLtoBinArray(dbstr));
-                        stmt = this._db.prepare(statement);
+                    var storeddbid:string|null = window.localStorage.getItem(this._dbname + '_dbid');
+                    if (storeddbid != this._dbid) {
+                        this._logdebug("^^^^^  RELOAD DB");
+                        dbstr = window.localStorage.getItem(this._dbname);
+                        if(dbstr && this._SQL) {
+                            this._db = null;
+                            this._db = new this._SQL.Database(this._SQLtoBinArray(dbstr));
+                            stmt = this._db.prepare(statement);
+                            if (storeddbid) {
+                                this._dbid = storeddbid;
+                            }
+                        }
+                    } else {
+                        this._logdebug("^^^^^  DO NOT RELOAD DB");
                     }
                 }
                 
@@ -181,7 +199,8 @@ export class PCSqlite {
             }
             stmt.free();
             //pagecamelDBSave();
-            if( !statement.match(/^select /i)) {
+            //Save DB to File only if autocommit is enabled and statement isn't a select query
+            if( !statement.match(/^select /i) && this._autocommit) {
                 this.save();
             }
             
@@ -191,6 +210,27 @@ export class PCSqlite {
         
     }
 
+    /**
+     * Save the DB from memory to local storage
+     *
+     * 
+     * 
+    */
+    save():void {
+        if (this._db && this._dbname != '') {
+            var dbstr = this._SQLtoBinString(this._db.export());
+            if (this._isdebug) console.debug("*** save database to " + this._dbname);
+            window.localStorage.setItem(this._dbname, dbstr);
+            this._dbid = this._randomDBID();
+            window.localStorage.setItem(this._dbname + '_dbid', this._dbid);
+        }
+    }
+
+    /**
+     * Reset the database and create a new one
+     *
+     * @returns True if a new database was createed
+    */
     reset(): boolean {
         if (this._SQL) {
             this._logdebug("Create new database and save it");
@@ -206,11 +246,5 @@ export class PCSqlite {
         
     }
 
-    private _logdebug(...args:any[]):void {
-        if(!this._isdebug) {
-            return;
-        }
-        args.forEach((val)=>{console.debug(val)});
-    }
 
 }
