@@ -34,6 +34,7 @@ export class PCSqlite {
     private _dbname:string;
     private _promiseInitialize:Promise<string>;
     private _SQL:SqlJsStatic|null;
+    private _binWorker:any;
     
     
     constructor(config:initSqlJs.SqlJsConfig,dbname='',debug=false){
@@ -45,6 +46,23 @@ export class PCSqlite {
         this._SQL = null;
         this._promiseInitialize = this._initialize(config,dbname);
         this._dbid = 'X'; // Init with invalid ID to force loading DB on startup
+        
+
+        this._binWorker = new Worker('/static/pchelpers/src/SQLtoBinWorker.js');
+
+        this._binWorker.onmessage = (e:any)=> {
+            var command = e.data[0];
+            var data = e.data[1];
+
+            if(command == 'SAVEDB') {
+                if (this._isdebug) console.debug("*** save database to " + this._dbname);
+                //console.log("#################################################   SAVEDB END #####################################");
+                window.localStorage.setItem(this._dbname, data);
+                this._dbid = this._randomDBID();
+                window.localStorage.setItem(this._dbname + '_dbid', this._dbid);
+            }
+        }
+
     }
 
     private _randomDBID():string {
@@ -218,11 +236,15 @@ export class PCSqlite {
     */
     save():void {
         if (this._db && this._dbname != '') {
+            if (this._isdebug) console.debug("*** preparing to save database to " + this._dbname);
+            //console.log("#################################################   SAVEDB START #####################################");
+            this._binWorker.postMessage(['SQLTOSTRING', this._db.export()]);
+            /*
             var dbstr = this._SQLtoBinString(this._db.export());
-            if (this._isdebug) console.debug("*** save database to " + this._dbname);
             window.localStorage.setItem(this._dbname, dbstr);
             this._dbid = this._randomDBID();
             window.localStorage.setItem(this._dbname + '_dbid', this._dbid);
+            */
         }
     }
 
