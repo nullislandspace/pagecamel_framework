@@ -253,7 +253,7 @@ sub get($self, $ua) {
         showads => $self->{showads},
     );
 
-    push @{$webdata{HeadExtraModuleScriptsNoPostfix}}, '/static/pcwebsocket/import_pcwebsocket.js';
+    push @{$webdata{HeadExtraModuleScriptsNoPostfix}}, '/static/pchelpers/import_pcwebsocket.js';
     
     $self->wsmaskget($ua, \%settings, \%webdata);
 
