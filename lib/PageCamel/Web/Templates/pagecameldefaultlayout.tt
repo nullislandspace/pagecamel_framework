@@ -39,7 +39,7 @@
 
         [% IF EnableDB == "1" %]
             <script type="text/javascript" src="/static/sqljs/sql-wasm.js[% URLReloadPostfix %]"></script>
-            <script type="module" src="/static/pcwebsocket/import_sqlite.js[% URLReloadPostfix %]"></script>
+            <script type="module" src="/static/pchelpers/import_sqlite.js[% URLReloadPostfix %]"></script>
         [% END %]
 
         [% FOREACH HeadExtraScript IN HeadExtraScripts %]
