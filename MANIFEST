@@ -2327,9 +2327,11 @@ lib/PageCamel/Web/Static/pchelpers/src/import.old.ts
 lib/PageCamel/Web/Static/pchelpers/src/sql-wasm.js
 lib/PageCamel/Web/Static/pchelpers/src/sql-wasm.wasm
 lib/PageCamel/Web/Static/pchelpers/src/sqlite.ts
+lib/PageCamel/Web/Static/pchelpers/src/SQLtoBinWorker.js
 lib/PageCamel/Web/Static/pchelpers/src/test/index.html
 lib/PageCamel/Web/Static/pchelpers/src/test/test_websocket.ts
 lib/PageCamel/Web/Static/pchelpers/src/test/test_websocket_local.ts
+lib/PageCamel/Web/Static/pchelpers/src/translate.ts
 lib/PageCamel/Web/Static/pchelpers/src/websocket.ts
 lib/PageCamel/Web/Static/pchelpers/tsconfig.json
 lib/PageCamel/Web/Static/remoteconsolelog.js
