@@ -1601,7 +1601,7 @@ sub startconfig($self) {
     foreach my $anonhash (qw[paths modules custom_methods protocolupgrade cors basic_auth]) {
         $self->{$anonhash} = {};
     }
-    foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished logstacktrace authcheck prefilter postauthfilter prerender tasks postfilter
+    foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished logstacktrace authcheck prefilter postauthfilter prerender lateprerender tasks postfilter
                                 default_webdata late_default_webdata loginitems logoutitems sessionrefresh cleanup
                                 public_urls remotelog sitemap firewall fastredirect
                                 ]) {
@@ -1832,6 +1832,16 @@ sub prerender($self, $webdata) {
     }
     return;
 }
+sub lateprerender($self, $webdata) {
+
+    foreach my $item (@{$self->{lateprerender}}) {
+        my $module = $item->{Module};
+        my $funcname = $item->{Function};
+        $module->$funcname($webdata);
+    }
+    return;
+}
+
 
 sub user_login($self, $username, $sessionid) {
 
@@ -2081,6 +2091,7 @@ BEGIN {
         cleanup         => "cleanup",
         preconnect      => "preconnect",
         prerender       => "prerender",
+        lateprerender       => "lateprerender",
         authcheck       => "authcheck",
         logstart        => "logstart",
         logend          => "logend",
