@@ -47,7 +47,7 @@ sub new($proto, %config) {
     if(!defined($self->{public})) {
         $self->{public} = 0;
     }
-    
+
     $cachemodulecount++;
     push @knownstaticmodules, $self->{modname};
     if($cachemodulecount > 1) {
@@ -135,7 +135,6 @@ sub reload($self, $ofh = undef) {
 }
 
 sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
-
     my $fcount = 0;
     my $ft = File::Type->new();
 
@@ -157,6 +156,7 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
 
         next if(!$self->{isDebugging} && $fname =~ /\.ts$/); # Only deliver typescript files when debugging
         next if(!$self->{isDebugging} && $fname =~ /\.js\.map$/); # Only deliver TS map files when debugging
+        next if($fname eq 'gettranslatekeys.pl');
 
         if(contains($fname, \@ignore)) {
             print $ofh "      Ignoring $fname in $basedir\n";
@@ -167,6 +167,18 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
         if(-d $nfname) {
             # Got ourself a directory, go recursive
             $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $ofh, $dynamic);
+            next;
+        }
+
+        if($fname eq 'gettranslatekeys.dat') {
+            open(my $ifh, '<', $nfname) or croak($!);
+            while((my $line = <$ifh>)) {
+                chomp $line;
+                if(length($line)) {
+                    $self->{server}->{modules}->{templates}->addTranslateKey($line);
+                }
+            }
+            close $ifh;
             next;
         }
 

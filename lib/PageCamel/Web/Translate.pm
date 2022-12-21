@@ -360,7 +360,6 @@ sub get_file($self, $ua) {
 
 
 sub prerender($self, $webdata) {
-
     # Unless the user is logged in, we don't have set a user selected Language, use English
     if(!defined($webdata->{userData}) ||
               !defined($webdata->{userData}->{user}) ||
