@@ -111,7 +111,7 @@ sub reload($self) {
 
 sub register($self) {
     $self->register_defaultwebdata("get_defaultwebdata");
-    $self->register_prerender("prerender");
+    $self->register_lateprerender("lateprerender");
     return;
 }
 
@@ -198,7 +198,7 @@ sub get_defaultwebdata($self, $webdata) {
     return;
 }
 
-sub prerender($self, $webdata) {
+sub lateprerender($self, $webdata) {
     if(!defined($webdata->{MaskHasConfigObject})) {
         $webdata->{MaskHasConfigObject} = 0;
     } elsif($webdata->{MaskHasConfigObject}) {
@@ -206,6 +206,7 @@ sub prerender($self, $webdata) {
             my %tmp;
             $webdata->{ConfigObject} = \%tmp;
         }
+        $self->{server}->{modules}->{templates}->addTranslations($webdata);
         $webdata->{MaskConfigObject} = encode_base64(encode_json($webdata->{ConfigObject}), '');
     }
     return;

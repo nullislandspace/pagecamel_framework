@@ -28,6 +28,7 @@ use PageCamel::Helpers::Padding qw(trim);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use PageCamel::Helpers::Strings qw(stripString);
 use PageCamel::Helpers::AutoDialogs;
+use PageCamel::Helpers::Translator;
 use JavaScript::Minifier qw(minify);
 
 my $templatemodulecount = 0;
@@ -66,6 +67,8 @@ sub new($proto, %config) {
         print STDERR "***** This is usually inefficient and can lead to duplicate files in memory, are you sure you want to do that?\n";
         print STDERR "***** Instead of multiple TemplateCache instances, you can use PluginConfig to add more views!\n";
     }
+
+    $self->{translatekeys} = [];
 
     return $self;
 }
@@ -186,6 +189,45 @@ sub register($self) {
     return;
 }
 
+sub addTranslateKey($self, $key) {
+    if(!contains($key, $self->{translatekeys})) {
+        push @{$self->{translatekeys}}, $key;
+    }
+
+    return;
+}
+
+sub finalcheck($self) {
+    foreach my $key (@{$self->{translatekeys}}) {
+        tr_rememberkey($key);
+    }
+
+    return;
+}
+
+sub addTranslations($self, $webdata) {
+
+    my $lang = 'engi';
+    if(defined($webdata->{UserLanguage})) {
+        $lang = $webdata->{UserLanguage};
+    }
+    my @translations;
+    foreach my $key (@{$self->{translatekeys}}) {
+        my $trans = tr_translate($lang, $key);
+        if(defined($trans)) {
+            push @translations, {
+                key => $key,
+                value => $trans,
+            };
+        }
+    }
+
+    $webdata->{ConfigObject}->{translations} = \@translations;
+
+    return;
+}
+
+
 sub get($self, $name, $uselayout, %webdata) {
     return unless defined($self->{cache}->{$name});
 
@@ -194,6 +236,7 @@ sub get($self, $name, $uselayout, %webdata) {
     # on what the current module put into webdata
     if(!defined($webdata{_templatecache_prerender_done}) || $webdata{_templatecache_prerender_done} != 1) {
         $self->{server}->prerender(\%webdata);
+        $self->{server}->lateprerender(\%webdata);
         $webdata{_templatecache_prerender_done} = 1;
     }
 

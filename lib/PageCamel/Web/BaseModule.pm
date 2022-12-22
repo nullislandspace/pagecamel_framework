@@ -225,7 +225,7 @@ BEGIN {
     # all other web modules, so this auto-generated functions are subclassed into
     # every child.
     my @stdFuncs = qw(prefilter postauthfilter postfilter defaultwebdata late_defaultwebdata task loginitem
-                        logoutitem sessionrefresh preconnect prerender cleanup authcheck logstart
+                        logoutitem sessionrefresh preconnect prerender lateprerender cleanup authcheck logstart
                         logend logdatadelivery logwebsocket logrequestfinished logstacktrace remotelog sitemap firewall fastredirect);
 
     # -- Deep magic begins here...
