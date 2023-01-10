@@ -1564,7 +1564,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     my $mode = $ua->{postparams}->{'mode'} || 'list';
     my $primarykey = '';
     if(defined($ua->{postparams}->{'primary_key'})) {
-        $primarykey = stripString($ua->{postparams}->{'primary_key'});
+        #$primarykey = stripString($ua->{postparams}->{'primary_key'});
+        $primarykey = $ua->{postparams}->{'primary_key'};
     }
 
     if($mode =~ /^select\_(.*)/) {
