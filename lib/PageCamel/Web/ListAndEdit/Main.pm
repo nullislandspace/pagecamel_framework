@@ -649,6 +649,18 @@ sub reload($self) {
         if($item->{type} eq "scripteditor") {
             $self->{needscripteditor} = 1;
         }
+        
+        # make sure we set a default size for text (if not set in config),
+        if($item->{type} eq 'text') {
+            if(!defined($item->{size})) {
+                print '    EDIT: Column ', $item->{column}, " has no 'size' setting, defaulting to 60\n";
+                $item->{size} = 60;
+            }
+            if(!defined($item->{maxlength})) {
+                print '    EDIT: Column ', $item->{column}, " has no 'maxlength' setting, defaulting to 200\n";
+                $item->{maxlength} = 200;
+            }
+        }
 
         # make sure we set a default size for textarea types (if not set in config),
         # but disallow "rows" and "columns" on other types
@@ -2103,6 +2115,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         if($column{displaytype} eq 'date') {
             #$column{displaytype} = 'text';
             $column{columnvalue} =~ s/\..*//;
+        }
+
+        if($column{displaytype} eq 'text') {
+            $column{size} = $item->{size};
+            $column{maxlength} = $item->{maxlength};
         }
 
         if($column{displaytype} eq 'timeonly') {

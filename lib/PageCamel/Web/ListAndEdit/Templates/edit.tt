@@ -76,7 +76,7 @@
                                     [% END %]
                                     [% LinebreakActive = column.linebreak %]
                                             [% IF column.displaytype == "text" %]
-                                                <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="60" maxlength="200">
+                                                <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="[% column.size %]" maxlength="[% column.maxlength %]">
                                             [% ELSIF column.displaytype == "date" %]
                                                 <input type="text" displaytype="dateandtime" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="19" maxlength="19">
                                             [% ELSIF column.displaytype == "dateonly" %]
