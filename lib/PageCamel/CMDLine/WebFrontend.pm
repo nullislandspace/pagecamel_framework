@@ -144,6 +144,62 @@ sub init($self) {
     }
     my $select = IO::Select->new(@tcpsockets);
     $self->{select} = $select;
+
+    if(!defined($self->{config}->{sslconfig}->{ssldefaultdomain})) {
+        print Dumper($self->{config}->{sslconfig});
+        croak("ssldefaultdomain not set!");
+    }
+    my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+    print "Default domain: $defaultdomain\n";
+    my $ok = 1;
+    if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}) ||
+        !defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}) ||
+        !defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey})) {
+        print STDERR "ssl default domain not fully configured!\n";
+        $ok = 0;
+    } else {
+        if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}) {
+            print STDERR "File not found: ", $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}, "\n";
+            $ok = 0;
+        }
+        if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}) {
+            print STDERR "File not found: ", $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}, "\n";
+            $ok = 0;
+        }
+    }
+
+    my @removedomains;
+    foreach my $domain (sort keys %{$self->{config}->{sslconfig}->{ssldomains}}) {
+        my $domainok = 1;
+        if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}) ||
+            !defined($self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslkey})) {
+            print STDERR "ssl domain $domain not fully configured!\n";
+            $ok = 0;
+            next;
+        }
+        if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}) {
+            print STDERR "Warning: File not found: " . $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}, "\n";
+            $domainok = 0;
+        }
+        if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}) {
+            print STDERR "Warning: File not found: " . $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslkey}, "\n";
+            $domainok = 0;
+        }
+
+        if(!$domainok) {
+            push @removedomains, $domain;
+        }
+    }
+
+    foreach my $domain (@removedomains) {
+        print STDERR "WARNING: Disabling domain $domain due to missing SSL files!\n";
+        delete $self->{config}->{sslconfig}->{ssldomains}->{$domain};
+    }
+
+    if(!$ok) {
+        croak("Startup aborted due to configuration errors!");
+    }
+        
     
     return;
 }
@@ -269,6 +325,10 @@ sub handleClient($self, $client) {
                         # Disable session tickets
                         Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
 
+                        # Load certificate chain
+                        my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+                        Net::SSLeay::CTX_use_certificate_chain_file($ctx, $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert});
+
                         # Check requested server name
                         Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
                             my $ssl = shift;
@@ -305,6 +365,7 @@ sub handleClient($self, $client) {
                                 Net::SSLeay::set_cert_and_key($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert},
                                                                     $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
                                         or croak("Can't set cert and key file");
+                                Net::SSLeay::CTX_use_certificate_chain_file($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert});
                                 #print STDERR "Cert: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert}, " Key: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey}, "\n";
                                 $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
                             }
