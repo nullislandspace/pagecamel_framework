@@ -174,9 +174,9 @@ export class PCSqlite {
             let results: initSqlJs.ParamsObject[] = [];
             let stmt: initSqlJs.Statement = this._db.prepare(statement);
             try {
-                if (this._isdebug) {
+                /*if (this._isdebug) {
                     console.debug(statement);
-                }
+                }*/
 
                 let dbstr: string | null = null;
                 if (this._dbname != "") {
@@ -184,7 +184,7 @@ export class PCSqlite {
                         this._dbname + "_dbid"
                     );
                     if (storeddbid != this._dbid) {
-                        this._logdebug("^^^^^  RELOAD DB");
+                        //this._logdebug("^^^^^  RELOAD DB");
                         dbstr = window.localStorage.getItem(this._dbname);
                         if (dbstr && this._SQL) {
                             this._db = null;
@@ -197,21 +197,22 @@ export class PCSqlite {
                             }
                         }
                     } else {
-                        this._logdebug("^^^^^  DO NOT RELOAD DB");
+                        //this._logdebug("^^^^^  DO NOT RELOAD DB");
                     }
                 }
 
                 if (stmt.bind(args)) {
-                    this._logdebug(
+                    /*this._logdebug(
                         "Execute statement SQL: " + stmt.getNormalizedSQL()
-                    );
+                    );*/
+
                     while (stmt.step()) {
                         //
                         var row = stmt.getAsObject();
                         results.push(row);
-                        this._logdebug(["row: ", row]);
+                        //this._logdebug(["row: ", row]);
                     }
-                    this._logdebug(["results: ", results]);
+                    //this._logdebug(["results: ", results]);
                 }
             } catch (fail) {
                 results = [];
