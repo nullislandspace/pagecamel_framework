@@ -110,7 +110,7 @@
     function handleServerRequests(ev) {
         var rawmsg = String(ev.data);
         
-        console.log("Parsing " + rawmsg.length + "  JSON bytes");
+        //console.log("Parsing " + rawmsg.length + "  JSON bytes");
         //var starttime = Date.now();
         var msg = JSON.parse(rawmsg);
         //var endtime = Date.now();
@@ -124,9 +124,23 @@
             console.log(msg.logline);
         } else {
             if(window.handleMessage) {
+                var starttime = Date.now();
                 handleMessage(msg);
+                var endtime = Date.now();
+                var timeused = endtime - starttime;
+                if(timeused > 2000) {
+                    console.log("PERFORMANCE: handleMessage() for " + msg.type + " took too long: " + timeused + "ms!");
+                }
             }
-            window.pcws.spoolincoming(msg.type, msg.data);
+            if(1) {
+                var starttime = Date.now();
+                window.pcws.spoolincoming(msg.type, msg.data);
+                var endtime = Date.now();
+                var timeused = endtime - starttime;
+                if(timeused > 2000) {
+                    console.log("PERFORMANCE: window.pcws.spoolincoming() for " + msg.type + " took too long: " + timeused + "ms!");
+                }
+            }
         }
         
     }
