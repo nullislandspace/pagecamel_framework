@@ -164,6 +164,8 @@ sub prerender($self, $webdata) {
     
     $webdata->{UIThemeFontCSSFile} = $self->{csspath} . '/' . $userFont . '.css';
 
+    $webdata->{ConfigObject}->{defaults}->{FontFamily} = $webdata->{UIThemeFontFace};
+
     return;
 }
 
