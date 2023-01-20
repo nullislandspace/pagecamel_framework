@@ -1386,6 +1386,10 @@ lib/PageCamel/Web/Static/favicon.ico
 lib/PageCamel/Web/Static/fonts/1942.ttf
 lib/PageCamel/Web/Static/fonts/anquietas.ttf
 lib/PageCamel/Web/Static/fonts/carbontype.ttf
+lib/PageCamel/Web/Static/fonts/CharisSIL-Bold.ttf
+lib/PageCamel/Web/Static/fonts/CharisSIL-Regular.ttf
+lib/PageCamel/Web/Static/fonts/CharisSILCalyx-Bold.ttf
+lib/PageCamel/Web/Static/fonts/CharisSILCalyx-Regular.ttf
 lib/PageCamel/Web/Static/fonts/DymaxionScript.ttf
 lib/PageCamel/Web/Static/fonts/HerrVonMuellerhoff-Regular.otf
 lib/PageCamel/Web/Static/fonts/LeagueScript.otf

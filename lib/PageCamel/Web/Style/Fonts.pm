@@ -21,17 +21,20 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use Digest::SHA1  qw(sha1_hex);
 
+my $FONTFAMILYVERSION = '2.0';
 my %fontfamilies = (
-    Georgia => 'Georgia, serif',
-    TimesNewRoman => '\'Times New Roman\', Times, serif',
-    Arial => 'Arial, Helvetica, sans-serif',
-    ArialBlack => '\'Arial Black\', Gadget, sans-serif',
-    ComicSans => '\'Comic Sans MS\', cursive, sans-serif',
-    Impact => 'Impact, Charcoal, sans-serif',
-    Trebuchet => '\'Trebuchet MS\', Helvetica, sans-serif',
-    Verdana => 'Verdana, Geneva, sans-serif',
-    Courier => '\'Courier New\', Courier, monospace',
-    Console => '\'Lucida Console\', Monaco, monospace',
+#   Georgia => 'Georgia, serif',
+#   TimesNewRoman => '\'Times New Roman\', Times, serif',
+#   Arial => 'Arial, Helvetica, sans-serif',
+#   ArialBlack => '\'Arial Black\', Gadget, sans-serif',
+    Charis => 'charis',
+    CharisBold => 'charisbold',
+#   ComicSans => '\'Comic Sans MS\', cursive, sans-serif',
+#   Impact => 'Impact, Charcoal, sans-serif',
+#   Trebuchet => '\'Trebuchet MS\', Helvetica, sans-serif',
+#   Verdana => 'Verdana, Geneva, sans-serif',
+#   Courier => '\'Courier New\', Courier, monospace',
+#   Console => '\'Lucida Console\', Monaco, monospace',
     Clipboard => 'herrvonmuellerhoff',
     Portcullion => 'portcullion',
     SourceCode => 'sourcecodepro',
@@ -74,6 +77,28 @@ sub reload($self) {
                         'type=dropdown',
         ])
         or croak("Failed to create setting default_font!");
+
+    # Check if we are changing from an old version to a new version of this module
+    my ($ok, $data) = $sysh->get($self->{modname}, "default_font_version");
+    my $isuptodate = 0;
+    if(!$ok) {
+        $sysh->createText(modulename => $self->{modname},
+                    settingname => 'default_font_version',
+                    settingvalue => $FONTFAMILYVERSION,
+                    description => 'Font module version',
+                    processinghints => [
+                        'type=textfield'
+                                        ])
+        or croak("Failed to create setting default_font_version!");
+    } elsif($data->{settingvalue} eq $FONTFAMILYVERSION) {
+        $isuptodate = 1;
+    }
+
+    if(!$isuptodate) {
+        $sysh->set($self->{modname}, 'default_font_version', $FONTFAMILYVERSION);
+        $sysh->set($self->{modname}, 'default_font', $self->{default_font});
+        $sysh->updateEnumValues($self->{modname}, 'default_font', \@fontnames);
+    }
 
     return;
 }
