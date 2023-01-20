@@ -353,7 +353,7 @@ export class PCWebsocket{
     }
 
     private _timerfunc():void{
-        this._logdebug("Execute timer function...");
+        //this._logdebug("Execute timer function...");
         this._send_cached();
         
 
@@ -378,7 +378,7 @@ export class PCWebsocket{
 
 
     private _send_cached():void {
-        this._logdebug("Try to send cached messages...");
+        //this._logdebug("Try to send cached messages...");
     
         /*if (this._cached_msgs.length > 0) {
             let cached_msg = this._cached_msgs[0];
