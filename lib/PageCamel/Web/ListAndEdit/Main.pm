@@ -26,11 +26,12 @@ use JSON::XS;
 use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::URI qw[encode_uri encode_uri_path decode_uri_part decode_uri_path];
 use PageCamel::Helpers::Translator;
-use PageCamel::Helpers::Colors qw[colorHexMaxContrast];
+use PageCamel::Helpers::Colors qw[colorHexMaxContrast colorHex2RGB];
 use MIME::Base64;
 use Digest::SHA1  qw(sha1_hex);
 use IO::Compress::Gzip qw(gzip $GzipError);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
+use GD;
 
 
 sub new($proto, %config) {
@@ -530,6 +531,9 @@ sub reload($self) {
             if(!defined($item->{searchable})) {
                 $item->{searchable} = 0;
             }
+            if(!defined($item->{colorselector})) {
+                $item->{colorselector} = 0;
+            }
             if(!defined($item->{descriptiononly})) {
                 $item->{descriptiononly} = 0;
             }
@@ -784,6 +788,11 @@ sub get($self, $ua) {
             return $self->get_pagescript($ua, 'edit');
         }
     }
+
+    if($ua->{url} =~ /\/getcolorimage\//) {
+        my $color = '#' . substr($ua->{url}, -6);
+        return $self->get_colorimage($ua, $color);
+    }
     
     if($ua->{url} =~ /\/pagelistscript\.js/) {
         if(!$self->{useextralistscript}) {
@@ -855,6 +864,26 @@ sub get($self, $ua) {
     }
 
     return $self->get_edit($ua);
+}
+
+sub get_colorimage($self, $ua, $color) {
+
+    my $img = GD::Image->new(50,20);
+    my $bg = $img->colorAllocate(255,255,255);
+    my $fg = $img->colorAllocate(colorHex2RGB($color));
+
+    $img->filledRectangle(0, 0, 50, 20, $bg);
+    $img->filledRectangle(2, 2, 46, 16, $fg);
+
+    my $pngdata = $img->png;
+
+    return (status  =>  200,
+        expires         => '+7d',
+        cache_control   => 'max-age=5242880',
+        type    => "image/png",
+        data    => $pngdata
+    );
+
 }
 
 sub send_csv($self, $ua) {
@@ -1618,6 +1647,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         autosave        =>  $self->{autosave},
         editcolumnlist  =>  $self->{editcolumnlist},
         extrattvars     =>  $self->{extrattvars},
+        colorrequestpath => $self->{webpath} . '/getcolorimage/',
         EditPageHeader => $self->{editpageheader},
         showads => $self->{edit}->{showads},
         SidebarHTML => $self->{edit}->{sidebarhtml},
@@ -2245,6 +2275,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $eselsth->finish;
             $column{enum_values} = \@enum_values;
             $column{searchable} = $item->{searchable};
+            $column{colorselector} = $item->{colorselector};
             $column{descriptiononly} = $item->{descriptiononly};
             $column{multilanguage} = $item->{multilanguage};
         }

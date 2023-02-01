@@ -141,14 +141,14 @@
                                                 </div>
 
                                             [% ELSIF column.displaytype == "enum" %]
-                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
                                                         [% FOREACH enumvalue IN column.enum_values %]
                                                             <option value="[% enumvalue.selectorenumvalue %]"
                                                             [% IF enumvalue.selectorenumvalue == column.columnvalue %]
                                                                 selected="selected"
                                                             [% END %]
                                                             >
-                                                                [% IF column.descriptiononly == 1 %]
+                                                                [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
                                                                     [% IF column.multilanguage == 1%]
                                                                         [% tr.trquote(enumvalue.selectorenumdescription) %]
                                                                     [% ELSE %]
@@ -293,6 +293,7 @@
     data-autosaveurl="[% webpath %]/autosave"
     data-editmode="[% mode %]"
     data-editcolumnlist="[% editcolumnlist %]"
+    data-colorrequestpath="[% colorrequestpath %]"
     [% extrattvars %]
 ></span>
 
@@ -302,6 +303,21 @@
         $('#mode').val(newmode);
         return true;
     }
+
+    function customSelect2Format(state) {
+        if (!state.id) {
+            return state.text;
+        }
+
+        var imageurl = ttvars.colorrequestpath + state.element.value.substring(1, 7);
+        var textline = '<span><img src="' + imageurl + '" class="img-flag" />' + state.text + '</span>';
+        console.log(textline);
+        //'<span><img src="' + baseUrl + '/' + state.element.value.toLowerCase() + '.png" class="img-flag" /> ' + state.text + '</span>'
+        var $state = $(
+            textline
+        );
+        return $state;
+    };
 
     function updateSwitch(element) {
         var dataelem = element.find("input[switchpart='value']");

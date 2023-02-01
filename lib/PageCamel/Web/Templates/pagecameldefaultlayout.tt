@@ -136,9 +136,16 @@
                     if($(this).attr('extendable') == '1') {
                         extendable = true;
                     }
-                    $(this).select2({
-                       tags: extendable
-                    });
+                    if($(this).attr('customformat') == '1' && window.customSelect2Format) {
+                        $(this).select2({
+                           tags: extendable,
+                           templateResult: customSelect2Format
+                        });
+                    } else {
+                        $(this).select2({
+                           tags: extendable
+                        });
+                    }
                 });
 
                 $("input[type=checkbox]").checkify({
