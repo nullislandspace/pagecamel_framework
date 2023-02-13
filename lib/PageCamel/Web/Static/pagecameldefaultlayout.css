@@ -129,6 +129,14 @@ input.autoNumeric {
     border:1px dashed #36A636;
 }
 
+#sortable1 li.linebreakitem, #sortable2 li.linebreakitem {
+    margin: 0 5px 5px 5px;
+    padding: 5px;
+    width: 400px;
+    height:32px;
+    border:1px double #A0A0A0;
+}
+
 #sortable1 li.placeholder, #sortable2 li.placeholder {
     margin: 0 5px 5px 5px;
     padding: 5px;
