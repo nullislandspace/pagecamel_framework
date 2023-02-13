@@ -176,7 +176,7 @@ sub reload($self) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # ------------- LIST -------------
-    my @listallowedtypes = qw[text url boolean array date led html color image];
+    my @listallowedtypes = qw[text textarray url boolean array date led html color colorswatch image];
 
     foreach my $mustattr (qw[orderby primarykey table webpath pagetitle db session]) {
         if(!defined($self->{$mustattr})) {
@@ -290,9 +290,15 @@ sub reload($self) {
             $self->{userawhtml} = 1;
         }
 
-        if($item->{type} eq 'url' && (!defined($item->{urlformat}) || $item->{urlformat} eq '')) {
-            print "    LIST: Attribute \"urlformat\" not set for $item->{column}!\n";
-            $ok = 0
+        if($item->{type} eq 'url') {
+            if(!defined($item->{urlformat}) || $item->{urlformat} eq '') {
+                print "    LIST: Attribute \"urlformat\" not set for $item->{column}!\n";
+                $ok = 0
+            }
+            if(!defined($item->{encodeslashes})) {
+                print "    LIST: Attribute \"encodeslashes\" not set for $item->{column}, defaulting to 0\n";
+                $item->{encodeslashes} = 0;
+            }
         }
 
         if(defined($item->{columnscript})) {
@@ -326,8 +332,8 @@ sub reload($self) {
         my %listtesttypes = (
             array   => [qw[array]],
             boolean => [qw[led boolean]],
-            numeric => [qw[text url]],
-            text    => [qw[text url html boolean color image]],
+            numeric => [qw[textarray text url]],
+            text    => [qw[textarray text url html boolean color colorswatch image]],
         );
 
         foreach my $testtype (keys %listtesttypes) {
@@ -428,7 +434,7 @@ sub reload($self) {
     my %editcolumntypes;
     my %editcolumnnullable;
     my @gotocolumns;
-    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay];
+    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum enumarray switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay];
     my @readonlytypes = qw[textarea-readonly led display codedisplay imagedisplay];
     $self->{needcvceditor} = 0;
     $self->{needscripteditor} = 0;
@@ -487,7 +493,7 @@ sub reload($self) {
             push @editcolumns, $item->{column};
         }
         $editcolumnnullable{$item->{column}} = 0;
-        if(!defined($item->{nullable}) || !$item->{nullable}) {
+        if(!defined($item->{nullable}) || !$item->{nullable} || $item->{type} eq 'enumarray') {
             $item->{nullable} = 0;
         } else {
             $item->{nullable} = 1;
@@ -509,10 +515,10 @@ sub reload($self) {
         my %testtypes = (
             array   => [qw[array]],
             boolean => [qw[led switch checkbox]],
-            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum display hidden colorpicker image imagedisplay]],
-            integer => [qw[number enum subenum display slider]],
-            bigint => [qw[number enum subenum display slider]],
-            real => [qw[number enum subenum display]],
+            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum enumarray display hidden colorpicker image imagedisplay]],
+            integer => [qw[number enum subenum enumarray display slider]],
+            bigint => [qw[number enum subenum enumarray display slider]],
+            real => [qw[number enum subenum enumarray display]],
             timestamp => [qw[date display]],
             date => [qw[dateonly display]],
             time => [qw[timeonly display]],
@@ -527,7 +533,7 @@ sub reload($self) {
             }
         }
 
-        if($item->{type} eq "enum" || $item->{type} eq "subenum") {
+        if($item->{type} eq "enum" || $item->{type} eq "subenum" || $item->{type} eq "enumarray") {
             if(!defined($item->{searchable})) {
                 $item->{searchable} = 0;
             }
@@ -565,7 +571,7 @@ sub reload($self) {
             }
 
             if($enumtype ne $type) {
-                print '    EDIT: Column ', $item->{column}, " has type mismatch with enum!\n";
+                print '    EDIT: Column ', $item->{column}, " has type mismatch with enum! ($enumtype vs $type)\n";
                 $ok = 0;
                 next;
             }
@@ -869,11 +875,13 @@ sub get($self, $ua) {
 sub get_colorimage($self, $ua, $color) {
 
     my $img = GD::Image->new(50,20);
-    my $bg = $img->colorAllocate(255,255,255);
+    my $bg1 = $img->colorAllocate(0,0,0);
+    my $bg2 = $img->colorAllocate(255,255,255);
     my $fg = $img->colorAllocate(colorHex2RGB($color));
 
-    $img->filledRectangle(0, 0, 50, 20, $bg);
-    $img->filledRectangle(2, 2, 46, 16, $fg);
+    $img->filledRectangle(0, 0, 50, 20, $bg1);
+    $img->filledRectangle(1, 1, 48, 18, $bg2);
+    $img->filledRectangle(2, 2, 47, 17, $fg);
 
     my $pngdata = $img->png;
 
@@ -1454,7 +1462,7 @@ sub get_lines($self, $ua) {
             if($type eq 'date') {
                 $type = 'text';
                 $value =~ s/\..*//;
-            } elsif($type eq 'array') {
+            } elsif($type eq 'array' || $type eq 'textarray') {
                 if(ref $rawline->{$item->{column}} eq 'ARRAY') {
                     $value = join("<br/>", @{$rawline->{$item->{column}}});
                 } else {
@@ -1484,12 +1492,15 @@ sub get_lines($self, $ua) {
                 # Assume it's all properly preformatted
             } elsif($type eq 'url') {
                 my $temp = $item->{urlformat};
-                $value = encode_uri_path($value);
-                $temp =~ s/\%/$value/;
+                my $encodedvalue = encode_uri_path($value, $item->{encodeslashes});
+                $temp =~ s/\%/$encodedvalue/;
                 $value = '<a href="' . $temp . '">' . $value . '</a>';
             } elsif($type eq 'color') {
                 my $contrast = colorHexMaxContrast($value);
                 $value = '<div style="background-color:' . $value . ';color:' . $contrast . ';">' . $value . '</div>';
+            } elsif($type eq 'colorswatch') {
+                $value =~ s/^\#//;
+                $value = '<img src="' . $self->{webpath} . '/getcolorimage/' . $value . '">';
             } elsif($type eq 'image') {
                 if($value ne '') {
                     $value = '<img src="data:image/png;base64,' . $value . '">';
@@ -1816,12 +1827,18 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                 for(my $i = 0; $i < $arraycount; $i++) {
                     my $tmp = '';
                     if(defined($ua->{postparams}->{$column . '_' . $i })) {
-                        $tmp = stripString($ua->{postparams}->{$column . '_' . $i });
+                        if($self->{editcolumntypes}->{$column} eq 'enumarray') {
+                            # Don't stripString when dealing with enums
+                            $tmp = $ua->{postparams}->{$column . '_' . $i };
+                        } else {
+                            $tmp = stripString($ua->{postparams}->{$column . '_' . $i });
+                        }
                     }
                     if($tmp ne '') {
                         push @uparray, $tmp;
                     }
                 }
+                print STDERR Dumper(\@uparray);
                 push @upargs, \@uparray;
             }
         }
@@ -2335,6 +2352,51 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $column{searchable} = $item->{searchable};
             $column{descriptiononly} = $item->{descriptiononly};
         }
+        
+        # #### ENUMARRAY ####
+        if($item->{type} eq 'enumarray') {
+            my $extracolumn = '';
+            my $hasdescription = 0;
+            if(defined($item->{showdescription})) {
+                $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
+                $hasdescription = 1;
+            }
+
+            my $where = '';
+            if(defined($item->{enumwhere})) {
+                $where = ' WHERE ' . $item->{enumwhere} . ' ';
+            }
+
+            my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
+                                               $extracolumn .
+                                               ' FROM ' . $item->{enumtable} .
+                                               $where .
+                                               ' ORDER BY ' . $item->{enumcolumn})
+                    or croak($dbh->errstr);
+            $eselsth->execute or croak($dbh->errstr);
+            my @enum_values;
+            {
+                # enum array ALWAYS has a "nullable" row"
+                my %emptyval = (
+                    selectorenumvalue   => '',
+                    hasdescription      => 0,
+                );
+                push @enum_values, \%emptyval;
+            }
+            while((my $eline = $eselsth->fetchrow_hashref)) {
+                $eline->{hasdescription} = $hasdescription;
+                push @enum_values, $eline;
+            }
+            $eselsth->finish;
+            $column{enum_values} = \@enum_values;
+            $column{searchable} = $item->{searchable};
+            $column{colorselector} = $item->{colorselector};
+            $column{descriptiononly} = $item->{descriptiononly};
+            $column{multilanguage} = $item->{multilanguage};
+            for(1..5) {
+                push @{$column{columnvalue}}, '';
+            }
+        }
 
         if(defined($item->{goto})) {
             $column{goto} = 1;
@@ -2445,7 +2507,15 @@ sub write_auditlog($self, $username, $mode, @data) {
     my $insth = $dbh->prepare_cached("INSERT INTO auditlog (worker_name, module_name, username, logtext, extrainfo)
                                         VALUES ('webgui', ?, ?, ?, ?)")
             or croak($dbh->errstr);
-    if(!$insth->execute($self->{modname}, $username, $mode . " in " . $self->{table}, \@data)) {
+    my @newdata;
+    foreach my $field (@data) {
+        if(ref $field eq 'ARRAY') {
+            push @newdata, join('|', $field);
+        } else {
+            push @newdata, $field;
+        }
+    }
+    if(!$insth->execute($self->{modname}, $username, $mode . " in " . $self->{table}, \@newdata)) {
         print STDERR 'Auditlog failed: ', $dbh->errstr, "\n";
         $dbh->rollback;
     } else {

@@ -175,6 +175,41 @@
                                                     </select>
                                                     <!--<input type="hidden" name="[% column.columnname %]" value="[% column.columnvalue %]">-->
                                                 </div>
+                                            [% ELSIF column.displaytype == "enumarray" %]
+                                                    [% arraycount = 0 %]
+                                                    [% FOREACH arrayvalue IN column.columnvalue %]
+                                                        [% IF arraycount > 0 %]<br/>[% END %] 
+                                                        <!-- VALUE: "[% arrayvalue %]" -->
+                                                        <select name="[% tr.quote(column.columnname) %]_[% arraycount %]" id="[% tr.quote(column.columnname) %]_[% arraycount %]" searchable="[% column.searchable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
+                                                            [% FOREACH enumvalue IN column.enum_values %]
+                                                                <option value="[% enumvalue.selectorenumvalue %]"
+                                                                [% IF enumvalue.selectorenumvalue == arrayvalue %]
+                                                                    selected="selected"
+                                                                [% END %]
+                                                                >
+                                                                    [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
+                                                                        [% IF column.multilanguage == 1%]
+                                                                            [% tr.trquote(enumvalue.selectorenumdescription) %]
+                                                                        [% ELSE %]
+                                                                            [% enumvalue.selectorenumdescription %]
+                                                                        [% END %]
+                                                                    [% ELSE %]
+                                                                        [% IF column.multilanguage == 1%]
+                                                                            [% IF enumvalue.hasdescription == 1 %]
+                                                                                [% tr.trquote(enumvalue.selectorenumvalue _ ' : ' _ enumvalue.selectorenumdescription) %]
+                                                                            [% ELSE %]
+                                                                                [% tr.trquote(enumvalue.selectorenumvalue) %]
+                                                                            [% END %]
+                                                                        [% ELSE %]
+                                                                            [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
+                                                                        [% END %]
+                                                                    [% END %]
+                                                                </option>
+                                                            [% END %]
+                                                        </select>
+                                                        [% arraycount = arraycount + 1 %]
+                                                    [% END %]
+                                                    <input type="hidden" name="[% tr.quote(column.columnname) %]_count" value="[% arraycount %]">
                                             [% ELSIF column.displaytype == "slider" %]
                                                 <div displaytype="slider" svalue="[% tr.quote(column.columnvalue) %]" smin="[% column.value_min %]" smax="[% column.value_max %]" sstep="[% column.step %]">
                                                     <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
