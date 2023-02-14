@@ -18,15 +18,19 @@ use PageCamel::Helpers::UTF;
 
 
 use base qw(Exporter);
+use GD;
+use MIME::Base64;
 
-our @EXPORT_OK = qw(colorHex2RGB colorRGB2Hex colorMaxContrast colorHexMaxContrast);
+our @EXPORT_OK = qw(colorHex2RGB colorRGB2Hex colorMaxContrast colorHexMaxContrast colorSwatch colorSwatchB64 colorSwatchUrl colorSwatchHTML);
 
 sub colorHex2RGB($colorstring) {
     
     my @rgb = (0, 0, 0);
     my @hexrgb;
+
+    $colorstring =~ s/^\#//;
     
-    if($colorstring =~ /\#(\w{2})(\w{2})(\w{2})/) {
+    if($colorstring =~ /^(\w{2})(\w{2})(\w{2})$/) {
         @hexrgb = ($1, $2, $3);
         for(my $i = 0; $i < 3; $i++) {
             $rgb[$i] = CORE::hex($hexrgb[$i]);
@@ -85,6 +89,40 @@ sub colorHexMaxContrast($colorstring) {
     return colorRGB2Hex(colorMaxContrast(colorHex2RGB($colorstring)));
 }
 
+my %colorswatchcache;
+sub colorSwatch($color) {
+
+    if(defined($colorswatchcache{$color})) {
+        return $colorswatchcache{$color};
+    }
+
+    my $img = GD::Image->new(50,20);
+    my $bg1 = $img->colorAllocate(0,0,0);
+    my $bg2 = $img->colorAllocate(255,255,255);
+    my $fg = $img->colorAllocate(colorHex2RGB($color));
+
+    $img->filledRectangle(0, 0, 50, 20, $bg1);
+    $img->filledRectangle(1, 1, 48, 18, $bg2);
+    $img->filledRectangle(2, 2, 47, 17, $fg);
+
+    my $pngdata = $img->png;
+
+    $colorswatchcache{$color} = $pngdata;
+
+    return $pngdata;
+}
+
+sub colorSwatchB64($color) {
+    return encode_base64(colorSwatch($color), '');
+}
+
+sub colorSwatchUrl($color) {
+    return 'data:image/png;base64,' . encode_base64(colorSwatch($color), '');
+}
+
+sub colorSwatchHTML($color) {
+    return '<img width="50" height="20" src="data:image/png;base64,' . encode_base64(colorSwatch($color), '') . '">';
+}
 
 1;
 __END__
