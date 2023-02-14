@@ -26,12 +26,11 @@ use JSON::XS;
 use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::URI qw[encode_uri encode_uri_path decode_uri_part decode_uri_path];
 use PageCamel::Helpers::Translator;
-use PageCamel::Helpers::Colors qw[colorHexMaxContrast colorHex2RGB];
+use PageCamel::Helpers::Colors qw[colorHexMaxContrast colorHex2RGB colorSwatchHTML];
 use MIME::Base64;
 use Digest::SHA1  qw(sha1_hex);
 use IO::Compress::Gzip qw(gzip $GzipError);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
-use GD;
 
 
 sub new($proto, %config) {
@@ -795,11 +794,6 @@ sub get($self, $ua) {
         }
     }
 
-    if($ua->{url} =~ /\/getcolorimage\//) {
-        my $color = '#' . substr($ua->{url}, -6);
-        return $self->get_colorimage($ua, $color);
-    }
-    
     if($ua->{url} =~ /\/pagelistscript\.js/) {
         if(!$self->{useextralistscript}) {
             return (status => 404);
@@ -870,28 +864,6 @@ sub get($self, $ua) {
     }
 
     return $self->get_edit($ua);
-}
-
-sub get_colorimage($self, $ua, $color) {
-
-    my $img = GD::Image->new(50,20);
-    my $bg1 = $img->colorAllocate(0,0,0);
-    my $bg2 = $img->colorAllocate(255,255,255);
-    my $fg = $img->colorAllocate(colorHex2RGB($color));
-
-    $img->filledRectangle(0, 0, 50, 20, $bg1);
-    $img->filledRectangle(1, 1, 48, 18, $bg2);
-    $img->filledRectangle(2, 2, 47, 17, $fg);
-
-    my $pngdata = $img->png;
-
-    return (status  =>  200,
-        expires         => '+7d',
-        cache_control   => 'max-age=5242880',
-        type    => "image/png",
-        data    => $pngdata
-    );
-
 }
 
 sub send_csv($self, $ua) {
@@ -1499,8 +1471,7 @@ sub get_lines($self, $ua) {
                 my $contrast = colorHexMaxContrast($value);
                 $value = '<div style="background-color:' . $value . ';color:' . $contrast . ';">' . $value . '</div>';
             } elsif($type eq 'colorswatch') {
-                $value =~ s/^\#//;
-                $value = '<img src="' . $self->{webpath} . '/getcolorimage/' . $value . '">';
+                $value = colorSwatchHTML($value);
             } elsif($type eq 'image') {
                 if($value ne '') {
                     $value = '<img src="data:image/png;base64,' . $value . '">';
@@ -1658,7 +1629,6 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         autosave        =>  $self->{autosave},
         editcolumnlist  =>  $self->{editcolumnlist},
         extrattvars     =>  $self->{extrattvars},
-        colorrequestpath => $self->{webpath} . '/getcolorimage/',
         EditPageHeader => $self->{editpageheader},
         showads => $self->{edit}->{showads},
         SidebarHTML => $self->{edit}->{sidebarhtml},

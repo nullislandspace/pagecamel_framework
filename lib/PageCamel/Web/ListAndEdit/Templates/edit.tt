@@ -141,7 +141,10 @@
                                                 </div>
 
                                             [% ELSIF column.displaytype == "enum" %]
-                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]"
+                                                        [% IF column.colorselector == 1 %]
+                                                            customformat="1"
+                                                        [% END %]>
                                                         [% FOREACH enumvalue IN column.enum_values %]
                                                             <option value="[% enumvalue.selectorenumvalue %]"
                                                             [% IF enumvalue.selectorenumvalue == column.columnvalue %]
@@ -149,6 +152,10 @@
                                                             [% END %]
                                                             >
                                                                 [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
+                                                                    [% IF column.colorselector == 1 %]
+                                                                        [% colorname = enumvalue.selectorenumvalue %]
+                                                                        [% colors.$colorname = tr.colorswatch(enumvalue.selectorenumvalue) %]
+                                                                    [% END %]
                                                                     [% IF column.multilanguage == 1%]
                                                                         [% tr.trquote(enumvalue.selectorenumdescription) %]
                                                                     [% ELSE %]
@@ -328,7 +335,9 @@
     data-autosaveurl="[% webpath %]/autosave"
     data-editmode="[% mode %]"
     data-editcolumnlist="[% editcolumnlist %]"
-    data-colorrequestpath="[% colorrequestpath %]"
+    [% FOREACH colorname IN colors.keys %]
+        data-colorswatch[% tr.cleancolorname(colorname) %]="[% colors.$colorname %]"
+    [% END %]
     [% extrattvars %]
 ></span>
 
@@ -344,10 +353,10 @@
             return state.text;
         }
 
-        var imageurl = ttvars.colorrequestpath + state.element.value.substring(1, 7);
-        var textline = '<span><img src="' + imageurl + '" class="img-flag" />' + state.text + '</span>';
-        console.log(textline);
-        //'<span><img src="' + baseUrl + '/' + state.element.value.toLowerCase() + '.png" class="img-flag" /> ' + state.text + '</span>'
+        var colorname = 'colorswatch' + state.element.value.substring(1, 7).toLowerCase();
+        var imageurl = ttvars[colorname];
+        var textline = '<span><img width="50px" height="20px" src="' + imageurl + '" class="img-flag" />' + state.text + '</span>';
+        
         var $state = $(
             textline
         );
