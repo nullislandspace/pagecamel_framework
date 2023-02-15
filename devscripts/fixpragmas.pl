@@ -11,6 +11,7 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use Data::Printer;
 use builtin qw[true false is_bool];
 no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
@@ -39,7 +40,7 @@ foreach my $file (@files) {
         if($line =~ /^use\ +(.+)\;/) {
             my $pragma = $1;
             my $skip = 0;
-            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF|builtin)/ && $pragma !~ /Digest/) {
+            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF|builtin|Data\:\:Printer)/ && $pragma !~ /Digest/) {
                 # Remove this (old) lines
                 $skip = 1;
             }
@@ -97,6 +98,7 @@ foreach my $file (@files) {
             print $ofh "use Array::Contains;\n";
             print $ofh "use utf8;\n";
             print $ofh "use Data::Dumper;\n";
+            print $ofh "use Data::Printer;\n";
             print $ofh "use builtin qw[true false is_bool];\n";
             print $ofh "no warnings qw(experimental::builtin);\n";
             if($file !~ /Helpers\/UTF\.pm$/) {
