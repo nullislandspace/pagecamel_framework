@@ -50,14 +50,18 @@ sub encode_uri_part($orig) {
     return $encoded;
 }
 
-sub encode_uri_path($orig) {
+sub encode_uri_path($orig, $encodeslashes = 0) {
 
     my $encoded = '';
 
     my @parts = split//, $orig;
     foreach my $part (@parts) {
         if($part =~ /^[a-zA-Z0-9\/\:\~]/) {
-            $encoded .= $part;
+            if($encodeslashes && $part eq '/') {
+                $encoded .= '%' . uc(doFPad(sprintf("%x", ord($part)), 2));
+            } else {
+                $encoded .= $part;
+            }
         }elsif($part eq ' ') {
             $encoded .= '%20';
         } else {

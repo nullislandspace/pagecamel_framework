@@ -141,14 +141,21 @@
                                                 </div>
 
                                             [% ELSIF column.displaytype == "enum" %]
-                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]"
+                                                        [% IF column.colorselector == 1 %]
+                                                            customformat="1"
+                                                        [% END %]>
                                                         [% FOREACH enumvalue IN column.enum_values %]
                                                             <option value="[% enumvalue.selectorenumvalue %]"
                                                             [% IF enumvalue.selectorenumvalue == column.columnvalue %]
                                                                 selected="selected"
                                                             [% END %]
                                                             >
-                                                                [% IF column.descriptiononly == 1 %]
+                                                                [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
+                                                                    [% IF column.colorselector == 1 %]
+                                                                        [% colorname = enumvalue.selectorenumvalue %]
+                                                                        [% colors.$colorname = tr.colorswatch(enumvalue.selectorenumvalue) %]
+                                                                    [% END %]
                                                                     [% IF column.multilanguage == 1%]
                                                                         [% tr.trquote(enumvalue.selectorenumdescription) %]
                                                                     [% ELSE %]
@@ -175,6 +182,41 @@
                                                     </select>
                                                     <!--<input type="hidden" name="[% column.columnname %]" value="[% column.columnvalue %]">-->
                                                 </div>
+                                            [% ELSIF column.displaytype == "enumarray" %]
+                                                    [% arraycount = 0 %]
+                                                    [% FOREACH arrayvalue IN column.columnvalue %]
+                                                        [% IF arraycount > 0 %]<br/>[% END %] 
+                                                        <!-- VALUE: "[% arrayvalue %]" -->
+                                                        <select name="[% tr.quote(column.columnname) %]_[% arraycount %]" id="[% tr.quote(column.columnname) %]_[% arraycount %]" searchable="[% column.searchable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
+                                                            [% FOREACH enumvalue IN column.enum_values %]
+                                                                <option value="[% enumvalue.selectorenumvalue %]"
+                                                                [% IF enumvalue.selectorenumvalue == arrayvalue %]
+                                                                    selected="selected"
+                                                                [% END %]
+                                                                >
+                                                                    [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
+                                                                        [% IF column.multilanguage == 1%]
+                                                                            [% tr.trquote(enumvalue.selectorenumdescription) %]
+                                                                        [% ELSE %]
+                                                                            [% enumvalue.selectorenumdescription %]
+                                                                        [% END %]
+                                                                    [% ELSE %]
+                                                                        [% IF column.multilanguage == 1%]
+                                                                            [% IF enumvalue.hasdescription == 1 %]
+                                                                                [% tr.trquote(enumvalue.selectorenumvalue _ ' : ' _ enumvalue.selectorenumdescription) %]
+                                                                            [% ELSE %]
+                                                                                [% tr.trquote(enumvalue.selectorenumvalue) %]
+                                                                            [% END %]
+                                                                        [% ELSE %]
+                                                                            [% enumvalue.selectorenumvalue %][% IF enumvalue.hasdescription == 1 %] : [% enumvalue.selectorenumdescription %][% END %]
+                                                                        [% END %]
+                                                                    [% END %]
+                                                                </option>
+                                                            [% END %]
+                                                        </select>
+                                                        [% arraycount = arraycount + 1 %]
+                                                    [% END %]
+                                                    <input type="hidden" name="[% tr.quote(column.columnname) %]_count" value="[% arraycount %]">
                                             [% ELSIF column.displaytype == "slider" %]
                                                 <div displaytype="slider" svalue="[% tr.quote(column.columnvalue) %]" smin="[% column.value_min %]" smax="[% column.value_max %]" sstep="[% column.step %]">
                                                     <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
@@ -293,6 +335,9 @@
     data-autosaveurl="[% webpath %]/autosave"
     data-editmode="[% mode %]"
     data-editcolumnlist="[% editcolumnlist %]"
+    [% FOREACH colorname IN colors.keys %]
+        data-colorswatch[% tr.cleancolorname(colorname) %]="[% colors.$colorname %]"
+    [% END %]
     [% extrattvars %]
 ></span>
 
@@ -302,6 +347,21 @@
         $('#mode').val(newmode);
         return true;
     }
+
+    function customSelect2Format(state) {
+        if (!state.id) {
+            return state.text;
+        }
+
+        var colorname = 'colorswatch' + state.element.value.substring(1, 7).toLowerCase();
+        var imageurl = ttvars[colorname];
+        var textline = '<span><img width="50px" height="20px" src="' + imageurl + '" class="img-flag" />' + state.text + '</span>';
+        
+        var $state = $(
+            textline
+        );
+        return $state;
+    };
 
     function updateSwitch(element) {
         var dataelem = element.find("input[switchpart='value']");

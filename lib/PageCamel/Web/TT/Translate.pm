@@ -24,6 +24,7 @@ use PageCamel::Helpers::Translator;
 use HTML::Entities;
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Strings;
+use PageCamel::Helpers::Colors qw[colorSwatchUrl];
 
 use base qw(Template::Plugin);
 
@@ -77,6 +78,15 @@ sub fixdate($self, $data) {
 
 sub elemNameQuote($self, $data) {
     return $self->quote(PageCamel::Helpers::Strings::elemNameQuote($data));
+}
+
+sub colorswatch($self, $data) {
+    return colorSwatchUrl($data);
+}
+
+sub cleancolorname($self, $data) {
+    $data =~ s/^\#//;
+    return $data;
 }
 
 BEGIN {
