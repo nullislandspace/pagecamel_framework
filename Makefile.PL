@@ -66,6 +66,7 @@ WriteMakefile(
         'CSS::Minifier::XS' => 0,
         'Data::Dumper' => 0,
         'Data::Entropy::Algorithms' => 0,
+        'Data::Printer' => 0,
         'Date::Manip' => 0,
         'Date::Simple' => 0,
         'DBD::Pg' => 0,

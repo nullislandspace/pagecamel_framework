@@ -11,6 +11,7 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use Data::Printer;
 use builtin qw[true false is_bool];
 no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
