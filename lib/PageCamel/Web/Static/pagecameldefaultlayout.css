@@ -137,11 +137,27 @@ input.autoNumeric {
     border:1px double #A0A0A0;
 }
 
+#sortable1 li.smallolditem, #sortable2 li.smallolditem {
+    margin: 0 5px 5px 5px;
+    padding: 5px;
+    width: 400px;
+    height:28;
+    border:1px solid #363636;
+}
+
+#sortable1 li.smallnewitem, #sortable2 li.smallnewitem {
+    margin: 0 5px 5px 5px;
+    padding: 5px;
+    width: 400px;
+    height:28;
+    border:1px dashed #36A636;
+}
+
 #sortable1 li.placeholder, #sortable2 li.placeholder {
     margin: 0 5px 5px 5px;
     padding: 5px;
     width: 400px;
-    height: 4px;
+    height: 30px;
     border:0px solid #FF0000;
 }
 
