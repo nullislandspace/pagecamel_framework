@@ -2364,6 +2364,9 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $column{colorselector} = $item->{colorselector};
             $column{descriptiononly} = $item->{descriptiononly};
             $column{multilanguage} = $item->{multilanguage};
+            if(!defined($column{columnvalue}) || ref $column{columnvalue} ne 'ARRAY') {
+                $column{columnvalue} = [];
+            }
             for(1..5) {
                 push @{$column{columnvalue}}, '';
             }

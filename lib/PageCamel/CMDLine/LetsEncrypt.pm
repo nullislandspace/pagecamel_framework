@@ -31,6 +31,7 @@ use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::DateStrings;
 use XML::RPC;
 #use Getopt::Long;
+use Encode;
 
 use DBI;
 use Sys::Hostname;
