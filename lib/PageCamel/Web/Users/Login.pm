@@ -556,7 +556,7 @@ sub get_keyfoblogin($self, $ua) {
     $dbh->commit;
 
     if(!defined($user) || !defined($user->{hardware_fob})) {
-        $reph->auditlog($self->{modname}, "Keyfob login failed for FOB " . $keyfobid);
+        $reph->auditlog($self->{modname}, "Keyfob login failed for FOB " . $keyfobid, " (" . $keyfobid . ")");
         return (status      => 303,
                 location    => $self->{login}->{webpath},
                 type        => "text/html",
@@ -567,6 +567,20 @@ sub get_keyfoblogin($self, $ua) {
     }
 
     my ($session, $expires, $startpage) = $self->getAutologin($ua, $user->{username});
+
+    if($session eq '') {
+        return (
+            status => 500,
+        );
+    } elsif($session eq 'LICENSEPOINTSERROR') {
+        return (status      => 200,
+                location    => $self->{login}->{webpath},
+                type        => "text/html",
+                data         => "<html><body><h1>Not enough license points</h1><br>" .
+                                "<a href=\"" . $self->{login}->{webpath} . "\">Click here to try again</a></body></html>",
+        );
+    }
+
     $reph->auditlog($self->{modname}, "Keyfob login success for user " . $user->{username}, " (" . $keyfobid . ")");
 
     $self->{cookie} = $self->create_cookie($ua,
@@ -708,7 +722,7 @@ sub getAutologin($self, $ua, $username) {
 
     my ($session, $expires) = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin, 0);
     if($session eq '' || $session eq 'LICENSEPOINTSERROR') {
-        return;
+        return $session;
     }
     $user{expires} = $expires;
     $self->{server}->{modules}->{$self->{memcache}}->set($session, \%user);
