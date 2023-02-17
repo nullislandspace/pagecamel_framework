@@ -158,7 +158,7 @@ input.autoNumeric {
     padding: 5px;
     width: 400px;
     height: 30px;
-    border:0px solid #FF0000;
+    border:1px solid #FF0000;
 }
 
 #sortable1 li.videoolditem, #sortable2 li.videoolditem {
