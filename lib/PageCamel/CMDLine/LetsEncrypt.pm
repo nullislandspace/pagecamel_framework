@@ -2,9 +2,8 @@
 # Developed under Artistic license
 package PageCamel::CMDLine::LetsEncrypt;
 #---AUTOPRAGMASTART---
-use 5.032;
+use v5.36;
 use strict;
-use warnings;
 use diagnostics;
 use mro 'c3';
 use English;
@@ -14,9 +13,10 @@ use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
+use Data::Printer;
+use builtin qw[true false is_bool];
+no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
-use feature 'signatures';
-no warnings qw(experimental::signatures);
 #---AUTOPRAGMAEND---
 use IO::File;
 use JSON::MaybeXS;
@@ -31,6 +31,7 @@ use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::DateStrings;
 use XML::RPC;
 #use Getopt::Long;
+use Encode;
 
 use DBI;
 use Sys::Hostname;

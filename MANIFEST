@@ -1,4 +1,5 @@
 .hgsub
+.hgsubstate
 Changes
 database/0001_remoteconsolelog.sql
 database/0002_database_tuning.sql
