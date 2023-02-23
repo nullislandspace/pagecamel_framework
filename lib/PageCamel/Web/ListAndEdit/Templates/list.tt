@@ -65,7 +65,7 @@
                     <div align="center">
                         <input type="hidden" name="mode" value="select">
                         [% IF QuickSelect == "1" %]
-                            <input type="text" name="primary_key" value="">
+                            <input type="hidden" name="primary_key" value="">
                         [% ELSE %]
                             <input type="submit" value="[% tr.trquote("Select") %]" id="SelectButton">
                         [% END %]
@@ -189,6 +189,7 @@
             ajax: ajaxwebpath,
             serverMethod: "POST",
             scrollY: ttvars.listlength,
+            scrollX: true,
             scroller: {
                 loadingIndicator: true
             },
