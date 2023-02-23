@@ -52,7 +52,11 @@
                             [% END %]
                             [% IF cancreate == "1" %]
                                 <tr id="footereditrow">
-                                    <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
+                                    [% IF QuickSelect == "1" %]
+                                       <td valign="top"><input type="button" value=" 🖉 " onclick="quickSelect('__NEW__');"></td>
+                                    [% ELSE %]
+                                        <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
+                                    [% END %]
                                     <td colspan="[% column_count %]" align="left" valign="top">[% tr.trquote("New") %]</td>
 
                                 </tr>
