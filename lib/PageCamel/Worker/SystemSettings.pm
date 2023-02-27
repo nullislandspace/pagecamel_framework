@@ -39,6 +39,8 @@ sub reload($self) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
+    $self->initDB();
+
     return;
 }
 

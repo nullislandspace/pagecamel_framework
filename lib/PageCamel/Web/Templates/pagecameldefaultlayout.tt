@@ -9,6 +9,7 @@
             <script type="text/javascript" src="/static/remoteconsolelog.js[% URLReloadPostfix %]"></script>
         [% END %]
 
+
         <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
         <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
         <link REL="stylesheet" TYPE="text/css" href="/layout/pagecamel_webgui.css[% URLReloadPostfix %]"></link>
@@ -19,6 +20,8 @@
         [% FOREACH HeadExtraCS IN HeadExtraCSSNoPostfix %]
             <link rel="stylesheet" href="[% HeadExtraCS %]"  type="text/css">
         [% END %]
+
+
 
         <title>[% IF DisablePageTitleTranslation != "1" %][% tr.trquote(PageTitle) %][% ELSE %][% tr.quote(PageTitle) %][% END %] &#64; [% ProjectNameTitleTag %]</title>
 
@@ -37,6 +40,16 @@
 
         <script type="text/javascript" src="/static/jquery.compiled-min.js[% URLReloadPostfix %]"></script>
 
+        [% IF TouchinputEnabled == "1" %]
+        <!-- ------------------------------------------ ON SCREEN KEYBOARD -------------------------------------------- -->
+        <link href="/static/keyboard/css/keyboard.css" rel="stylesheet">
+        <link href="/static/keyboard/css/keyboard-previewkeyset.css" rel="stylesheet">
+        <script type="text/javascript" src="/static/keyboard/js/jquery.keyboard.js"></script>
+        <script type="text/javascript" src="/static/keyboard/js/jquery.keyboard.extension-all.js"></script>
+        <script type="text/javascript" src="/static/keyboard/layouts/german.js"></script>
+        <!-- ------------------------------------------ ON SCREEN KEYBOARD -------------------------------------------- -->
+        [% END %]
+
         [% IF EnableDB == "1" %]
             <script type="text/javascript" src="/static/sqljs/sql-wasm.js[% URLReloadPostfix %]"></script>
             <script type="module" src="/static/pchelpers/import_sqlite.js[% URLReloadPostfix %]"></script>
@@ -54,6 +67,7 @@
         [% FOREACH HeadExtraModuleScript IN HeadExtraModuleScriptsNoPostfix %]
             <script type="module" src="[% HeadExtraModuleScript %]"></script>
         [% END %]
+
 
         <script type="text/javascript">
             var logoutDialog;
@@ -433,8 +447,15 @@
                     pagecamelDBInit();
                 }
 
+                if(ttvars.touchinputenabled == "1") {
+                    $('input[type="text"],input[type="search"],textarea').each(function() {
+                        addKeyboard($(this));
+                    });
+                }
 
             });
+
+
 
             var foblogoutreader = new XMLHttpRequest();
             var foblogoutrunning = 0;
@@ -458,6 +479,44 @@
             }
 
 
+            function addKeyboard(elem) {
+                //------------------------------------------ ON SCREEN KEYBOARD --------------------------------------------
+                elem.keyboard({
+
+                      // set this to ISO 639-1 language code to override language set by the layout
+                      // http://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+                      // language defaults to "en" if not found
+                      language     : 'en',
+                      rtl          : false, // language direction right-to-left
+
+                      // *** choose layout ***
+                      layout       : 'german-qwertz-1',
+                      //customLayout : { 'normal': ['{cancel}'] },
+                      usePreview: false,
+                      css : {
+                            // input & preview
+                            //input          : 'ui-widget-content ui-corner-all',
+                            input          : '',
+                            // keyboard container
+                            container      : 'ui-widget-content ui-widget ui-corner-all ui-helper-clearfix',
+                            // keyboard container extra class (same as container, but separate)
+                            popup: '',
+                            // default state
+                            buttonDefault  : 'ui-state-default ui-corner-all',
+                            // hovered button
+                            buttonHover    : 'ui-state-hover',
+                            // Action keys (e.g. Accept, Cancel, Tab, etc); this replaces the "actionClass" option
+                            buttonAction   : 'ui-state-active',
+                            // Active keys (e.g. shift down, meta keyset active, combo keys active)
+                            buttonActive   : 'ui-state-active',
+                            // used when disabling the decimal button {dec}
+                            buttonDisabled : 'ui-state-disabled',
+                            // empty button class name {empty}
+                            buttonEmpty    : 'ui-keyboard-empty'
+                      },
+                      autoAccept : true 
+                });
+            }
             function ShowAprilFools() {
                 document.getElementById('alientransmission').play();
                 $( "#dialog-aprilfool" ).dialog("open");
@@ -538,6 +597,7 @@
             data-keyfoblogout="[% userData.keyfob_logout %]"
             data-trquote-keyfoblogout="[% tr.trquote("Key fob logout...") %]"
             data-isdebugging="[% isDebugging %]"
+            data-touchinputenabled="[% TouchinputEnabled %]"
         ></span>
         <!-- master template TT vars dataset -->
 

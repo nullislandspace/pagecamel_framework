@@ -196,7 +196,7 @@ sub reload($self) {
         goto finishreload;
     }
 
-    foreach my $optionalattr (qw[guess_stats column_filters send_csv download_csv]) {
+    foreach my $optionalattr (qw[guess_stats column_filters send_csv download_csv quickselect]) {
         if(!defined($self->{$optionalattr})) {
             print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
@@ -207,6 +207,16 @@ sub reload($self) {
         if(!defined($self->{$optionalattr})) {
             print "    Attribute $optionalattr is undefined, set to empty string\n";
             $self->{$optionalattr} = '';
+        }
+    }
+
+    if($self->{quickselect}) {
+        if($self->{listonly}) {
+            print "    Attribute quickselect not allowed in listonly mode!\n";
+            $ok = 0;
+        } elsif($self->{radiobuttonhtml} ne '') {
+            print "    Attributes quickselect and radiobuttonhtml are mutually exclusive!\n";
+            $ok = 0;
         }
     }
 
@@ -1054,6 +1064,7 @@ sub get_list($self, $ua, $usemasterlayout = true) {
         ListLength     => $listlength,
         showads => $self->{list}->{showads},
         SidebarHTML => $self->{list}->{sidebarhtml},
+        QuickSelect => $self->{quickselect},
     );
 
     if($self->{send_csv}) {
@@ -1420,7 +1431,12 @@ sub get_lines($self, $ua) {
             $primval =~ s/Ö/&Ouml;/g;
             $primval =~ s/Ü/&Uuml;/g;
             $primval =~ s/ß/&szlig;/;
-            my $primfield = '<input type="radio" name="primary_key" value="' . $primval . '" ' . $self->{radiobuttonhtml} . '>';
+            my $primfield;
+            if(!$self->{quickselect}) {
+                $primfield = '<input type="radio" name="primary_key" value="' . $primval . '" ' . $self->{radiobuttonhtml} . '>';
+            } else {
+                $primfield = '<input type="button" value=" 🖉 " onclick="quickSelect(\'' . $primval . '\');">';
+            }
 
             push @columns, $primfield;
         }

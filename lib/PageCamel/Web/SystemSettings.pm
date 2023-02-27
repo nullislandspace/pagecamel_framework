@@ -41,6 +41,8 @@ sub reload($self) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
+    $self->initDB();
+
     my $sth = $dbh->prepare_cached("SELECT * FROM system_settings")
                     or croak($dbh->errstr);
 
@@ -67,7 +69,7 @@ sub getEdit($self, $ua) {
 
     my $mode = $ua->{postparams}->{"mode"} || "view";
     if($mode eq "change") {
-        my $selsth = $dbh->prepare_cached("SELECT * FROM system_settings")
+        my $selsth = $dbh->prepare_cached("SELECT * FROM system_settings WHERE is_hidden = false")
                     or croak($dbh->errstr);
         $selsth->execute or croak($dbh->errstr);
         my @sets;
@@ -141,6 +143,7 @@ sub getEdit($self, $ua) {
 
     my $stmt = "SELECT * " .
                 "FROM system_settings " .
+                "WHERE is_hidden = false " .
                 "ORDER BY modulename, settingname";
 
     my @settings;
