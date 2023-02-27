@@ -52,7 +52,11 @@
                             [% END %]
                             [% IF cancreate == "1" %]
                                 <tr id="footereditrow">
-                                    <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
+                                    [% IF QuickSelect == "1" %]
+                                       <td valign="top"><input type="button" value=" 🖉 " onclick="quickSelect('__NEW__');"></td>
+                                    [% ELSE %]
+                                        <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
+                                    [% END %]
                                     <td colspan="[% column_count %]" align="left" valign="top">[% tr.trquote("New") %]</td>
 
                                 </tr>
@@ -64,7 +68,11 @@
                 [% IF ListOnly == "0" %]
                     <div align="center">
                         <input type="hidden" name="mode" value="select">
-                        <input type="submit" value="[% tr.trquote("Select") %]" id="SelectButton">
+                        [% IF QuickSelect == "1" %]
+                            <input type="hidden" name="primary_key" value="">
+                        [% ELSE %]
+                            <input type="submit" value="[% tr.trquote("Select") %]" id="SelectButton">
+                        [% END %]
                     </div>
                 [% ELSIF ListOnlyCustomSelect == "1" %]
                     <div align="center" id="customselectdiv">
@@ -106,6 +114,7 @@
         data-sendcsvajaxpath="[% SendCSVAjaxPath %]"
         data-listlength="[% ListLength %]"
         data-trquote-sendingcsv="[% tr.trquote("Sending CSV mail!") %]"
+        data-quickselect="[% QuickSelect %]"
 ></span>
 <!-- mask template TT vars dataset -->
 
@@ -184,6 +193,7 @@
             ajax: ajaxwebpath,
             serverMethod: "POST",
             scrollY: ttvars.listlength,
+            scrollX: true,
             scroller: {
                 loadingIndicator: true
             },
@@ -235,5 +245,15 @@
     function reloadLETable() {
         console.log(letable.ajax);
         letable.api().ajax.reload(null, false);
+    }
+
+    function quickSelect(primkey) {
+        if(ttvars.quickselect != 1) {
+            console.log("quickSelect() called in non-quickselect mask");
+            return false;
+        }
+        $('input[name="primary_key"]').val(primkey);
+        $('#ListAndEditForm').submit();
+        return true;
     }
 </script>

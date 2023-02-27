@@ -21,6 +21,25 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize qw[dbfreeze dbthaw dbderef];
 use Time::HiRes qw[sleep];
 
+sub initDB($self) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    # Update system_settings table
+    {
+        my $type = $dbh->getColumnType('pagecamel.system_settings', 'is_hidden');
+        if(!defined($type)) {
+            print "Updating system_settings table (add is_hidden column)\n";
+            if(!$dbh->do("ALTER TABLE pagecamel.system_settings ADD COLUMN is_hidden boolean NOT NULL DEFAULT false")) {
+                croak($dbh->errstr);
+            }
+            $dbh->commit;
+        } elsif($type ne 'boolean') {
+            croak("system_settings column is_hidden has wrong type. Should be 'boolean' but is $type");
+        }
+    }
+
+}
+
 sub createNumber($self, %setting) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -32,6 +51,12 @@ sub createNumber($self, %setting) {
         }
     }
 
+    # Optional attributes (set to 0 if not set)
+    foreach my $key (qw[hidden]) {
+        if(!defined($setting{$key})) {
+            $setting{$key} = 0;
+        }
+    }
 
     my ($ok, $data) = $self->get($setting{modulename}, $setting{settingname}, 1);
     if($ok) {
@@ -63,17 +88,23 @@ sub createText($self, %setting) {
         }
     }
 
+    # Optional attributes (set to 0 if not set)
+    foreach my $key (qw[hidden]) {
+        if(!defined($setting{$key})) {
+            $setting{$key} = 0;
+        }
+    }
 
     my ($ok, $data) = $self->get($setting{modulename}, $setting{settingname}, 1);
     if($ok) {
         return $self->updateProcessinghints($setting{modulename}, $setting{settingname}, $setting{processinghints});
     }
 
-    my $sth = $dbh->prepare_cached("INSERT INTO system_settings (modulename, settingname, settingvalue, processinghints, description, fieldtype)
-                                   VALUES (?,?,?,?,?,'text')")
+    my $sth = $dbh->prepare_cached("INSERT INTO system_settings (modulename, settingname, settingvalue, processinghints, description, fieldtype, is_hidden)
+                                   VALUES (?,?,?,?,?,'text', ?)")
             or croak($dbh->errstr);
     if(!$sth->execute($setting{modulename}, $setting{settingname}, $setting{settingvalue},
-                  $setting{processinghints}, $setting{description})) {
+                  $setting{processinghints}, $setting{description}, $setting{hidden})) {
         $dbh->rollback();
         return 0;
     }
@@ -92,17 +123,24 @@ sub createBool($self, %setting) {
         }
     }
 
+    # Optional attributes (set to 0 if not set)
+    foreach my $key (qw[hidden]) {
+        if(!defined($setting{$key})) {
+            $setting{$key} = 0;
+        }
+    }
+
 
     my ($ok, $data) = $self->get($setting{modulename}, $setting{settingname}, 1);
     if($ok) {
         return $self->updateProcessinghints($setting{modulename}, $setting{settingname}, $setting{processinghints});
     }
 
-    my $sth = $dbh->prepare_cached("INSERT INTO system_settings (modulename, settingname, settingvalue, processinghints, description, fieldtype)
-                                   VALUES (?,?,?,?,?,'bool')")
+    my $sth = $dbh->prepare_cached("INSERT INTO system_settings (modulename, settingname, settingvalue, processinghints, description, fieldtype, is_hidden)
+                                   VALUES (?,?,?,?,?,'bool', ?)")
             or croak($dbh->errstr);
     if(!$sth->execute($setting{modulename}, $setting{settingname}, $setting{settingvalue},
-                  $setting{processinghints}, $setting{description})) {
+                  $setting{processinghints}, $setting{description}, $setting{hidden})) {
         $dbh->rollback();
         return 0;
     }
@@ -122,6 +160,13 @@ sub createEnum($self, %setting) {
         }
     }
 
+    # Optional attributes (set to 0 if not set)
+    foreach my $key (qw[hidden]) {
+        if(!defined($setting{$key})) {
+            $setting{$key} = 0;
+        }
+    }
+
 
     my ($ok, $data) = $self->get($setting{modulename}, $setting{settingname}, 1);
     if($ok) {
@@ -129,11 +174,11 @@ sub createEnum($self, %setting) {
                     $self->updateEnumValues($setting{modulename}, $setting{settingname}, $setting{enum_values}));
     }
 
-    my $sth = $dbh->prepare_cached("INSERT INTO system_settings (modulename, settingname, settingvalue, enum_values, processinghints, description, fieldtype)
-                                   VALUES (?,?,?,?,?,?,'enum')")
+    my $sth = $dbh->prepare_cached("INSERT INTO system_settings (modulename, settingname, settingvalue, enum_values, processinghints, description, fieldtype, is_hidden)
+                                   VALUES (?,?,?,?,?,?,'enum', ?)")
             or croak($dbh->errstr);
     $sth->execute($setting{modulename}, $setting{settingname}, $setting{settingvalue},
-                  $setting{enum_values}, $setting{processinghints}, $setting{description})
+                  $setting{enum_values}, $setting{processinghints}, $setting{description}, $setting{hidden})
             or croak($dbh->errstr);
 
     $dbh->commit;

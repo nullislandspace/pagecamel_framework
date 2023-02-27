@@ -1283,6 +1283,15 @@ sub get_defaultwebdata($self, $webdata) {
     if(defined($self->{currentData})) {
         $webdata->{userData} = $self->{currentData};
         $webdata->{ConfigObject}->{permissions} = $webdata->{userData}->{rights};
+
+        my $initials = uc substr $self->{currentData}->{first_name}, 0, 1;
+        $initials .= uc substr $self->{currentData}->{last_name}, 0, 1;
+        $webdata->{ConfigObject}->{user}->{username} = $self->{currentData}->{user};
+        $webdata->{ConfigObject}->{user}->{first_name} = $self->{currentData}->{first_name};
+        $webdata->{ConfigObject}->{user}->{last_name} = $self->{currentData}->{last_name};
+        $webdata->{ConfigObject}->{user}->{initials} = $initials;
+
+        #print STDERR p($webdata->{ConfigObject}->{user}), "\n";
     }
     if(defined($webdata->{userData}->{rights}) && contains('has_developer', $webdata->{userData}->{rights})) {
         $webdata->{UserIsDeveloper} = 1;
