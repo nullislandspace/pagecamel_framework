@@ -79,6 +79,7 @@ use PageCamel::Worker::Minecraft::PlayerCoords;
 use PageCamel::Worker::Minecraft::RCON;
 use PageCamel::Worker::PingCheck;
 use PageCamel::Worker::PostfixCommands;
+use PageCamel::Worker::PostgreSQL2Clacks;
 use PageCamel::Worker::PostgresDB;
 use PageCamel::Worker::Reporting;
 use PageCamel::Worker::SendMail;
