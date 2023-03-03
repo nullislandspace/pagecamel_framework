@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.1;
+our $VERSION = 4.2;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -444,7 +444,7 @@ sub reload($self) {
     my %editcolumntypes;
     my %editcolumnnullable;
     my @gotocolumns;
-    my @editallowedtypes = qw[text textarea textarea-readonly editor scripteditor number boolean array enum subenum enumarray switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay];
+    my @editallowedtypes = qw[text textarray textarea textarea-readonly editor scripteditor number boolean array enum subenum enumarray switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay];
     my @readonlytypes = qw[textarea-readonly led display codedisplay imagedisplay];
     $self->{needcvceditor} = 0;
     $self->{needscripteditor} = 0;
@@ -525,7 +525,7 @@ sub reload($self) {
         my %testtypes = (
             array   => [qw[array]],
             boolean => [qw[led switch checkbox]],
-            text => [qw[text textarea textarea-readonly editor scripteditor codedisplay number enum subenum enumarray display hidden colorpicker image imagedisplay]],
+            text => [qw[text textarray textarea textarea-readonly editor scripteditor codedisplay number enum subenum enumarray display hidden colorpicker image imagedisplay]],
             integer => [qw[number enum subenum enumarray display slider]],
             bigint => [qw[number enum subenum enumarray display slider]],
             real => [qw[number enum subenum enumarray display]],

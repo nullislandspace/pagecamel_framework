@@ -121,7 +121,7 @@ WriteMakefile(
         'Minecraft::NBTReader' => 0,
         'Minecraft::RCON' => 0,
         'Module::Load' => 0,
-        'Net::Clacks::Client' => 24,
+        'Net::Clacks::Client' => 26,
         'Net::DNS' => 0,
         'Net::DNS::Packet' => 0,
         'Net::DNS::Resolver' => 0,

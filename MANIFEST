@@ -2987,6 +2987,7 @@ lib/PageCamel/Worker/MYCPAN/LocalCommands.pm
 lib/PageCamel/Worker/PingCheck.pm
 lib/PageCamel/Worker/PostfixCommands.pm
 lib/PageCamel/Worker/PostgresDB.pm
+lib/PageCamel/Worker/PostgreSQL2Clacks.pm
 lib/PageCamel/Worker/Reporting.pm
 lib/PageCamel/Worker/SendMail.pm
 lib/PageCamel/Worker/SerialCommands.pm
