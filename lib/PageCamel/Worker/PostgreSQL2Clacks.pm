@@ -1,4 +1,4 @@
-package PageCamel::Web::ForceTransportSecurity;
+package PageCamel::Worker::PostgreSQL2Clacks;
 #---AUTOPRAGMASTART---
 use v5.36;
 use strict;
@@ -17,10 +17,12 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
-use base qw(PageCamel::Web::BaseModule);
+# Do some updates and advanced parsing for accesslog. Run at once an hour. The
+# Exception here is: If workCount > 0 then it will ru in the next loop too
 
-
-
+use base qw(PageCamel::Worker::BaseModule);
+use Net::Clacks::PostgreSQL2Clacks;
+use PageCamel::Helpers::ConfigLoader;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -28,31 +30,52 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
+    my $dbconfig = LoadConfig($self->{dbconfig});
+
+    my %clacksconfig = (
+        username => $clconf->get('user'),
+        password => $clconf->get('password'),
+        caching => 0,
+        clientname => 'PostgreSQL2Clacks bride in ' . $self->{PSAPPNAME},
+    );
+
+    my $socket = $clconf->get('socket');
+    if(defined($socket) && $socket ne '') {
+        $clacksconfig{socket} = $socket;
+    } else {
+        $clacksconfig{server} = $clconf->get('host');
+        $clacksconfig{port} = $clconf->get('port');
+    }
+
+    
+     my %bridgeconfig = (
+         clacks => \%clacksconfig,
+         postgres => {
+             url => $dbconfig->{dburl},
+             username => $dbconfig->{dbuser},
+             password => $dbconfig->{dbpassword},
+         },
+     );
+
+     print STDERR Dumper(\%bridgeconfig);
+
+     $self->{bridge} = Net::Clacks::PostgreSQL2Clacks->new(%bridgeconfig);
+
     return $self;
 }
 
+
 sub register($self) {
-    $self->register_postfilter("postfilter");
+    $self->register_worker("work");
     return;
 }
 
-sub postfilter($self, $ua, $header, $result) {
+sub work($self) {
 
-    # Don't set the header while debugging, since we use non-encrypted connections
-    # for easy sniffing and ignore certificate juggling
-    return if($self->{isDebugging});
+    $self->{bridge}->runOnce();
 
-    my $headertext = "max-age=" . $self->{"max-age"};
-    if($self->{includesubdomains}) {
-        $headertext .= "; includeSubDomains";
-    }
-    if($self->{preload}) {
-        $headertext .= "; preload";
-    }
-
-    $header->{"-Strict-Transport-Security"} = $headertext;
-
-    return;
+    return 1;
 }
 
 1;
@@ -60,11 +83,11 @@ __END__
 
 =head1 NAME
 
-PageCamel::Web::ForceTransportSecurity -
+PageCamel::Worker::SerialCommands -
 
 =head1 SYNOPSIS
 
-  use PageCamel::Web::ForceTransportSecurity;
+  use PageCamel::Worker::SerialCommands;
 
 
 
@@ -80,7 +103,11 @@ PageCamel::Web::ForceTransportSecurity -
 
 
 
-=head2 postfilter
+=head2 crossregister
+
+
+
+=head2 work
 
 
 

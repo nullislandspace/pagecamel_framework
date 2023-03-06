@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.1;
+our $VERSION = 4.2;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -581,11 +581,11 @@ sub start_app($self, $app) {
             $app->{apptick} = time;
         }
 
-        for(1..3) {
+        #for(1..3) {
             sleep(1); # Sleep a few seconds to allow the application to start up without
                       # too much conflicts with PageCamelSVC and other services to be started
             $self->{clacks}->doNetwork();
-        }
+        #}
         $self->{sysh}->set('pagecamel_services', $app->{status_name}, 1);
         $self->{clacks}->set($app->{clacks_name}, 1);
         $self->{clacks}->doNetwork();

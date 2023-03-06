@@ -237,13 +237,13 @@
                                                     </table>
                                                 </div>
 
-                                            [% ELSIF column.displaytype == "array" %]
+                                            [% ELSIF column.displaytype == "array" || column.displaytype == "textarray" %]
                                                 [% arraycount = 0 %]
                                                 [% FOREACH arrayvalue IN column.columnvalue %]
                                                     <input type="text" name="[% tr.quote(column.columnname) %]_[% arraycount %]" value="[% tr.quote(arrayvalue) %]" size="60" maxlength="200"><br/>
                                                     [% arraycount = arraycount + 1 %]
                                                 [% END %]
-                                                [% emptycount = 2 %]
+                                                [% emptycount = 5 %]
                                                 [% WHILE emptycount > 0 %]
                                                     <input type="text" name="[% tr.quote(column.columnname) %]_[% arraycount %]" value="" size="60" maxlength="200"><br/>
                                                     [% arraycount = arraycount + 1 %]
