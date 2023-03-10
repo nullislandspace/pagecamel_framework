@@ -43,6 +43,8 @@ sub updateConfig($self) {
 
     $self->{nextping} = 0;
 
+    $self->{lastprepare} = '';
+
     return;
 }
 
@@ -217,7 +219,9 @@ BEGIN {
     for my $f (@simpleFuncs){
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
         *{__PACKAGE__ . "::$f"} = sub ($arg1) { 
-            $arg1->checkDBH(); return $arg1->{mdbh}->$f();
+            $arg1->checkDBH();
+            $arg1->{lastprepare} = '';
+            return $arg1->{mdbh}->$f();
         };
     }
 
@@ -236,6 +240,7 @@ BEGIN {
         no strict 'refs'; ## no critic (TestingAndDebugging::ProhibitNoStrict)
         *{__PACKAGE__ . "::$f"} = sub ($arg1, $arg2) {
             $arg1->checkDBH();
+            $arg1->{lastprepare} = $arg2;
             my $sth = $arg1->{mdbh}->$f($arg2);
             $sth->{Callbacks}->{execute} = sub {
                 if(scalar @_ > 1) {
@@ -248,6 +253,7 @@ BEGIN {
                         }
                     }
                 }
+
                 return;
             };
             return $sth;
