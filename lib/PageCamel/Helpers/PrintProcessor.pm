@@ -179,6 +179,17 @@ sub printAddBigTextLine($self, $line) {
     return;
 }
 
+sub printAddMediumBigTextLine($self, $line) {
+    
+    chomp $line;
+    
+    $self->{img}->stringFT($self->{imgblack}, $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
+    
+    $self->{imgoffs} += 38;
+    
+    return;
+}
+
 sub printAddSingleLine($self) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
