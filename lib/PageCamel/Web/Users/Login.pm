@@ -192,7 +192,7 @@ sub reload($self) {
         }
     }
 
-    # Update "users" table
+    # Update "users" table, add hardware_fob column
     {
         my $type = $dbh->getColumnType('pagecamel.users', 'hardware_fob');
         if(!defined($type)) {
@@ -200,6 +200,42 @@ sub reload($self) {
             if(!$dbh->do("ALTER TABLE users ADD COLUMN hardware_fob text NOT NULL DEFAULT ''")) {
                 croak($dbh->errstr);
             }
+            $dbh->commit;
+        } elsif($type ne 'text') {
+            croak("pagecamel.users column hardware_fob has wrong type. Should be 'text' but is $type");
+        }
+    }
+    
+    # Update "users" table, add name_initials column
+    {
+        my $type = $dbh->getColumnType('pagecamel.users', 'name_initials');
+        if(!defined($type)) {
+            $reph->debuglog("Updating users table (add name_initials column)");
+            if(!$dbh->do("ALTER TABLE users ADD COLUMN name_initials text NOT NULL DEFAULT ''")) {
+                croak($dbh->errstr);
+            }
+
+            # Now for the hard part - autogenerate those initials from first_name und last_name
+            my $selsth = $dbh->prepare("SELECT * FROM users")
+                    or croak($dbh->errstr);
+            my $upsth = $dbh->prepare("UPDATE users SET name_initials = ? WHERE username = ?")
+                    or croak($dbh->errstr);
+            if(!$selsth->execute) {
+                croak($dbh->errstr);
+            }
+            my @users;
+            while((my $line = $selsth->fetchrow_hashref)) {
+                push @users, $line;
+            }
+            $selsth->finish;
+            foreach my $user (@users) {
+                my $initials = uc substr $user->{first_name}, 0, 1;
+                $initials .= uc substr $user->{last_name}, 0, 1; 
+                if(!$upsth->execute($initials, $user->{username})) {
+                    croak($dbh->errstr);
+                }
+            }
+
             $dbh->commit;
         } elsif($type ne 'text') {
             croak("pagecamel.users column hardware_fob has wrong type. Should be 'text' but is $type");
@@ -365,7 +401,7 @@ sub get_login($self, $ua) {
 
 
         my $sth = $dbh->prepare_cached("SELECT username, email_addr,
-                                       first_name, last_name,
+                                       first_name, last_name, name_initials,
                                        (next_password_change < now() AND password_can_expire = true) as require_password_change,
                                        company_name, user_id
                                        FROM users
@@ -381,6 +417,7 @@ sub get_login($self, $ua) {
             $user{email_addr} = $line->{email_addr};
             $user{first_name} = $line->{first_name};
             $user{last_name} = $line->{last_name};
+            $user{name_initials} = $line->{name_initials};
             $user{company} = $line->{company_name};
             $user{user_id} = $line->{user_id};
             $user{require_password_change} = $line->{require_password_change};
@@ -646,7 +683,7 @@ sub getAutologin($self, $ua, $username) {
 
 
     my $sth = $dbh->prepare_cached("SELECT username, email_addr,
-                                   first_name, last_name,
+                                   first_name, last_name, name_initials,
                                    company_name, user_id
                                    FROM users
                             WHERE username = ?")
@@ -661,6 +698,7 @@ sub getAutologin($self, $ua, $username) {
         $user{email_addr} = $line->{email_addr};
         $user{first_name} = $line->{first_name};
         $user{last_name} = $line->{last_name};
+        $user{name_initials} = $line->{name_initials};
         $user{company} = $line->{company_name};
         $user{user_id} = $line->{user_id};
         #$user{require_password_change} = 0; # NEVER force password change
@@ -803,6 +841,7 @@ sub adminSwitchToUser($self, $username, $ua) {
         username => $user->{username},
         first_name => $user->{first_name},
         last_name => $user->{last_name},
+        name_initials => $user->{name_initials},
         email_addr => $user->{email_addr},
         company => $user->{company},
         user_id => $user->{user_id},
@@ -813,7 +852,7 @@ sub adminSwitchToUser($self, $username, $ua) {
 
 
     my $sth = $dbh->prepare_cached("SELECT username, email_addr,
-                                   first_name, last_name,
+                                   first_name, last_name, name_initials,
                                    company_name, user_id
                                    FROM users
                             WHERE username = ?")
@@ -827,6 +866,7 @@ sub adminSwitchToUser($self, $username, $ua) {
         $user->{email_addr} = $line->{email_addr};
         $user->{first_name} = $line->{first_name};
         $user->{last_name} = $line->{last_name};
+        $user->{name_initials} = $line->{name_initials};
         $user->{company} = $line->{company_name};
         $user->{user_id} = $line->{user_id};
         $user->{require_password_change} = 0; # NEVER force password change
@@ -909,6 +949,7 @@ sub adminSwitchFromUser($self, $ua) {
     $user->{username} = $user->{realuser}->{username};
     $user->{first_name} = $user->{realuser}->{first_name};
     $user->{last_name} = $user->{realuser}->{last_name};
+    $user->{name_initials} = $user->{realuser}->{name_initials};
     $user->{email_addr} = $user->{realuser}->{email_addr};
     $user->{company} = $user->{realuser}->{company};
     $user->{user_id} = $user->{realuser}->{user_id};
@@ -1047,6 +1088,7 @@ sub prefilter($self, $ua) {
                                email_addr    =>    $user->{email_addr},
                                first_name    =>    $user->{first_name},
                                last_name    =>    $user->{last_name},
+                               name_initials    =>    $user->{name_initials},
                                company      =>  $user->{company},
                                user_id      =>  $user->{user_id},
                                html5        => $user->{html5},
@@ -1284,12 +1326,10 @@ sub get_defaultwebdata($self, $webdata) {
         $webdata->{userData} = $self->{currentData};
         $webdata->{ConfigObject}->{permissions} = $webdata->{userData}->{rights};
 
-        my $initials = uc substr $self->{currentData}->{first_name}, 0, 1;
-        $initials .= uc substr $self->{currentData}->{last_name}, 0, 1;
         $webdata->{ConfigObject}->{user}->{username} = $self->{currentData}->{user};
         $webdata->{ConfigObject}->{user}->{first_name} = $self->{currentData}->{first_name};
         $webdata->{ConfigObject}->{user}->{last_name} = $self->{currentData}->{last_name};
-        $webdata->{ConfigObject}->{user}->{initials} = $initials;
+        $webdata->{ConfigObject}->{user}->{initials} = $self->{currentData}->{name_initials};
 
         #print STDERR p($webdata->{ConfigObject}->{user}), "\n";
     }

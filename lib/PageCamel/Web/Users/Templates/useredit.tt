@@ -44,6 +44,12 @@
                     </td>
                 </tr>
                 <tr>
+                    <td align="right">[% tr.trquote("Initials") %]</td>
+                    <td align="left">
+                        <input type="text" name="name_initials" size="2" maxlength="2" value="[% tr.quote(name_initials) %]">
+                    </td>
+                </tr>
+                <tr>
                     <td align="right">[% tr.trquote(CompanyLabel) %]</td>
                     <td align="left">            
                         <select name="company_name" searchable="1">
