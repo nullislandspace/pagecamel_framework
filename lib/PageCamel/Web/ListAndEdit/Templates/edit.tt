@@ -147,16 +147,18 @@
                                                 </div>
 
                                             [% ELSIF column.displaytype == "enum" %]
-                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]"
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]" extendable="[% column.extendable %]"
                                                         [% IF column.colorselector == 1 %]
                                                             customformat="1"
                                                         [% END %]>
+                                                        [% selectvaluefound = 0 %]
                                                         [% FOREACH enumvalue IN column.enum_values %]
-                                                            <option value="[% enumvalue.selectorenumvalue %]"
-                                                            [% IF enumvalue.selectorenumvalue == column.columnvalue %]
-                                                                selected="selected"
-                                                            [% END %]
-                                                            >
+                                                        <option value="[% enumvalue.selectorenumvalue %]"
+                                                        [% IF enumvalue.selectorenumvalue == column.columnvalue %]
+                                                            selected="selected"
+                                                            [% selectvaluefound = 1 %]
+                                                        [% END %]
+                                                        >
                                                                 [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
                                                                     [% IF column.colorselector == 1 %]
                                                                         [% colorname = enumvalue.selectorenumvalue %]
@@ -180,10 +182,16 @@
                                                                 [% END %]
                                                             </option>
                                                         [% END %]
+                                                        [% IF selectvaluefound == 0 && column.extendable == "1" %]
+                                                            <!-- fake select row for extendable dropdown -->
+                                                            <option value="[% column.columnvalue %]" selected="selected">
+                                                                [% tr.quote(column.columnvalue) %]
+                                                            </option>
+                                                        [% END %]
                                                     </select>
                                             [% ELSIF column.displaytype == "subenum" %]
                                                 <div displaytype="subenum" subenum="[% column.columnname %]" parentenum="[% column.parentcolumn %]" initialvalue="[% column.columnvalue %]" subenumdata="JSON:[% column.enum_values_json %]">
-                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]" extendable="[% column.extendable %]">
                                                         <option value=""></option>
                                                     </select>
                                                     <!--<input type="hidden" name="[% column.columnname %]" value="[% column.columnvalue %]">-->
@@ -193,7 +201,7 @@
                                                     [% FOREACH arrayvalue IN column.columnvalue %]
                                                         [% IF arraycount > 0 %]<br/>[% END %] 
                                                         <!-- VALUE: "[% arrayvalue %]" -->
-                                                        <select name="[% tr.quote(column.columnname) %]_[% arraycount %]" id="[% tr.quote(column.columnname) %]_[% arraycount %]" searchable="[% column.searchable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
+                                                        <select name="[% tr.quote(column.columnname) %]_[% arraycount %]" id="[% tr.quote(column.columnname) %]_[% arraycount %]" searchable="[% column.searchable %]" extendable="[% column.extendable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
                                                             [% FOREACH enumvalue IN column.enum_values %]
                                                                 <option value="[% enumvalue.selectorenumvalue %]"
                                                                 [% IF enumvalue.selectorenumvalue == arrayvalue %]

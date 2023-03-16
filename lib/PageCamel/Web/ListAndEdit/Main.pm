@@ -510,6 +510,13 @@ sub reload($self) {
             $editcolumnnullable{$item->{column}} = 1;
         }
 
+        if($item->{type} eq 'enumarray' || $item->{type} eq 'enum' || $item->{type} eq 'subenum') {
+            if(!defined($item->{extendable})) {
+                print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
+                $item->{extendable} = 0;
+            }
+        }
+
         if(!contains($item->{type}, \@editallowedtypes)) {
                 print "    EDIT: type $item->{type} not supported!\n";
                 $ok = 0;
@@ -1764,7 +1771,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     # Check if this column defines a default value
                     if($tmp eq 'now') {
                         foreach my $item (@{$self->{edit}->{item}}) {
-                            if($item->{column} eq $column) {
+                            if(defined($item->{column}) && $item->{column} eq $column) {
                                 if(defined($item->{default}) && $item->{default} ne '') {
                                     $tmp = $item->{default};
                                 }
@@ -1922,7 +1929,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     # Check if this column defines a default value
                     if($tmp eq 'now') {
                         foreach my $item (@{$self->{edit}->{item}}) {
-                            if($item->{column} eq $column) {
+                            if(defined($item->{column}) && $item->{column} eq $column) {
                                 if(defined($item->{default}) && $item->{default} ne '') {
                                     $tmp = $item->{default};
                                 }
@@ -2321,6 +2328,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $eselsth->finish;
             $column{enum_values} = \@enum_values;
             $column{searchable} = $item->{searchable};
+            $column{extendable} = $item->{extendable};
             $column{colorselector} = $item->{colorselector};
             $column{descriptiononly} = $item->{descriptiononly};
             $column{multilanguage} = $item->{multilanguage};
