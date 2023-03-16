@@ -45,9 +45,11 @@
 
                     [% LinebreakActive = "1" %]
 
+                            [% currentTabName = '' %]
 
                             [% FOREACH column IN columns %]
                                 [% IF column.displaytype == "newtab"%]
+                                    [% currentTabName = column.tabname %]
                                     <!-- [% column.tablename %] -->
                                     [% IF column.tablename != 'MainDataTable' %]
                                                     </tbody>
@@ -76,21 +78,21 @@
                                     [% END %]
                                     [% LinebreakActive = column.linebreak %]
                                             [% IF column.displaytype == "text" %]
-                                                <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="[% column.size %]" maxlength="[% column.maxlength %]">
+                                                <input type="text" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="[% column.size %]" maxlength="[% column.maxlength %]" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]">
                                             [% ELSIF column.displaytype == "date" %]
-                                                <input type="text" displaytype="dateandtime" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="19" maxlength="19">
+                                                <input type="text" displaytype="dateandtime" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="19" maxlength="19" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]">
                                             [% ELSIF column.displaytype == "dateonly" %]
-                                                <input type="text" displaytype="dateonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="10" maxlength="10">
+                                                <input type="text" displaytype="dateonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="10" maxlength="10" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]">
                                             [% ELSIF column.displaytype == "timeonly" %]
-                                                <input type="text" displaytype="timeonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="5" maxlength="5">
+                                                <input type="text" displaytype="timeonly" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]" size="5" maxlength="5" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]">
                                             [% ELSIF column.displaytype == "textarea" %]
                                                 [% IF column.charcount > 0 %]
                                                     <div displaytype="charcount" charcount="[% column.charcount %]">
-                                                        <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" ccpart="input">[% tr.quote(column.columnvalue) %]</textarea>
+                                                        <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" ccpart="input" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]">[% tr.quote(column.columnvalue) %]</textarea>
                                                         <br/><div id="[% tr.quote(column.columnname) %]_charcount" ccpart="count">...</div>
                                                     </div>
                                                 [% ELSE %]
-                                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]">[% tr.quote(column.columnvalue) %]</textarea>
+                                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]">[% tr.quote(column.columnvalue) %]</textarea>
                                                 [% END %]
                                             [% ELSIF column.displaytype == "textarea-readonly" %]
                                                 <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" readonly="readonly">[% tr.quote(column.columnvalue) %]</textarea>
@@ -147,16 +149,18 @@
                                                 </div>
 
                                             [% ELSIF column.displaytype == "enum" %]
-                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]"
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]" extendable="[% column.extendable %]"
                                                         [% IF column.colorselector == 1 %]
                                                             customformat="1"
                                                         [% END %]>
+                                                        [% selectvaluefound = 0 %]
                                                         [% FOREACH enumvalue IN column.enum_values %]
-                                                            <option value="[% enumvalue.selectorenumvalue %]"
-                                                            [% IF enumvalue.selectorenumvalue == column.columnvalue %]
-                                                                selected="selected"
-                                                            [% END %]
-                                                            >
+                                                        <option value="[% enumvalue.selectorenumvalue %]"
+                                                        [% IF enumvalue.selectorenumvalue == column.columnvalue %]
+                                                            selected="selected"
+                                                            [% selectvaluefound = 1 %]
+                                                        [% END %]
+                                                        >
                                                                 [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
                                                                     [% IF column.colorselector == 1 %]
                                                                         [% colorname = enumvalue.selectorenumvalue %]
@@ -180,10 +184,16 @@
                                                                 [% END %]
                                                             </option>
                                                         [% END %]
+                                                        [% IF selectvaluefound == 0 && column.extendable == "1" %]
+                                                            <!-- fake select row for extendable dropdown -->
+                                                            <option value="[% column.columnvalue %]" selected="selected">
+                                                                [% tr.quote(column.columnvalue) %]
+                                                            </option>
+                                                        [% END %]
                                                     </select>
                                             [% ELSIF column.displaytype == "subenum" %]
                                                 <div displaytype="subenum" subenum="[% column.columnname %]" parentenum="[% column.parentcolumn %]" initialvalue="[% column.columnvalue %]" subenumdata="JSON:[% column.enum_values_json %]">
-                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]">
+                                                    <select name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]" searchable="[% column.searchable %]" extendable="[% column.extendable %]">
                                                         <option value=""></option>
                                                     </select>
                                                     <!--<input type="hidden" name="[% column.columnname %]" value="[% column.columnvalue %]">-->
@@ -193,7 +203,7 @@
                                                     [% FOREACH arrayvalue IN column.columnvalue %]
                                                         [% IF arraycount > 0 %]<br/>[% END %] 
                                                         <!-- VALUE: "[% arrayvalue %]" -->
-                                                        <select name="[% tr.quote(column.columnname) %]_[% arraycount %]" id="[% tr.quote(column.columnname) %]_[% arraycount %]" searchable="[% column.searchable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
+                                                        <select name="[% tr.quote(column.columnname) %]_[% arraycount %]" id="[% tr.quote(column.columnname) %]_[% arraycount %]" searchable="[% column.searchable %]" extendable="[% column.extendable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
                                                             [% FOREACH enumvalue IN column.enum_values %]
                                                                 <option value="[% enumvalue.selectorenumvalue %]"
                                                                 [% IF enumvalue.selectorenumvalue == arrayvalue %]
@@ -269,17 +279,17 @@
                                 <tr>
                                     <td colspan="2" align="center">
                                         [% IF mode == "create" %]
-                                            <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
+                                            <input type="button" value="[% tr.tr("Create") %]" onclick="setMode('create'); checkinput();">
                                         [% ELSE %]
                                             [% IF UsePrevNext == "1" && prevprimarykey != "" %]
                                                 <input type="submit" value=" &#8656;" onclick="return setMode('select_[% prevprimarykey %]');">
                                             [% END %]
-                                            <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                                            <input type="button" value="[% tr.tr("Change") %]" onclick="setMode('edit'); checkinput();">
                                             [% IF cansaveandclose == "1" %]
-                                                <input type="submit" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose');">
+                                                <input type="button" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose'); checkinput();">
                                             [% END %]
                                             [% IF cancopy == "1" %]
-                                                <input type="submit" value="[% tr.tr("Copy") %]" onclick="return setMode('copy');">
+                                                <input type="button" value="[% tr.tr("Copy") %]" onclick="setMode('copy'); checkinput();">
                                             [% END %]
                                             [% IF candelete == "1" %]
                                                 &nbsp;
@@ -300,17 +310,17 @@
                     </div>
                         <p align="center">
                             [% IF mode == "create" %]
-                                <input type="submit" value="[% tr.tr("Create") %]" onclick="return setMode('create');">
+                                <input type="button" value="[% tr.tr("Create") %]" onclick="setMode('create'); checkinput();">
                             [% ELSE %]
                                 [% IF UsePrevNext == "1" && prevprimarykey != "" %]
                                     <input type="submit" value=" &#8656;" onclick="return setMode('select_[% prevprimarykey %]');">
                                 [% END %]
-                                <input type="submit" value="[% tr.tr("Change") %]" onclick="return setMode('edit');">
+                                <input type="button" value="[% tr.tr("Change") %]" onclick="setMode('edit'); checkinput();">
                                 [% IF cansaveandclose == "1" %]
-                                    <input type="submit" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose');">
+                                    <input type="button" value="[% tr.tr("Change&Close") %]" onclick="setMode('editandclose'); checkinput();">
                                 [% END %]
                                 [% IF cancopy == "1" %]
-                                    <input type="submit" value="[% tr.tr("Copy") %]" onclick="return setMode('copy');">
+                                    <input type="button" value="[% tr.tr("Copy") %]" onclick="setMode('copy'); checkinput();">
                                 [% END %]
                                 [% IF candelete == "1" %]
                                     &nbsp;
@@ -335,6 +345,7 @@
 
 <span id="masktemplatedataset"
     data-trquote-charactersleft="[% tr.trquote("characters left") %]"
+    data-trquote-requiredfield="[% tr.trquote("Required field") %]"
     data-usetabs="[% UseTabs %]"
     data-primarykey="[% primary_key %]"
     data-autosave="[% autosave %]"
@@ -352,6 +363,25 @@
     function setMode(newmode) {
         $('#mode').val(newmode);
         return true;
+    }
+
+    function checkinput() {
+        $("input[mustfield='1'],textarea[mustfield='1']").each(function() {
+            if($(this).val() == '') {
+                /*
+                var switchtotab = $(this).attr('activetab');
+                if(switchtotab != '') {
+                    //console.log('#tabs a[href="#' + switchtotab + ']');
+                    $('a[href="#' + switchtotab + ']').tab('show');
+                    //$('a[href="#' + switchtotab + ']').click();
+                }
+                */
+                $(this).focus();
+                alert(ttvars.trquote.Requiredfield + ' ' + $(this).attr('displayname'));
+                return;
+            }
+            $('#MainForm').submit();
+        });
     }
 
     function customSelect2Format(state) {
@@ -462,6 +492,10 @@
         } else {
             setFooterStatus('Autosave available', 'white');
         }
+
+        $("input[mustfield='1'],textarea[mustfield='1']").each(function() {
+            $(this).css('background-color', '#FFFF00');
+        });
 
         // SWITCH input
         $("div[displaytype='switch']").each(function(index) {

@@ -510,6 +510,19 @@ sub reload($self) {
             $editcolumnnullable{$item->{column}} = 1;
         }
 
+        if(!defined($item->{mustfield}) || !$item->{mustfield}) {
+            $item->{mustfield} = 0;
+        } else {
+            $item->{mustfield} = 1;
+        }
+
+        if($item->{type} eq 'enumarray' || $item->{type} eq 'enum' || $item->{type} eq 'subenum') {
+            if(!defined($item->{extendable})) {
+                print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
+                $item->{extendable} = 0;
+            }
+        }
+
         if(!contains($item->{type}, \@editallowedtypes)) {
                 print "    EDIT: type $item->{type} not supported!\n";
                 $ok = 0;
@@ -1752,7 +1765,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     } else {
                         $tmp = 0;
                     }
-                } elsif ($self->{editcolumntypes}->{$column} eq 'date') {
+                } elsif ($self->{editcolumntypes}->{$column} eq 'date' || $self->{editcolumntypes}->{$column} eq 'dateonly') {
                     if($tmp eq '-- ::' || $tmp !~ /\d+/) {
                         # Compensate for datetimepicker empty template or when field is empty
                         $tmp = 'now';
@@ -1760,7 +1773,23 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     if($tmp eq '') {
                         $tmp = 'now';
                     }
+
+                    # Check if this column defines a default value
+                    if($tmp eq 'now') {
+                        foreach my $item (@{$self->{edit}->{item}}) {
+                            if(defined($item->{column}) && $item->{column} eq $column) {
+                                if(defined($item->{default}) && $item->{default} ne '') {
+                                    $tmp = $item->{default};
+                                }
+                                last;
+                            }
+                        }
+                    }
+
                     $tmp = parseNaturalDate($tmp);
+                    if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
+                        $tmp =~ s/\ .*//;
+                    }
                 } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
@@ -1902,7 +1931,23 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     if($tmp eq '') {
                         $tmp = 'now';
                     }
+                    
+                    # Check if this column defines a default value
+                    if($tmp eq 'now') {
+                        foreach my $item (@{$self->{edit}->{item}}) {
+                            if(defined($item->{column}) && $item->{column} eq $column) {
+                                if(defined($item->{default}) && $item->{default} ne '') {
+                                    $tmp = $item->{default};
+                                }
+                                last;
+                            }
+                        }
+                    }
+
                     $tmp = parseNaturalDate($tmp);
+                    if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
+                        $tmp =~ s/\ .*//;
+                    }
                 } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
@@ -2147,8 +2192,18 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         );
 
         if($column{displaytype} eq 'date') {
-            #$column{displaytype} = 'text';
             $column{columnvalue} =~ s/\..*//;
+            if(defined($item->{default}) && $item->{default} ne '' && $item->{default} eq $column{columnvalue}) {
+                # Display default value as empty
+                $column{columnvalue} = '';
+            }
+        }
+        if($column{displaytype} eq 'dateonly') {
+            $column{columnvalue} =~ s/\ .*//;
+            if(defined($item->{default}) && $item->{default} ne '' && $item->{default} eq $column{columnvalue}) {
+                # Display default value as empty
+                $column{columnvalue} = '';
+            }
         }
 
         if($column{displaytype} eq 'text') {
@@ -2217,6 +2272,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $column{charcount} = $item->{charcount};
         }
 
+        $column{mustfield} = $item->{mustfield};
+
         if($self->{editcolumntypes}->{$column{columnname}} eq 'slider' || $self->{editcolumntypes}->{$column{columnname}} eq 'number') {
             if(!defined($column{columnvalue}) || $column{columnvalue} eq '' || $column{columnvalue} < $item->{value_min}) {
                 $column{columnvalue} = $item->{value_min};
@@ -2279,6 +2336,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $eselsth->finish;
             $column{enum_values} = \@enum_values;
             $column{searchable} = $item->{searchable};
+            $column{extendable} = $item->{extendable};
             $column{colorselector} = $item->{colorselector};
             $column{descriptiononly} = $item->{descriptiononly};
             $column{multilanguage} = $item->{multilanguage};
