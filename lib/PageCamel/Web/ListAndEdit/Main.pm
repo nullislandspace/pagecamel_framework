@@ -510,6 +510,12 @@ sub reload($self) {
             $editcolumnnullable{$item->{column}} = 1;
         }
 
+        if(!defined($item->{mustfield}) || !$item->{mustfield}) {
+            $item->{mustfield} = 0;
+        } else {
+            $item->{mustfield} = 1;
+        }
+
         if($item->{type} eq 'enumarray' || $item->{type} eq 'enum' || $item->{type} eq 'subenum') {
             if(!defined($item->{extendable})) {
                 print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
@@ -2265,6 +2271,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $column{rows} = $item->{rows};
             $column{charcount} = $item->{charcount};
         }
+
+        $column{mustfield} = $item->{mustfield};
 
         if($self->{editcolumntypes}->{$column{columnname}} eq 'slider' || $self->{editcolumntypes}->{$column{columnname}} eq 'number') {
             if(!defined($column{columnvalue}) || $column{columnvalue} eq '' || $column{columnvalue} < $item->{value_min}) {
