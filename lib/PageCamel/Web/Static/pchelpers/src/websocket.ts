@@ -321,7 +321,7 @@ export class PCWebsocket {
      */
     spoolincoming(msgname: string, data: string): void {
         msgname = msgname.toUpperCase();
-        this._logdebug("Type " + msgname + "  Data " + data);
+        //this._logdebug("Type " + msgname + "  Data " + data);
 
         //Commit for a cached message sent
         if (msgname === this._msgrecieved) {
@@ -416,6 +416,7 @@ export class PCWebsocket {
     private _sendmsg(msgname: string, data: string, id: string = ""): boolean {
         let sent = false;
         if (this._isconnected) {
+            /*
             this._logdebug(
                 "Send message: msgname=" +
                     msgname +
@@ -424,6 +425,7 @@ export class PCWebsocket {
                     " id=" +
                     id
             );
+            */
             if (id === "") {
                 if (wstransmit(msgname, data)) sent = true;
             } else {
@@ -502,12 +504,14 @@ export class PCWebsocket {
         data: string
     ): void {
         //if  (this._isdebug) console.debug("_handleMsg: Check message " + msgname + " with messageListItem: " + messageListItem.messagename);
+        /*
         this._logdebug(
             "_handleMsg: Check message " +
                 msgname +
                 " with messageListItem: " +
                 messageListItem.messagename
         );
+        */
         if (msgname === messageListItem.messagename) {
             //call the registered callbackfunction
             this._logdebug(
