@@ -527,15 +527,34 @@
             var editorfield = $(this).attr('name');
             var fielddata = $(this).val();
             //console.log("Found Editor for " + editorfield);
-            var extrapluginlist = 'autogrow,aspell,cavacnote,cavacimage,cavacfiles,html5video,panelbutton,colorbutton';
+            var extrapluginlist = 'autogrow,aspell,cavacnote,html5video,panelbutton,colorbutton';
             var removepluginlist = 'resize,scayt,pastefromword,devtools,image,youtube';
+
+            if(typeof ttvars.blogimageselect !== 'undefined') {
+                //console.log("CAVAC image support");
+                extrapluginlist = extrapluginlist + ',cavacimage';
+            } else {
+                //console.log("no CAVAC image support");
+                removepluginlist = removepluginlist + ',cavacimage';
+            };
+
+            if(typeof ttvars.blogfileselect !== 'undefined') {
+                //console.log("CAVAC file support");
+                extrapluginlist = extrapluginlist + ',cavacfiles';
+            } else {
+                //console.log("no CAVAC file support");
+                removepluginlist = removepluginlist + ',cavacfiles';
+            };
+
             if(typeof ttvars.wikiarticleselect !== 'undefined') {
-                //console.log("WIKI mode");
+                //console.log("CAVAC wiki support");
                 extrapluginlist = extrapluginlist + ',cavacwiki';
             } else {
-                //console.log("non-WIKI mode");
+                //console.log("no CAVAC wiki support");
                 removepluginlist = removepluginlist + ',cavacwiki';
             };
+
+
             var thiseditor = $(this).cvceditor({
                     allowedContent: true,
                     extraPlugins: extrapluginlist,
