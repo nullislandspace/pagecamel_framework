@@ -366,7 +366,12 @@
     }
 
     function checkinput() {
+        var inputok = 1;
+
         $("input[mustfield='1'],textarea[mustfield='1']").each(function() {
+            if(inputok == 0) {
+                return;
+            }
             if($(this).val() == '') {
                 /*
                 var switchtotab = $(this).attr('activetab');
@@ -378,10 +383,12 @@
                 */
                 $(this).focus();
                 alert(ttvars.trquote.Requiredfield + ' ' + $(this).attr('displayname'));
-                return;
+                inputok = 0;
             }
-            $('#MainForm').submit();
         });
+        if(inputok == 1) {
+            $('#MainForm').submit();
+        }
     }
 
     function customSelect2Format(state) {
