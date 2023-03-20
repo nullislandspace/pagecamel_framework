@@ -1,20 +1,48 @@
+// We get potentially hundreds of save/convert requests per second. We only need to save the *latest* one.
+// So we run the main conversion at relatively long intervals (500ms). If multiple conversion requests come
+// in the meantime, we only work on the last one.
+
+var nextSave : Uint8Array;
+var hasnextSave = false;
+var intervalhandler : any;
+
 onmessage = function (e: MessageEvent): void {
     var command = e.data[0] as string;
-    var data = e.data[1] as Uint8Array;
+    //var data = e.data[1] as Uint8Array;
 
-    if (command == "SQLTOSTRING") {
-        var uarr: Uint8Array = new Uint8Array(data);
-        var strings: string[] = [],
-            chunksize: number = 0x00ff;
-        // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
-
-        for (var i = 0; i * chunksize < uarr.length; i++) {
-            var numarr: number[] = Array.from(
-                uarr.subarray(i * chunksize, (i + 1) * chunksize)
-            );
-            strings.push(String.fromCharCode.apply(null, numarr));
+    if (command == "START") {
+        intervalhandler = setInterval(dataConverter, 500);
+    } else if (command == "STOP") {
+        clearInterval(intervalhandler);
+    } else if (command == "SQLTOSTRING") {
+        if(hasnextSave) {
+            console.log("Dropping intermediate conversion request");
         }
-        //console.log("DB SAVE IS " + strings.length + " bytes long");
-        postMessage(["SAVEDB", strings.join("")]);
+        nextSave = e.data[1];
+        hasnextSave = true;
     }
 };
+
+function dataConverter() {
+    if(!hasnextSave) {
+        return;
+    }
+
+    hasnextSave = false;
+
+    var uarr: Uint8Array = new Uint8Array(nextSave);
+    var strings: string[] = [],
+        chunksize: number = 0x00ff;
+    // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
+
+    for (var i = 0; i * chunksize < uarr.length; i++) {
+        var numarr: number[] = Array.from(
+            uarr.subarray(i * chunksize, (i + 1) * chunksize)
+        );
+        strings.push(String.fromCharCode.apply(null, numarr));
+    }
+    console.log("DB SAVE IS " + strings.length + " bytes long");
+    postMessage(["SAVEDB", strings.join("")]);
+
+    return;
+}

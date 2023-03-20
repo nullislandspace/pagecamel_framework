@@ -57,6 +57,7 @@ export class PCSqlite {
                 window.localStorage.setItem(this._dbname + "_dbid", this._dbid);
             }
         };
+        this._binWorker.postMessage(["START", '']);
     }
 
     private _randomDBID(): string {
