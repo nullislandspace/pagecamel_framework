@@ -37,7 +37,7 @@ sub new($proto, %config) {
         username => $clconf->get('user'),
         password => $clconf->get('password'),
         caching => 0,
-        clientname => 'PostgreSQL2Clacks bride in ' . $self->{PSAPPNAME},
+        clientname => 'PostgreSQL2Clacks bridge in ' . $self->{PSAPPNAME},
     );
 
     my $socket = $clconf->get('socket');
@@ -72,10 +72,16 @@ sub register($self) {
 }
 
 sub work($self) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    $self->{bridge}->runOnce();
+    my $workCount = 0;
+    my @lines = $self->{bridge}->runOnce();
+    foreach my $line (@lines) {
+        $reph->debuglog($line);
+        $workCount++;
+    }
 
-    return 1;
+    return $workCount;
 }
 
 1;
