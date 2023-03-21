@@ -164,7 +164,7 @@ sub configure_module($self, $module) {
 
     $self->{sysh}->createBool(modulename => 'pagecamel_services',
                         settingname => $module->{enable_name},
-                        settingvalue => "0",
+                        settingvalue => "1",
                         description => 'Enables pagecamel service ' . $module->{description},
                         processinghints => [
                             'type=switch',
