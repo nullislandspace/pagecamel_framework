@@ -852,16 +852,11 @@ lib/PageCamel/Web/Static/cvceditor/plugins/bidi/icons/hidpi/bidirtl.png
 lib/PageCamel/Web/Static/cvceditor/plugins/bidi/lang/en.js
 lib/PageCamel/Web/Static/cvceditor/plugins/bidi/plugin.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacfiles/dialogs/cavacfiles.js
-lib/PageCamel/Web/Static/cvceditor/plugins/cavacfiles/icons/cavacfiles.png
-lib/PageCamel/Web/Static/cvceditor/plugins/cavacfiles/plugin.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacimage/dialogs/cavacimage.js
-lib/PageCamel/Web/Static/cvceditor/plugins/cavacimage/icons/cavacimage.png
-lib/PageCamel/Web/Static/cvceditor/plugins/cavacimage/plugin.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacnote/dialogs/cavacnote.js
-lib/PageCamel/Web/Static/cvceditor/plugins/cavacnote/icons/cavacnote.png
-lib/PageCamel/Web/Static/cvceditor/plugins/cavacnote/plugin.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacwiki/dialogs/cavacwiki.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacwiki/icons/cavacwiki.png
+lib/PageCamel/Web/Static/cvceditor/plugins/cavacwiki/icons/cavacwiki.xcf
 lib/PageCamel/Web/Static/cvceditor/plugins/cavacwiki/plugin.js
 lib/PageCamel/Web/Static/cvceditor/plugins/clipboard/dialogs/paste.js
 lib/PageCamel/Web/Static/cvceditor/plugins/cloudservices/plugin.js

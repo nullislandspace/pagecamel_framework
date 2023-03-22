@@ -1,20 +1,15 @@
 #!/usr/bin/perl
 #---AUTOPRAGMASTART---
-use v5.36;
+use 5.020;
 use strict;
+use warnings;
 use diagnostics;
 use mro 'c3';
-use English;
-use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
-use autodie qw( close );
+use English qw(-no_match_vars);
+use Carp;
+our $VERSION = 4.7;
+use Fatal qw( close );
 use Array::Contains;
-use utf8;
-use Data::Dumper;
-use Data::Printer;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
-use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use CGI qw/ :standard /;
@@ -39,7 +34,8 @@ sub printTextVar {
 	}
 }
 
-sub printTextIdxDecl($idx) {
+sub printTextIdxDecl {
+	my $idx = shift;
 	print "words[$idx] = [];\n";
 	print "suggs[$idx] = [];\n";
 }
@@ -116,12 +112,14 @@ sub printCheckerResults {
 	close ASPELL or handleError( "Error executing `$cmd`\\n$unhandledText" ) and return;
 }
 
-sub escapeQuote($str) {
+sub escapeQuote {
+	my $str = shift;
 	$str =~ s/'/\\'/g;
 	return $str;
 }
 
-sub handleError($err) {
+sub handleError {
+	my $err = shift;
 	print "error = '" . escapeQuote( $err ) . "';\n";
 }
 
