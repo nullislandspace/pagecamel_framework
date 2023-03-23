@@ -41,8 +41,10 @@ function dataConverter() {
         );
         strings.push(String.fromCharCode.apply(null, numarr));
     }
-    console.log("DB SAVE IS " + strings.length + " bytes long");
-    postMessage(["SAVEDB", strings.join("")]);
+
+    var result = strings.join("");
+    console.log("DB SAVE IS " + result.length + " bytes long");
+    postMessage(["SAVEDB", result]);
 
     return;
 }
