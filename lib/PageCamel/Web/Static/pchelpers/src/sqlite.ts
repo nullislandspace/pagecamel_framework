@@ -4,6 +4,15 @@ import { Database } from "sql.js";
 //import initSqlJs from 'sql.js';
 //import * as SQLDB from './sql-wasm.js';
 
+declare var LZString: {
+    compress: (
+        data: string
+    ) => string;
+    decompress: (
+        data: string
+    ) => string;
+};
+
 const initSqlJs = window.initSqlJs;
 
 /**
@@ -52,7 +61,7 @@ export class PCSqlite {
                 if (this._isdebug)
                     console.debug("*** save database to " + this._dbname);
                 //console.log("#################################################   SAVEDB END #####################################");
-                window.localStorage.setItem(this._dbname, data);
+                window.localStorage.setItem(this._dbname + '_compressed', data);
                 this._dbid = this._randomDBID();
                 window.localStorage.setItem(this._dbname + "_dbid", this._dbid);
             }
@@ -100,10 +109,11 @@ export class PCSqlite {
                     var dbstr: string | null = null;
                     this._SQL = SQL;
                     if (dbname != "") {
-                        dbstr = window.localStorage.getItem(dbname);
+                        dbstr = window.localStorage.getItem(dbname + '_compressed');
                     }
                     if (dbstr) {
-                        this._db = new SQL.Database(this._SQLtoBinArray(dbstr));
+                        var decompressed = LZString.decompress(dbstr);
+                        this._db = new SQL.Database(this._SQLtoBinArray(decompressed));
                     } else {
                         this._db = new SQL.Database();
                         this.save();
