@@ -43,7 +43,7 @@ export class PCWebsocket {
     private _messageList: CallbackList[] = [];
 
     //timer delta time in seconds
-    private _deltatime: number = 1000;
+    private _deltatime: number = 250;
 
     private _cached_msgs: { msg: string; data: string; id: string }[];
     private _last_cached_id: number;
