@@ -675,6 +675,21 @@ sub reload($self) {
             }
         }
 
+        if($item->{type} eq "checkbox") {
+            if(!defined($item->{callback})) {
+                print '    EDIT: Checkbox column ', $item->{column}, " does not define \"callback\", disabling callback functionality!\n";
+                $item->{callback} = '';
+            }
+            if(!defined($item->{realvalue})) {
+                print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realvalue\", setting to '1'!\n";
+                $item->{realvalue} = '1';
+            }
+            if(!defined($item->{realinactivevalue})) {
+                print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realinactivevalue\", setting to '0'!\n";
+                $item->{realinactivevalue} = '0';
+            }
+        }
+
         if($item->{type} eq "editor") {
             $self->{needcvceditor} = 1;
         }
@@ -2207,6 +2222,12 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             goto         => 0,
             linebreak  => $item->{linebreak},
         );
+
+        if($column{displaytype} eq 'checkbox') {
+            $column{callback} = $item->{callback};
+            $column{realvalue} = $item->{realvalue};
+            $column{realinactivevalue} = $item->{realinactivevalue};
+        }
 
         if($column{displaytype} eq 'date') {
             $column{columnvalue} =~ s/\..*//;
