@@ -125,7 +125,10 @@
                                                     [% IF column.columnvalue == 1 %]
                                                         checked="checked"
                                                     [% END %]
-                                                    >
+                                                    realvalue="[% column.realvalue %]" realinactivevalue="[% column.realinactivevalue %]"
+                                                    [% IF column.callback != '' %]
+                                                        callback="[% column.callback %]"
+                                                    [% END %]>
                                             [% ELSIF column.displaytype == "display" %]
                                                 <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
                                                 [% tr.quote(column.columnvalue) %]
@@ -286,7 +289,7 @@
                                             [% END %]
                                             <input type="button" value="[% tr.tr("Change") %]" onclick="setMode('edit'); checkinput();">
                                             [% IF cansaveandclose == "1" %]
-                                                <input type="button" value="[% tr.tr("Change&Close") %]" onclick="return setMode('editandclose'); checkinput();">
+                                                <input type="button" value="[% tr.tr("Change&Close") %]" onclick="setMode('editandclose'); checkinput();">
                                             [% END %]
                                             [% IF cancopy == "1" %]
                                                 <input type="button" value="[% tr.tr("Copy") %]" onclick="setMode('copy'); checkinput();">
