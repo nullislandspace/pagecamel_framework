@@ -125,7 +125,10 @@
                                                     [% IF column.columnvalue == 1 %]
                                                         checked="checked"
                                                     [% END %]
-                                                    >
+                                                    realvalue="[% column.realvalue %]" realinactivevalue="[% column.realinactivevalue %]"
+                                                    [% IF column.callback != '' %]
+                                                        callback="[% column.callback %]"
+                                                    [% END %]>
                                             [% ELSIF column.displaytype == "display" %]
                                                 <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
                                                 [% tr.quote(column.columnvalue) %]

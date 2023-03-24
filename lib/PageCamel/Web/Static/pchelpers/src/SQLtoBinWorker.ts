@@ -2,9 +2,20 @@
 // So we run the main conversion at relatively long intervals (500ms). If multiple conversion requests come
 // in the meantime, we only work on the last one.
 
+importScripts("/static/lz-string.js");
+
 var nextSave : Uint8Array;
 var hasnextSave = false;
 var intervalhandler : any;
+
+declare var LZString: {
+    compress: (
+        data: string
+    ) => string;
+    decompress: (
+        data: string
+    ) => string;
+};
 
 onmessage = function (e: MessageEvent): void {
     var command = e.data[0] as string;
@@ -41,8 +52,13 @@ function dataConverter() {
         );
         strings.push(String.fromCharCode.apply(null, numarr));
     }
-    console.log("DB SAVE IS " + strings.length + " bytes long");
-    postMessage(["SAVEDB", strings.join("")]);
+
+    var result = strings.join("");
+    console.log("DB SAVE IS " + result.length + " bytes long");
+    var compressed = LZString.compress(result);
+    console.log("Compressed DB SAVE IS " + compressed.length + " bytes long");
+    console.log("Compressed to " + ((compressed.length / result.length) * 100) + "% of original size");
+    postMessage(["SAVEDB", compressed]);
 
     return;
 }

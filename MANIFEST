@@ -2302,6 +2302,7 @@ lib/PageCamel/Web/Static/keyboard/testing/qunit-2.9.2.js
 lib/PageCamel/Web/Static/keyboard/testing/test.html
 lib/PageCamel/Web/Static/keyboard/testing/testing.js
 lib/PageCamel/Web/Static/keyboard/tools/authors.sh
+lib/PageCamel/Web/Static/lz-string.js
 lib/PageCamel/Web/Static/mapcrafter_markers/default-marker-icon.png
 lib/PageCamel/Web/Static/mapcrafter_markers/expedition.png
 lib/PageCamel/Web/Static/mapcrafter_markers/house.png

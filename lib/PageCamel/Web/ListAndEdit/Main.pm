@@ -675,6 +675,21 @@ sub reload($self) {
             }
         }
 
+        if($item->{type} eq "checkbox") {
+            if(!defined($item->{callback})) {
+                print '    EDIT: Checkbox column ', $item->{column}, " does not define \"callback\", disabling callback functionality!\n";
+                $item->{callback} = '';
+            }
+            if(!defined($item->{realvalue})) {
+                print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realvalue\", setting to '1'!\n";
+                $item->{realvalue} = '1';
+            }
+            if(!defined($item->{realinactivevalue})) {
+                print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realinactivevalue\", setting to '0'!\n";
+                $item->{realinactivevalue} = '0';
+            }
+        }
+
         if($item->{type} eq "editor") {
             $self->{needcvceditor} = 1;
         }
@@ -1615,6 +1630,23 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mode = $ua->{postparams}->{'mode'} || 'list';
+
+    # re-bracketify encoded postparam names
+    if(defined($ua->{postparams}) && ref $ua->{postparams} eq 'HASH') {
+        foreach my $key (keys %{$ua->{postparams}}) {
+            my $newkey = '' . $key;
+            $newkey =~ s/XXXLEFTBRACKETXXX/\[/g;
+            $newkey =~ s/XXXRIGHTBRACKETXXX/\]/g;
+            if($key ne $newkey) {
+                #print STDERR "Changing $key to $newkey\n";
+                $ua->{postparams}->{$newkey} = $ua->{postparams}->{$key};
+                delete $ua->{postparams}->{$key};
+            }
+        }
+        #print STDERR p(%{$ua->{postparams}});
+    }
+
+
     my $primarykey = '';
     if(defined($ua->{postparams}->{'primary_key'})) {
         #$primarykey = stripString($ua->{postparams}->{'primary_key'});
@@ -2191,6 +2223,12 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             linebreak  => $item->{linebreak},
         );
 
+        if($column{displaytype} eq 'checkbox') {
+            $column{callback} = $item->{callback};
+            $column{realvalue} = $item->{realvalue};
+            $column{realinactivevalue} = $item->{realinactivevalue};
+        }
+
         if($column{displaytype} eq 'date') {
             $column{columnvalue} =~ s/\..*//;
             if(defined($item->{default}) && $item->{default} ne '' && $item->{default} eq $column{columnvalue}) {
@@ -2463,6 +2501,14 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         }
 
         push @editcolumns, \%column;
+    }
+
+    # un-bracketify column names so HTML and Javascript don't treat them as arrays
+    for(my $idx = 0; $idx < scalar @editcolumns; $idx++) {
+        if(defined($editcolumns[$idx]->{columnname})) {
+            $editcolumns[$idx]->{columnname} =~ s/\[/XXXLEFTBRACKETXXX/g;
+            $editcolumns[$idx]->{columnname} =~ s/\]/XXXRIGHTBRACKETXXX/g;
+        }
     }
 
     $webdata{mode} = $mode;
