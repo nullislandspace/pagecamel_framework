@@ -558,6 +558,26 @@ sub validateEditItem($self, $item, $multiarraymode) {
             print "    EDIT: nested multiarrays are not supported!\n";
             return 0;
         }
+
+        if(!defined($item->{primarycolumn})) {
+            print "    EDIT: multiarray does not specify primarycolumn!\n";
+            return 0;
+        }
+
+        my $found = 0;
+        foreach my $subitem (@{$item->{item}}) {
+            if(defined($subitem->{column}) && $item->{primarycolumn} eq $subitem->{column}) {
+                $found = 1;
+                last;
+            }
+        }
+
+        if(!$found) {
+            print "    EDIT: multiarray has primarycolumn " . $item->{primarycolumn} . ", but it is not used within the multiarray!\n";
+            return 0;
+        }
+
+
         my $ok = 1;
         foreach my $subitem (@{$item->{item}}) {
             if(!$self->validateEditItem($subitem, 1)) {
@@ -2130,33 +2150,35 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         # PostgreSQL returns the selected array element without index number, so make an alias that we can reverse-map after the select
         my @allcolumns = (@pkcols);
         my %colaliases;
+
         foreach my $item ((@{$self->{edit}->{item}})) {
-            if($item->{type} eq 'newtab' || $item->{type} eq 'startsubtable' || $item->{type} eq 'endsubtable') {
-                next;
+            my $col = $self->getSelectColumns(\%colaliases, $item);
+            if(defined($col)) {
+                if(ref $col eq 'ARRAY') {
+                    push @allcolumns, @{$col};
+                } else {
+                    push @allcolumns, $col;
+                }
             }
-            my $alias = $item->{column};
-            if($alias =~ /\[/ || $alias =~ /\./) {
-                $alias =~ s/\[/xxopenbracketxx/g;
-                $alias =~ s/\]/xxclosebracketxx/g;
-                $alias =~ s/\./xxdotxx/g;
-                $colaliases{$alias} = $item->{column};
-                $alias = $item->{column} . ' AS ' . $alias;
-            }
-            if(!contains($alias, \@allcolumns)) {
-                push @allcolumns, $alias;
+        }
+        my @filtered;
+        foreach my $colspec (@allcolumns) {
+            if(!contains($colspec, \@filtered)) {
+                push @filtered, $colspec;
             }
         }
 
-        my $selcolumns = join(', ', @allcolumns);
+        my $selcolumns = join(', ', @filtered);
 
         my $selstmt = "SELECT " . $selcolumns . " FROM " . $self->{table} . " WHERE " . join(' = ? AND ', @pkcols) . " = ? ";
-        #print STDERR "selstmt: $selstmt\n";
+        print STDERR "selstmt: $selstmt\n";
 
         my $selsth = $dbh->prepare_cached($selstmt)
                 or croak($dbh->errstr);
         $selsth->execute(@pkparts) or croak($dbh->errstr);
         my $found = 0;
         while((my $line = $selsth->fetchrow_hashref)) {
+            print STDERR Dumper($line);
             $found++;
 
             # Reverse-map the aliases
@@ -2167,7 +2189,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     delete $line->{$alias};
                 }
             }
-            foreach my $column (@{$self->{editcolumns}}, @{$self->{readonlycolumns}}) {
+            #foreach my $column (@{$self->{editcolumns}}, @{$self->{readonlycolumns}}) {
+            foreach my $column (@allcolumns) {
                 if(!defined($line->{$column})) {
                     $line->{$column} = '';
                 }
@@ -2180,6 +2203,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             # Something went wrong, show the current list instead
             return $self->get_list($ua);
         }
+        print STDERR Dumper(\%colaliases);
+        print STDERR Dumper(\%colvalues);
     } elsif($primarykey eq '__NEW__') {
         foreach my $column (@{$self->{editcolumns}}, @{$self->{readonlycolumns}}) {
             my $tmp = '';
@@ -2228,328 +2253,18 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
 
     my @editcolumns;
     foreach my $item (@{$self->{edit}->{item}}) {
-        if($item->{type} eq 'newtab') {
-            my %column = (
-                displayname  => $item->{header},
-                displaytype  => $item->{type},
-                tabname      => $item->{tabname},
-                tablename    => $item->{tablename},
-            );
-            push @editcolumns, \%column;
-            next;
-        }
-
-        if($item->{type} eq 'startsubtable') {
-            my %column = (
-                displaytype  => $item->{type},
-                header  => $item->{header},
-            );
-            push @editcolumns, \%column;
-            next;
-        }
-        if($item->{type} eq 'endsubtable') {
-            my %column = (
-                displaytype  => $item->{type},
-                displayname => '',
-            );
-
-            push @editcolumns, \%column;
-            next;
-        }
-
-        if(!defined($colvalues{$item->{column}})) {
-            $colvalues{$item->{column}} = '';
-        }
-
-        my %column = (
-            displayname  => $item->{header},
-            displaytype  => $item->{type},
-            columnname   => $item->{column},
-            columnvalue  => $colvalues{$item->{column}},
-            goto         => 0,
-            linebreak  => $item->{linebreak},
-            columnbreak  => $item->{columnbreak},
-        );
-
-        if($column{displaytype} eq 'checkbox') {
-            $column{callback} = $item->{callback};
-            $column{realvalue} = $item->{realvalue};
-            $column{realinactivevalue} = $item->{realinactivevalue};
-        }
-
-        if($column{displaytype} eq 'date') {
-            $column{columnvalue} =~ s/\..*//;
-            if(defined($item->{default}) && $item->{default} ne '' && $item->{default} eq $column{columnvalue}) {
-                # Display default value as empty
-                $column{columnvalue} = '';
-            }
-        }
-        if($column{displaytype} eq 'dateonly') {
-            $column{columnvalue} =~ s/\ .*//;
-            if(defined($item->{default}) && $item->{default} ne '' && $item->{default} eq $column{columnvalue}) {
-                # Display default value as empty
-                $column{columnvalue} = '';
-            }
-        }
-
-        if($column{displaytype} eq 'text') {
-            $column{size} = $item->{size};
-            $column{maxlength} = $item->{maxlength};
-        }
-
-        if($column{displaytype} eq 'timeonly') {
-            if($column{columnvalue} =~ /\:\d\d\:/) {
-                # Has seconds, remove them
-                $column{columnvalue} =~ s/\:\d\d$//;
-            }
-        }
-        
-        if($column{displaytype} eq 'image') {
-            #$column{displaytype} = 'text';
-            if($column{columnvalue} ne '') {
-                $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};
+        my $col = $self->formatEditColumn($primarykey, $item, \%colvalues, 0);
+        if(defined($col)) {
+            if(ref($col) eq 'ARRAY') {
+                push @editcolumns, @{$col};
             } else {
-                $column{imagedata} = '';
+                push @editcolumns, $col;
             }
         }
-
-        if($column{displaytype} eq 'imagedisplay') {
-            #$column{displaytype} = 'text';
-            if($column{columnvalue} ne '') {
-                $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};
-            } else {
-                $column{imagedata} = '';
-            }
-        }
-        
-        if($column{displaytype} eq 'editor') {
-            # CVCEditor 4.x has a very fundamental bug regarding <code> tags:
-            # It still parses encoded characters like '&lt;' to '<', which
-            # completly breaks the syntax highlighter
-            #
-            # There is a crude workaround of encoding every '&' to '&amp;'.
-            # So, '&lt;' becomes '&amp;lt;'. Stupid, but it seems to work.
-            # Let's do this by first checking if we HAVE any code tags (if not,
-            # we can go on normally). If we do, split the string on the end "</code>"
-            # tags, then on the code tags '<code .?>', reencode the '&', add
-            # it all up again with the now missing code tags and we're sort of done.
-            # Messy, to say the least.
-            if($column{columnvalue} =~ /\<\/code\>/) {
-                # Got ourselfs some code tags.
-                my $newval = '';
-                my @parts = split/\<\/code\>/, $column{columnvalue};
-                foreach my $part (@parts) {
-                    if($part =~ /(.*)(\<code.*?\>)(.*)/si) {
-                        my ($noncode, $tag, $code) = ($1, $2, $3);
-                        $code =~ s/\&/\&amp\;/g;
-                        $newval .= $noncode . $tag . $code . '</code>';
-                    } else {
-                        # "the rest"
-                        $newval .= $part;
-                    }
-                }
-                $column{columnvalue} = $newval;
-            }
-        }
-
-        if($column{displaytype} =~ /^textarea/ || $column{displaytype} eq 'scripteditor') {
-            $column{cols} = $item->{cols};
-            $column{rows} = $item->{rows};
-            $column{charcount} = $item->{charcount};
-        }
-
-        $column{mustfield} = $item->{mustfield};
-
-        if($self->{editcolumntypes}->{$column{columnname}} eq 'slider' || $self->{editcolumntypes}->{$column{columnname}} eq 'number') {
-            if(!defined($column{columnvalue}) || $column{columnvalue} eq '' || $column{columnvalue} < $item->{value_min}) {
-                $column{columnvalue} = $item->{value_min};
-            } elsif($column{columnvalue} > $item->{value_max}) {
-                $column{columnvalue} = $item->{value_max};
-            }
-        }
-
-        #if($self->{editcolumntypes}->{$column{columnname}} eq 'number' && !$item->{hasdecimal}) {
-        #    if(defined($column{columnvalue})) {
-        #        $column{columnvalue} = int($column{columnvalue});
-        #    } else {
-        #        $column{columnvalue} = 0;
-        #    }
-        #}
-
-        if($primarykey eq '__NEW__' && defined($item->{createtype})) {
-            $column{displaytype} = $item->{createtype};
-        }
-
-        foreach my $colname (qw[enumtable enumvalue value_min value_max step parentcolumn hasdecimal]) {
-            if(defined($item->{$colname})) {
-                $column{$colname} = $item->{$colname};
-            }
-        }
-
-        # #### ENUM ####
-        if($item->{type} eq 'enum') {
-            my $extracolumn = '';
-            my $hasdescription = 0;
-            if(defined($item->{showdescription})) {
-                $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
-                $hasdescription = 1;
-            }
-
-            my $where = '';
-            if(defined($item->{enumwhere})) {
-                $where = ' WHERE ' . $item->{enumwhere} . ' ';
-            }
-
-            my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
-                                               $extracolumn .
-                                               ' FROM ' . $item->{enumtable} .
-                                               $where .
-                                               ' ORDER BY ' . $item->{enumcolumn})
-                    or croak($dbh->errstr);
-            $eselsth->execute or croak($dbh->errstr);
-            my @enum_values;
-            if($self->{editcolumntypes}->{$column{columnname}} eq 'enum' && $self->{editcolumnnullable}->{$column{columnname}}) {
-                my %emptyval = (
-                    selectorenumvalue   => '',
-                    hasdescription      => 0,
-                );
-                push @enum_values, \%emptyval;
-            }
-            while((my $eline = $eselsth->fetchrow_hashref)) {
-                $eline->{hasdescription} = $hasdescription;
-                push @enum_values, $eline;
-            }
-            $eselsth->finish;
-            $column{enum_values} = \@enum_values;
-            $column{searchable} = $item->{searchable};
-            $column{extendable} = $item->{extendable};
-            $column{colorselector} = $item->{colorselector};
-            $column{descriptiononly} = $item->{descriptiononly};
-            $column{multilanguage} = $item->{multilanguage};
-        }
-
-        # #### SUB-ENUM ####
-        if($item->{type} eq 'subenum') {
-            my $extracolumn = '';
-            my $hasdescription = 0;
-            if(defined($item->{showdescription})) {
-                $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
-                $hasdescription = 1;
-            }
-            my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumparentcolumn} . ' AS selectorenumparentvalue, ' .
-                                               $item->{enumcolumn} . ' AS selectorenumvalue ' .
-                                               $extracolumn .
-                                               ' FROM ' . $item->{enumtable} .
-                                               ' ORDER BY ' . $item->{enumparentcolumn} . ', ' . $item->{enumcolumn})
-                    or croak($dbh->errstr);
-            $eselsth->execute or croak($dbh->errstr);
-            my @enum_values;
-
-            my $currentparent;
-            my @enums = ();
-            while((my $eline = $eselsth->fetchrow_hashref)) {
-                $eline->{hasdescription} = $hasdescription;
-
-                if(!defined($currentparent)) {
-                    $currentparent = $eline->{selectorenumparentvalue};
-                    push @enums, $eline;
-                } elsif($currentparent ne $eline->{selectorenumparentvalue}) {
-                    my @tmp = @enums;
-                    my %fullline = (
-                        parentenumvalue     => $currentparent,
-                        subenums            => \@tmp,
-                    );
-                    push @enum_values, \%fullline;
-                    $currentparent = $eline->{selectorenumparentvalue};
-                    @enums = ();
-                    push @enums, $eline;
-                } else {
-                    push @enums, $eline;
-                }
-            }
-            $eselsth->finish;
-
-            if(@enums) {
-                my @tmp = @enums;
-                my %fullline = (
-                    parentenumvalue     => $currentparent,
-                    subenums            => \@tmp,
-                );
-                push @enum_values, \%fullline;
-            }
-
-            $column{enum_values} = \@enum_values;
-            $column{enum_values_json} = encode_base64(encode_json \@enum_values, '');
-            $column{searchable} = $item->{searchable};
-            $column{descriptiononly} = $item->{descriptiononly};
-        }
-        
-        # #### ENUMARRAY ####
-        if($item->{type} eq 'enumarray') {
-            my $extracolumn = '';
-            my $hasdescription = 0;
-            if(defined($item->{showdescription})) {
-                $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
-                $hasdescription = 1;
-            }
-
-            my $where = '';
-            if(defined($item->{enumwhere})) {
-                $where = ' WHERE ' . $item->{enumwhere} . ' ';
-            }
-
-            my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
-                                               $extracolumn .
-                                               ' FROM ' . $item->{enumtable} .
-                                               $where .
-                                               ' ORDER BY ' . $item->{enumcolumn})
-                    or croak($dbh->errstr);
-            $eselsth->execute or croak($dbh->errstr);
-            my @enum_values;
-            {
-                # enum array ALWAYS has a "nullable" row"
-                my %emptyval = (
-                    selectorenumvalue   => '',
-                    hasdescription      => 0,
-                );
-                push @enum_values, \%emptyval;
-            }
-            while((my $eline = $eselsth->fetchrow_hashref)) {
-                $eline->{hasdescription} = $hasdescription;
-                push @enum_values, $eline;
-            }
-            $eselsth->finish;
-            $column{enum_values} = \@enum_values;
-            $column{searchable} = $item->{searchable};
-            $column{colorselector} = $item->{colorselector};
-            $column{descriptiononly} = $item->{descriptiononly};
-            $column{multilanguage} = $item->{multilanguage};
-            if(!defined($column{columnvalue}) || ref $column{columnvalue} ne 'ARRAY') {
-                $column{columnvalue} = [];
-            }
-            for(1..5) {
-                push @{$column{columnvalue}}, '';
-            }
-        }
-
-        if(defined($item->{goto})) {
-            $column{goto} = 1;
-            $column{gotourl} = $item->{goto};
-
-            if($column{gotourl} =~ /\[(.*)\]/) {
-                my $tmp = $1;
-                my $dest = $primarykey;
-                if($tmp ne 'PK') {
-                    $dest = $colvalues{$item->{column}} || ''
-                }
-
-                $dest = encode_uri($dest);
-                $column{gotourl} =~ s/\[.*\]/$dest/;
-            }
-        }
-
-        push @editcolumns, \%column;
     }
+
+    print STDERR "************************************\n";
+    print STDERR Dumper(\@editcolumns);
 
     # un-bracketify column names so HTML and Javascript don't treat them as arrays
     for(my $idx = 0; $idx < scalar @editcolumns; $idx++) {
@@ -2625,6 +2340,406 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             data    => $template);
 }
 
+sub getSelectColumns($self, $colaliases, $item) {
+    if($item->{type} eq 'multiarray') {
+        my @allcolumns;
+        foreach my $subitem (@{$item->{item}}) {
+            my $col = $self->getSelectColumns($colaliases, $subitem);
+            if(defined($col)) {
+                if(ref $col eq 'ARRAY') {
+                    push @allcolumns, @{$col};
+                } else {
+                    push @allcolumns, $col;
+                }
+            }
+        }
+        return \@allcolumns;
+    }
+
+    if($item->{type} eq 'newtab' || $item->{type} eq 'startsubtable' || $item->{type} eq 'endsubtable') {
+        return;
+    }
+
+    my $colname = $self->columnBasename($item->{column});
+    my $alias = '' . $colname;
+    if($alias =~ /\[/ || $alias =~ /\./) {
+        $alias =~ s/\[/xxopenbracketxx/g;
+        $alias =~ s/\]/xxclosebracketxx/g;
+        $alias =~ s/\./xxdotxx/g;
+        $colaliases->{$alias} = $item->{column};
+        $alias = $colname . ' AS ' . $alias;
+    }
+    return $alias;
+}
+
+sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    if($item->{type} eq 'newtab') {
+        my %column = (
+            displayname  => $item->{header},
+            displaytype  => $item->{type},
+            tabname      => $item->{tabname},
+            tablename    => $item->{tablename},
+        );
+        return \%column;
+    }
+
+    if($item->{type} eq 'startsubtable') {
+        my %column = (
+            displaytype  => $item->{type},
+            header  => $item->{header},
+        );
+        return \%column;
+    }
+    if($item->{type} eq 'endsubtable') {
+        my %column = (
+            displaytype  => $item->{type},
+            displayname => '',
+        );
+
+        return \%column;
+    }
+
+    if($item->{type} eq 'multiarray') {
+        if($multiarrayindex) {
+            # This should never happen, because it's BLOCKED by validation at startup!
+            croak("Nested multiarray error");
+        }
+        # First, we need to find out how much real data lines we have
+        my $basename = $self->columnBasename($item->{primarycolumn});
+        print STDERR p($colvalues);
+        my $count = 0;
+        if(defined($colvalues->{$basename})) {
+            $count = scalar @{$colvalues->{$basename}};
+        }
+        $count += 5; # Add 5 empty rows
+
+        print STDERR p($item);
+        print STDERR p($colvalues);
+
+        my @edititems;
+        for(my $i = 0; $i < $count; $i++) {
+            foreach my $subitem (@{$item->{item}}) {
+                my $idx = $i + 1; # PostgreSQL uses 1-indexed arrays
+                my $col = $self->formatEditColumn($primarykey, $subitem, $colvalues, $idx);
+                if(defined($col)) {
+                    if(ref($col) eq 'ARRAY') {
+                        push @edititems, @{$col};
+                    } else {
+                        push @edititems, $col;
+                    }
+                }
+            }
+        }
+        return \@edititems;
+    }
+
+
+    my $colname = '' . $item->{column};
+    my $colbasename = '' . $item->{column};
+    if($multiarrayindex) {
+        $colname = $self->columnAddIndex($colname, $multiarrayindex);
+        $colbasename = $self->columnBasename($colbasename);
+    }
+
+    my $realvalue;
+    if($multiarrayindex) {
+        if(!defined($colvalues->{$colbasename}->[$multiarrayindex - 1])) {
+            $realvalue = '';
+        } else {
+            $realvalue = $colvalues->{$colbasename}->[$multiarrayindex - 1];
+        }
+    } else {
+        if(!defined($colvalues->{$colname})) {
+            $realvalue = '';
+        } else {
+            $realvalue = $colvalues->{$colname};
+        }
+    }
+
+    my %column = (
+        displayname  => $item->{header},
+        displaytype  => $item->{type},
+        columnname   => $colname,
+        columnvalue  => $realvalue,
+        goto         => 0,
+        linebreak  => $item->{linebreak},
+        columnbreak  => $item->{columnbreak},
+    );
+
+    if($column{displaytype} eq 'checkbox') {
+        $column{callback} = $item->{callback};
+        $column{realvalue} = $item->{realvalue};
+        $column{realinactivevalue} = $item->{realinactivevalue};
+    }
+
+    if($column{displaytype} eq 'date') {
+        $column{columnvalue} =~ s/\..*//;
+        if(defined($item->{default}) && $item->{default} ne '' && $item->{default} eq $column{columnvalue}) {
+            # Display default value as empty
+            $column{columnvalue} = '';
+        }
+    }
+    if($column{displaytype} eq 'dateonly') {
+        $column{columnvalue} =~ s/\ .*//;
+        if(defined($item->{default}) && $item->{default} ne '' && $item->{default} eq $column{columnvalue}) {
+            # Display default value as empty
+            $column{columnvalue} = '';
+        }
+    }
+
+    if($column{displaytype} eq 'text') {
+        $column{size} = $item->{size};
+        $column{maxlength} = $item->{maxlength};
+    }
+
+    if($column{displaytype} eq 'timeonly') {
+        if($column{columnvalue} =~ /\:\d\d\:/) {
+            # Has seconds, remove them
+            $column{columnvalue} =~ s/\:\d\d$//;
+        }
+    }
+    
+    if($column{displaytype} eq 'image') {
+        #$column{displaytype} = 'text';
+        if($column{columnvalue} ne '') {
+            $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};
+        } else {
+            $column{imagedata} = '';
+        }
+    }
+
+    if($column{displaytype} eq 'imagedisplay') {
+        #$column{displaytype} = 'text';
+        if($column{columnvalue} ne '') {
+            $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};
+        } else {
+            $column{imagedata} = '';
+        }
+    }
+    
+    if($column{displaytype} eq 'editor') {
+        # CVCEditor 4.x has a very fundamental bug regarding <code> tags:
+        # It still parses encoded characters like '&lt;' to '<', which
+        # completly breaks the syntax highlighter
+        #
+        # There is a crude workaround of encoding every '&' to '&amp;'.
+        # So, '&lt;' becomes '&amp;lt;'. Stupid, but it seems to work.
+        # Let's do this by first checking if we HAVE any code tags (if not,
+        # we can go on normally). If we do, split the string on the end "</code>"
+        # tags, then on the code tags '<code .?>', reencode the '&', add
+        # it all up again with the now missing code tags and we're sort of done.
+        # Messy, to say the least.
+        if($column{columnvalue} =~ /\<\/code\>/) {
+            # Got ourselfs some code tags.
+            my $newval = '';
+            my @parts = split/\<\/code\>/, $column{columnvalue};
+            foreach my $part (@parts) {
+                if($part =~ /(.*)(\<code.*?\>)(.*)/si) {
+                    my ($noncode, $tag, $code) = ($1, $2, $3);
+                    $code =~ s/\&/\&amp\;/g;
+                    $newval .= $noncode . $tag . $code . '</code>';
+                } else {
+                    # "the rest"
+                    $newval .= $part;
+                }
+            }
+            $column{columnvalue} = $newval;
+        }
+    }
+
+    if($column{displaytype} =~ /^textarea/ || $column{displaytype} eq 'scripteditor') {
+        $column{cols} = $item->{cols};
+        $column{rows} = $item->{rows};
+        $column{charcount} = $item->{charcount};
+    }
+
+    $column{mustfield} = $item->{mustfield};
+
+    if($column{displaytype} eq 'slider' || $column{displaytype} eq 'number') {
+        if(!defined($column{columnvalue}) || $column{columnvalue} eq '' || $column{columnvalue} < $item->{value_min}) {
+            $column{columnvalue} = $item->{value_min};
+        } elsif($column{columnvalue} > $item->{value_max}) {
+            $column{columnvalue} = $item->{value_max};
+        }
+    }
+
+    if($primarykey eq '__NEW__' && defined($item->{createtype})) {
+        $column{displaytype} = $item->{createtype};
+    }
+
+    foreach my $optionname (qw[enumtable enumvalue value_min value_max step parentcolumn hasdecimal]) {
+        if(defined($item->{$optionname})) {
+            $column{$optionname} = $item->{$optionname};
+        }
+    }
+
+    # #### ENUM ####
+    if($item->{type} eq 'enum') {
+        my $extracolumn = '';
+        my $hasdescription = 0;
+        if(defined($item->{showdescription})) {
+            $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
+            $hasdescription = 1;
+        }
+
+        my $where = '';
+        if(defined($item->{enumwhere})) {
+            $where = ' WHERE ' . $item->{enumwhere} . ' ';
+        }
+
+        my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
+                                           $extracolumn .
+                                           ' FROM ' . $item->{enumtable} .
+                                           $where .
+                                           ' ORDER BY ' . $item->{enumcolumn})
+                or croak($dbh->errstr);
+        $eselsth->execute or croak($dbh->errstr);
+        my @enum_values;
+        if($item->{nullable}) {
+            my %emptyval = (
+                selectorenumvalue   => '',
+                hasdescription      => 0,
+            );
+            push @enum_values, \%emptyval;
+        }
+        while((my $eline = $eselsth->fetchrow_hashref)) {
+            $eline->{hasdescription} = $hasdescription;
+            push @enum_values, $eline;
+        }
+        $eselsth->finish;
+        $column{enum_values} = \@enum_values;
+        $column{searchable} = $item->{searchable};
+        $column{extendable} = $item->{extendable};
+        $column{colorselector} = $item->{colorselector};
+        $column{descriptiononly} = $item->{descriptiononly};
+        $column{multilanguage} = $item->{multilanguage};
+    }
+
+    # #### SUB-ENUM ####
+    if($item->{type} eq 'subenum') {
+        my $extracolumn = '';
+        my $hasdescription = 0;
+        if(defined($item->{showdescription})) {
+            $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
+            $hasdescription = 1;
+        }
+        my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumparentcolumn} . ' AS selectorenumparentvalue, ' .
+                                           $item->{enumcolumn} . ' AS selectorenumvalue ' .
+                                           $extracolumn .
+                                           ' FROM ' . $item->{enumtable} .
+                                           ' ORDER BY ' . $item->{enumparentcolumn} . ', ' . $item->{enumcolumn})
+                or croak($dbh->errstr);
+        $eselsth->execute or croak($dbh->errstr);
+        my @enum_values;
+
+        my $currentparent;
+        my @enums = ();
+        while((my $eline = $eselsth->fetchrow_hashref)) {
+            $eline->{hasdescription} = $hasdescription;
+
+            if(!defined($currentparent)) {
+                $currentparent = $eline->{selectorenumparentvalue};
+                push @enums, $eline;
+            } elsif($currentparent ne $eline->{selectorenumparentvalue}) {
+                my @tmp = @enums;
+                my %fullline = (
+                    parentenumvalue     => $currentparent,
+                    subenums            => \@tmp,
+                );
+                push @enum_values, \%fullline;
+                $currentparent = $eline->{selectorenumparentvalue};
+                @enums = ();
+                push @enums, $eline;
+            } else {
+                push @enums, $eline;
+            }
+        }
+        $eselsth->finish;
+
+        if(@enums) {
+            my @tmp = @enums;
+            my %fullline = (
+                parentenumvalue     => $currentparent,
+                subenums            => \@tmp,
+            );
+            push @enum_values, \%fullline;
+        }
+
+        $column{enum_values} = \@enum_values;
+        $column{enum_values_json} = encode_base64(encode_json \@enum_values, '');
+        $column{searchable} = $item->{searchable};
+        $column{descriptiononly} = $item->{descriptiononly};
+    }
+    
+    # #### ENUMARRAY ####
+    if($item->{type} eq 'enumarray') {
+        my $extracolumn = '';
+        my $hasdescription = 0;
+        if(defined($item->{showdescription})) {
+            $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
+            $hasdescription = 1;
+        }
+
+        my $where = '';
+        if(defined($item->{enumwhere})) {
+            $where = ' WHERE ' . $item->{enumwhere} . ' ';
+        }
+
+        my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
+                                           $extracolumn .
+                                           ' FROM ' . $item->{enumtable} .
+                                           $where .
+                                           ' ORDER BY ' . $item->{enumcolumn})
+                or croak($dbh->errstr);
+        $eselsth->execute or croak($dbh->errstr);
+        my @enum_values;
+        {
+            # enum array ALWAYS has a "nullable" row"
+            my %emptyval = (
+                selectorenumvalue   => '',
+                hasdescription      => 0,
+            );
+            push @enum_values, \%emptyval;
+        }
+        while((my $eline = $eselsth->fetchrow_hashref)) {
+            $eline->{hasdescription} = $hasdescription;
+            push @enum_values, $eline;
+        }
+        $eselsth->finish;
+        $column{enum_values} = \@enum_values;
+        $column{searchable} = $item->{searchable};
+        $column{colorselector} = $item->{colorselector};
+        $column{descriptiononly} = $item->{descriptiononly};
+        $column{multilanguage} = $item->{multilanguage};
+        if(!defined($column{columnvalue}) || ref $column{columnvalue} ne 'ARRAY') {
+            $column{columnvalue} = [];
+        }
+        for(1..5) {
+            push @{$column{columnvalue}}, '';
+        }
+    }
+
+    if(defined($item->{goto})) {
+        $column{goto} = 1;
+        $column{gotourl} = $item->{goto};
+
+        if($column{gotourl} =~ /\[(.*)\]/) {
+            my $tmp = $1;
+            my $dest = $primarykey;
+            if($tmp ne 'PK') {
+                $dest = $colvalues->{$colname} || ''
+            }
+
+            $dest = encode_uri($dest);
+            $column{gotourl} =~ s/\[.*\]/$dest/;
+        }
+    }
+
+    return \%column;
+}
+
 sub get_autosave($self, $ua) {
 
     if($self->{listonly}) {
@@ -2673,6 +2788,12 @@ sub columnAddIndex($self, $colname, $idx) {
         croak("Column $newcolname is not an array column (missing empty array marker \[\] suitable for multiarray mode");
     }
     $newcolname =~ s/\[\]/\[$idx\]/;
+    return $newcolname;
+}
+
+sub columnBasename($self, $colname) {
+    my $newcolname = '' . $colname;
+    $newcolname =~ s/\[\]//;
     return $newcolname;
 }
 
