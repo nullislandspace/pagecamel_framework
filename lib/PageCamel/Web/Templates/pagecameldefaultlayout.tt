@@ -215,6 +215,13 @@
                 $('#HelperTable11').statictable();
                 $('#SubHelperTable1').statictable();
 
+                $("table[statictable='1']").each(function() {
+                    console.log("Turn to static table:");
+                    console.log($(this));
+                    $(this).statictable();
+                });
+
+
                 filter_table = $('#MainFilterTable').dataTable({
                             "pagingType": "simple",
                             "stateSave": true, // Save state but we will override the SORTING later

@@ -68,12 +68,31 @@
                                                 </thead>
                                                 <tbody>
 
+                                [% ELSIF column.displaytype == "startsubtable" %]
+                                    [% LinebreakActive = "1" %]
+                                    <tr><td colspan="2"><div class="subtable">
+                                    <table class="data" statictable="1">
+                                        <thead>
+                                            <tr class="tabheader">
+                                                [% FOREACH colname IN column.header %]
+                                                    <th>[% tr.trquote(colname) %]</th>
+                                                [% END %]
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                [% ELSIF column.displaytype == "endsubtable" %]
+                                    [% LinebreakActive = "1" %]
+                                        </tbody>
+                                    </table>
+                                    </div></td></tr>
                                 [% ELSIF column.displaytype == "hidden" %]
                                     <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
                                 [% ELSE %]
                                     [% IF LinebreakActive == "1" %]
                                     <tr>
-                                        <td valign="center">[% tr.trquote(column.displayname) %]</td>
+                                        [% IF column.displayname != "" %]
+                                            <td valign="center">[% tr.trquote(column.displayname) %]</td>
+                                        [% END %]
                                         <td valign="center">
                                     [% END %]
                                     [% LinebreakActive = column.linebreak %]
@@ -270,6 +289,9 @@
                                             [% IF column.goto == 1 %]
                                                 <input type="button" class="gotobutton" goto="[% column.gotourl %]">
                                             [% END %]
+                                    [% IF column.columnbreak == "1" %]
+                                        </td><td>
+                                    [% END %]
                                     [% IF LinebreakActive == "1" %]
                                         </td>
                                     </tr>

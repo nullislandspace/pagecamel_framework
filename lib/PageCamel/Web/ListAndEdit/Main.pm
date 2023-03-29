@@ -454,10 +454,17 @@ sub reload($self) {
     my @tabstablenames = qw[MainDataTable HelperTable1 HelperTable2 HelperTable3 HelperTable4 HelperTable5 HelperTable6 HelperTable7];
 
     foreach my $item (@{$self->{edit}->{item}}) {
-        foreach my $required (qw[header type]) {
+        foreach my $required (qw[type]) {
             if(!defined($item->{$required})) {
                 print "    EDIT: Attribute \"$required\" not set!\n";
                 $ok = 0;
+            }
+        }
+
+        foreach my $optional (qw[header]) {
+            if(!defined($item->{$optional})) {
+                print "    EDIT: Attribute \"$optional\" not set, defaulting to empty string!\n";
+                $item->{$optional} = '';
             }
         }
 
@@ -473,6 +480,17 @@ sub reload($self) {
             next;
         }
 
+        if($item->{type} eq 'startsubtable') {
+            # Subtable items are HTML laqyout items only.
+            my @headertemp = split/\|/, $item->{headers};
+            $item->{header} = \@headertemp;
+            next;
+        }
+        if($item->{type} eq 'endsubtable') {
+            # Subtable items are HTML laqyout items only.
+            next;
+        }
+
         foreach my $required (qw[column]) {
             if(!defined($item->{$required})) {
                 print "    EDIT: Attribute \"$required\" not set!\n";
@@ -482,6 +500,9 @@ sub reload($self) {
 
         if(!defined($item->{linebreak}) || $item->{linebreak} != 0) {
             $item->{linebreak} = 1;
+        }
+        if(!defined($item->{columnbreak}) || $item->{columnbreak} != 1) {
+            $item->{columnbreak} = 0;
         }
 
         if(defined($item->{goto}) && $item->{goto} =~ /\[(.*)\]/) {
@@ -2102,7 +2123,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my @allcolumns = (@pkcols);
         my %colaliases;
         foreach my $item ((@{$self->{edit}->{item}})) {
-            if($item->{type} eq 'newtab') {
+            if($item->{type} eq 'newtab' || $item->{type} eq 'startsubtable' || $item->{type} eq 'endsubtable') {
                 next;
             }
             my $alias = $item->{column};
@@ -2210,6 +2231,24 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             next;
         }
 
+        if($item->{type} eq 'startsubtable') {
+            my %column = (
+                displaytype  => $item->{type},
+                header  => $item->{header},
+            );
+            push @editcolumns, \%column;
+            next;
+        }
+        if($item->{type} eq 'endsubtable') {
+            my %column = (
+                displaytype  => $item->{type},
+                displayname => '',
+            );
+
+            push @editcolumns, \%column;
+            next;
+        }
+
         if(!defined($colvalues{$item->{column}})) {
             $colvalues{$item->{column}} = '';
         }
@@ -2221,6 +2260,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             columnvalue  => $colvalues{$item->{column}},
             goto         => 0,
             linebreak  => $item->{linebreak},
+            columnbreak  => $item->{columnbreak},
         );
 
         if($column{displaytype} eq 'checkbox') {
