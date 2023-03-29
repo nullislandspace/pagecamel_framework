@@ -2421,7 +2421,14 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
         my @edititems;
         for(my $i = 0; $i < $count; $i++) {
             foreach my $subitem (@{$item->{item}}) {
-                my $idx = $i + 1; # PostgreSQL uses 1-indexed arrays
+
+                # WARNING, DO NOT CHANGE:
+                # PostgreSQL uses 1-indexed arrays
+                # We also use the index number to indicate that we ARE in multiarray mode, so
+                # it can't start with zero either way!
+                # Changing this to 0-indexed will break things in subtle ways and will lead to data loss.
+                my $idx = $i + 1;
+
                 my $col = $self->formatEditColumn($primarykey, $subitem, $colvalues, $idx);
                 if(defined($col)) {
                     if(ref($col) eq 'ARRAY') {
