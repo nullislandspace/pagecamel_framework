@@ -248,7 +248,7 @@ sub handleClient($self, $client) {
         $client->close();
         kill 'USR1', $header->{pid}; # Notify frontend that we are done
 
-        print "Done with client PID $PID\n";
+        #print "Done with client PID $PID\n";
         $ok = 1;
     };
 
