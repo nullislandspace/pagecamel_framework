@@ -553,7 +553,6 @@ sub validateEditItem($self, $item, $multiarraymode) {
     }
 
     if($item->{type} eq 'multiarray') {
-        print STDERR p($item);
         if($multiarraymode) {
             print "    EDIT: nested multiarrays are not supported!\n";
             return 0;
@@ -562,6 +561,11 @@ sub validateEditItem($self, $item, $multiarraymode) {
         if(!defined($item->{headers})) {
             print "    EDIT: multiarray does not specify headers!\n";
             return 0;
+        }
+
+        if(!defined($item->{spares})) {
+            print "    EDIT: multiarray does not specify spares, defaulting to 5!\n";
+            $item->{spares} = 5;
         }
 
         # Split the headers into an array
@@ -681,6 +685,11 @@ sub validateEditItem($self, $item, $multiarraymode) {
             print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
             $item->{extendable} = 0;
         }
+    }
+
+    if($item->{type} eq 'enumarray' && !defined($item->{spares})) {
+        print "    EDIT: type $item->{type} does not define 'spares', defaulting to 5\n";
+        $item->{spares} = 5;
     }
 
     if(!contains($item->{type}, $self->{editallowedtypes})) {
@@ -2180,14 +2189,12 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my $selcolumns = join(', ', @filtered);
 
         my $selstmt = "SELECT " . $selcolumns . " FROM " . $self->{table} . " WHERE " . join(' = ? AND ', @pkcols) . " = ? ";
-        print STDERR "selstmt: $selstmt\n";
 
         my $selsth = $dbh->prepare_cached($selstmt)
                 or croak($dbh->errstr);
         $selsth->execute(@pkparts) or croak($dbh->errstr);
         my $found = 0;
         while((my $line = $selsth->fetchrow_hashref)) {
-            print STDERR Dumper($line);
             $found++;
 
             # Reverse-map the aliases
@@ -2212,8 +2219,6 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             # Something went wrong, show the current list instead
             return $self->get_list($ua);
         }
-        print STDERR Dumper(\%colaliases);
-        print STDERR Dumper(\%colvalues);
     } elsif($primarykey eq '__NEW__') {
         foreach my $column (@{$self->{editcolumns}}, @{$self->{readonlycolumns}}) {
             my $tmp = '';
@@ -2271,9 +2276,6 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             }
         }
     }
-
-    print STDERR "************************************\n";
-    print STDERR Dumper(\@editcolumns);
 
     # un-bracketify column names so HTML and Javascript don't treat them as arrays
     for(my $idx = 0; $idx < scalar @editcolumns; $idx++) {
@@ -2429,7 +2431,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
                 }
             }
         }
-        $count += 5; # Add 5 empty rows
+        $count += $item->{spares}; # Add 'spares' empty rows (default: 5)
 
         my @edititems;
 
@@ -2758,7 +2760,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
         if(!defined($column{columnvalue}) || ref $column{columnvalue} ne 'ARRAY') {
             $column{columnvalue} = [];
         }
-        for(1..5) {
+        for(1..$item->{spares}) {
             push @{$column{columnvalue}}, '';
         }
     }
