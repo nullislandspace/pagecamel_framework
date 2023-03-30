@@ -559,31 +559,40 @@ sub validateEditItem($self, $item, $multiarraymode) {
             return 0;
         }
 
-        if(!defined($item->{primarycolumn})) {
-            print "    EDIT: multiarray does not specify primarycolumn!\n";
+        if(!defined($item->{headers})) {
+            print "    EDIT: multiarray does not specify headers!\n";
             return 0;
         }
 
-        my $found = 0;
-        foreach my $subitem (@{$item->{item}}) {
-            if(defined($subitem->{column}) && $item->{primarycolumn} eq $subitem->{column}) {
-                $found = 1;
-                last;
-            }
-        }
+        # Split the headers into an array
+        my @headertemp = split/\|/, $item->{headers};
+        $item->{header} = \@headertemp;
 
-        if(!$found) {
-            print "    EDIT: multiarray has primarycolumn " . $item->{primarycolumn} . ", but it is not used within the multiarray!\n";
+        if(scalar @{$item->{header}} != scalar @{$item->{item}}) {
+            print "    EDIT: multiarray number of headers does not match number of columns!\n";
             return 0;
         }
 
 
         my $ok = 1;
-        foreach my $subitem (@{$item->{item}}) {
+        for(my $i = 0; $i < scalar @{$item->{item}}; $i++) {
+            my $subitem = $item->{item}->[$i];
+
+            # Enforce subtable formatting rules
+            if($i+1 == scalar @{$item->{item}}) {
+                # Last item ends row
+                $subitem->{columnbreak} = 0;
+                $subitem->{linebreak} = 1;
+            } else {
+                $subitem->{columnbreak} = 1;
+                $subitem->{linebreak} = 0;
+            }
+
             if(!$self->validateEditItem($subitem, 1)) {
                 $ok = 0;
             }
         }
+
         if(!$ok) {
             return 0;
         }
@@ -2407,18 +2416,33 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
             croak("Nested multiarray error");
         }
         # First, we need to find out how much real data lines we have
-        my $basename = $self->columnBasename($item->{primarycolumn});
-        print STDERR p($colvalues);
         my $count = 0;
-        if(defined($colvalues->{$basename})) {
-            $count = scalar @{$colvalues->{$basename}};
+        foreach my $subitem (@{$item->{item}}) {
+            if(!defined($subitem->{column})) {
+                next;
+            }
+            my $basename = $self->columnBasename($subitem->{column});
+            if(defined($colvalues->{$basename})) {
+                my $newcount = scalar @{$colvalues->{$basename}};
+                if($newcount > $count) {
+                    $count = $newcount;
+                }
+            }
         }
         $count += 5; # Add 5 empty rows
 
-        print STDERR p($item);
-        print STDERR p($colvalues);
-
         my @edititems;
+
+        # First thing we add is a "startsubtable" item
+        {
+            my %column = (
+                displaytype  => 'startsubtable',
+                header  => $item->{header},
+            );
+
+            push @edititems, \%column;
+        }
+
         for(my $i = 0; $i < $count; $i++) {
             foreach my $subitem (@{$item->{item}}) {
 
@@ -2439,6 +2463,17 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
                 }
             }
         }
+        
+        # Add a "endsubtable" item to close up our subtable
+        {
+            my %column = (
+                displaytype  => 'endsubtable',
+                displayname => '',
+            );
+
+            push @edititems, \%column;
+        }
+
         return \@edititems;
     }
 
