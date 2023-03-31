@@ -1999,7 +1999,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                 push @createcolumns, $pkitem;
             }
         }
-        my @allcolumns = @createcolumns;
+        my @allcolumns;
+        foreach my $cname (@createcolumns) {
+            push @allcolumns, $self->columnBasename($cname);
+        }
         if(defined($self->{forceusercolumn})) {
             push @allcolumns, $self->{forceusercolumn};
         }
@@ -2017,7 +2020,12 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             $newprimkey = $seqsth->fetchrow_array;
             $seqsth->finish;
         }
-        foreach my $column (@createcolumns) {
+        foreach my $cname (@createcolumns) {
+            my $column = $self->columnBasename($cname);
+            my $multiarraymode = 0;
+            if($cname ne $column) {
+                $multiarraymode = 1;
+            }
             my $arraycount = stripString($ua->{postparams}->{$column . '_count'} || '');
             if($arraycount eq '') {
                 my $tmp = stripString($ua->{postparams}->{$column} || '');
@@ -2108,8 +2116,25 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             } else {
                 my @inarray;
                 for(my $i = 0; $i < $arraycount; $i++) {
-                    my $tmp = stripString($ua->{postparams}->{$column  . '_' . $i} || '');
-                    if($tmp ne '') {
+                    my $tmp = '';
+                    if($self->{editcolumntypes}->{$column} eq 'enumarray' || $self->{editcolumntypes}->{$column} eq 'enum') {
+                        # Don't stripString when dealing with enums
+                        $tmp = $ua->{postparams}->{$column . '_' . $i };
+                    } else {
+                        $tmp = stripString($ua->{postparams}->{$column . '_' . $i });
+                    }
+
+                    if($tmp eq '') {
+                        if($multiarraymode || $self->{editcolumnnullable}->{$column}) {
+                            $tmp = undef;
+                        } else {
+                            if($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'checkbox') {
+                                $tmp = 0;
+                            }
+                        }
+                    }
+
+                    if($multiarraymode || $tmp ne '') {
                         push @inarray, $tmp;
                     }
                 }
@@ -2256,7 +2281,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
 
             if($tmp eq '') {
                 foreach my $tmpitem (@{$self->{edit}->{item}}) {
-                    if($tmpitem->{column} eq $column && defined($tmpitem->{default})) {
+                    if(defined($tmpitem->{column}) && $tmpitem->{column} eq $column && defined($tmpitem->{default})) {
                         $tmp = $tmpitem->{default};
                         last;
                     }
