@@ -2467,6 +2467,14 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             }
             my $basename = $self->columnBasename($subitem->{column});
             if(defined($colvalues->{$basename})) {
+                if(ref $colvalues->{$basename} ne 'ARRAY') {
+                    # Hacky workaround for some edge cases when do for some reason don't get a proper array but a single value
+                    if(ref $colvalues->{$basename} eq 'SCALAR' && $colvalues->{$basename} ne '') {
+                        $colvalues->{$basename} = [$colvalues->{$basename}];
+                    } else {
+                        $colvalues->{$basename} = [];
+                    }
+                }
                 my $newcount = scalar @{$colvalues->{$basename}};
                 if($newcount > $count) {
                     $count = $newcount;
