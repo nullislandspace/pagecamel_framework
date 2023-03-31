@@ -666,12 +666,12 @@ sub validateEditItem($self, $item, $multiarraymode) {
     } else {
         push @{$self->{editcolumns}}, $item->{column};
     }
-    $self->{editcolumnnullable}->{$item->{column}} = 0;
+    $self->{editcolumnnullable}->{$self->columnBasename($item->{column})} = 0;
     if(!defined($item->{nullable}) || !$item->{nullable} || $item->{type} eq 'enumarray') {
         $item->{nullable} = 0;
     } else {
         $item->{nullable} = 1;
-        $self->{editcolumnnullable}->{$item->{column}} = 1;
+        $self->{editcolumnnullable}->{$self->columnBasename($item->{column})} = 1;
     }
 
     if(!defined($item->{mustfield}) || !$item->{mustfield}) {
@@ -878,7 +878,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
         }
     }
 
-    $self->{editcolumntypes}->{$item->{column}} = $item->{type};
+    $self->{editcolumntypes}->{$self->columnBasename($item->{column})} = $item->{type};
 }
 
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning
@@ -1825,7 +1825,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             return $self->get_list($ua);
         }
     } elsif($mode eq 'edit') {
-        my @collist = @{$self->{editcolumns}};
+        my @collist;
+        foreach my $cname (@{$self->{editcolumns}}) {
+            push @collist, $self->columnBasename($cname);
+        }
         if(defined($self->{forceusercolumn})) {
             push @collist, $self->{forceusercolumn};
         }
@@ -1836,7 +1839,13 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my $upsth = $dbh->prepare_cached($upstmt) or croak($dbh->errstr);
         my @upargs;
         my $fieldsok = 1;
-        foreach my $column (@{$self->{editcolumns}}) {
+        foreach my $cname (@{$self->{editcolumns}}) {
+            my $column = $self->columnBasename($cname);
+            my $multiarraymode = 0;
+            if($column ne $cname) {
+                $multiarraymode = 1;
+            }
+
             my $arraycount = '';
             if(defined($ua->{postparams}->{$column . '_count'})) {
                 $arraycount = stripString($ua->{postparams}->{$column . '_count'});
@@ -1942,18 +1951,26 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                 for(my $i = 0; $i < $arraycount; $i++) {
                     my $tmp = '';
                     if(defined($ua->{postparams}->{$column . '_' . $i })) {
-                        if($self->{editcolumntypes}->{$column} eq 'enumarray') {
+                        if($self->{editcolumntypes}->{$column} eq 'enumarray' || $self->{editcolumntypes}->{$column} eq 'enum') {
                             # Don't stripString when dealing with enums
                             $tmp = $ua->{postparams}->{$column . '_' . $i };
                         } else {
                             $tmp = stripString($ua->{postparams}->{$column . '_' . $i });
                         }
                     }
-                    if($tmp ne '') {
+                    if($tmp eq '') {
+                        if($multiarraymode || $self->{editcolumnnullable}->{$column}) {
+                            $tmp = undef;
+                        } else {
+                            if($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'checkbox') {
+                                $tmp = 0;
+                            }
+                        }
+                    }
+                    if($multiarraymode || $tmp ne '') {
                         push @uparray, $tmp;
                     }
                 }
-                print STDERR Dumper(\@uparray);
                 push @upargs, \@uparray;
             }
         }
@@ -2267,7 +2284,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
 
     my @editcolumns;
     foreach my $item (@{$self->{edit}->{item}}) {
-        my $col = $self->formatEditColumn($primarykey, $item, \%colvalues, 0);
+        my $col = $self->formatEditColumn($primarykey, $item, \%colvalues, 0, {});
         if(defined($col)) {
             if(ref($col) eq 'ARRAY') {
                 push @editcolumns, @{$col};
@@ -2383,7 +2400,7 @@ sub getSelectColumns($self, $colaliases, $item) {
     return $alias;
 }
 
-sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
+sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $cache) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if($item->{type} eq 'newtab') {
@@ -2455,7 +2472,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
                 # Changing this to 0-indexed will break things in subtle ways and will lead to data loss.
                 my $idx = $i + 1;
 
-                my $col = $self->formatEditColumn($primarykey, $subitem, $colvalues, $idx);
+                my $col = $self->formatEditColumn($primarykey, $subitem, $colvalues, $idx, $cache);
                 if(defined($col)) {
                     if(ref($col) eq 'ARRAY') {
                         push @edititems, @{$col};
@@ -2463,6 +2480,18 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
                         push @edititems, $col;
                     }
                 }
+
+            }
+        }
+        foreach my $subitem (@{$item->{item}}) {
+            # Add the "_count" hidden field so POST can read that as standard array
+            {
+                my %hiddenitem = (
+                    displaytype => 'hidden',
+                    columnname => $self->columnBasename($subitem->{column}) . '_count',
+                    columnvalue => $count,
+                );
+                push @edititems, \%hiddenitem;
             }
         }
         
@@ -2483,7 +2512,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
     my $colname = '' . $item->{column};
     my $colbasename = '' . $item->{column};
     if($multiarrayindex) {
-        $colname = $self->columnAddIndex($colname, $multiarrayindex);
+        $colname = $self->columnAddHTMLIndex($colname, $multiarrayindex - 1);
         $colbasename = $self->columnBasename($colbasename);
     }
 
@@ -2633,26 +2662,35 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
             $where = ' WHERE ' . $item->{enumwhere} . ' ';
         }
 
-        my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
-                                           $extracolumn .
-                                           ' FROM ' . $item->{enumtable} .
-                                           $where .
-                                           ' ORDER BY ' . $item->{enumcolumn})
-                or croak($dbh->errstr);
-        $eselsth->execute or croak($dbh->errstr);
-        my @enum_values;
+        my $eselstmt = 'SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
+                        $extracolumn .
+                        ' FROM ' . $item->{enumtable} .
+                        $where .
+                        ' ORDER BY ' . $item->{enumcolumn};
+
+        my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
+        if(!defined($cache->{$cachekey})) {
+            my @enumlines;
+            my $eselsth = $dbh->prepare_cached($eselstmt)
+                    or croak($dbh->errstr);
+            $eselsth->execute or croak($dbh->errstr);
+            while((my $eline = $eselsth->fetchrow_hashref)) {
+                $eline->{hasdescription} = $hasdescription;
+                push @enumlines, $eline;
+            }
+            $eselsth->finish;
+            $cache->{$cachekey} = \@enumlines;
+        }
+
+        my @enum_values = @{$cache->{$cachekey}};
         if($item->{nullable}) {
             my %emptyval = (
                 selectorenumvalue   => '',
                 hasdescription      => 0,
             );
-            push @enum_values, \%emptyval;
+            unshift @enum_values, \%emptyval;
         }
-        while((my $eline = $eselsth->fetchrow_hashref)) {
-            $eline->{hasdescription} = $hasdescription;
-            push @enum_values, $eline;
-        }
-        $eselsth->finish;
+
         $column{enum_values} = \@enum_values;
         $column{searchable} = $item->{searchable};
         $column{extendable} = $item->{extendable};
@@ -2669,47 +2707,56 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
             $extracolumn = ', ' . $item->{showdescription} . ' AS selectorenumdescription ';
             $hasdescription = 1;
         }
-        my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumparentcolumn} . ' AS selectorenumparentvalue, ' .
-                                           $item->{enumcolumn} . ' AS selectorenumvalue ' .
-                                           $extracolumn .
-                                           ' FROM ' . $item->{enumtable} .
-                                           ' ORDER BY ' . $item->{enumparentcolumn} . ', ' . $item->{enumcolumn})
-                or croak($dbh->errstr);
-        $eselsth->execute or croak($dbh->errstr);
-        my @enum_values;
+        my $eselstmt = 'SELECT ' . $item->{enumparentcolumn} . ' AS selectorenumparentvalue, ' .
+                       $item->{enumcolumn} . ' AS selectorenumvalue ' .
+                       $extracolumn .
+                       ' FROM ' . $item->{enumtable} .
+                       ' ORDER BY ' . $item->{enumparentcolumn} . ', ' . $item->{enumcolumn};
 
-        my $currentparent;
-        my @enums = ();
-        while((my $eline = $eselsth->fetchrow_hashref)) {
-            $eline->{hasdescription} = $hasdescription;
+        my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
+        if(!defined($cache->{$cachekey})) {
+            my @enumlines;
+            my $eselsth = $dbh->prepare_cached($eselstmt)
+                    or croak($dbh->errstr);
+            $eselsth->execute or croak($dbh->errstr);
 
-            if(!defined($currentparent)) {
-                $currentparent = $eline->{selectorenumparentvalue};
-                push @enums, $eline;
-            } elsif($currentparent ne $eline->{selectorenumparentvalue}) {
+            my $currentparent;
+            my @enums = ();
+            while((my $eline = $eselsth->fetchrow_hashref)) {
+                $eline->{hasdescription} = $hasdescription;
+
+                if(!defined($currentparent)) {
+                    $currentparent = $eline->{selectorenumparentvalue};
+                    push @enums, $eline;
+                } elsif($currentparent ne $eline->{selectorenumparentvalue}) {
+                    my @tmp = @enums;
+                    my %fullline = (
+                        parentenumvalue     => $currentparent,
+                        subenums            => \@tmp,
+                    );
+                    push @enumlines, \%fullline;
+                    $currentparent = $eline->{selectorenumparentvalue};
+                    @enums = ();
+                    push @enums, $eline;
+                } else {
+                    push @enums, $eline;
+                }
+            }
+            $eselsth->finish;
+
+            if(@enums) {
                 my @tmp = @enums;
                 my %fullline = (
                     parentenumvalue     => $currentparent,
                     subenums            => \@tmp,
                 );
-                push @enum_values, \%fullline;
-                $currentparent = $eline->{selectorenumparentvalue};
-                @enums = ();
-                push @enums, $eline;
-            } else {
-                push @enums, $eline;
+                push @enumlines, \%fullline;
             }
-        }
-        $eselsth->finish;
 
-        if(@enums) {
-            my @tmp = @enums;
-            my %fullline = (
-                parentenumvalue     => $currentparent,
-                subenums            => \@tmp,
-            );
-            push @enum_values, \%fullline;
+            $cache->{$cachekey} = \@enumlines;
         }
+
+        my @enum_values = @{$cache->{$cachekey}};
 
         $column{enum_values} = \@enum_values;
         $column{enum_values_json} = encode_base64(encode_json \@enum_values, '');
@@ -2731,27 +2778,37 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
             $where = ' WHERE ' . $item->{enumwhere} . ' ';
         }
 
-        my $eselsth = $dbh->prepare_cached('SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
-                                           $extracolumn .
-                                           ' FROM ' . $item->{enumtable} .
-                                           $where .
-                                           ' ORDER BY ' . $item->{enumcolumn})
-                or croak($dbh->errstr);
-        $eselsth->execute or croak($dbh->errstr);
-        my @enum_values;
+        my $eselstmt = 'SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
+                       $extracolumn .
+                       ' FROM ' . $item->{enumtable} .
+                       $where .
+                       ' ORDER BY ' . $item->{enumcolumn};
+
+        my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
+        if(!defined($cache->{$cachekey})) {
+            my @enumlines;
+            print STDERR "STMT: $eselstmt\n";
+            my $eselsth = $dbh->prepare_cached($eselstmt)
+                    or croak($dbh->errstr);
+            $eselsth->execute or croak($dbh->errstr);
+            while((my $eline = $eselsth->fetchrow_hashref)) {
+                $eline->{hasdescription} = $hasdescription;
+                push @enumlines, $eline;
+            }
+            $eselsth->finish;
+            $cache->{$cachekey} = \@enumlines;
+        }
+
+        my @enum_values = @{$cache->{$cachekey}};
         {
             # enum array ALWAYS has a "nullable" row"
             my %emptyval = (
                 selectorenumvalue   => '',
                 hasdescription      => 0,
             );
-            push @enum_values, \%emptyval;
+            unshift @enum_values, \%emptyval;
         }
-        while((my $eline = $eselsth->fetchrow_hashref)) {
-            $eline->{hasdescription} = $hasdescription;
-            push @enum_values, $eline;
-        }
-        $eselsth->finish;
+
         $column{enum_values} = \@enum_values;
         $column{searchable} = $item->{searchable};
         $column{colorselector} = $item->{colorselector};
@@ -2783,6 +2840,15 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex) {
 
     return \%column;
 }
+
+sub makeCacheKey($self, $hasdescription, $stmt) {
+    $stmt =~ s/\n/ /g;
+    $stmt =~ s/\ +/ /g;
+    $stmt .= '#' . $hasdescription;
+
+    return sha1_hex($stmt);
+}
+
 
 sub get_autosave($self, $ua) {
 
@@ -2832,6 +2898,15 @@ sub columnAddIndex($self, $colname, $idx) {
         croak("Column $newcolname is not an array column (missing empty array marker \[\] suitable for multiarray mode");
     }
     $newcolname =~ s/\[\]/\[$idx\]/;
+    return $newcolname;
+}
+
+sub columnAddHTMLIndex($self, $colname, $idx) {
+    my $newcolname = '' . $colname;
+    if($newcolname !~ /\[\]/) {
+        croak("Column $newcolname is not an array column (missing empty array marker \[\] suitable for multiarray mode");
+    }
+    $newcolname =~ s/\[\]/_$idx/;
     return $newcolname;
 }
 
