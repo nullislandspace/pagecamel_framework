@@ -1561,20 +1561,23 @@ nextrequest:
     if($isdynamicpath) {
         $debugmark .= "*";
     }
-    my %remotelog = (
-        result  => $result{status},
-        method  => $uamethod,
-        webpath => $webpath,
-        client  => $ua->{remote_addr},
-        timetaken => $timetaken,
-        webapimethod => $webapimethod,
-        allowedmethods => join(',', @allowedmethods),
-        debugmark => $debugmark,
-    );
-    foreach my $filtermodule (@{$self->{remotelog}}) {
-        my $module = $filtermodule->{Module};
-        my $funcname = $filtermodule->{Function};
-        $module->$funcname(\%remotelog);
+
+    if(!defined($result{__do_not_log_to_debuglog}) || !$result{__do_not_log_to_debuglog}) {
+        my %remotelog = (
+            result  => $result{status},
+            method  => $uamethod,
+            webpath => $webpath,
+            client  => $ua->{remote_addr},
+            timetaken => $timetaken,
+            webapimethod => $webapimethod,
+            allowedmethods => join(',', @allowedmethods),
+            debugmark => $debugmark,
+        );
+        foreach my $filtermodule (@{$self->{remotelog}}) {
+            my $module = $filtermodule->{Module};
+            my $funcname = $filtermodule->{Function};
+            $module->$funcname(\%remotelog);
+        }
     }
 
 
@@ -1589,7 +1592,7 @@ cleanup:
     }
 
     if($ua->{keepalive}) {
-        print STDERR getISODate() . "  keepalive, restarting protocol handler\n";
+        #print STDERR getISODate() . "  keepalive, restarting protocol handler\n";
         goto nextrequest;
     }
 

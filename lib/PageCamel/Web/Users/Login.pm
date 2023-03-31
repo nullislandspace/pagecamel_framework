@@ -1548,6 +1548,7 @@ sub get_sessionrefresh($self, $ua) {
             status => 204, # No content
              "Cache-Control" => 'no-cache, no-store',
             "__do_not_log_to_accesslog" => 1,
+            "__do_not_log_to_debuglog" => 1, # Don't spam the debuglog
         );
     }
 
@@ -1557,6 +1558,7 @@ sub get_sessionrefresh($self, $ua) {
         data         => getISODate(),
         "Cache-Control" => 'no-cache, no-store',
         "__do_not_log_to_accesslog" => 1,
+        "__do_not_log_to_debuglog" => 1, # Don't spam the debuglog
     );
 }
 
