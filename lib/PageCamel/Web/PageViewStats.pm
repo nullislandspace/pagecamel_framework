@@ -110,6 +110,7 @@ sub beaconhandler($self, $ua) {
         $dbh->commit;
         return(status => 204,
                "__do_not_log_to_accesslog" => 1, # Don't spam the accesslog
+               "__do_not_log_to_debuglog" => 1, # Don't spam the debuglog
                ); # No content
     }
 

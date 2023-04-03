@@ -101,6 +101,12 @@ div.redtext {
     color: #FF0000;
 }
 
+div.subtable {
+    margin: 5px 5px 5px 5px;
+    padding: 5px;
+    border:1px dashed #36A636;
+}
+
 input.autoNumeric {
     text-align: right;
 }
