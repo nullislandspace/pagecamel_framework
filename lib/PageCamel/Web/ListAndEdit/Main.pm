@@ -839,6 +839,10 @@ sub validateEditItem($self, $item, $multiarraymode) {
             print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realinactivevalue\", setting to '0'!\n";
             $item->{realinactivevalue} = '0';
         }
+        if(!defined($item->{delete})) {
+            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"delete\", setting to '0'!\n";
+            $item->{delete} = '0';
+        }
     }
 
     if($item->{type} eq "editor") {
@@ -2578,6 +2582,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         $column{callback} = $item->{callback};
         $column{realvalue} = $item->{realvalue};
         $column{realinactivevalue} = $item->{realinactivevalue};
+        $column{delete} = $item->{delete};
     }
 
     if($column{displaytype} eq 'date') {
