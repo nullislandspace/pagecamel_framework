@@ -61,6 +61,4 @@
 \bcover_db\b
 
 # cxpos
-lib/PageCamel/Web/Static/pchelpers/docs
-lib/PageCamel/Web/Static/pchelpers/out
 lib/PageCamel/Web/Static/pchelpers/node_modules
