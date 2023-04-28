@@ -1,0 +1,45 @@
+import { PCSqlite } from "./sqlite.js";
+interface CallbackType {
+    (messagename: string, data: string): void;
+}
+export declare class PCWebsocket {
+    private _isconnected;
+    private _isdebug;
+    private _iscaching;
+    private _messageList;
+    private _deltatime;
+    private _cached_msgs;
+    private _last_cached_id;
+    private _timer;
+    private _last_cache_sent;
+    private _cache_delta_time;
+    private _db;
+    private _dbtable;
+    private _dbcaching;
+    private _createtablesql;
+    private _getrowsql;
+    private _deleterowsql;
+    private _insertrowsql;
+    private _countcacheditemssql;
+    private _droptablesql;
+    private _msgoutboxempty;
+    private _msgrecieved;
+    private _msgisconnected;
+    constructor(caching?: boolean, debug?: boolean);
+    register(msgname: string, callback: CallbackType[]): void;
+    deregister(msgname: string, callback: CallbackType[]): void;
+    send(msgname: string, mdata: string, caching?: boolean): boolean;
+    reset(): void;
+    spoolincoming(msgname: string, data: string): void;
+    initializeSQL(db: PCSqlite): boolean;
+    set isconnected(val: boolean);
+    get isconnected(): boolean;
+    onConnectionChanged(isconnected: boolean): void;
+    private _timerfunc;
+    private _sendmsg;
+    private _send_cached;
+    private _delete_cached;
+    private _handleMsg;
+    private _logdebug;
+}
+export {};

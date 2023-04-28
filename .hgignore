@@ -11,6 +11,4 @@ MYMETA.json
 MYMETA.yml
 Makefile$
 pm_to_blib
-lib/PageCamel/Web/Static/pchelpers/docs
-lib/PageCamel/Web/Static/pchelpers/out
 ^\.hgsubstate
