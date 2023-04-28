@@ -154,7 +154,7 @@
                                                 >
                                             [% ELSIF column.displaytype == "display" %]
                                                 <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
-                                                [% tr.quote(column.columnvalue) %]
+                                                <div id="span_[% tr.quote(column.columnname) %]_id">[% tr.quote(column.columnvalue) %]</div>
                                             [% ELSIF column.displaytype == "led" %]
                                                 <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
                                                 [% IF column.columnvalue == 1 %]
