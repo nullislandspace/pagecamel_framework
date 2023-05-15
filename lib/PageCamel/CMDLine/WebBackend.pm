@@ -136,6 +136,13 @@ sub init($self) {
             Local => $config->{server}->{internal_socket},
             Listen => 1,
     ) or croak("Failed to bind: " . $ERRNO);
+    if(defined($config->{server}->{socketcommands})) {
+        foreach my $cmd (@{$config->{server}->{socketcommands}->{item}}) {
+            print "Running Socket command: $cmd\n";
+            `$cmd`;
+        }
+    }
+
     binmode($socket, ':bytes');
     my $select = IO::Select->new($socket);
     $self->{select} = $select;
