@@ -49,6 +49,10 @@ sub new($proto, %config) {
         $self->{blockui} = 1;
     }
 
+    if(!defined($self->{socket_only})) {
+        $self->{socket_only} = 0;
+    }
+
     return $self;
 }
 
@@ -207,6 +211,10 @@ sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+
+    if($self->{socket_only}) {
+        return (status => 404);
+    }
     
     my $upgrade = $ua->{headers}->{"Upgrade"};
     if(defined($upgrade)) {
