@@ -113,3 +113,9 @@ max_elsif = 20
 
 # Allow subroutine prototypes
 [-Subroutines::ProhibitSubroutinePrototypes]
+
+# 5.36 doesn't need "use warnings"
+[-TestingAndDebugging::ProhibitNoWarnings]
+
+# We NEED to "use v5.36"
+[-ValuesAndExpressions::ProhibitVersionStrings]

@@ -104,6 +104,11 @@ sub run {
                 $self->{currentdomain} = $domain;
                 $self->debuglog("Running for " . $domain->{workdir});
                 my $filedir = $self->{homedir} . '/' . $domain->{workdir};
+                my $newcert = 0;
+                if(!-d $filedir) {
+                    mkdir $filedir;
+                    $newcert = 1;
+                }
                 my @domainlist;
                 foreach my $prefix (@{$domain->{prefix}}) {
                     if($prefix eq '' || ref $prefix eq 'HASH') {
@@ -122,12 +127,15 @@ sub run {
                     'domains' => join(',', @domainlist),
                     'handle-as' => 'dns',
                     'email' => 'letsencrypt@cavac.at',
-                    'live' => 1,
-                    'renew' => 30,
+                    'live' => 0,
                 );
-                #if($self->{isDebugging}) {
-                #    $options{live} = 0;
-                #}
+                if(!$newcert) {
+                    $options{renew} = 30;
+                }
+                if($self->{isDebugging}) {
+                    print "****** WARNING **** DEBUGMODE ***** NO LIVE CERTIFICATES ***********\n";
+                    $options{live} = 0;
+                }
                 if(-f $options{crt}) {
                     $options{renew} = 30; # Renew cert when only 30 days remaining
                     $self->debuglog("Activating RENEW option");
@@ -710,6 +718,10 @@ sub _write {
 
 sub _error {
     my ($self, $msg, $code) = @_;
+    print STDERR "ERROR : $msg\n";
+    #if($msg =~ /CAA\ record/) {
+    #    croak("BLA");
+    #}
     return { msg => $msg, code => $code||255 };
 }
 
