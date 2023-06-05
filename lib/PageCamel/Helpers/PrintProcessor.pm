@@ -195,6 +195,8 @@ sub printAddSingleLine($self) {
                                       $self->{imgoffs} + 1 + 5,
                                       $self->{imgblack});
     $self->{imgoffs} += 24;
+
+    return;
 }
 
 sub printAddDoubleLine($self) {
@@ -205,6 +207,8 @@ sub printAddDoubleLine($self) {
                                       $self->{imgoffs} + 1 + 12,
                                       $self->{imgblack});
     $self->{imgoffs} += 24;
+
+    return;
 }
 
 sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $doscale = true, $center = false) {
