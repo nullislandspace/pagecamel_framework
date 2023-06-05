@@ -76,6 +76,10 @@ sub new($proto, %config) {
         $self->{editpageheader} = '';
     }
 
+    if(!defined($self->{mastertemplate})) {
+        $self->{mastertemplate} = '';
+    }
+
     if(defined($self->{list}) && !defined($self->{list}->{showads})) {
         if(defined($self->{showads})) {
             $self->{list}->{showads} = $self->{showads};
@@ -1232,6 +1236,10 @@ sub get_list($self, $ua, $usemasterlayout = true) {
     }
     
     $webdata{HeadExtraScripts} = \@headextrascripts;
+
+    if($self->{mastertemplate} ne '') {
+        $usemasterlayout = $self->{mastertemplate};
+    }
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/list", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
@@ -2390,7 +2398,12 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     $webdata{HeadExtraScripts} = \@headextrascripts;
     $webdata{HeadExtraCSS} = \@headextracss;
 
-    my $template = $self->{server}->{modules}->{templates}->get("listandedit/edit", 1, %webdata);
+    my $usemasterlayout = 1;
+    if($self->{mastertemplate} ne '') {
+        $usemasterlayout = $self->{mastertemplate};
+    }
+
+    my $template = $self->{server}->{modules}->{templates}->get("listandedit/edit", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "text/html",
