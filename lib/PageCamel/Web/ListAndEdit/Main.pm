@@ -68,6 +68,10 @@ sub new($proto, %config) {
         $self->{listonly_customselect} = 0;
     }
 
+    if(!defined($self->{editonly})) {
+        $self->{editonly} = 0;
+    }
+
     if(!defined($self->{listpageheader})) {
         $self->{listpageheader} = '';
     }
@@ -179,9 +183,6 @@ sub reload($self) {
     my $ok = 1;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
-    # ------------- LIST -------------
-    my @listallowedtypes = qw[text textarray url boolean array date led html color colorswatch image];
-
     foreach my $mustattr (qw[orderby primarykey table webpath pagetitle db session]) {
         if(!defined($self->{$mustattr})) {
             print "    Attribute $mustattr not set!\n";
@@ -194,15 +195,33 @@ sub reload($self) {
             print "    Attribute $mustnotattr is set but must not be!\n";
             $ok = 0;
         }
-
     }
+
+    if($self->{listonly} && $self->{editonly}) {
+        print "    Attributes 'listonly' and 'editonly' are mutually exclusive!\n";
+        $ok = 0;
+    }
+
     if(!$ok) {
         goto finishreload;
     }
 
+    # ------------- LIST -------------
+    if($self->{editonly}) {
+        # Check if we are in listonly mode
+        if(defined($self->{list})) {
+            print "   LIST columns defined but module is in editonly mode\n";
+            $ok = 0;
+            goto finishreload;
+        }
+        # Jump to EDIT validation
+        goto editonlymode;
+    }
+    my @listallowedtypes = qw[text textarray url boolean array date led html color colorswatch image];
+
     foreach my $optionalattr (qw[guess_stats column_filters send_csv download_csv quickselect]) {
         if(!defined($self->{$optionalattr})) {
-            print "    Attribute $optionalattr is undefined, set to 0\n";
+            #print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
         }
     }
@@ -310,7 +329,7 @@ sub reload($self) {
                 $ok = 0
             }
             if(!defined($item->{encodeslashes})) {
-                print "    LIST: Attribute \"encodeslashes\" not set for $item->{column}, defaulting to 0\n";
+                #print "    LIST: Attribute \"encodeslashes\" not set for $item->{column}, defaulting to 0\n";
                 $item->{encodeslashes} = 0;
             }
         }
@@ -406,6 +425,7 @@ sub reload($self) {
     }
     
     # ------------- EDIT -------------
+    editonlymode:
     if($self->{listonly}) {
         # Check if we are in listonly mode
         if(defined($self->{edit})) {
@@ -424,7 +444,7 @@ sub reload($self) {
 
     foreach my $optionalattr (qw[autosave cancopy cansaveandclose useprevnext generateauditlog]) {
         if(!defined($self->{$optionalattr})) {
-            print "    Attribute $optionalattr is undefined, set to 0\n";
+            #print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
         }
     }
@@ -568,7 +588,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
         }
 
         if(!defined($item->{spares})) {
-            print "    EDIT: multiarray does not specify spares, defaulting to 5!\n";
+            #print "    EDIT: multiarray does not specify spares, defaulting to 5!\n";
             $item->{spares} = 5;
         }
 
@@ -610,7 +630,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
 
     foreach my $optional (qw[header]) {
         if(!defined($item->{$optional})) {
-            print "    EDIT: Attribute \"$optional\" not set, defaulting to empty string!\n";
+            #print "    EDIT: Attribute \"$optional\" not set, defaulting to empty string!\n";
             $item->{$optional} = '';
         }
     }
@@ -686,13 +706,13 @@ sub validateEditItem($self, $item, $multiarraymode) {
 
     if($item->{type} eq 'enumarray' || $item->{type} eq 'enum' || $item->{type} eq 'subenum') {
         if(!defined($item->{extendable})) {
-            print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
+            #print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
             $item->{extendable} = 0;
         }
     }
 
     if($item->{type} eq 'enumarray' && !defined($item->{spares})) {
-        print "    EDIT: type $item->{type} does not define 'spares', defaulting to 5\n";
+        #print "    EDIT: type $item->{type} does not define 'spares', defaulting to 5\n";
         $item->{spares} = 5;
     }
 
@@ -832,19 +852,19 @@ sub validateEditItem($self, $item, $multiarraymode) {
 
     if($item->{type} eq "checkbox") {
         if(!defined($item->{callback})) {
-            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"callback\", disabling callback functionality!\n";
+            #print '    EDIT: Checkbox column ', $item->{column}, " does not define \"callback\", disabling callback functionality!\n";
             $item->{callback} = '';
         }
         if(!defined($item->{realvalue})) {
-            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realvalue\", setting to '1'!\n";
+            #print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realvalue\", setting to '1'!\n";
             $item->{realvalue} = '1';
         }
         if(!defined($item->{realinactivevalue})) {
-            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realinactivevalue\", setting to '0'!\n";
+            #print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realinactivevalue\", setting to '0'!\n";
             $item->{realinactivevalue} = '0';
         }
         if(!defined($item->{delete})) {
-            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"delete\", setting to '0'!\n";
+            #print '    EDIT: Checkbox column ', $item->{column}, " does not define \"delete\", setting to '0'!\n";
             $item->{delete} = '0';
         }
     }
@@ -860,11 +880,11 @@ sub validateEditItem($self, $item, $multiarraymode) {
     # make sure we set a default size for text (if not set in config),
     if($item->{type} eq 'text') {
         if(!defined($item->{size})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'size' setting, defaulting to 60\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'size' setting, defaulting to 60\n";
             $item->{size} = 60;
         }
         if(!defined($item->{maxlength})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'maxlength' setting, defaulting to 200\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'maxlength' setting, defaulting to 200\n";
             $item->{maxlength} = 200;
         }
     }
@@ -873,15 +893,15 @@ sub validateEditItem($self, $item, $multiarraymode) {
     # but disallow "rows" and "columns" on other types
     if($item->{type} =~ /^textarea/) {
         if(!defined($item->{rows})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'rows' setting, defaulting to 10\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'rows' setting, defaulting to 10\n";
             $item->{rows} = 10;
         }
         if(!defined($item->{cols})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'cols' setting, defaulting to 30\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'cols' setting, defaulting to 30\n";
             $item->{cols} = 30;
         }
         if(!defined($item->{charcount})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'charcount' setting, disabling limit\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'charcount' setting, disabling limit\n";
             $item->{charcount} = 0;
         }
     }
@@ -954,6 +974,7 @@ sub get($self, $ua) {
     $filename =~ s/^\///;
     $filename =~ s/\/$//;
     $filename = stripString($filename);
+    print STDERR "##### FILENAME $filename ######";
     if($filename ne '') {
         if($filename =~ /^NEW/) {
             $filename =~ s/^NEW\///;
@@ -1127,6 +1148,9 @@ sub get_pagescript($self, $ua, $mode) {
 }
 
 sub get_list($self, $ua, $usemasterlayout = true) {
+    if($self->{editonly}) {
+        return (status => 403); # Forbidden
+    }
     
     my $listlength = 500;
     if(!$usemasterlayout) {
