@@ -447,11 +447,17 @@ sub reload($self) {
         }
     }
 
-    foreach my $optionalattr (qw[autosave cancopy cansaveandclose useprevnext generateauditlog]) {
+    foreach my $optionalattr (qw[autosave allowautosave cancopy cansaveandclose useprevnext generateauditlog]) {
         if(!defined($self->{$optionalattr})) {
             #print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
         }
+    }
+
+    if($self->{autosave} || $self->{editonly}) {
+        # Force flag to allow autosave url ON if autosave is set.
+        # Flag can also be set seperately, for example to when using custom scripting or iframe mode
+        $self->{allowautosave} = 1;
     }
     
     if($self->{cancopy} && !$self->{useserial}) {
@@ -958,7 +964,7 @@ sub get($self, $ua) {
     }
 
     if($ua->{url} =~ /\/autosave/) {
-        if(!$self->{autosave}) {
+        if(!$self->{allowautosave}) {
             return (status => 404);
         } else {
             return $self->get_autosave($ua);
@@ -2947,7 +2953,10 @@ sub get_autosave($self, $ua) {
     }
 
 
+    print STDERR "+++ AUTOSAVING ***\n";
     my %result = $self->get_edit($ua);
+
+    print STDERR "RESULT: ", $result{status}, "\n";
 
     if($result{status} == 200) {
         return (status => 204);
