@@ -334,6 +334,11 @@ sub reload($self) {
             }
         }
 
+        if($item->{type} eq 'text' && !defined($item->{length})) {
+            #print "    LIST: Type \"text\" does not define 'length', disabling display limit for column $item->{column}\n";
+            $item->{length} = 0;
+        }
+
         if(defined($item->{columnscript})) {
             push @listcolumns, '(' . $item->{columnscript} . ') AS ' . $item->{column};
             push @listcolumnsnameonly, $item->{column};
@@ -1634,6 +1639,16 @@ sub get_lines($self, $ua) {
                 $value =~ s/Ü/&Uuml;/g;
                 $value =~ s/ß/&szlig;/g;
                 $value =~ s/\R/<br>/g;
+            }
+
+
+            # Limit size of content if length is defined
+            if($item->{type} eq 'text' && $item->{length} > 0 && length($value) > $item->{length}) {
+                my $newlen = length($value) - 3;
+                if($newlen > 0) {
+                    $value = substr $value, 0, $newlen;
+                    $value .= '...';
+                }
             }
 
             push @columns, $value;
