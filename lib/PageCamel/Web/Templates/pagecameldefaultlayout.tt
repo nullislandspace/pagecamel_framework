@@ -371,8 +371,7 @@
                                 </td>
                                 <td align="center" valign="top">
                     [% END %]
-
-                                    <table border="0"  align="center" cellpadding="10">
+                                    <table border="0"  align="center" cellpadding="10" id="datatablepagcamel">
                                         <tr>
                                             <td width="100%">
                                                 <div id="dataarea" name="dataarea" align="center">

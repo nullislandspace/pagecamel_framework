@@ -14,3 +14,7 @@
     --pagecamelcustom-link-hover: #7b3eff;
     --pagecamelcustom-link-active: #9d6fff;
 }
+#ListAndEditForm{
+    width: fit-content;
+    margin: auto;
+}
