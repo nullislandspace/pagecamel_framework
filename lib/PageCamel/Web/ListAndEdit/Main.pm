@@ -57,6 +57,13 @@ sub new($proto, %config) {
         $self->{cansaveandclose} = 0;
         $self->{useprevnext} = 0;
         $self->{mastertemplate} = 'pagecameliframelayout';
+    } elsif($self->{iframemode} eq 'edit') {
+        $self->{editonly} = 1;
+        $self->{candelete} = 0;
+        $self->{cancreate} = 0;
+        $self->{cansaveandclose} = 0;
+        $self->{useprevnext} = 0;
+        $self->{mastertemplate} = 'pagecameliframelayout';
     }
 
     if(!defined($self->{support_mobile})) {
@@ -1842,6 +1849,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         EditPageHeader => $self->{editpageheader},
         showads => $self->{edit}->{showads},
         SidebarHTML => $self->{edit}->{sidebarhtml},
+        iFrameMode => $self->{iframemode},
     );
 
     if($self->{autosave}) {
