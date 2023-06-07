@@ -42,6 +42,23 @@ sub new($proto, %config) {
 
     $self->{sessionname} = "ListView::" . $self->{modname};
 
+    # iframemode can either be "list" or "edit"
+    # This pre-configures and forces various settings to work within iframes
+    if(!defined($self->{iframemode})) {
+        $self->{iframemode} = '';
+    }
+
+    if($self->{iframemode} eq 'list') {
+        $self->{listonly} = 1;
+        $self->{listonly_customselect} = 0;
+        $self->{quickselect} = 1;
+        $self->{candelete} = 0;
+        $self->{cancreate} = 0;
+        $self->{cansaveandclose} = 0;
+        $self->{useprevnext} = 0;
+        $self->{mastertemplate} = 'pagecameliframelayout';
+    }
+
     if(!defined($self->{support_mobile})) {
         $self->{support_mobile} = 0;
     }
@@ -234,7 +251,7 @@ sub reload($self) {
     }
 
     if($self->{quickselect}) {
-        if($self->{listonly}) {
+        if($self->{listonly} && $self->{iframemode} ne 'list') {
             print "    Attribute quickselect not allowed in listonly mode!\n";
             $ok = 0;
         } elsif($self->{radiobuttonhtml} ne '') {
@@ -1203,6 +1220,7 @@ sub get_list($self, $ua, $usemasterlayout = true) {
         showads => $self->{list}->{showads},
         SidebarHTML => $self->{list}->{sidebarhtml},
         QuickSelect => $self->{quickselect},
+        iFrameMode => $self->{iframemode},
     );
 
     if($self->{send_csv}) {
@@ -1563,7 +1581,7 @@ sub get_lines($self, $ua) {
         my @columns;
         $fcount = $rawline->{whereclause_totalcount};
 
-        if(!$self->{listonly} || $self->{listonly_customselect}) {
+        if(!$self->{listonly} || $self->{listonly_customselect} || $self->{iframemode} eq 'list') {
             my $primval = $rawline->{primarykey};
             $primval = encode_entities($primval, "'<>&\"\n");
             $primval =~ s/ä/&auml;/g;
@@ -1577,7 +1595,11 @@ sub get_lines($self, $ua) {
             if(!$self->{quickselect}) {
                 $primfield = '<input type="radio" name="primary_key" value="' . $primval . '" ' . $self->{radiobuttonhtml} . '>';
             } else {
-                $primfield = '<input type="button" value=" 🖉 " onclick="quickSelect(\'' . $primval . '\');">';
+                if($self->{iframemode} eq 'list') {
+                    $primfield = '<input type="button" value=" 🗁 " onclick="iFrameSelect(\'' . $primval . '\');">';
+                } else {
+                    $primfield = '<input type="button" value=" 🖉 " onclick="quickSelect(\'' . $primval . '\');">';
+                }
             }
 
             push @columns, $primfield;
@@ -1662,6 +1684,7 @@ sub get_lines($self, $ua) {
 
         push @lines, \@columns;
     }
+
     $selsth->finish;
     $dbh->rollback;
     $webdata{aaData} = \@lines;
@@ -1669,6 +1692,7 @@ sub get_lines($self, $ua) {
     if($tcount < $fcount) {
         $tcount = $fcount;
     }
+
     $webdata{recordsTotal} = $tcount;
     $webdata{recordsFiltered} = $fcount;
     $webdata{draw} = 0 + $draworder;
