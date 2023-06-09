@@ -109,6 +109,12 @@ sub run {
                     mkdir $filedir;
                     $newcert = 1;
                 }
+
+                if(!-f $filedir . '/domain.crt') {
+                    # Cert itself is missing, disable "renew". The crt is the only thing not under
+                    # source code control since it "constantly" changes
+                    $newcert = 1;
+                }
                 my @domainlist;
                 foreach my $prefix (@{$domain->{prefix}}) {
                     if($prefix eq '' || ref $prefix eq 'HASH') {
@@ -127,12 +133,12 @@ sub run {
                     'domains' => join(',', @domainlist),
                     'handle-as' => 'dns',
                     'email' => 'letsencrypt@cavac.at',
-                    'live' => 0,
+                    'live' => 1,
                 );
                 if(!$newcert) {
                     $options{renew} = 30;
                 }
-                if($self->{isDebugging}) {
+                if(0 && $self->{isDebugging}) {
                     print "****** WARNING **** DEBUGMODE ***** NO LIVE CERTIFICATES ***********\n";
                     $options{live} = 0;
                 }
@@ -718,7 +724,9 @@ sub _write {
 
 sub _error {
     my ($self, $msg, $code) = @_;
-    print STDERR "ERROR : $msg\n";
+    if($msg ne '') {
+        print STDERR "ERROR : $msg\n";
+    }
     #if($msg =~ /CAA\ record/) {
     #    croak("BLA");
     #}
