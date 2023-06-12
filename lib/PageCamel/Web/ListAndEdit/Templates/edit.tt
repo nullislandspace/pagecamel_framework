@@ -338,7 +338,10 @@
                         </div>
                     </div>
                         <p align="center">
-                            [% IF mode == "create" %]
+                            [% IF iFrameMode == "edit" %]
+                                <input type="button" value="[% tr.tr("Change") %]" id="iFrameChangeButton">
+                                <input type="button" value="[% tr.tr("Close") %]" id="iFrameCancelButton">
+                            [% ELSIF mode == "create" %]
                                 <input type="button" value="[% tr.tr("Create") %]" onclick="setMode('create'); checkinput();">
                             [% ELSE %]
                                 [% IF UsePrevNext == "1" && prevprimarykey != "" %]
@@ -380,6 +383,7 @@
     data-autosave="[% autosave %]"
     data-autosaveurl="[% webpath %]/autosave"
     data-editmode="[% mode %]"
+    data-iframemode="[% iFrameMode %]"
     data-editcolumnlist="[% editcolumnlist %]"
     [% FOREACH colorname IN colors.keys %]
         data-colorswatch[% tr.cleancolorname(colorname) %]="[% colors.$colorname %]"
@@ -686,6 +690,22 @@
             updateSubenum($(subenumname), initialparentvalue, initialvalue);
         });
 
+        if(ttvars.iframemode == "edit") {
+            $("#iFrameChangeButton").on('click', function() {
+                console.log("Saving data");
+                $('form[name="listandedit"]').block({ message: ttvars.trquote.Wslost });
+                runAutosave();
+            });
+
+
+            $("#iFrameCancelButton").on('click', function() {
+                console.log("CANCEL pressed");
+                window.parent.postMessage({
+                    'iframestate': 'cancel'
+                }, "*");
+            });
+        }
+
 
     }
 
@@ -762,7 +782,10 @@
             dataType: "json",
             data: savedata,
             success: function(msg) {
-                if(window.autoSaveCallback) {
+                if(ttvars.iframemode == "edit") {
+                    console.log("DATA SAVED");
+                    $('form[name="listandedit"]').unblock();
+                } else if(window.autoSaveCallback) {
                     window.autoSaveCallback(true);
                 } else {
                     setFooterStatus('Autosave OK', 'green');
