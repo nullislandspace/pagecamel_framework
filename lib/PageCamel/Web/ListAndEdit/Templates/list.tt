@@ -53,9 +53,13 @@
                             [% IF cancreate == "1" %]
                                 <tr id="footereditrow">
                                     [% IF QuickSelect == "1" %]
-                                       <td valign="top"><input type="button" value=" 🖉 " onclick="quickSelect('__NEW__');"></td>
+                                        [% IF iFrameMode == 'list' %]
+                                            <td valign="top"><input type="button" value=" 🗁 " onclick="iFrameSelect('__NEW__');"></td>
+                                        [% ELSE %]
+                                            <td valign="top"><input type="button" value=" 🖉 " onclick="quickSelect('__NEW__');"></td>
+                                        [% END %]
                                     [% ELSE %]
-                                        <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
+                                         <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
                                     [% END %]
                                     <td colspan="[% column_count %]" align="left" valign="top">[% tr.trquote("New") %]</td>
 
@@ -65,7 +69,11 @@
 
                     </table>
                     <br/>
-                [% IF ListOnly == "0" %]
+                [% IF iFrameMode == 'list' %]
+                    <div align="center">
+                        <input type="button" value="[% tr.trquote("Cancel") %]" id="iFrameCancelButton">
+                    </div>
+                [% ELSIF ListOnly == "0" %]
                     <div align="center">
                         <input type="hidden" name="mode" value="select">
                         [% IF QuickSelect == "1" %]
@@ -121,6 +129,10 @@
 <script>
     var letable;
     function extraOnLoad() {
+        $("#iFrameCancelButton").on("click", function() {
+            iFrameCancel();
+        });
+
         var ajaxwebpath = ttvars.ajaxwebpath;
         if(ttvars.useurlid == 1) {
             ajaxwebpath = ajaxwebpath + '/' + ttvars.urlid;
@@ -255,5 +267,26 @@
         $('input[name="primary_key"]').val(primkey);
         $('#ListAndEditForm').submit();
         return true;
+    }
+
+    function iFrameSelect(primkey) {
+        console.log("SELECT " + primkey);
+        if(ttvars.quickselect != 1) {
+            console.log("iFrameSelect() called in non-quickselect mask");
+            return false;
+        }
+        window.parent.postMessage({
+            'iframestate': 'selected',
+            'ID': primkey
+        }, "*");
+
+        return false;
+    }
+
+    function iFrameCancel() {
+        console.log("CANCEL pressed");
+        window.parent.postMessage({
+            'iframestate': 'cancel'
+        }, "*");
     }
 </script>

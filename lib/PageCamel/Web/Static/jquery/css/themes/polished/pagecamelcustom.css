@@ -1,16 +1,24 @@
-:root{
-    --pagecamelcustom-body-background:white;
-    --pagecamelcustom-body-foreground:black;
+:root {
+    --pagecamelcustom-body-background: white;
+    --pagecamelcustom-body-foreground: black;
     --pagecamelcustom-toc-border: #d7d9dd;
     --pagecamelcustom-toc-background: #f4f5f7;
-    --pagecamelcustom-table-foreground-even:black;
-    --pagecamelcustom-table-background-even:#FBD655;
-    --pagecamelcustom-table-foreground-odd:black;
-    --pagecamelcustom-table-background-odd:#FFEEB4;
-    --pagecamelcustom-table-foreground-head: black;
-    --pagecamelcustom-table-background-head:#FFC600;
-    --pagecamelcustom-tocshowhide: #0000EE;
+    --pagecamelcustom-table-foreground-even: black;
+    --pagecamelcustom-table-background-even: #55b3fb;
+    --pagecamelcustom-table-foreground-odd: black;
+    --pagecamelcustom-table-background-odd: #b4e9ff;
+    --pagecamelcustom-table-foreground-head: white;
+    --pagecamelcustom-table-background-head: #0091ff;
+    --pagecamelcustom-tocshowhide: #0000ee;
     --pagecamelcustom-link: darkblue;
     --pagecamelcustom-link-hover: #7b3eff;
     --pagecamelcustom-link-active: #9d6fff;
+}
+#ListAndEditForm {
+    width: fit-content;
+    margin: auto;
+}
+#MainForm {
+    width: fit-content;
+    margin: auto;
 }
