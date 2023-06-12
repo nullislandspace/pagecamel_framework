@@ -2757,6 +2757,7 @@ lib/PageCamel/Web/Static/OpenLayers/tools/toposort.py
 lib/PageCamel/Web/Static/OpenLayers/tools/update_dev_dir.sh
 lib/PageCamel/Web/Static/OpenLayers/VERSION.txt
 lib/PageCamel/Web/Static/pagecameldefaultlayout.css
+lib/PageCamel/Web/Static/pagecameldefaultlayout.js
 lib/PageCamel/Web/Static/pageviewstats.js
 lib/PageCamel/Web/Static/pchelpers/docs/.nojekyll
 lib/PageCamel/Web/Static/pchelpers/docs/assets/highlight.css
@@ -2898,6 +2899,7 @@ lib/PageCamel/Web/Templates/impressum.tt
 lib/PageCamel/Web/Templates/pagecamel_webgui.css.tt
 lib/PageCamel/Web/Templates/pagecamel_webgui_mobile.css.tt
 lib/PageCamel/Web/Templates/pagecameldefaultlayout.tt
+lib/PageCamel/Web/Templates/pagecameliframelayout.tt
 lib/PageCamel/Web/Templates/pagecamelmobilelayout.tt
 lib/PageCamel/Web/Templates/privacypolicy.tt
 lib/PageCamel/Web/Templates/sendmail.tt

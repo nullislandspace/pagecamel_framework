@@ -42,6 +42,30 @@ sub new($proto, %config) {
 
     $self->{sessionname} = "ListView::" . $self->{modname};
 
+    # iframemode can either be "list" or "edit"
+    # This pre-configures and forces various settings to work within iframes
+    if(!defined($self->{iframemode})) {
+        $self->{iframemode} = '';
+    }
+
+    if($self->{iframemode} eq 'list') {
+        $self->{listonly} = 1;
+        $self->{listonly_customselect} = 0;
+        $self->{quickselect} = 1;
+        $self->{candelete} = 0;
+        $self->{cancreate} = 0;
+        $self->{cansaveandclose} = 0;
+        $self->{useprevnext} = 0;
+        $self->{mastertemplate} = 'pagecameliframelayout';
+    } elsif($self->{iframemode} eq 'edit') {
+        $self->{editonly} = 1;
+        $self->{candelete} = 0;
+        $self->{cancreate} = 0;
+        $self->{cansaveandclose} = 0;
+        $self->{useprevnext} = 0;
+        $self->{mastertemplate} = 'pagecameliframelayout';
+    }
+
     if(!defined($self->{support_mobile})) {
         $self->{support_mobile} = 0;
     }
@@ -68,12 +92,20 @@ sub new($proto, %config) {
         $self->{listonly_customselect} = 0;
     }
 
+    if(!defined($self->{editonly})) {
+        $self->{editonly} = 0;
+    }
+
     if(!defined($self->{listpageheader})) {
         $self->{listpageheader} = '';
     }
 
     if(!defined($self->{editpageheader})) {
         $self->{editpageheader} = '';
+    }
+
+    if(!defined($self->{mastertemplate})) {
+        $self->{mastertemplate} = '';
     }
 
     if(defined($self->{list}) && !defined($self->{list}->{showads})) {
@@ -175,9 +207,6 @@ sub reload($self) {
     my $ok = 1;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
-    # ------------- LIST -------------
-    my @listallowedtypes = qw[text textarray url boolean array date led html color colorswatch image];
-
     foreach my $mustattr (qw[orderby primarykey table webpath pagetitle db session]) {
         if(!defined($self->{$mustattr})) {
             print "    Attribute $mustattr not set!\n";
@@ -190,15 +219,33 @@ sub reload($self) {
             print "    Attribute $mustnotattr is set but must not be!\n";
             $ok = 0;
         }
-
     }
+
+    if($self->{listonly} && $self->{editonly}) {
+        print "    Attributes 'listonly' and 'editonly' are mutually exclusive!\n";
+        $ok = 0;
+    }
+
     if(!$ok) {
         goto finishreload;
     }
 
+    # ------------- LIST -------------
+    if($self->{editonly}) {
+        # Check if we are in listonly mode
+        if(defined($self->{list})) {
+            print "   LIST columns defined but module is in editonly mode\n";
+            $ok = 0;
+            goto finishreload;
+        }
+        # Jump to EDIT validation
+        goto editonlymode;
+    }
+    my @listallowedtypes = qw[text textarray url boolean array date led html color colorswatch image];
+
     foreach my $optionalattr (qw[guess_stats column_filters send_csv download_csv quickselect]) {
         if(!defined($self->{$optionalattr})) {
-            print "    Attribute $optionalattr is undefined, set to 0\n";
+            #print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
         }
     }
@@ -211,7 +258,7 @@ sub reload($self) {
     }
 
     if($self->{quickselect}) {
-        if($self->{listonly}) {
+        if($self->{listonly} && $self->{iframemode} ne 'list') {
             print "    Attribute quickselect not allowed in listonly mode!\n";
             $ok = 0;
         } elsif($self->{radiobuttonhtml} ne '') {
@@ -306,9 +353,14 @@ sub reload($self) {
                 $ok = 0
             }
             if(!defined($item->{encodeslashes})) {
-                print "    LIST: Attribute \"encodeslashes\" not set for $item->{column}, defaulting to 0\n";
+                #print "    LIST: Attribute \"encodeslashes\" not set for $item->{column}, defaulting to 0\n";
                 $item->{encodeslashes} = 0;
             }
+        }
+
+        if($item->{type} eq 'text' && !defined($item->{length})) {
+            #print "    LIST: Type \"text\" does not define 'length', disabling display limit for column $item->{column}\n";
+            $item->{length} = 0;
         }
 
         if(defined($item->{columnscript})) {
@@ -402,6 +454,7 @@ sub reload($self) {
     }
     
     # ------------- EDIT -------------
+    editonlymode:
     if($self->{listonly}) {
         # Check if we are in listonly mode
         if(defined($self->{edit})) {
@@ -418,11 +471,17 @@ sub reload($self) {
         }
     }
 
-    foreach my $optionalattr (qw[autosave cancopy cansaveandclose useprevnext generateauditlog]) {
+    foreach my $optionalattr (qw[autosave allowautosave cancopy cansaveandclose useprevnext generateauditlog]) {
         if(!defined($self->{$optionalattr})) {
-            print "    Attribute $optionalattr is undefined, set to 0\n";
+            #print "    Attribute $optionalattr is undefined, set to 0\n";
             $self->{$optionalattr} = 0;
         }
+    }
+
+    if($self->{autosave} || $self->{editonly}) {
+        # Force flag to allow autosave url ON if autosave is set.
+        # Flag can also be set seperately, for example to when using custom scripting or iframe mode
+        $self->{allowautosave} = 1;
     }
     
     if($self->{cancopy} && !$self->{useserial}) {
@@ -564,7 +623,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
         }
 
         if(!defined($item->{spares})) {
-            print "    EDIT: multiarray does not specify spares, defaulting to 5!\n";
+            #print "    EDIT: multiarray does not specify spares, defaulting to 5!\n";
             $item->{spares} = 5;
         }
 
@@ -606,7 +665,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
 
     foreach my $optional (qw[header]) {
         if(!defined($item->{$optional})) {
-            print "    EDIT: Attribute \"$optional\" not set, defaulting to empty string!\n";
+            #print "    EDIT: Attribute \"$optional\" not set, defaulting to empty string!\n";
             $item->{$optional} = '';
         }
     }
@@ -682,13 +741,13 @@ sub validateEditItem($self, $item, $multiarraymode) {
 
     if($item->{type} eq 'enumarray' || $item->{type} eq 'enum' || $item->{type} eq 'subenum') {
         if(!defined($item->{extendable})) {
-            print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
+            #print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
             $item->{extendable} = 0;
         }
     }
 
     if($item->{type} eq 'enumarray' && !defined($item->{spares})) {
-        print "    EDIT: type $item->{type} does not define 'spares', defaulting to 5\n";
+        #print "    EDIT: type $item->{type} does not define 'spares', defaulting to 5\n";
         $item->{spares} = 5;
     }
 
@@ -828,19 +887,19 @@ sub validateEditItem($self, $item, $multiarraymode) {
 
     if($item->{type} eq "checkbox") {
         if(!defined($item->{callback})) {
-            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"callback\", disabling callback functionality!\n";
+            #print '    EDIT: Checkbox column ', $item->{column}, " does not define \"callback\", disabling callback functionality!\n";
             $item->{callback} = '';
         }
         if(!defined($item->{realvalue})) {
-            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realvalue\", setting to '1'!\n";
+            #print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realvalue\", setting to '1'!\n";
             $item->{realvalue} = '1';
         }
         if(!defined($item->{realinactivevalue})) {
-            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realinactivevalue\", setting to '0'!\n";
+            #print '    EDIT: Checkbox column ', $item->{column}, " does not define \"realinactivevalue\", setting to '0'!\n";
             $item->{realinactivevalue} = '0';
         }
         if(!defined($item->{delete})) {
-            print '    EDIT: Checkbox column ', $item->{column}, " does not define \"delete\", setting to '0'!\n";
+            #print '    EDIT: Checkbox column ', $item->{column}, " does not define \"delete\", setting to '0'!\n";
             $item->{delete} = '0';
         }
     }
@@ -856,11 +915,11 @@ sub validateEditItem($self, $item, $multiarraymode) {
     # make sure we set a default size for text (if not set in config),
     if($item->{type} eq 'text') {
         if(!defined($item->{size})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'size' setting, defaulting to 60\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'size' setting, defaulting to 60\n";
             $item->{size} = 60;
         }
         if(!defined($item->{maxlength})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'maxlength' setting, defaulting to 200\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'maxlength' setting, defaulting to 200\n";
             $item->{maxlength} = 200;
         }
     }
@@ -869,15 +928,15 @@ sub validateEditItem($self, $item, $multiarraymode) {
     # but disallow "rows" and "columns" on other types
     if($item->{type} =~ /^textarea/) {
         if(!defined($item->{rows})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'rows' setting, defaulting to 10\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'rows' setting, defaulting to 10\n";
             $item->{rows} = 10;
         }
         if(!defined($item->{cols})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'cols' setting, defaulting to 30\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'cols' setting, defaulting to 30\n";
             $item->{cols} = 30;
         }
         if(!defined($item->{charcount})) {
-            print '    EDIT: Column ', $item->{column}, " has no 'charcount' setting, disabling limit\n";
+            #print '    EDIT: Column ', $item->{column}, " has no 'charcount' setting, disabling limit\n";
             $item->{charcount} = 0;
         }
     }
@@ -929,7 +988,7 @@ sub get($self, $ua) {
     }
 
     if($ua->{url} =~ /\/autosave/) {
-        if(!$self->{autosave}) {
+        if(!$self->{allowautosave}) {
             return (status => 404);
         } else {
             return $self->get_autosave($ua);
@@ -950,6 +1009,7 @@ sub get($self, $ua) {
     $filename =~ s/^\///;
     $filename =~ s/\/$//;
     $filename = stripString($filename);
+    print STDERR "##### FILENAME $filename ######";
     if($filename ne '') {
         if($filename =~ /^NEW/) {
             $filename =~ s/^NEW\///;
@@ -1123,6 +1183,9 @@ sub get_pagescript($self, $ua, $mode) {
 }
 
 sub get_list($self, $ua, $usemasterlayout = true) {
+    if($self->{editonly}) {
+        return (status => 403); # Forbidden
+    }
     
     my $listlength = 500;
     if(!$usemasterlayout) {
@@ -1164,6 +1227,7 @@ sub get_list($self, $ua, $usemasterlayout = true) {
         showads => $self->{list}->{showads},
         SidebarHTML => $self->{list}->{sidebarhtml},
         QuickSelect => $self->{quickselect},
+        iFrameMode => $self->{iframemode},
     );
 
     if($self->{send_csv}) {
@@ -1232,6 +1296,10 @@ sub get_list($self, $ua, $usemasterlayout = true) {
     }
     
     $webdata{HeadExtraScripts} = \@headextrascripts;
+
+    if($self->{mastertemplate} ne '') {
+        $usemasterlayout = $self->{mastertemplate};
+    }
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/list", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
@@ -1520,7 +1588,7 @@ sub get_lines($self, $ua) {
         my @columns;
         $fcount = $rawline->{whereclause_totalcount};
 
-        if(!$self->{listonly} || $self->{listonly_customselect}) {
+        if(!$self->{listonly} || $self->{listonly_customselect} || $self->{iframemode} eq 'list') {
             my $primval = $rawline->{primarykey};
             $primval = encode_entities($primval, "'<>&\"\n");
             $primval =~ s/ä/&auml;/g;
@@ -1534,7 +1602,11 @@ sub get_lines($self, $ua) {
             if(!$self->{quickselect}) {
                 $primfield = '<input type="radio" name="primary_key" value="' . $primval . '" ' . $self->{radiobuttonhtml} . '>';
             } else {
-                $primfield = '<input type="button" value=" 🖉 " onclick="quickSelect(\'' . $primval . '\');">';
+                if($self->{iframemode} eq 'list') {
+                    $primfield = '<input type="button" value=" 🗁 " onclick="iFrameSelect(\'' . $primval . '\');">';
+                } else {
+                    $primfield = '<input type="button" value=" 🖉 " onclick="quickSelect(\'' . $primval . '\');">';
+                }
             }
 
             push @columns, $primfield;
@@ -1604,11 +1676,22 @@ sub get_lines($self, $ua) {
                 $value =~ s/\R/<br>/g;
             }
 
+
+            # Limit size of content if length is defined
+            if($item->{type} eq 'text' && $item->{length} > 0 && length($value) > $item->{length}) {
+                my $newlen = length($value) - 3;
+                if($newlen > 0) {
+                    $value = substr $value, 0, $newlen;
+                    $value .= '...';
+                }
+            }
+
             push @columns, $value;
         }
 
         push @lines, \@columns;
     }
+
     $selsth->finish;
     $dbh->rollback;
     $webdata{aaData} = \@lines;
@@ -1616,6 +1699,7 @@ sub get_lines($self, $ua) {
     if($tcount < $fcount) {
         $tcount = $fcount;
     }
+
     $webdata{recordsTotal} = $tcount;
     $webdata{recordsFiltered} = $fcount;
     $webdata{draw} = 0 + $draworder;
@@ -1765,6 +1849,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         EditPageHeader => $self->{editpageheader},
         showads => $self->{edit}->{showads},
         SidebarHTML => $self->{edit}->{sidebarhtml},
+        iFrameMode => $self->{iframemode},
     );
 
     if($self->{autosave}) {
@@ -2390,7 +2475,12 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     $webdata{HeadExtraScripts} = \@headextrascripts;
     $webdata{HeadExtraCSS} = \@headextracss;
 
-    my $template = $self->{server}->{modules}->{templates}->get("listandedit/edit", 1, %webdata);
+    my $usemasterlayout = 1;
+    if($self->{mastertemplate} ne '') {
+        $usemasterlayout = $self->{mastertemplate};
+    }
+
+    my $template = $self->{server}->{modules}->{templates}->get("listandedit/edit", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "text/html",
@@ -2895,7 +2985,10 @@ sub get_autosave($self, $ua) {
     }
 
 
+    print STDERR "+++ AUTOSAVING ***\n";
     my %result = $self->get_edit($ua);
+
+    print STDERR "RESULT: ", $result{status}, "\n";
 
     if($result{status} == 200) {
         return (status => 204);
