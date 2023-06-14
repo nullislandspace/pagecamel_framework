@@ -14,11 +14,35 @@
     --pagecamelcustom-link-hover: #7b3eff;
     --pagecamelcustom-link-active: #9d6fff;
 }
-#ListAndEditForm {
-    width: fit-content;
+#iframeContent form {
+    width: 100%;
     margin: auto;
 }
-#MainForm {
-    width: fit-content;
+#iframeContent form table {
+    width: 100%;
+}
+#iframeContent ::-webkit-scrollbar {
+    width: 35px;
+}
+#iframeContent ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+#iframeContent ::-webkit-scrollbar-thumb {
+    background: #888;
+}
+#iframeContent ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+#iframeContent body {
+    width: 95%;
     margin: auto;
+}
+#iframeContent .dataTables_scrollHeadInner table {
+    width: 100% !important;
+}
+#iframeContent .dataTables_scrollHeadInner {
+    width: 100% !important;
+}
+#iframeContent #ListAndEditTable {
+    width: 100% !important;
 }
