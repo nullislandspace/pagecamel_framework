@@ -198,6 +198,12 @@ sub new($proto, %config) {
 sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get");
+
+    if($self->{iframemode} ne '') {
+        # Need to register ourselfs to deliver ConfigObject data for iframe mode
+        $self->register_defaultwebdata("get_defaultwebdata");
+    }
+
     return;
 }
 
@@ -3045,6 +3051,20 @@ sub columnBasename($self, $colname) {
     my $newcolname = '' . $colname;
     $newcolname =~ s/\[\]//;
     return $newcolname;
+}
+
+# Only called in iframe mode!!!
+sub get_defaultwebdata($self, $webdata) {
+
+    if($self->{iframemode} eq 'list') {
+        $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{mode} = 'list';
+        $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{webpath} = $self->{webpath};
+    } elsif($self->{iframemode} eq 'edit') {
+        $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{mode} = 'edit';
+        $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{webpath} = $self->{webpath} . '/XXPRIMARYKEYXX';
+    }
+
+    return;
 }
 
 1;
