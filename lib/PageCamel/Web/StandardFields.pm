@@ -200,7 +200,7 @@ sub get_defaultwebdata($self, $webdata) {
 }
 
 sub lateprerender($self, $webdata) {
-    if(!defined($webdata->{MaskHasConfigObject})) {
+    if(!defined($webdata->{MaskHasConfigObject}) || !$webdata->{MaskHasConfigObject}) {
         $webdata->{MaskHasConfigObject} = 0;
     } elsif($webdata->{MaskHasConfigObject}) {
         if(!defined($webdata->{ConfigObject})) {
@@ -209,6 +209,7 @@ sub lateprerender($self, $webdata) {
         }
         $self->{server}->{modules}->{templates}->addTranslations($webdata);
         $webdata->{MaskConfigObject} = encode_base64(encode_json($webdata->{ConfigObject}), '');
+        #print STDERR Dumper($webdata->{ConfigObject});
     }
     return;
 }
