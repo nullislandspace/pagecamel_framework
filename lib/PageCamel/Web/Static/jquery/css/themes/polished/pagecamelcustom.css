@@ -14,11 +14,53 @@
     --pagecamelcustom-link-hover: #7b3eff;
     --pagecamelcustom-link-active: #9d6fff;
 }
-#ListAndEditForm {
-    width: fit-content;
+#iframeContent form {
+    width: 100%;
     margin: auto;
 }
-#MainForm {
-    width: fit-content;
-    margin: auto;
+#iframeContent form table {
+    width: 100%;
+}
+#iframeContent ::-webkit-scrollbar {
+    width: 35px;
+}
+#iframeContent ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+#iframeContent ::-webkit-scrollbar-thumb {
+    background: #888;
+}
+#iframeContent ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+#iframeContent body {
+    width: 100%;
+    background-color: transparent;
+    margin: 0px !important;
+}
+#iframeContent .dataTables_scrollHeadInner table {
+    width: 100% !important;
+}
+#iframeContent .dataTables_scrollHeadInner {
+    width: 100% !important;
+}
+#iframeContent #ListAndEditTable {
+    width: 100% !important;
+}
+
+#iframeContent body > p {
+    /*hide the p tag in the body */
+    display: none;
+}
+#iframeContent .ui-corner-all, .ui-corner-top, .ui-corner-right, .ui-corner-tr {
+    border-top-right-radius: 0px;
+}
+#iframeContent .ui-corner-all, .ui-corner-top, .ui-corner-left, .ui-corner-tl {
+    border-top-left-radius: 0px;
+}
+#iframeContent .ui-corner-all, .ui-corner-bottom, .ui-corner-right, .ui-corner-br {
+    border-bottom-right-radius: 0px;
+}
+#iframeContent .ui-corner-all, .ui-corner-bottom, .ui-corner-left, .ui-corner-bl {
+    border-bottom-left-radius: 0px;
 }
