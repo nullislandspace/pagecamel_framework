@@ -198,6 +198,12 @@ sub new($proto, %config) {
 sub register($self) {
 
     $self->register_webpath($self->{webpath}, "get");
+
+    if($self->{iframemode} ne '') {
+        # Need to register ourselfs to deliver ConfigObject data for iframe mode
+        $self->register_defaultwebdata("get_defaultwebdata");
+    }
+
     return;
 }
 
@@ -1925,6 +1931,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my $upstmt = "UPDATE "  . $self->{table} . " SET " .
                         join(' = ?, ', @collist) . " = ? " .
                         "WHERE " . join(' = ? AND ', @pkcols) . " = ? ";
+        #print STDERR "UPSTMT: ", $upstmt, "\n";
         my $upsth = $dbh->prepare_cached($upstmt) or croak($dbh->errstr);
         my @upargs;
         my $fieldsok = 1;
@@ -2067,6 +2074,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             push @upargs, $webdata{userData}->{user};
         }
         if($fieldsok) {
+            #print STDERR "ARGS: ", join(', ', @upargs, @pkparts), "\n";
             if($upsth->execute(@upargs,@pkparts)) {
                 $dbh->commit;
                 $okstr = "Updated";
@@ -2915,7 +2923,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
         if(!defined($cache->{$cachekey})) {
             my @enumlines;
-            print STDERR "STMT: $eselstmt\n";
+            #print STDERR "STMT: $eselstmt\n";
             my $eselsth = $dbh->prepare_cached($eselstmt)
                     or croak($dbh->errstr);
             $eselsth->execute or croak($dbh->errstr);
@@ -2986,6 +2994,7 @@ sub get_autosave($self, $ua) {
 
 
     print STDERR "+++ AUTOSAVING ***\n";
+    #print STDERR Dumper($ua->{postparams});
     my %result = $self->get_edit($ua);
 
     print STDERR "RESULT: ", $result{status}, "\n";
@@ -3045,6 +3054,20 @@ sub columnBasename($self, $colname) {
     my $newcolname = '' . $colname;
     $newcolname =~ s/\[\]//;
     return $newcolname;
+}
+
+# Only called in iframe mode!!!
+sub get_defaultwebdata($self, $webdata) {
+
+    if($self->{iframemode} eq 'list') {
+        $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{mode} = 'list';
+        $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{webpath} = $self->{webpath};
+    } elsif($self->{iframemode} eq 'edit') {
+        $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{mode} = 'edit';
+        $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{webpath} = $self->{webpath} . '/XXPRIMARYKEYXX';
+    }
+
+    return;
 }
 
 1;
