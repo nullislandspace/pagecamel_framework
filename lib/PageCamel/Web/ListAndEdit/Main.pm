@@ -1931,6 +1931,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         my $upstmt = "UPDATE "  . $self->{table} . " SET " .
                         join(' = ?, ', @collist) . " = ? " .
                         "WHERE " . join(' = ? AND ', @pkcols) . " = ? ";
+        #print STDERR "UPSTMT: ", $upstmt, "\n";
         my $upsth = $dbh->prepare_cached($upstmt) or croak($dbh->errstr);
         my @upargs;
         my $fieldsok = 1;
@@ -2073,6 +2074,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             push @upargs, $webdata{userData}->{user};
         }
         if($fieldsok) {
+            #print STDERR "ARGS: ", join(', ', @upargs, @pkparts), "\n";
             if($upsth->execute(@upargs,@pkparts)) {
                 $dbh->commit;
                 $okstr = "Updated";
@@ -2921,7 +2923,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
         if(!defined($cache->{$cachekey})) {
             my @enumlines;
-            print STDERR "STMT: $eselstmt\n";
+            #print STDERR "STMT: $eselstmt\n";
             my $eselsth = $dbh->prepare_cached($eselstmt)
                     or croak($dbh->errstr);
             $eselsth->execute or croak($dbh->errstr);
@@ -2992,6 +2994,7 @@ sub get_autosave($self, $ua) {
 
 
     print STDERR "+++ AUTOSAVING ***\n";
+    #print STDERR Dumper($ua->{postparams});
     my %result = $self->get_edit($ua);
 
     print STDERR "RESULT: ", $result{status}, "\n";

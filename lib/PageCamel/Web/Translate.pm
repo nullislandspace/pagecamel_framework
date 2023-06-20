@@ -233,11 +233,23 @@ sub get_translations($self, $ua) {
     my ($ok, $langname) = $seth->get($webdata{userData}->{user}, "EditLanguage");
 
     my $lang = "eng"; # Use english as default
+
     if(defined($langname)) {
         $langname = dbderef($langname);
     }
+
+    my $found = 0;
     if($ok && defined($langname) && $langname ne "") {
-        $lang = $langname;
+        foreach my $line (@AvailLangs) {
+            if($line->{lang} eq $langname) {
+                $lang = $langname;
+                $found = 1;
+            }
+        }
+    }
+
+    if(!$found) {
+        $seth->set($webdata{userData}->{user}, "EditLanguage", \$lang);
     }
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
