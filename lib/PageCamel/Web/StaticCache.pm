@@ -401,6 +401,9 @@ sub get($self, $ua) {
 
     if($self->{cache}->{$name}->{dynamic}) {
         print STDERR "------ $name is a dynamic file, checking for newer version\n";
+        $cachecontrol = "no-cache, no-store, must-revalidate";
+        $expires = 'now';
+
         my $newlastmodified = getLastModifiedWebdate($self->{cache}->{$name}->{fullname});
         my $tmp = parseWebdate($newlastmodified);
         $newlastmodified = getWebdate($tmp);
@@ -411,9 +414,6 @@ sub get($self, $ua) {
             $self->{cache}->{$name}->{size} = length($data);
             $self->{cache}->{$name}->{"Last-Modified"} = $newlastmodified;
             $self->{cache}->{$name}->{etag} = sha1_hex($newlastmodified) . sha1_hex($data);
-
-            $cachecontrol = "no-cache, no-store, must-revalidate";
-            $expires = 'now';
         }
     }
 
