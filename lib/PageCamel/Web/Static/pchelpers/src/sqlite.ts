@@ -42,7 +42,7 @@ export class PCSqlite {
     private _binWorker: Worker;
 
     // Version number of the database if it is changed, the local storage will be cleared
-    private _versionNumber: number = 1; 
+    private _versionNumber: number = 2; 
 
     constructor(config: initSqlJs.SqlJsConfig, dbname = "", debug = false) {
         this._dbloaded = false;
