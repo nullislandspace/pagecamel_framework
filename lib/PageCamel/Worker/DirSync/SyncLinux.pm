@@ -102,7 +102,7 @@ sub do_dirsync($self, $arguments) {
 
     $reph->debuglog("Reading file list from $source");
 
-    opendir(my $sfh, $source) or croak($ERRNO);
+    opendir(my $sfh, $source) or croak("$ERRNO");
     my @files;
     while((my $tmpfile = readdir($sfh))) {
         next if $tmpfile =~ /^\./;
@@ -160,7 +160,7 @@ sub do_dirsync($self, $arguments) {
         $reph->debuglog("Skipped cleaning - maxage is zero at $dest");
     } else {
         $reph->debuglog("Cleaning up old files at $dest");
-        opendir(my $dfh, $dest) or croak($ERRNO);
+        opendir(my $dfh, $dest) or croak("$ERRNO");
         while((my $tmpfile = readdir($dfh))) {
             next if $tmpfile =~ /^\./;
             my $dstname = $dest . '/' . $tmpfile;

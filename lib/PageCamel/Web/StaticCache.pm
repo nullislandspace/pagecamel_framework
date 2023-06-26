@@ -151,7 +151,7 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
         push @ignore, 'pagecamel.xml';
     }
 
-    opendir(my $dfh, $basedir) or croak($ERRNO);
+    opendir(my $dfh, $basedir) or croak("$ERRNO");
     while((my $fname = readdir($dfh))) {
         next if($fname =~ /^\./); # Ignore hidden files and dirs
 
@@ -172,7 +172,7 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
         }
 
         if($fname eq 'gettranslatekeys.dat') {
-            open(my $ifh, '<', $nfname) or croak($!);
+            open(my $ifh, '<', $nfname) or croak("$!");
             while((my $line = <$ifh>)) {
                 chomp $line;
                 if(length($line)) {

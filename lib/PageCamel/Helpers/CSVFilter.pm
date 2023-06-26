@@ -67,7 +67,7 @@ sub filter($self) {
             $ofname =~ s/#/$filecount/g;
 
             # Special filehandle handling (i most likely know what i'm doing here), don't use Perl::Critic on this one
-            open($ofh, ">", $ofname) or croak($ERRNO); ## no critic (InputOutput::RequireBriefOpen)
+            open($ofh, ">", $ofname) or croak("$ERRNO"); ## no critic (InputOutput::RequireBriefOpen)
             $self->{logger}->debuglog("Opening new output file $ofname");
             $outline = "";
             for(my $i = 0; $i < $#headers; $i++) {

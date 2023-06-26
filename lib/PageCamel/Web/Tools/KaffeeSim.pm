@@ -273,7 +273,7 @@ sub sockethandler($self, $ua) {
             # Read data from websocket
             my $buf;
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                local $SIG{ALRM} = sub{croak "alarm"};
+                local $SIG{ALRM} = sub{croak("alarm")};
                 alarm 0.5;
                 my $status = sysread($ua->{realsocket}, $buf, 100);
                 if(!$ua->{realsocket}) {

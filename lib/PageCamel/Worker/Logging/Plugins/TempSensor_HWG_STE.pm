@@ -171,7 +171,7 @@ sub getSNMPValues($self, $reph, $ip, $port) {
     my $previous_alarm;
 
     if(!eval {
-        local $SIG{ALRM} = sub { croak "Timed out!\n"};
+        local $SIG{ALRM} = sub { croak("Timed out!\n")};
         my $timeout = $self->{timeout};
 
         $previous_alarm = alarm($timeout);

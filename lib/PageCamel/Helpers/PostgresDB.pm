@@ -84,7 +84,7 @@ sub checkDBH($self, $hasforked = false) {
                                    AutoCommit => 0,
                                    RaiseError => 0,
                                    AutoInactiveDestroy => 1,
-                               }) or croak($EVAL_ERROR);
+                               }) or croak("$EVAL_ERROR");
     $self->{mdbh} = $dbh;
     #$dbh->{pg_enable_utf8} = 1;
 

@@ -76,7 +76,7 @@ sub init($self) {
             Blocking => 0,
             ReuseAddr => 1,
             Proto => 'tcp',
-        ) or croak($ERRNO);
+        ) or croak("$ERRNO");
         binmode($tcp, ':bytes');
         push @tcpsockets, $tcp;
         print "Listening on $ip:" . $config->{port} . "/tcp\n";

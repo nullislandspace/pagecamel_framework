@@ -83,7 +83,7 @@ sub load_dir($self, $basedir) {
 
     my $fcount = 0;
 
-    opendir(my $dfh, $basedir) or croak($ERRNO);
+    opendir(my $dfh, $basedir) or croak("$ERRNO");
     while((my $fname = readdir($dfh))) {
         next if($fname =~ /^\./);
         my $nfname = $basedir . "/" . $fname;
