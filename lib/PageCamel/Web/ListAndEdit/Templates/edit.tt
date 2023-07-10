@@ -123,7 +123,7 @@
                                                 <pre><code>[% tr.quote(column.columnvalue) %]</code></pre>
                                             [% ELSIF column.displaytype == "number" %]
                                                 <input
-                                                [% IF TouchinputEnabled=="1" %]
+                                                [% IF TouchinputEnabled=="1" || iFrameMode != '' %]
                                                     type="text"
                                                 [% ELSE %]
                                                     type="number"
