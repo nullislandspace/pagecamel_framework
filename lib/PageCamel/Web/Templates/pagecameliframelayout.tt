@@ -72,7 +72,25 @@
         <script type="text/javascript">
             function eventHandlerInitialization() {
                 // auto-uninline onfoo html tags to JS file
+                console.log("eventHandlerInitialization");
+                // add test eventlistener for keydown
+                window.addEventListener("message", receiveMessage, false);
+                window.addEventListener("keydown", (event)=>{
+                    console.log("keydown event received");
+                })
             }
+            function receiveMessage(event) {
+                console.log("receiveMessage", event);
+                const message = event.data
+                if(message.type == "keydown") {
+                    console.log("keydown message received");
+                    console.log(message);
+                    // simulate keydown event
+                    window.dispatchEvent(new KeyboardEvent('keydown', message.data));
+                }
+            }
+            
+            console.log("testevent");
 
         </script>
         <script type="text/javascript" src="/static/pagecameldefaultlayout.js[% URLReloadPostfix %]"></script>
