@@ -74,7 +74,13 @@
                 // auto-uninline onfoo html tags to JS file
             }
 
+            function defaultlayoutExtraOnLoad() {
+                console.log("defaultlayoutExtraOnLoad()");
+                // handle iFrame virtual keypresses if used on touch screen
+
+            }
         </script>
+
         <script type="text/javascript" src="/static/pagecameldefaultlayout.js[% URLReloadPostfix %]"></script>
 
         [% IF ExtraHEADElements %]
