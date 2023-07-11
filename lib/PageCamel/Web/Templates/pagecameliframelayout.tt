@@ -76,21 +76,31 @@
                 // add test eventlistener for keydown
                 window.addEventListener("message", receiveMessage, false);
                 window.addEventListener("keydown", (event)=>{
-                    console.log("keydown event received");
-                })
+                    console.log("keydown event received", event);
+                });
+                window.addEventListener("keyup", (event)=>{
+                    console.log("keyup event received", event);
+                });
             }
             function receiveMessage(event) {
+
                 console.log("receiveMessage", event);
-                const message = event.data
-                if(message.type == "keydown") {
-                    console.log("keydown message received");
-                    console.log(message);
+                const message = event.data;
+                if (message.type == "keydown") {
+                    const target = $(document.activeElement);
+                    console.log("keydown message received", message);
+                    console.log("target", target);
                     // simulate keydown event
-                    window.dispatchEvent(new KeyboardEvent('keydown', message.data));
+                    target.trigger($.Event('keydown', message.data));
+                    target.trigger($.Event('keyup', message.data));
+                    // now simulate input event
+                    // target.val(target.val() + message.data.key);
+                    // target.trigger($.Event('input', message.data));
+                    // target.trigger($.Event('keypress', message.data));
                 }
+
             }
             
-            console.log("testevent");
 
         </script>
         <script type="text/javascript" src="/static/pagecameldefaultlayout.js[% URLReloadPostfix %]"></script>
