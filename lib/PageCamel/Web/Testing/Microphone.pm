@@ -121,7 +121,7 @@ sub wshandlemessage($self, $message) {
         }
         print STDERR "Recording to ", $self->{tmpdir} . '/rawaudio.dat', "\n";
         print STDERR "Got START\n";
-        open(my $ofh, '>', $self->{tmpdir} . '/rawaudio.dat') or croak($ERRNO); ## no critic (InputOutput::RequireBriefOpen)
+        open(my $ofh, '>', $self->{tmpdir} . '/rawaudio.dat') or croak("$ERRNO"); ## no critic (InputOutput::RequireBriefOpen)
         binmode $ofh;
         $self->{ofh} = $ofh;
     } elsif($message->{type} eq 'STOP') {
@@ -216,7 +216,7 @@ sub wshandlemessage($self, $message) {
         if(!defined($self->{audio}->{playbackfh}) && @{$self->{audio}->{playbackqueue}}) {
             my $ifname = shift @{$self->{audio}->{playbackqueue}};
             print STDERR "Opening file $ifname for playback.\n";
-            open(my $ifh, "<", $ifname) or croak($ERRNO); ## no critic (InputOutput::RequireBriefOpen)
+            open(my $ifh, "<", $ifname) or croak("$ERRNO"); ## no critic (InputOutput::RequireBriefOpen)
             #local $INPUT_RECORD_SEPARATOR = undef;
             binmode($ifh);
             $self->{audio}->{playbackfh} = $ifh;

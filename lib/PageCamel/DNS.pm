@@ -798,7 +798,7 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
         # to somehow signify the end of the AXFR zone transfer....?!?!?!?
         push @lines, $lines[0];
 
-        open(my $ofh, '>', '/home/cavac/temp/axfr.txt') or croak($ERRNO);
+        open(my $ofh, '>', '/home/cavac/temp/axfr.txt') or croak("$ERRNO");
         print $ofh Dumper(\@lines);
         close $ofh;
     } elsif($qtype eq 'SOA') {

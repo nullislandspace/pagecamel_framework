@@ -40,7 +40,7 @@ sub process_request($self) {
 
     # Parse the RADIUS dictionary file (must have dictionary in current dir)
     my $dict = RADIUS::Dictionary->new("dictionary")
-      or croak "Couldn't read dictionary: $ERRNO";
+      or croak("Couldn't read dictionary: $ERRNO");
 
     my $um = PageCamel::Radius::OATHusers->new();
 

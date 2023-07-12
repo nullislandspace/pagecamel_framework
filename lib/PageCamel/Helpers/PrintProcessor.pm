@@ -211,6 +211,17 @@ sub printAddDoubleLine($self) {
     return;
 }
 
+sub printAddDottedLine($self) {
+    for(my $i = 0; $i < $self->{width}; $i += 6) {
+        $self->{img}->filledRectangle($i, $self->{imgoffs} + 5, $i + 3,
+                                          $self->{imgoffs} + 1 + 5,
+                                          $self->{imgblack});
+    }
+    $self->{imgoffs} += 24;
+
+    return;
+}
+
 sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $doscale = true, $center = false) {
     
     my $reph = $self->{reph};

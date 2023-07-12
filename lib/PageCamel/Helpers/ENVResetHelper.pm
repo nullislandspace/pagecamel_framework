@@ -36,7 +36,7 @@ sub ENVReset {
         return;
     }
 
-    open(my $ifh, '<', $fname) or croak($ERRNO);
+    open(my $ifh, '<', $fname) or croak("$ERRNO");
     while((my $line = <$ifh>)) {
         chomp $line;
         if($line =~ /^([A-Za-z0-9_]+)=(.*)/) {

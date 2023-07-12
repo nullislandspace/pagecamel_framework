@@ -205,7 +205,7 @@ sub work_day($self) {
 
     { # Schedule DirSync
         my $selsth = $dbh->prepare_cached("SELECT * FROM dirsync ORDER BY sync_name")
-                or croak($dbh->errsttr);
+                or croak("$dbh->errsttr");
         my @syncs;
         if($selsth->execute) {
             while((my $line = $selsth->fetchrow_hashref)) {

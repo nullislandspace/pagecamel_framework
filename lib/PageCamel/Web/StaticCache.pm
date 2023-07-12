@@ -151,7 +151,7 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
         push @ignore, 'pagecamel.xml';
     }
 
-    opendir(my $dfh, $basedir) or croak($ERRNO);
+    opendir(my $dfh, $basedir) or croak("$ERRNO");
     while((my $fname = readdir($dfh))) {
         next if($fname =~ /^\./); # Ignore hidden files and dirs
 
@@ -172,7 +172,7 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
         }
 
         if($fname eq 'gettranslatekeys.dat') {
-            open(my $ifh, '<', $nfname) or croak($!);
+            open(my $ifh, '<', $nfname) or croak("$!");
             while((my $line = <$ifh>)) {
                 chomp $line;
                 if(length($line)) {
@@ -401,6 +401,9 @@ sub get($self, $ua) {
 
     if($self->{cache}->{$name}->{dynamic}) {
         print STDERR "------ $name is a dynamic file, checking for newer version\n";
+        $cachecontrol = "no-cache, no-store, must-revalidate";
+        $expires = 'now';
+
         my $newlastmodified = getLastModifiedWebdate($self->{cache}->{$name}->{fullname});
         my $tmp = parseWebdate($newlastmodified);
         $newlastmodified = getWebdate($tmp);
@@ -411,9 +414,6 @@ sub get($self, $ua) {
             $self->{cache}->{$name}->{size} = length($data);
             $self->{cache}->{$name}->{"Last-Modified"} = $newlastmodified;
             $self->{cache}->{$name}->{etag} = sha1_hex($newlastmodified) . sha1_hex($data);
-
-            $cachecontrol = "no-cache, no-store, must-revalidate";
-            $expires = 'now';
         }
     }
 

@@ -308,7 +308,7 @@ sub sockethandler($self, $ua) {
             # Read data from websocket
             my $buf;
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                local $SIG{ALRM} = sub{croak "alarm"};
+                local $SIG{ALRM} = sub{croak("alarm")};
                 alarm 0.5;
                 my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
                 if(!$ua->{realsocket}) {
@@ -386,7 +386,7 @@ sub sockethandler($self, $ua) {
                     
                     # Generate local chunk checksums
                     if($lsize > 0) {
-                        open(my $ifh, '<', $updata{localname}) or croak($ERRNO);
+                        open(my $ifh, '<', $updata{localname}) or croak("$ERRNO");
                         binmode($ifh);
                         my $chunknum = 0;
                         
@@ -444,7 +444,7 @@ sub sockethandler($self, $ua) {
                                 croak("Internal error: New file must begin with first chunk!");
                             }
                         }
-                        open(my $ofh, $filemode, $upfiles[0]->{localname}) or croak($ERRNO);
+                        open(my $ofh, $filemode, $upfiles[0]->{localname}) or croak("$ERRNO");
                         binmode $ofh;
                         
                         seek($ofh, $seekto, 0);

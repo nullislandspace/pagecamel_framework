@@ -11,6 +11,7 @@ devscripts/compilejs.pl
 devscripts/debuginject.pl
 devscripts/debugremove.pl
 devscripts/findbrokenforms.pl
+devscripts/fixcroak.pl
 devscripts/fixpragmas.pl
 devscripts/nohss.pl
 devscripts/pgadmin4_install.txt

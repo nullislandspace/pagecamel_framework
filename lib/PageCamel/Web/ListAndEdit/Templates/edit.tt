@@ -107,23 +107,23 @@
                                             [% ELSIF column.displaytype == "textarea" %]
                                                 [% IF column.charcount > 0 %]
                                                     <div displaytype="charcount" charcount="[% column.charcount %]">
-                                                        <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" ccpart="input" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]">[% tr.quote(column.columnvalue) %]</textarea>
+                                                        <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" ccpart="input" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]" subtype="textarea">[% tr.quote(column.columnvalue) %]</textarea>
                                                         <br/><div id="[% tr.quote(column.columnname) %]_charcount" ccpart="count">...</div>
                                                     </div>
                                                 [% ELSE %]
-                                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]">[% tr.quote(column.columnvalue) %]</textarea>
+                                                    <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" displayname="[% tr.trquote( column.displayname) %]" activetab="[% currentTabName %]" mustfield="[% column.mustfield %]" subtype="textarea">[% tr.quote(column.columnvalue) %]</textarea>
                                                 [% END %]
                                             [% ELSIF column.displaytype == "textarea-readonly" %]
-                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" readonly="readonly">[% tr.quote(column.columnvalue) %]</textarea>
+                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" readonly="readonly" subtype="readonly">[% tr.quote(column.columnvalue) %]</textarea>
                                             [% ELSIF column.displaytype == "editor" %]
-                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" displaytype="editor">[% column.columnvalue %]</textarea>
+                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" displaytype="editor" subtype="editor">[% column.columnvalue %]</textarea>
                                             [% ELSIF column.displaytype == "scripteditor" %]
-                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" displaytype="scripteditor">[% tr.quote(column.columnvalue) %]</textarea>
+                                                <textarea name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" cols="[% column.cols %]" rows="[% column.rows %]" displaytype="scripteditor" subtype="scripteditor">[% tr.quote(column.columnvalue) %]</textarea>
                                             [% ELSIF column.displaytype == "codedisplay" %]
                                                 <pre><code>[% tr.quote(column.columnvalue) %]</code></pre>
                                             [% ELSIF column.displaytype == "number" %]
                                                 <input
-                                                [% IF TouchinputEnabled=="1" %]
+                                                [% IF TouchinputEnabled=="1" || iFrameMode != '' %]
                                                     type="text"
                                                 [% ELSE %]
                                                     type="number"
@@ -743,38 +743,59 @@
         };
 
         var fields = ttvars.editcolumnlist.split(";");
-        fields.forEach(function(field) {
-            var parts = field.split("=");
-            var fname = parts[0];
-            var ftype = parts[1];
-            var fid = fname + '_id';
-            var fieldvalue = '##FAIL##';
-            if(ftype == 'editor') {
-                fieldvalue = CVCEDITOR.instances[fid].getData();
-            } else if(ftype == 'enum' || ftype == 'subenum') {
-                fieldvalue = $('select[name=' + fname + '] option').filter(':selected').val();
-            } else if(ftype == 'array') {
-                var count =  $('input[name=' + fname + '_count]').val();
-                savedata[fname + '_count'] = count;
-                var i;
-                for(i = 0; i < count; i++) {
-                    savedata[fname + '_' + i] = $('input[name=' + fname + '_' + i + ']').val();
-                }
-                fname = '';
-            } else if(ftype == 'scripteditor') {
-                codemirrors[fname].save();
-                fieldvalue = $('textarea[name=' + fname + ']').val();
-            } else if(ftype == 'textarea') {
-                fieldvalue = $('textarea[name=' + fname + ']').val();
+        console.log(fields);
+
+        console.log("INPUT fields:");
+        $('#MainForm input').each(function(index) {
+            var name = $(this).attr("name");
+            var id = $(this).attr("id");
+            var type = $(this).attr("type");
+            if(type == 'button') {
+                console.log("  IGNORE Button " + id);
+            } else if(name == 'mode') {
+                // Ignore
+            } else if(name != '') {
+                var fieldvalue = $('input[name=' + name + ']').val();
+                savedata[name] = fieldvalue;
+                console.log("  " + name + '  /  ' + id + '  /  ' + type + '  =  ' + fieldvalue);
             } else {
-                fieldvalue = $('input[name=' + fname + ']').val();
-            }
-            if(fname != '') {
-                savedata[fname] = fieldvalue;
+                console.log("  IGNORE " + name + '  /  ' + id);
             }
         });
 
-        //console.log(savedata);
+        console.log("SELECT fields:");
+        $('#MainForm select').each(function(index) {
+            var name = $(this).attr("name");
+            var id = $(this).attr("id");
+            var fieldvalue = $('select[name=' + name + '] option').filter(':selected').val();
+            console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
+            savedata[name] = fieldvalue;
+        });
+
+        console.log("TEXTAREA fields:");
+        $('#MainForm textarea').each(function(index) {
+            var name = $(this).attr("name");
+            var id = $(this).attr("id");
+            var subtype = $(this).attr("subtype");
+            if(subtype == 'readonly' || subtype == 'textarea') {
+                var fieldvalue = $('textarea[name=' + name + ']').val();
+                console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
+                savedata[name] = fieldvalue;
+            } else if(subtype == 'editor') {
+                fieldvalue = CVCEDITOR.instances[name + '_id'].getData();
+                console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
+                savedata[name] = fieldvalue;
+            } else if(subtype == 'scripteditor') {
+                codemirrors[name].save();
+                fieldvalue = $('textarea[name=' + name + ']').val();
+                console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
+                savedata[name] = fieldvalue;
+            } else {
+                console.log("  UNSUPPORTED textarea type for ID " + id);
+            }
+        });
+
+        console.log(savedata);
 
         $.ajax({
             type: "POST",

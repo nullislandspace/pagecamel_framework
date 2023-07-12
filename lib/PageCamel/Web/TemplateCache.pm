@@ -167,7 +167,7 @@ sub load_dir($self, $dir, $base, $files) {
     $base =~ s/^\///o;
     $base =~ s/\/$//o;
 
-    opendir(my $dfh, $dir) or croak($ERRNO);
+    opendir(my $dfh, $dir) or croak("$ERRNO");
     while((my $fname = readdir($dfh))) {
         next if($fname !~ /\.tt$/);
         my $nfname = $dir . "/" . $fname;

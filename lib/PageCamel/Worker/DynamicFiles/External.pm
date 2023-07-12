@@ -130,7 +130,7 @@ sub do_dynamicexternalfiles_update_database($self, $arguments) {
         %files = $self->find_files($localdir, '/', $dbmodule, $filesdontchange, $lazymetadata);
         $findok = 1;
     };
-    croak($EVAL_ERROR) if ($EVAL_ERROR);
+    croak("$EVAL_ERROR") if ($EVAL_ERROR);
     croak("failed to load list of files") unless($findok);
     $memh->refresh_lifetick;
 
@@ -235,7 +235,7 @@ sub find_files($self, $realdir, $virtdir, $dbmodule, $filesdontchange, $lazymeta
         $self->{lastscandebug} = time;
     }
     my $fcount = 0;
-    opendir(my $dfh, $realdir) or croak($ERRNO);
+    opendir(my $dfh, $realdir) or croak("$ERRNO");
     while((my $fname = readdir($dfh))) {
         next if($fname eq '.' || $fname eq '..');
 

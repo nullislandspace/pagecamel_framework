@@ -95,7 +95,7 @@ sub do_postfix_update_aliases($self, $arguments) {
     }
     $selsth->finish;
     $dbh->rollback;
-    open(my $ofh, '>', '/etc/aliases') or croak($ERRNO);
+    open(my $ofh, '>', '/etc/aliases') or croak("$ERRNO");
     foreach my $line (@lines) {
         print $ofh $line, "\n";
     }
