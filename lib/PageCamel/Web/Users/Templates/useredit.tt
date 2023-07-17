@@ -159,7 +159,7 @@
     function initFobReader() {
         $('#readfobbutton').on('click', function() {
 
-            fobreader.open("GET", 'http://localhost:8080', true);
+            fobreader.open("GET", '/user/fobreader', true);
             fobreader.onreadystatechange=function() {
                 if(fobreader.readyState == 4) {
                     var newfob = fobreader.responseText;
