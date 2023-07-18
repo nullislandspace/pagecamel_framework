@@ -208,7 +208,7 @@
         if(fobloginrunning == 1) {
             return;
         }
-        fobreader.open("GET", '/user/fobreader', true);
+        fobreader.open("GET", '/user/fobreader?keychange=ignore', true);
         fobreader.onreadystatechange=function() {
             if(fobreader.readyState == 4) {
                 var newfob = fobreader.responseText;
