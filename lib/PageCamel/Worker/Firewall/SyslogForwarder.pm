@@ -52,7 +52,7 @@ sub register($self) {
         Listen => 1,
         ReuseAddr => 1,
         Blocking => 0,
-    ) or croak($EVAL_ERROR);
+    ) or croak("$EVAL_ERROR");
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = $self->newClacksFromConfig($clconf);

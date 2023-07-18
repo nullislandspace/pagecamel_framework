@@ -9,6 +9,7 @@ export declare class PCSqlite {
     private _promiseInitialize;
     private _SQL;
     private _binWorker;
+    private _versionNumber;
     constructor(config: initSqlJs.SqlJsConfig, dbname?: string, debug?: boolean);
     private _randomDBID;
     get dbstring(): string;

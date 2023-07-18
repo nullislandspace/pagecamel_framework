@@ -41,6 +41,9 @@ export class PCSqlite {
     private _SQL: SqlJsStatic | null;
     private _binWorker: Worker;
 
+    // Version number of the database if it is changed, the local storage will be cleared
+    private _versionNumber: number = 2; 
+
     constructor(config: initSqlJs.SqlJsConfig, dbname = "", debug = false) {
         this._dbloaded = false;
         this._isdebug = debug;
@@ -97,6 +100,13 @@ export class PCSqlite {
         dbname = ""
     ): Promise<string> {
         return new Promise((resolve, reject) => {
+            if(this._versionNumber > Number(window.localStorage.getItem('versionNumber'))){
+                console.log("Clearing local storage");
+                window.localStorage.clear();
+                console.log("Setting version number to " + this._versionNumber.toString());
+                window.localStorage.setItem('versionNumber', this._versionNumber.toString());
+            }
+
             if (initSqlJs instanceof Function) {
                 if (this._isdebug)
                     console.debug("================ sql.js loaded");
@@ -188,7 +198,7 @@ export class PCSqlite {
                 /*if (this._isdebug) {
                     console.debug(statement);
                 }*/
-
+                
                 let dbstr: string | null = null;
                 if (this._dbname != "") {
                     var storeddbid: string | null = window.localStorage.getItem(

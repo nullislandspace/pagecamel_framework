@@ -207,7 +207,7 @@ sub find_files($self, $realdir, $virtdir, $dbmodule, $filesdontchange) {
     $memh->refresh_lifetick;
 
     $reph->debuglog_overwrite("DYNFILES $dbmodule:     Scanning $virtdir");
-    opendir(my $dfh, $realdir) or croak($ERRNO);
+    opendir(my $dfh, $realdir) or croak("$ERRNO");
     while((my $fname = readdir($dfh))) {
         next if($fname eq '.' || $fname eq '..');
 

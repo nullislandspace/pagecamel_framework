@@ -27,7 +27,7 @@ sub slurpTextFile($fname) {
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
     # to work around the multiple idiosynchrasies of Perl on Windows
-    open(my $fh, "<", $fname) or croak($ERRNO);
+    open(my $fh, "<", $fname) or croak("$ERRNO");
     local $INPUT_RECORD_SEPARATOR = undef;
     binmode($fh);
     my $data = <$fh>;
@@ -50,7 +50,7 @@ sub slurpBinFile($fname) {
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
     # to work around the multiple idiosynchrasies of Perl on Windows
-    open(my $fh, "<", $fname) or croak($ERRNO);
+    open(my $fh, "<", $fname) or croak("$ERRNO");
     local $INPUT_RECORD_SEPARATOR = undef;
     binmode($fh);
     my $data = <$fh>;
@@ -90,7 +90,7 @@ sub writeBinFile($fname, $data) {
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
     # to work around the multiple idiosynchrasies of Perl on Windows
-    open(my $fh, ">", $fname) or croak($ERRNO);
+    open(my $fh, ">", $fname) or croak("$ERRNO");
     local $INPUT_RECORD_SEPARATOR = undef;
     binmode($fh);
     print $fh $data;

@@ -33,7 +33,7 @@ unlink($tmpfile);
 unlink($minified);
 
 print "### Compiling ###\n";
-open(my $ofh, '>:encoding(utf-8)', $tmpfile) or croak($ERRNO);
+open(my $ofh, '>:encoding(utf-8)', $tmpfile) or croak("$ERRNO");
 foreach my $file (@files) {
     chomp $file;
     next if($file =~ /^\#/);
@@ -42,7 +42,7 @@ foreach my $file (@files) {
         die("File $fname not found!");
     }
 
-    open(my $ifh, '<:encoding(utf-8)', $fname) or croak($ERRNO);
+    open(my $ifh, '<:encoding(utf-8)', $fname) or croak("$ERRNO");
     while((my $line = <$ifh>)) {
         if($line =~ /\_trquote/) {
             #print "< ", $line;

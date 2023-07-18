@@ -526,7 +526,7 @@ sub sockethandler($self, $ua) {
     local $SIG{PIPE} = sub { $brokenpipe = 1; };
 
     if($recordsession) {
-        open($rfh, '>', '/home/cavac/src/temp/vncrecord_' . $session->{ip_address} . '.dat') or croak($ERRNO); ## no critic (InputOutput::RequireBriefOpen)
+        open($rfh, '>', '/home/cavac/src/temp/vncrecord_' . $session->{ip_address} . '.dat') or croak("$ERRNO"); ## no critic (InputOutput::RequireBriefOpen)
         print $rfh "var VNC_frame_encoding = 'binary';\n";
         print $rfh "var VNC_frame_data = [\n";
     }

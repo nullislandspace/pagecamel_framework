@@ -105,7 +105,7 @@ sub run($self) {
         if(!defined($ifh)) {
             my $fname = shift @filenames;
             print "Now Playing $fname\n";
-            open($ifh, '<', $fname) or croak($ERRNO);
+            open($ifh, '<', $fname) or croak("$ERRNO");
             binmode $ifh;
         }
         if(scalar @buffer < ($SAMPLERATE * 5)) {

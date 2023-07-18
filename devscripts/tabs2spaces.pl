@@ -25,7 +25,7 @@ my @files = (find_files('lib'), find_files('devscripts'));
 print "Changing files:\n";
 foreach my $file (@files) {
     print "Fixing $file...\n";
-    open(my $ifh, '<', $file) or croak($ERRNO);
+    open(my $ifh, '<', $file) or croak("$ERRNO");
     my @lines = <$ifh>;
     close $ifh;
     open(my $ofh, '>', $file);

@@ -1236,6 +1236,11 @@ sub get_list($self, $ua, $usemasterlayout = true) {
         iFrameMode => $self->{iframemode},
     );
 
+    # Disable touch input in iframe mode
+    if($self->{iframemode} ne '') {
+        $webdata{TouchinputEnabled} = 0;
+    }
+
     if($self->{send_csv}) {
         $webdata{SendCSVAjaxPath} = $self->{webpath} . '/sendcsvlist';
     }
@@ -1857,6 +1862,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         SidebarHTML => $self->{edit}->{sidebarhtml},
         iFrameMode => $self->{iframemode},
     );
+     
+    # Disable touch input in iframe mode
+    if($self->{iframemode} ne '') {
+        $webdata{TouchinputEnabled} = 0;
+    }
 
     if($self->{autosave}) {
         $webdata{PAGECAMELPAGEFOOTERCOLOR} = 'white';

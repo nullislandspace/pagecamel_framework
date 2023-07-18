@@ -129,7 +129,7 @@ sub work($self) {
             return 0;
         } else {
             # something bad happened!
-            croak($EVAL_ERROR);
+            croak("$EVAL_ERROR");
         }
     }
 
