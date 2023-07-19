@@ -72,7 +72,48 @@
         <script type="text/javascript">
             function eventHandlerInitialization() {
                 // auto-uninline onfoo html tags to JS file
+                console.log("eventHandlerInitialization");
+                // add test eventlistener for keydown
+                window.addEventListener("message", receiveMessage, false);
+                // window.addEventListener("keydown", (event)=>{
+                //     console.log("keydown event received", event);
+                // });
+                // window.addEventListener("keyup", (event)=>{
+                //     console.log("keyup event received", event);
+                // });
+
+                /*
+                $("#blabutton").on("click", function() {
+                    //$('#article_name_id').val("BLA");
+                    var xevent = jQuery.Event('keypress');
+                    xevent.which = 65; 
+                    xevent.keyCode = 65; //keycode to trigger this for simulating enter
+                    $('#article_name_id').trigger(xevent); 
+                });
+                */
             }
+            function receiveMessage(event) {
+
+                console.log("receiveMessage", event);
+                const message = event.data;
+                if (message.type == "keydown") {
+                    
+                    
+                    const target = $(document.activeElement);
+                    // const target = $("#article_name_id");
+                    console.log("keydown message received");
+                    console.log("target", target);
+                    if(target.is("input") || target.is("textarea")) {
+                        // simulate keydown event
+                        target.trigger($.Event('keydown'));
+                        target.trigger($.Event('keyup'));
+                    }
+
+                    
+                }
+
+            }
+            
 
             function defaultlayoutExtraOnLoad() {
                 console.log("defaultlayoutExtraOnLoad()");
