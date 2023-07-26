@@ -92,8 +92,10 @@
                     <tr>
                         <td align="right">[% tr.trquote("Hardware fob") %]</td>
                         <td align="left">
-                            <input type="text" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob"><br>
-                            <input type="Button" value="[% tr.trquote("Read Fob") %]" id="readfobbutton">
+                            <div id="fobdiv">
+                                <input type="text" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob"><br>
+                                <input type="Button" value="[% tr.trquote("Read Fob") %]" id="readfobbutton">
+                            </div>
                         </td>
                     </tr>
                 [% ELSE %]
@@ -142,6 +144,7 @@
 <span id="masktemplatedataset"
     data-accountlocked="[% account_locked %]"
     data-trquote-encryptingpassword="[% tr.trquote("Encrypting password...") %]"
+    data-trquote-loading="[% tr.trquote("Loading...") %]"
     data-forcelowercase="[% forcelowercase %]"
     data-foblogin="[% FobLogin %]"
 ></span>
@@ -158,12 +161,14 @@
     fobreader = new XMLHttpRequest();
     function initFobReader() {
         $('#readfobbutton').on('click', function() {
+            $('#fobdiv').block({ message: ttvars.trquote.Loading });
 
-            fobreader.open("GET", 'http://localhost:8080', true);
+            fobreader.open("GET", '/user/fobreader?keychange=ignore', true);
             fobreader.onreadystatechange=function() {
                 if(fobreader.readyState == 4) {
                     var newfob = fobreader.responseText;
                     $('#hardware_fob').val(newfob);
+                    $('#fobdiv').unblock();
                 }
             }
             fobreader.send(null);
