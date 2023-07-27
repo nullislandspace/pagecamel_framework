@@ -1,7 +1,7 @@
 import { PCSqlite } from "./sqlite.js";
 
 interface CallbackType {
-    (messagename: string, data: string): void;
+    (messagename: string, data: string | object): void;
 }
 
 declare function wstransmit(msgname: string, data: string, msgid?: string): any;
