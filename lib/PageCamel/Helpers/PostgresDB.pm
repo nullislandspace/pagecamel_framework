@@ -104,7 +104,7 @@ sub getColumnType($self, $xtable, $xcolumn) {
     $self->checkDBH();
 
     my $xdebug = 0;
-    if($table eq 'pos.workstations' && $column =~ /printerqueue/) {
+    if(0 && $table eq 'pos.workstations' && $column =~ /printerqueue/) {
         $xdebug = 1;
     }
 

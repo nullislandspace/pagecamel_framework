@@ -1,6 +1,6 @@
 import { PCSqlite } from "./sqlite.js";
 interface CallbackType {
-    (messagename: string, data: string): void;
+    (messagename: string, data: string | object): void;
 }
 export declare class PCWebsocket {
     private _isconnected;
