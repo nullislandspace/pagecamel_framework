@@ -182,9 +182,16 @@
                                                         [% selectvaluefound = 0 %]
                                                         [% FOREACH enumvalue IN column.enum_values %]
                                                         <option value="[% enumvalue.selectorenumvalue %]"
-                                                        [% IF enumvalue.selectorenumvalue == column.columnvalue %]
-                                                            selected="selected"
-                                                            [% selectvaluefound = 1 %]
+                                                        [% IF column.compareasnumber == 1 %]
+                                                            [% IF column.columnvalue != '' && 0 + enumvalue.selectorenumvalue == 0 + column.columnvalue %]
+                                                                selected="selected"
+                                                                [% selectvaluefound = 1 %]
+                                                            [% END %]
+                                                        [% ELSE %]
+                                                            [% IF enumvalue.selectorenumvalue == column.columnvalue %]
+                                                                selected="selected"
+                                                                [% selectvaluefound = 1 %]
+                                                            [% END %]
                                                         [% END %]
                                                         >
                                                                 [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
@@ -232,8 +239,14 @@
                                                         <select name="[% tr.quote(column.columnname) %]_[% arraycount %]" id="[% tr.quote(column.columnname) %]_[% arraycount %]" searchable="[% column.searchable %]" extendable="[% column.extendable %]" [% IF column.colorselector == 1 %]customformat="1"[% END %]>
                                                             [% FOREACH enumvalue IN column.enum_values %]
                                                                 <option value="[% enumvalue.selectorenumvalue %]"
-                                                                [% IF enumvalue.selectorenumvalue == arrayvalue %]
-                                                                    selected="selected"
+                                                                [% IF column.compareasnumber == 1 && arrayvalue != '' && enumvalue.selectorenumvalue != '' %]
+                                                                    [% IF (0 + enumvalue.selectorenumvalue) == (0 + arrayvalue) %]
+                                                                        selected="selected"
+                                                                    [% END %]
+                                                                [% ELSE %]
+                                                                    [% IF enumvalue.selectorenumvalue == arrayvalue %]
+                                                                        selected="selected"
+                                                                    [% END %]
                                                                 [% END %]
                                                                 >
                                                                     [% IF column.descriptiononly == 1 || column.colorselector == 1 %]
