@@ -750,6 +750,10 @@ sub validateEditItem($self, $item, $multiarraymode) {
             #print "    EDIT: type $item->{type} does not define 'extendable', defaulting to 0\n";
             $item->{extendable} = 0;
         }
+        if(!defined($item->{compareasnumber})) {
+            #print "    EDIT: type $item->{type} does not define 'compareasnumber', defaulting to 0\n";
+            $item->{compareasnumber} = 0;
+        }
     }
 
     if($item->{type} eq 'enumarray' && !defined($item->{spares})) {
@@ -1015,7 +1019,7 @@ sub get($self, $ua) {
     $filename =~ s/^\///;
     $filename =~ s/\/$//;
     $filename = stripString($filename);
-    print STDERR "##### FILENAME $filename ######";
+    #print STDERR "##### FILENAME $filename ######";
     if($filename ne '') {
         if($filename =~ /^NEW/) {
             $filename =~ s/^NEW\///;
@@ -2354,7 +2358,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     delete $line->{$alias};
                 }
             }
-            #foreach my $column (@{$self->{editcolumns}}, @{$self->{readonlycolumns}}) {
+
             foreach my $column (@allcolumns) {
                 if(!defined($line->{$column})) {
                     $line->{$column} = '';
@@ -2840,6 +2844,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         $column{enum_values} = \@enum_values;
         $column{searchable} = $item->{searchable};
         $column{extendable} = $item->{extendable};
+        $column{compareasnumber} = $item->{compareasnumber};
         $column{colorselector} = $item->{colorselector};
         $column{descriptiononly} = $item->{descriptiononly};
         $column{multilanguage} = $item->{multilanguage};
@@ -2954,15 +2959,18 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             );
             unshift @enum_values, \%emptyval;
         }
-
         $column{enum_values} = \@enum_values;
         $column{searchable} = $item->{searchable};
         $column{colorselector} = $item->{colorselector};
         $column{descriptiononly} = $item->{descriptiononly};
         $column{multilanguage} = $item->{multilanguage};
+        #$column{extendable} = $item->{extendable};
+        $column{compareasnumber} = $item->{compareasnumber};
+
         if(!defined($column{columnvalue}) || ref $column{columnvalue} ne 'ARRAY') {
             $column{columnvalue} = [];
         }
+        
         for(1..$item->{spares}) {
             push @{$column{columnvalue}}, '';
         }
