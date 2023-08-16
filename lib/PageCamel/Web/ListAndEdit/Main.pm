@@ -2139,8 +2139,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             }
             my $arraycount = stripString($ua->{postparams}->{$column . '_count'} || '');
             if($arraycount eq '') {
-                my $tmp = stripString($ua->{postparams}->{$column} || '');
-
+                my $tmp = '';
+                if(defined($ua->{postparams}->{$column})) {
+                    $tmp = stripString($ua->{postparams}->{$column});
+                }
+                
                 # Force "restrict" columns
                 if(defined($self->{restrict})) {
                     foreach my $clauseitem (@{$self->{restrict}->{item}}) {
