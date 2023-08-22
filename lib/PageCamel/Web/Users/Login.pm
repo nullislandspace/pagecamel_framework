@@ -83,6 +83,10 @@ sub new($proto, %config) {
         $self->{forcelowercase} = 1;
     }
 
+    if(defined($self->{login}) && !defined($self->{login}->{userlistdropdown})) {
+        $self->{login}->{userlistdropdown} = 0;
+    }
+
     return $self;
 }
 
@@ -542,6 +546,33 @@ sub get_login($self, $ua) {
     $webdata{ExtraLoginHTML} = '';
     if(defined($self->{login}->{extraloginhtml})) {
         $webdata{ExtraLoginHTML} = $self->{login}->{extraloginhtml};
+    }
+
+    if(!defined($webdata{statustext})) {
+        $webdata{statustext} = '';
+    }
+    if(!defined($webdata{statuscolor})) {
+        $webdata{statuscolor} = '';
+    }
+
+    # Prepare data for user dropdown if required
+    $webdata{userlistdropdown} = $self->{login}->{userlistdropdown};
+    if($self->{login}->{userlistdropdown} && ($webdata{statustext} ne '' || $webdata{statuscolor} ne 'okcolor')) {
+        my $userselsth = $dbh->prepare_cached("SELECT username, first_name || ' ' || last_name AS fullname
+                                               FROM users
+                                               ORDER BY username")
+                or croak($dbh->errstr);
+        if(!$userselsth->execute) {
+            croak($dbh->errstr);
+        }
+        my @users;
+        while((my $line = $userselsth->fetchrow_hashref)) {
+            push @users, $line;
+        }
+        $userselsth->finish;
+        $dbh->commit;
+        #print STDERR Dumper(\@users);
+        $webdata{userlist} = \@users;
     }
 
     eval {
