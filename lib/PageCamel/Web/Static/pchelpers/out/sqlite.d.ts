@@ -9,7 +9,8 @@ export declare class PCSqlite {
     private _promiseInitialize;
     private _SQL;
     private _binWorker;
-    private _versionNumber;
+    private _dbVersion;
+    private _dbStoreName;
     constructor(config: initSqlJs.SqlJsConfig, dbname?: string, debug?: boolean);
     private _randomDBID;
     get dbstring(): string;
@@ -20,6 +21,8 @@ export declare class PCSqlite {
     private _SQLtoBinString;
     private _logdebug;
     executeSQL(statement: string, ...args: string[]): initSqlJs.ParamsObject[] | null;
-    save(): void;
+    private _saveToIndexedDB;
+    private _loadFromIndexedDB;
+    save(): Promise<void>;
     reset(): boolean;
 }
