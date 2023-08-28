@@ -10,15 +10,11 @@ export declare class PCSqlite {
     private _SQL;
     private _binWorker;
     private _dbVersion;
-    private _dbStoreName;
-    private _dbid;
     constructor(config: initSqlJs.SqlJsConfig, dbname?: string, debug?: boolean);
-    private _randomDBID;
     get dbstring(): string;
     get initialize(): Promise<string>;
     get db(): initSqlJs.Database | null;
     set autocommit(ac: boolean);
-    private _getDBID;
     private _initialize;
     private _SQLtoBinArray;
     private _SQLtoBinString;

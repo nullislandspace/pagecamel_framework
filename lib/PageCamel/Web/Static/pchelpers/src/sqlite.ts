@@ -31,17 +31,15 @@ export class PCSqlite {
     private _SQL: SqlJsStatic | null;
     private _binWorker: Worker;
     private _dbVersion: number = 1;
-    private _dbStoreName: string = "pcsqlite";
-    private _dbid: string = "";
 
     constructor(config: initSqlJs.SqlJsConfig, dbname = "", debug = false) {
         this._dbloaded = false;
         this._isdebug = debug;
         this._db = null;
-        // this._dbname = dbname;
+        this._dbname = dbname;
         this._autocommit = true;
         this._SQL = null;
-        this._promiseInitialize = this._initialize(config, dbname);
+        this._promiseInitialize = this._initialize(config);
 
         this._binWorker = new Worker("/static/pchelpers/out/SQLtoBinWorker.js");
 
@@ -56,12 +54,6 @@ export class PCSqlite {
             }
         };
         this._binWorker.postMessage(["START", ""]);
-    }
-
-    private _randomDBID(): string {
-        return (
-            Date.now().toString() + "_" + (Math.random() * 100000).toString()
-        );
     }
 
     get dbstring(): string {
@@ -83,23 +75,7 @@ export class PCSqlite {
     set autocommit(ac: boolean) {
         this._autocommit = ac;
     }
-    private _getDBID(): string {
-        var dbid = window.localStorage.getItem(this._dbStoreName + "_dbid");
-        if (dbid) {
-            this._dbid = dbid;
-        } else {
-            this._dbid = this._randomDBID();
-            window.localStorage.setItem(
-                this._dbStoreName + "_dbid",
-                this._dbid
-            );
-        }
-        return this._dbid;
-    }
-    private _initialize(
-        config: initSqlJs.SqlJsConfig,
-        dbname = ""
-    ): Promise<string> {
+    private _initialize(config: initSqlJs.SqlJsConfig): Promise<string> {
         return new Promise((resolve, reject) => {
             if (initSqlJs instanceof Function) {
                 if (this._isdebug)
@@ -110,38 +86,20 @@ export class PCSqlite {
                         console.debug(
                             "####### PROMISE initSqlJs RESOLVED, PROMISE _initalize CALLED #######"
                         );
-                    var dbstr: string | null = null;
                     this._SQL = SQL;
-                    if (dbname != "") {
-                        this._loadFromIndexedDB().then(async (data) => {
-                            if (data) {
-                                var decompressed = LZString.decompress(data);
-                                this._db = new SQL.Database(
-                                    this._SQLtoBinArray(decompressed)
-                                );
-                            } else {
-                                this._db = new SQL.Database();
-                                this.save();
-                            }
-                            this._dbloaded = true;
-                            if (this._isdebug)
-                                console.debug(
-                                    "****  PCSqlite Database loaded ****"
-                                );
-                            this._dbid = this._getDBID();
-                            resolve("PCSqlite initialized");
-                        });
-                    } else {
-                        this._db = new SQL.Database();
-                        this.save();
-                        this._dbloaded = true;
-                        if (this._isdebug)
-                            console.debug(
-                                "****  PCSqlite Database loaded ****"
+                    this._loadFromIndexedDB().then(async (data) => {
+                        if (data) {
+                            var decompressed = LZString.decompress(data);
+                            this._db = new SQL.Database(
+                                this._SQLtoBinArray(decompressed)
                             );
-                        this._dbid = this._getDBID();
-                        resolve("PCSqlite initialized");
-                    }
+                        } else {
+                            this._db = new SQL.Database();
+                            this.save();
+                        }
+                        this._dbloaded = true;
+                        if (this._isdebug) resolve("PCSqlite initialized");
+                    });
                 });
             } else {
                 console.error("========= sql.js not loaded =========");
@@ -230,23 +188,20 @@ export class PCSqlite {
      *
      */
     private _saveToIndexedDB(data: string): void {
-        var request = window.indexedDB.open("pcsqlite", this._dbVersion);
+        var request = window.indexedDB.open(this._dbname, this._dbVersion);
         request.onerror = function (event) {
             console.error("IndexedDB error: ", event);
         };
         request.onsuccess = (event) => {
             const db = request.result;
-            const transaction = db.transaction(["pcsqlite"], "readwrite");
-            const objectStore = transaction.objectStore("pcsqlite");
+            const transaction = db.transaction([this._dbname], "readwrite");
+            const objectStore = transaction.objectStore(this._dbname);
             const putRequest = objectStore.put({ data: data, id: 1 });
             putRequest.onerror = function (event) {
-                console.error("IndexedDB error: ", event);
+                // console.error("IndexedDB error: ", event);
             };
             putRequest.onsuccess = (event) => {
-                const dbid = this._randomDBID();
-                this._dbid = dbid;
-                window.localStorage.setItem(this._dbStoreName + "_dbid", dbid);
-                console.debug("Database saved to IndexedDB");
+                // console.debug("Database saved to IndexedDB");
             };
             transaction.oncomplete = () => {
                 db.close();
@@ -262,26 +217,31 @@ export class PCSqlite {
      */
     private _loadFromIndexedDB(): Promise<string | null> {
         return new Promise((resolve, reject) => {
-            const request = window.indexedDB.open("pcsqlite", this._dbVersion);
+            const request = window.indexedDB.open(
+                this._dbname,
+                this._dbVersion
+            );
 
             request.onerror = function (event) {
                 console.error("IndexedDB error: ", event);
                 resolve(null);
             };
 
-            request.onupgradeneeded = function (event: any) {
+            request.onupgradeneeded = (event: any) => {
                 const db = event.target.result as IDBDatabase;
                 // remove the old store
-                if (db.objectStoreNames.contains("pcsqlite")) {
-                    db.deleteObjectStore("pcsqlite");
+                if (db.objectStoreNames.contains(this._dbname)) {
+                    db.deleteObjectStore(this._dbname);
                 }
-                db.createObjectStore("pcsqlite", { keyPath: "id" });
+                db.createObjectStore(this._dbname, { keyPath: "id" });
             };
 
             request.onsuccess = (event) => {
                 const db = request.result;
-                const transaction = db.transaction(["pcsqlite"], "readonly");
-                const objectStore = transaction.objectStore("pcsqlite");
+                const transaction = db.transaction([this._dbname], "readonly");
+                const objectStore = transaction.objectStore(
+                    this._dbname
+                );
                 const getRequest = objectStore.get(1);
 
                 getRequest.onerror = function (event) {
