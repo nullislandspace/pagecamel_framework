@@ -2139,8 +2139,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             }
             my $arraycount = stripString($ua->{postparams}->{$column . '_count'} || '');
             if($arraycount eq '') {
-                my $tmp = stripString($ua->{postparams}->{$column} || '');
-
+                my $tmp = '';
+                if(defined($ua->{postparams}->{$column})) {
+                    $tmp = stripString($ua->{postparams}->{$column});
+                }
+                
                 # Force "restrict" columns
                 if(defined($self->{restrict})) {
                     foreach my $clauseitem (@{$self->{restrict}->{item}}) {
@@ -2353,17 +2356,19 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             # Reverse-map the aliases
             foreach my $alias (sort keys %colaliases) {
                 if(exists($line->{$alias})) {
-                    #print STDERR "Reverse-mapping $alias\n";
+                    #print STDERR "Reverse-mapping $alias to ", $colaliases{$alias}, "\n";
                     $line->{$colaliases{$alias}} = $line->{$alias};
                     delete $line->{$alias};
                 }
             }
-
             foreach my $column (@allcolumns) {
-                if(!defined($line->{$column})) {
-                    $line->{$column} = '';
+                # also need to remove the " AS yadayada" alias
+                my $shortcolname = '' . $column;
+                $shortcolname =~ s/\ AS\ .*//;
+                if(!defined($line->{$shortcolname})) {
+                    $line->{shortcolnamecolumn} = '';
                 }
-                $colvalues{$column} = $line->{$column};
+                $colvalues{$shortcolname} = $line->{$shortcolname};
             }
         }
         $selsth->finish;
@@ -2501,6 +2506,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     if($self->{mastertemplate} ne '') {
         $usemasterlayout = $self->{mastertemplate};
     }
+
+    #print STDERR Dumper(\%webdata); 
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/edit", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
