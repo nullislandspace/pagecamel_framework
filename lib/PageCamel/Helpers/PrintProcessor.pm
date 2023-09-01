@@ -118,6 +118,10 @@ sub printEndDocument($self, $cupsprinters = []) {
     return $imagedata;
 }
 
+sub printMoveOffset($self, $offset) {
+    $self->{imgoffs} += $offset;
+}
+
 sub printAddTextLine($self, $line, $y = undef) {
     
     chomp $line;
@@ -539,7 +543,7 @@ sub rememberPrint($self, $imagedata, $description, $markascopytext = undef, $cop
     $reph->debuglog("Printed document saved as ID $documentid with BLOB $blobid");
     $dbh->commit;
     
-    return 1;
+    return $documentid;
 }
 
 sub reprintDocument($self, $documentid, $printername) {
