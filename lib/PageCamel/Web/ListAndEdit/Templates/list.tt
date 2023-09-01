@@ -275,6 +275,10 @@
             console.log("iFrameSelect() called in non-quickselect mask");
             return false;
         }
+        if(window.customiFrameSelect) {
+            window.customiFrameSelect(primkey);
+            return false;
+        }
         window.parent.postMessage({
             'iframestate': 'selected',
             'ID': primkey
