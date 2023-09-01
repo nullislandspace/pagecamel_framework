@@ -13,7 +13,7 @@
                     <table class="data" id="ListAndEditTable">
                         <thead>
                             <tr class="tabheader">
-                                [% IF ListOnly == "0" || ListOnlyCustomSelect == "1" %]
+                                [% IF ListOnly == "0" || ListOnlyCustomSelect == "1" || iFrameMode == 'list' %]
                                     <th></th>
                                 [% END %]
                                 [% FOREACH column IN columns %]
