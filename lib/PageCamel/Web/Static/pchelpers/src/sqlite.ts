@@ -193,9 +193,19 @@ export class PCSqlite {
             console.error("IndexedDB error: ", event);
         };
         request.onsuccess = (event) => {
-            const db = request.result;
+            var db = request.result;
+            // check if object store exists
+            if (!db.objectStoreNames.contains(this._dbname)) {
+                // if not delete the database
+                db.close();
+                window.indexedDB.deleteDatabase(this._dbname);
+                this._logdebug("IndexedDB deleted");
+                return;
+            }
+
             const transaction = db.transaction([this._dbname], "readwrite");
             const objectStore = transaction.objectStore(this._dbname);
+
             const putRequest = objectStore.put({ data: data, id: 1 });
             putRequest.onerror = function (event) {
                 // console.error("IndexedDB error: ", event);
@@ -206,6 +216,14 @@ export class PCSqlite {
             transaction.oncomplete = () => {
                 db.close();
             };
+        };
+        request.onupgradeneeded = (event: any) => {
+            const db = event.target.result as IDBDatabase;
+            // remove the old store
+            if (db.objectStoreNames.contains(this._dbname)) {
+                db.deleteObjectStore(this._dbname);
+            }
+            db.createObjectStore(this._dbname, { keyPath: "id" });
         };
     }
 
@@ -238,10 +256,17 @@ export class PCSqlite {
 
             request.onsuccess = (event) => {
                 const db = request.result;
+                // check if object store exists
                 const transaction = db.transaction([this._dbname], "readonly");
-                const objectStore = transaction.objectStore(
-                    this._dbname
-                );
+                // check if object store exists
+                if (!db.objectStoreNames.contains(this._dbname)) {
+                    // if not delete the database
+                    db.close();
+                    window.indexedDB.deleteDatabase(this._dbname);
+                    resolve(null);
+                    return;
+                }
+                const objectStore = transaction.objectStore(this._dbname);
                 const getRequest = objectStore.get(1);
 
                 getRequest.onerror = function (event) {
