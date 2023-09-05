@@ -31,8 +31,31 @@ export class PCSqlite {
     private _SQL: SqlJsStatic | null;
     private _binWorker: Worker;
     private _dbVersion: number = 1;
+    private _saveToExternalStorage: ((data: string) => void) | undefined =
+        undefined;
+    private _loadFromExternalStorage:
+        | (() => Promise<string | null>)
+        | undefined = undefined;
 
-    constructor(config: initSqlJs.SqlJsConfig, dbname = "", debug = false) {
+    constructor({
+        config,
+        dbname = "",
+        debug = false,
+        saveToExternalStorage,
+        loadFromExternalStorage,
+    }: {
+        config: initSqlJs.SqlJsConfig;
+        dbname?: string;
+        debug?: boolean;
+        saveToExternalStorage?: (data: string) => void;
+        loadFromExternalStorage?: () => Promise<string>;
+    }) {
+        this._saveToExternalStorage = saveToExternalStorage;
+        this._loadFromExternalStorage = loadFromExternalStorage;
+
+        console.log("loadFromExternalStorage", this._loadFromExternalStorage);
+        console.log("saveToExternalStorage", this._saveToExternalStorage);
+
         this._dbloaded = false;
         this._isdebug = debug;
         this._db = null;
@@ -87,11 +110,12 @@ export class PCSqlite {
                             "####### PROMISE initSqlJs RESOLVED, PROMISE _initalize CALLED #######"
                         );
                     this._SQL = SQL;
-                    this._loadFromIndexedDB().then(async (data) => {
+                    // either get from Mobile Device or load from IndexedDB
+                    if (this._loadFromExternalStorage) {
+                        var data = await this._loadFromExternalStorage();
                         if (data) {
-                            var decompressed = LZString.decompress(data);
                             this._db = new SQL.Database(
-                                this._SQLtoBinArray(decompressed)
+                                this._SQLtoBinArray(data)
                             );
                         } else {
                             this._db = new SQL.Database();
@@ -99,7 +123,21 @@ export class PCSqlite {
                         }
                         this._dbloaded = true;
                         if (this._isdebug) resolve("PCSqlite initialized");
-                    });
+                    } else {
+                        this._loadFromIndexedDB().then(async (data) => {
+                            if (data) {
+                                var decompressed = LZString.decompress(data);
+                                this._db = new SQL.Database(
+                                    this._SQLtoBinArray(decompressed)
+                                );
+                            } else {
+                                this._db = new SQL.Database();
+                                this.save();
+                            }
+                            this._dbloaded = true;
+                            if (this._isdebug) resolve("PCSqlite initialized");
+                        });
+                    }
                 });
             } else {
                 console.error("========= sql.js not loaded =========");
@@ -287,7 +325,11 @@ export class PCSqlite {
     }
 
     save(): void {
-        this._binWorker.postMessage(["SQLTOSTRING", this._db?.export()]);
+        if (this._saveToExternalStorage) {
+            this._saveToExternalStorage(this.dbstring);
+        } else {
+            this._binWorker.postMessage(["SQLTOSTRING", this._db?.export()]);
+        }
     }
     /**
      * Reset the database and create a new one
@@ -306,5 +348,31 @@ export class PCSqlite {
             );
             return false;
         }
+    }
+    /**
+     * Method to save the database to a file on the mobile device
+     */
+    set saveToExternalStorage(func: ((data: string) => void) | undefined) {
+        this._saveToExternalStorage = func;
+    }
+    get saveToExternalStorage(): ((data: string) => void) | undefined {
+        return this._saveToExternalStorage;
+    }
+    /**
+     * Method to get the database from a file on the mobile device
+     */
+    set loadFromExternalStorage(
+        func: (() => Promise<string | null>) | undefined
+    ) {
+        console.log("loadFromExternalStorage", func);
+        this._loadFromExternalStorage = func;
+        if (this._loadFromExternalStorage) {
+            this._loadFromExternalStorage().then((data) => {
+                console.log("loadFromExternalStorage Data:", data);
+            });
+        }
+    }
+    get loadFromExternalStorage(): (() => Promise<string | null>) | undefined {
+        return this._loadFromExternalStorage;
     }
 }
