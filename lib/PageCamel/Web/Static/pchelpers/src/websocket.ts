@@ -552,7 +552,7 @@ export class PCWebsocket {
         this._msgqueueenabled = true;
     }
     /**
-     * Stop the message queue and start working off the queue
+     * Stop adding messages to the queue and start working off the queue
      */
     public stopMessageQueue() {
         this._msgqueueenabled = false;
