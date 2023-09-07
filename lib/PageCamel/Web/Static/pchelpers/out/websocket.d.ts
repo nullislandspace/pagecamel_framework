@@ -25,6 +25,9 @@ export declare class PCWebsocket {
     private _msgoutboxempty;
     private _msgrecieved;
     private _msgisconnected;
+    private _msgqueue;
+    private _msgqueueexcept;
+    private _msgqueueenabled;
     constructor(caching?: boolean, debug?: boolean);
     register(msgname: string, callback: CallbackType[]): void;
     deregister(msgname: string, callback: CallbackType[]): void;
@@ -41,5 +44,7 @@ export declare class PCWebsocket {
     private _delete_cached;
     private _handleMsg;
     private _logdebug;
+    startMessageQueue(whitelistedMessages: string[]): void;
+    stopMessageQueue(): void;
 }
 export {};
