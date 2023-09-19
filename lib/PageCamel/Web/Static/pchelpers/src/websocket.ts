@@ -547,14 +547,14 @@ export class PCWebsocket {
      * Enable the message queue with all incoming messages
      * @param whitelistedMessages - Array of message names which should not be queued, they will be handled immediately
      */
-    public startMessageQueue(whitelistedMessages: string[]) {
+    public startMessageQueueing(whitelistedMessages: string[]) {
         this._msgqueueexcept = whitelistedMessages;
         this._msgqueueenabled = true;
     }
     /**
      * Stop adding messages to the queue and start working off the queue
      */
-    public stopMessageQueue() {
+    public stopMessageQueueing() {
         this._msgqueueenabled = false;
         this._msgqueue.forEach((msg) => {
             this._messageList.forEach((messageListItem) => {

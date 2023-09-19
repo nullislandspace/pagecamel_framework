@@ -44,7 +44,7 @@ export declare class PCWebsocket {
     private _delete_cached;
     private _handleMsg;
     private _logdebug;
-    startMessageQueue(whitelistedMessages: string[]): void;
-    stopMessageQueue(): void;
+    startMessageQueueing(whitelistedMessages: string[]): void;
+    stopMessageQueueing(): void;
 }
 export {};
