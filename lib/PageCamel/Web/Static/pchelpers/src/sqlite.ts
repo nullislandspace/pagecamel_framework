@@ -4,15 +4,6 @@ import { Database } from "sql.js";
 //import initSqlJs from 'sql.js';
 //import * as SQLDB from './sql-wasm.js';
 
-declare var LZString: {
-    compress: (
-        data: string
-    ) => string;
-    decompress: (
-        data: string
-    ) => string;
-};
-
 const initSqlJs = window.initSqlJs;
 
 /**
@@ -32,27 +23,46 @@ const initSqlJs = window.initSqlJs;
  */
 export class PCSqlite {
     private _db: initSqlJs.Database | null;
-    private _dbid: string;
     private _autocommit: boolean;
     private _dbloaded: boolean;
     private _isdebug: boolean;
-    private _dbname: string;
+    private _dbname: string = "pcsqlite";
     private _promiseInitialize: Promise<string>;
     private _SQL: SqlJsStatic | null;
     private _binWorker: Worker;
+    private _dbVersion: number = 1;
+    private _saveToExternalStorage: ((data: string) => void) | undefined =
+        undefined;
+    private _loadFromExternalStorage:
+        | (() => Promise<string | null>)
+        | undefined = undefined;
 
-    // Version number of the database if it is changed, the local storage will be cleared
-    private _versionNumber: number = 2; 
+    constructor({
+        config,
+        dbname = "",
+        debug = false,
+        saveToExternalStorage,
+        loadFromExternalStorage,
+    }: {
+        config: initSqlJs.SqlJsConfig;
+        dbname?: string;
+        debug?: boolean;
+        saveToExternalStorage?: (data: string) => void;
+        loadFromExternalStorage?: () => Promise<string>;
+    }) {
+        this._saveToExternalStorage = saveToExternalStorage;
+        this._loadFromExternalStorage = loadFromExternalStorage;
 
-    constructor(config: initSqlJs.SqlJsConfig, dbname = "", debug = false) {
+        console.log("loadFromExternalStorage", this._loadFromExternalStorage);
+        console.log("saveToExternalStorage", this._saveToExternalStorage);
+
         this._dbloaded = false;
         this._isdebug = debug;
         this._db = null;
         this._dbname = dbname;
         this._autocommit = true;
         this._SQL = null;
-        this._promiseInitialize = this._initialize(config, dbname);
-        this._dbid = "X"; // Init with invalid ID to force loading DB on startup
+        this._promiseInitialize = this._initialize(config);
 
         this._binWorker = new Worker("/static/pchelpers/out/SQLtoBinWorker.js");
 
@@ -63,19 +73,10 @@ export class PCSqlite {
             if (command == "SAVEDB") {
                 if (this._isdebug)
                     console.debug("*** save database to " + this._dbname);
-                //console.log("#################################################   SAVEDB END #####################################");
-                window.localStorage.setItem(this._dbname + '_compressed', data);
-                this._dbid = this._randomDBID();
-                window.localStorage.setItem(this._dbname + "_dbid", this._dbid);
+                this._saveToIndexedDB(data);
             }
         };
-        this._binWorker.postMessage(["START", '']);
-    }
-
-    private _randomDBID(): string {
-        return (
-            Date.now().toString() + "_" + (Math.random() * 100000).toString()
-        );
+        this._binWorker.postMessage(["START", ""]);
     }
 
     get dbstring(): string {
@@ -90,48 +91,53 @@ export class PCSqlite {
     get initialize(): Promise<string> {
         return this._promiseInitialize;
     }
+    get db(): initSqlJs.Database | null {
+        return this._db;
+    }
 
     set autocommit(ac: boolean) {
         this._autocommit = ac;
     }
-
-    private _initialize(
-        config: initSqlJs.SqlJsConfig,
-        dbname = ""
-    ): Promise<string> {
+    private _initialize(config: initSqlJs.SqlJsConfig): Promise<string> {
         return new Promise((resolve, reject) => {
-            if(this._versionNumber > Number(window.localStorage.getItem('versionNumber'))){
-                console.log("Clearing local storage");
-                window.localStorage.clear();
-                console.log("Setting version number to " + this._versionNumber.toString());
-                window.localStorage.setItem('versionNumber', this._versionNumber.toString());
-            }
-
             if (initSqlJs instanceof Function) {
                 if (this._isdebug)
                     console.debug("================ sql.js loaded");
 
-                initSqlJs(config).then((SQL) => {
+                initSqlJs(config).then(async (SQL) => {
                     if (this._isdebug)
                         console.debug(
                             "####### PROMISE initSqlJs RESOLVED, PROMISE _initalize CALLED #######"
                         );
-                    var dbstr: string | null = null;
                     this._SQL = SQL;
-                    if (dbname != "") {
-                        dbstr = window.localStorage.getItem(dbname + '_compressed');
-                    }
-                    if (dbstr) {
-                        var decompressed = LZString.decompress(dbstr);
-                        this._db = new SQL.Database(this._SQLtoBinArray(decompressed));
+                    // either get from Mobile Device or load from IndexedDB
+                    if (this._loadFromExternalStorage) {
+                        var data = await this._loadFromExternalStorage();
+                        if (data) {
+                            this._db = new SQL.Database(
+                                this._SQLtoBinArray(data)
+                            );
+                        } else {
+                            this._db = new SQL.Database();
+                            this.save();
+                        }
+                        this._dbloaded = true;
+                        if (this._isdebug) resolve("PCSqlite initialized");
                     } else {
-                        this._db = new SQL.Database();
-                        this.save();
+                        this._loadFromIndexedDB().then(async (data) => {
+                            if (data) {
+                                var decompressed = LZString.decompress(data);
+                                this._db = new SQL.Database(
+                                    this._SQLtoBinArray(decompressed)
+                                );
+                            } else {
+                                this._db = new SQL.Database();
+                                this.save();
+                            }
+                            this._dbloaded = true;
+                            if (this._isdebug) resolve("PCSqlite initialized");
+                        });
                     }
-                    this._dbloaded = true;
-                    if (this._isdebug)
-                        console.debug("****  PCSqlite Database loaded ****");
-                    resolve("PCSqlite initialized");
                 });
             } else {
                 console.error("========= sql.js not loaded =========");
@@ -153,16 +159,12 @@ export class PCSqlite {
         var uarr = new Uint8Array(arr);
         var strings: string[] = [],
             chunksize = 0xffff;
-        // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
-
-        //console.log("SQL Backup is " + uarr.length + " bytes large");
         for (var i = 0; i * chunksize < uarr.length; i++) {
             var numarr = Array.from(
                 uarr.subarray(i * chunksize, (i + 1) * chunksize)
             );
             strings.push(String.fromCharCode.apply(null, numarr));
         }
-        //console.log("DB SAVE IS " + strings.length + " bytes long");
         return strings.join("");
     }
 
@@ -185,99 +187,150 @@ export class PCSqlite {
      * @throws executeSQL error
      *
      */
-    executeSQL(
+    executeSQL = (
         statement: string,
         ...args: string[]
-    ): initSqlJs.ParamsObject[] | null {
+    ): initSqlJs.ParamsObject[] | null => {
         //statement = 'PRAGMA foreign_keys = ON;' + statement;
         //noerror();
-        if (this._db) {
+        if (this._db && this._dbloaded) {
             let results: initSqlJs.ParamsObject[] = [];
-            let stmt: initSqlJs.Statement = this._db.prepare(statement);
+            var stmt: initSqlJs.Statement = this._db.prepare(statement);
             try {
-                /*if (this._isdebug) {
-                    console.debug(statement);
-                }*/
-                
-                let dbstr: string | null = null;
-                if (this._dbname != "") {
-                    var storeddbid: string | null = window.localStorage.getItem(
-                        this._dbname + "_dbid"
-                    );
-                    if (storeddbid != this._dbid) {
-                        //this._logdebug("^^^^^  RELOAD DB");
-                        dbstr = window.localStorage.getItem(this._dbname);
-                        if (dbstr && this._SQL) {
-                            this._db = null;
-                            this._db = new this._SQL.Database(
-                                this._SQLtoBinArray(dbstr)
-                            );
-                            stmt = this._db.prepare(statement);
-                            if (storeddbid) {
-                                this._dbid = storeddbid;
-                            }
-                        }
-                    } else {
-                        //this._logdebug("^^^^^  DO NOT RELOAD DB");
-                    }
-                }
-
                 if (stmt.bind(args)) {
-                    /*this._logdebug(
-                        "Execute statement SQL: " + stmt.getNormalizedSQL()
-                    );*/
-
                     while (stmt.step()) {
-                        //
                         var row = stmt.getAsObject();
                         results.push(row);
-                        //this._logdebug(["row: ", row]);
                     }
-                    //this._logdebug(["results: ", results]);
                 }
             } catch (fail) {
                 results = [];
                 console.error("sqllite error: ", fail);
                 results.push(stmt.getAsObject(args));
-                //stmt.free();
-                //throw new Error(<string>fail);
             }
             stmt.free();
-            //pagecamelDBSave();
             //Save DB to File only if autocommit is enabled and statement isn't a select query
             if (!statement.match(/^select /i) && this._autocommit) {
                 this.save();
             }
-
             return results;
         } else {
             return null;
         }
+    };
+
+    /**
+     * Save the DB from memory to IndexedDB
+     *
+     * @param data - Serialized database string
+     *
+     */
+    private _saveToIndexedDB(data: string): void {
+        var request = window.indexedDB.open(this._dbname, this._dbVersion);
+        request.onerror = function (event) {
+            console.error("IndexedDB error: ", event);
+        };
+        request.onsuccess = (event) => {
+            var db = request.result;
+            // check if object store exists
+            if (!db.objectStoreNames.contains(this._dbname)) {
+                // if not delete the database
+                db.close();
+                window.indexedDB.deleteDatabase(this._dbname);
+                this._logdebug("IndexedDB deleted");
+                return;
+            }
+
+            const transaction = db.transaction([this._dbname], "readwrite");
+            const objectStore = transaction.objectStore(this._dbname);
+
+            const putRequest = objectStore.put({ data: data, id: 1 });
+            putRequest.onerror = function (event) {
+                // console.error("IndexedDB error: ", event);
+            };
+            putRequest.onsuccess = (event) => {
+                // console.debug("Database saved to IndexedDB");
+            };
+            transaction.oncomplete = () => {
+                db.close();
+            };
+        };
+        request.onupgradeneeded = (event: any) => {
+            const db = event.target.result as IDBDatabase;
+            // remove the old store
+            if (db.objectStoreNames.contains(this._dbname)) {
+                db.deleteObjectStore(this._dbname);
+            }
+            db.createObjectStore(this._dbname, { keyPath: "id" });
+        };
     }
 
     /**
-     * Save the DB from memory to local storage
+     * Load the DB from IndexedDB
      *
-     *
+     * @returns Serialized database string or null
      *
      */
-    save(): void {
-        if (this._db && this._dbname != "") {
-            if (this._isdebug)
-                console.debug(
-                    "*** preparing to save database to " + this._dbname
-                );
-            //console.log("#################################################   SAVEDB START #####################################");
-            this._binWorker.postMessage(["SQLTOSTRING", this._db.export()]);
-            /*
-            var dbstr = this._SQLtoBinString(this._db.export());
-            window.localStorage.setItem(this._dbname, dbstr);
-            this._dbid = this._randomDBID();
-            window.localStorage.setItem(this._dbname + '_dbid', this._dbid);
-            */
-        }
+    private _loadFromIndexedDB(): Promise<string | null> {
+        return new Promise((resolve, reject) => {
+            const request = window.indexedDB.open(
+                this._dbname,
+                this._dbVersion
+            );
+
+            request.onerror = function (event) {
+                console.error("IndexedDB error: ", event);
+                resolve(null);
+            };
+
+            request.onupgradeneeded = (event: any) => {
+                const db = event.target.result as IDBDatabase;
+                // remove the old store
+                if (db.objectStoreNames.contains(this._dbname)) {
+                    db.deleteObjectStore(this._dbname);
+                }
+                db.createObjectStore(this._dbname, { keyPath: "id" });
+            };
+
+            request.onsuccess = (event) => {
+                const db = request.result;
+                // check if object store exists
+                const transaction = db.transaction([this._dbname], "readonly");
+                // check if object store exists
+                if (!db.objectStoreNames.contains(this._dbname)) {
+                    // if not delete the database
+                    db.close();
+                    window.indexedDB.deleteDatabase(this._dbname);
+                    resolve(null);
+                    return;
+                }
+                const objectStore = transaction.objectStore(this._dbname);
+                const getRequest = objectStore.get(1);
+
+                getRequest.onerror = function (event) {
+                    console.error("IndexedDB error: ", event);
+                    resolve(null);
+                };
+
+                getRequest.onsuccess = (event) => {
+                    if (getRequest.result) {
+                        console.debug("Database loaded from IndexedDB");
+                        resolve(getRequest.result.data);
+                    } else {
+                        resolve(null);
+                    }
+                };
+            };
+        });
     }
 
+    save(): void {
+        if (this._saveToExternalStorage) {
+            this._saveToExternalStorage(this.dbstring);
+        } else {
+            this._binWorker.postMessage(["SQLTOSTRING", this._db?.export()]);
+        }
+    }
     /**
      * Reset the database and create a new one
      *
@@ -295,5 +348,31 @@ export class PCSqlite {
             );
             return false;
         }
+    }
+    /**
+     * Method to save the database to a file on the mobile device
+     */
+    set saveToExternalStorage(func: ((data: string) => void) | undefined) {
+        this._saveToExternalStorage = func;
+    }
+    get saveToExternalStorage(): ((data: string) => void) | undefined {
+        return this._saveToExternalStorage;
+    }
+    /**
+     * Method to get the database from a file on the mobile device
+     */
+    set loadFromExternalStorage(
+        func: (() => Promise<string | null>) | undefined
+    ) {
+        console.log("loadFromExternalStorage", func);
+        this._loadFromExternalStorage = func;
+        if (this._loadFromExternalStorage) {
+            this._loadFromExternalStorage().then((data) => {
+                console.log("loadFromExternalStorage Data:", data);
+            });
+        }
+    }
+    get loadFromExternalStorage(): (() => Promise<string | null>) | undefined {
+        return this._loadFromExternalStorage;
     }
 }

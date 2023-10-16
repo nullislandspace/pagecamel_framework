@@ -13,7 +13,7 @@
                     <table class="data" id="ListAndEditTable">
                         <thead>
                             <tr class="tabheader">
-                                [% IF ListOnly == "0" || ListOnlyCustomSelect == "1" %]
+                                [% IF ListOnly == "0" || ListOnlyCustomSelect == "1" || iFrameMode == 'list' %]
                                     <th></th>
                                 [% END %]
                                 [% FOREACH column IN columns %]
@@ -273,6 +273,10 @@
         console.log("SELECT " + primkey);
         if(ttvars.quickselect != 1) {
             console.log("iFrameSelect() called in non-quickselect mask");
+            return false;
+        }
+        if(window.customiFrameSelect) {
+            window.customiFrameSelect(primkey);
             return false;
         }
         window.parent.postMessage({

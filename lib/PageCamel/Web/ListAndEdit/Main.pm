@@ -1617,11 +1617,19 @@ sub get_lines($self, $ua) {
             if(!$self->{quickselect}) {
                 $primfield = '<input type="radio" name="primary_key" value="' . $primval . '" ' . $self->{radiobuttonhtml} . '>';
             } else {
-                if($self->{iframemode} eq 'list') {
-                    $primfield = '<input type="button" value=" 🗁 " onclick="iFrameSelect(\'' . $primval . '\');">';
-                } else {
-                    $primfield = '<input type="button" value=" 🖉 " onclick="quickSelect(\'' . $primval . '\');">';
+                my $rowselectsymbol = '🖉 ';
+                my $function = 'quickSelect';
+                if(defined($self->{rowselectsymbol})) {
+                    $rowselectsymbol = $self->{rowselectsymbol};
+                } elsif($self->{iframemode} eq 'list') {
+                    $rowselectsymbol = "🗁 ";
                 }
+
+                if($self->{iframemode} eq 'list') {
+                    $function = 'iFrameSelect';
+                }
+
+                $primfield = '<input type="button" value=" ' . $rowselectsymbol . ' " onclick="' . $function . '(\'' . $primval . '\');">';
             }
 
             push @columns, $primfield;

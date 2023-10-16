@@ -19,7 +19,16 @@
                 <tr>
                     <td align="right">[% tr.trquote("Username") %]:</td>
                     <td align="left">
-                        <input type="text" name="username" size="50" value="[% tr.quote(username) %]" maxLength="70" id="username">
+                        [% IF userlistdropdown == "0" %]
+                            <input type="text" name="username" size="50" value="[% tr.quote(username) %]" maxLength="70" id="username">
+                        [% ELSE %]
+                            <select name="username" id="username" searchable="1">
+                                <option value=""></option>
+                                [% FOREACH user IN userlist %]
+                                    <option value="[% tr.quote(user.username) %]">[% tr.quote(user.username) %] : [% tr.quote(user.fullname) %]</option>
+                                [% END %]
+                            </select>
+                        [% END %]
                     </td>
                 </tr>
                 <tr>

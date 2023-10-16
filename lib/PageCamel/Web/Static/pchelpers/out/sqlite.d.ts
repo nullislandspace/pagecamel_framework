@@ -1,7 +1,7 @@
-/// <reference types="sql.js" />
+import { InitSqlJsStatic } from "sql.js";
+declare const initSqlJs: InitSqlJsStatic;
 export declare class PCSqlite {
     private _db;
-    private _dbid;
     private _autocommit;
     private _dbloaded;
     private _isdebug;
@@ -9,17 +9,32 @@ export declare class PCSqlite {
     private _promiseInitialize;
     private _SQL;
     private _binWorker;
-    private _versionNumber;
-    constructor(config: initSqlJs.SqlJsConfig, dbname?: string, debug?: boolean);
-    private _randomDBID;
+    private _dbVersion;
+    private _saveToExternalStorage;
+    private _loadFromExternalStorage;
+    constructor({ config, dbname, debug, saveToExternalStorage, loadFromExternalStorage, }: {
+        config: initSqlJs.SqlJsConfig;
+        dbname?: string;
+        debug?: boolean;
+        saveToExternalStorage?: (data: string) => void;
+        loadFromExternalStorage?: () => Promise<string>;
+    });
     get dbstring(): string;
     get initialize(): Promise<string>;
+    get db(): initSqlJs.Database | null;
     set autocommit(ac: boolean);
     private _initialize;
     private _SQLtoBinArray;
     private _SQLtoBinString;
     private _logdebug;
-    executeSQL(statement: string, ...args: string[]): initSqlJs.ParamsObject[] | null;
+    executeSQL: (statement: string, ...args: string[]) => initSqlJs.ParamsObject[] | null;
+    private _saveToIndexedDB;
+    private _loadFromIndexedDB;
     save(): void;
     reset(): boolean;
+    set saveToExternalStorage(func: ((data: string) => void) | undefined);
+    get saveToExternalStorage(): ((data: string) => void) | undefined;
+    set loadFromExternalStorage(func: (() => Promise<string | null>) | undefined);
+    get loadFromExternalStorage(): (() => Promise<string | null>) | undefined;
 }
+export {};
