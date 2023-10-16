@@ -10,7 +10,15 @@ export declare class PCSqlite {
     private _SQL;
     private _binWorker;
     private _dbVersion;
-    constructor(config: initSqlJs.SqlJsConfig, dbname?: string, debug?: boolean);
+    private _saveToExternalStorage;
+    private _loadFromExternalStorage;
+    constructor({ config, dbname, debug, saveToExternalStorage, loadFromExternalStorage, }: {
+        config: initSqlJs.SqlJsConfig;
+        dbname?: string;
+        debug?: boolean;
+        saveToExternalStorage?: (data: string) => void;
+        loadFromExternalStorage?: () => Promise<string>;
+    });
     get dbstring(): string;
     get initialize(): Promise<string>;
     get db(): initSqlJs.Database | null;
@@ -24,5 +32,9 @@ export declare class PCSqlite {
     private _loadFromIndexedDB;
     save(): void;
     reset(): boolean;
+    set saveToExternalStorage(func: ((data: string) => void) | undefined);
+    get saveToExternalStorage(): ((data: string) => void) | undefined;
+    set loadFromExternalStorage(func: (() => Promise<string | null>) | undefined);
+    get loadFromExternalStorage(): (() => Promise<string | null>) | undefined;
 }
 export {};

@@ -68,6 +68,10 @@ export class PCWebsocket {
     private _msgrecieved: string = "RECIEVED";
     private _msgisconnected: string = "ISCONNECTED";
 
+    private _msgqueue: { msgname: string; data: string }[] = [];
+    private _msgqueueexcept: string[] = [];
+    private _msgqueueenabled: boolean = false;
+
     /**
      * Constructor for class
      * @param caching - enable database caching
@@ -404,9 +408,7 @@ export class PCWebsocket {
      * Overwritable function to handle the connection state change
      * @param isconnected - TRUE if connected
      */
-    public onConnectionChanged(isconnected: boolean): void {
-        
-    }
+    public onConnectionChanged(isconnected: boolean): void {}
 
     private _timerfunc(): void {
         //this._logdebug("Execute timer function...");
@@ -513,13 +515,22 @@ export class PCWebsocket {
         );
         */
         if (msgname === messageListItem.messagename) {
-            //call the registered callbackfunction
-            this._logdebug(
-                "Call callback " + messageListItem.callbacks.toString()
-            );
-            messageListItem.callbacks.forEach((cbfunction) => {
-                cbfunction(msgname, data);
-            });
+            if (
+                (this._msgqueueenabled &&
+                    this._msgqueueexcept.includes(msgname)) ||
+                !this._msgqueueenabled
+            ) {
+                //call the registered callbackfunction
+                this._logdebug(
+                    "Call callback " + messageListItem.callbacks.toString()
+                );
+                messageListItem.callbacks.forEach((cbfunction) => {
+                    cbfunction(msgname, data);
+                });
+            } else {
+                //add message to queue
+                this._msgqueue.push({ msgname: msgname, data: data });
+            }
         }
     }
 
@@ -530,5 +541,26 @@ export class PCWebsocket {
         args.forEach((val) => {
             console.debug(val);
         });
+    }
+
+    /**
+     * Enable the message queue with all incoming messages
+     * @param whitelistedMessages - Array of message names which should not be queued, they will be handled immediately
+     */
+    public startMessageQueueing(whitelistedMessages: string[]) {
+        this._msgqueueexcept = whitelistedMessages;
+        this._msgqueueenabled = true;
+    }
+    /**
+     * Stop adding messages to the queue and start working off the queue
+     */
+    public stopMessageQueueing() {
+        this._msgqueueenabled = false;
+        this._msgqueue.forEach((msg) => {
+            this._messageList.forEach((messageListItem) => {
+                this._handleMsg(messageListItem, msg.msgname, msg.data);
+            });
+        });
+        this._msgqueue = [];
     }
 }
