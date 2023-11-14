@@ -72,10 +72,12 @@ sub get($self, $ua) {
     my @extralines;
     foreach my $xl (@{$line->{extrainfo}}) {
         next unless(defined($xl));
+
         my ($key, $val) = split /\ \=\ /, $xl, 2;
         if(!defined($val)) {
             ($key, $val) = split /\:\ /, $xl, 2;
         }
+
         my %temp = (
             name    => $key,
             value   => $val,

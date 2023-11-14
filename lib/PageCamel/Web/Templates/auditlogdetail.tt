@@ -37,8 +37,8 @@ username
             </tr>
             [% FOREACH extraline IN Data.extralines %]
                 <tr>
-                    <td>[% tr.quote(extraline.name) %]</td>
-                    <td>[% tr.quote(extraline.value) %]</td>
+                    <td valign="top"><pre>[% tr.quote(extraline.name) %]</pre></td>
+                    <td valign="top"><pre>[% tr.quote(extraline.value) %]</pre></td>
                 </tr>
             [% END %]
         </tbody>

@@ -1937,7 +1937,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         } else {
             $dbh->commit;
             if($self->{generateauditlog}) {
-                $self->write_auditlog($webdata{userData}->{user}, 'delete', @pkparts);
+                my @datacolumns = (@pkcols);
+                my @datavalues = (@pkparts);
+                my @intermix = $self->keyvalueIntermix(\@datacolumns, \@datavalues);
+
+                $self->write_auditlog($webdata{userData}->{user}, 'delete', @intermix);
             }
             return $self->get_list($ua);
         }
@@ -2106,7 +2110,10 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             }
         }
         if($self->{generateauditlog}) {
-            $self->write_auditlog($webdata{userData}->{user}, 'edit', @upargs, @pkparts);
+            my @datacolumns = (@collist, @pkcols);
+            my @datavalues = (@upargs, @pkparts);
+            my @intermix = $self->keyvalueIntermix(\@datacolumns, \@datavalues);
+            $self->write_auditlog($webdata{userData}->{user}, 'edit', @intermix);
         }
     } elsif($mode eq 'create') {
         return (status  =>  403) unless $self->{cancreate};
@@ -2279,7 +2286,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             }
         }
         if($self->{generateauditlog}) {
-            $self->write_auditlog($webdata{userData}->{user}, 'create', @inargs);
+            my @datacolumns = (@allcolumns);
+            my @datavalues = (@inargs);
+            my @intermix = $self->keyvalueIntermix(\@datacolumns, \@datavalues);
+
+            $self->write_auditlog($webdata{userData}->{user}, 'create', @intermix);
         }
     } elsif($mode eq 'select') {
         if($primarykey ne '__NEW__') {
@@ -3040,6 +3051,49 @@ sub get_autosave($self, $ua) {
 
 }
 
+sub parseArray($self, $aref, $indent = 0) {
+    my $baseindent = ' ' x $indent;
+    $indent += 4;
+    my $lineindent = ' ' x $indent;
+
+    my $data = $baseindent . '[' . "\n";
+
+    foreach my $elem (@{$aref}) {
+        if(ref $elem eq 'ARRAY') {
+            $data .= $self->parseArray($elem, $indent);
+        } else {
+            if(!defined($elem)) {
+                $elem = '(undef)';
+            }
+            $data .= $lineindent . $elem . "\n";
+        }
+    }
+    $data .= $baseindent . ']' . "\n";
+
+    return $data;
+}
+
+sub keyvalueIntermix($self, $keys, $values) {
+    my @intermix;
+    foreach my $key (@{$keys}) {
+        if(!defined($key)) {
+            $key = '(undef)';
+        } elsif(ref $key eq 'ARRAY') {
+            $key = $self->parseArray($key);
+        }
+        my $val = shift @{$values};
+        if(!defined($val)) {
+            $val = '(undef)';
+        } elsif(ref $val eq 'ARRAY') {
+            $val = $self->parseArray($val);
+        }
+        push @intermix, $key . ' = ' . $val;
+    }
+
+    return @intermix;
+}
+
+
 sub write_auditlog($self, $username, $mode, @data) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -3050,7 +3104,10 @@ sub write_auditlog($self, $username, $mode, @data) {
     my @newdata;
     foreach my $field (@data) {
         if(ref $field eq 'ARRAY') {
-            push @newdata, join('|', $field);
+            print STDERR Dumper($field);
+            my $parsedfield = $self->parseArray($field);
+            print STDERR "Parsedfield:\n", $parsedfield;
+            push @newdata, $parsedfield;
         } else {
             push @newdata, $field;
         }
