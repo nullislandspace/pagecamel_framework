@@ -6,6 +6,15 @@ import { Database } from "sql.js";
 
 const initSqlJs = window.initSqlJs;
 
+declare var LZString: {
+    compress: (
+        data: string
+    ) => string;
+    decompress: (
+        data: string
+    ) => string;
+};
+
 /**
  * Sqlite database connection class
  * @remarks
