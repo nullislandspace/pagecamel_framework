@@ -1,8 +1,8 @@
 .hgsub
-0003_users_app_userkey.sql
 Changes
 database/0001_remoteconsolelog.sql
 database/0002_database_tuning.sql
+database/0003_users_app_userkey.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
