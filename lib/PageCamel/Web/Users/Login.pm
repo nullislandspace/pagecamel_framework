@@ -367,6 +367,11 @@ sub get_login($self, $ua) {
         if(length($appkey)) {
             print STDERR "APPKEY LOGIN for user ", $webdata{username}, " with APPKEY ", $appkey, "\n";
             $pwok = $pwh->verify_appkey($webdata{username}, $appkey);
+
+            if($pwok) {
+                # We want to keep the app logged in, even if it goes to sleep for a couple of hours
+                $webdata{keeploggedin} = 1;
+            }
         } else {
             $pwok = $pwh->verify_password($webdata{username}, $webdata{password});
         }
