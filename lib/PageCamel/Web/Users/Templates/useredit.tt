@@ -124,6 +124,14 @@
                                 ></td>
                     </tr>
                 [% END %]
+                [% IF appqrcode != "" %]
+                <tr>
+                    <td align="right">[% tr.trquote("APP Configuration") %]</td>
+                    <td align="left">
+                        <img src="[% appqrcode %]">
+                    </td>
+                </tr>
+                [% END %]
             </tbody>
             <tfoot>
                 <tr>
