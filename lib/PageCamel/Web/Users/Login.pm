@@ -347,7 +347,7 @@ sub get_login($self, $ua) {
     $appkey =~ s/^\///;
     $appkey =~ s/\/$//;
 
-    print STDERR "URI: ", $ua->{url}, "  Appkey: ", $appkey, "\n";
+    #print STDERR "URI: ", $ua->{url}, "  Appkey: ", $appkey, "\n";
 
     if(length($appkey)) {
         my @appkeyparts = split/\+/, $appkey;
@@ -355,7 +355,7 @@ sub get_login($self, $ua) {
             $webdata{username} = $appkeyparts[0];
             $appkey = $appkeyparts[1];
 
-            print STDERR "USER: ", $webdata{username}, "  APPKEY: ", $appkey, "\n";
+            #print STDERR "USER: ", $webdata{username}, "  APPKEY: ", $appkey, "\n";
         } else {
             $appkey = '';
         }
