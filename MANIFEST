@@ -37,6 +37,7 @@ lib/PageCamel/CMDLine/Worker.pm
 lib/PageCamel/DNS.pm
 lib/PageCamel/Framework.pm
 lib/PageCamel/Helpers.pm
+lib/PageCamel/Helpers/APPQRCode.pm
 lib/PageCamel/Helpers/ArduinoDisplay.pm
 lib/PageCamel/Helpers/AutoDialogs.pm
 lib/PageCamel/Helpers/ClacksCache.pm
@@ -2804,6 +2805,9 @@ lib/PageCamel/Web/Static/pchelpers/out/test/test_websocket_local.js.map
 lib/PageCamel/Web/Static/pchelpers/out/translate.d.ts
 lib/PageCamel/Web/Static/pchelpers/out/translate.js
 lib/PageCamel/Web/Static/pchelpers/out/translate.js.map
+lib/PageCamel/Web/Static/pchelpers/out/utils.d.ts
+lib/PageCamel/Web/Static/pchelpers/out/utils.js
+lib/PageCamel/Web/Static/pchelpers/out/utils.js.map
 lib/PageCamel/Web/Static/pchelpers/out/websocket.d.ts
 lib/PageCamel/Web/Static/pchelpers/out/websocket.js
 lib/PageCamel/Web/Static/pchelpers/out/websocket.js.map

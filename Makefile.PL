@@ -103,6 +103,7 @@ WriteMakefile(
         'HTTP::BrowserDetect' => 0,
         'HTTP::Date' => 0,
         'Image::Imlib2' => 0,
+        'Image::PNG::QRCode' => 0,
         'IO::Compress::Gzip' => 0,
         'IO::File' => 0,
         'IO::Handle' => 0,
