@@ -131,6 +131,13 @@
                         <img src="[% appqrcode %]">
                     </td>
                 </tr>
+                <tr>
+                    <td align="right">[% tr.trquote("APP Key") %]</td>
+                    <td align="left">
+                        [% tr.trquote("Server") %]: [% tr.quote(appqrcodeserver) %]<br/>
+                        [% tr.trquote("APP Key") %]: [% tr.quote(appqrcodekey) %]
+                    </td>
+                </tr>
                 [% END %]
             </tbody>
             <tfoot>

@@ -462,6 +462,8 @@ reloaddata:
     }
 
     $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey});
+    $webdata{appqrcodeserver} = $ua->{headers}->{Host};
+    $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
 
     my $compsth = $dbh->prepare_cached("SELECT * FROM company
                                        ORDER BY company_name")
