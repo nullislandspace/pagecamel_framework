@@ -95,9 +95,15 @@ sub do_backup($self, $arguments) {
 #                ' --verbose ' .
                 ' --file ' . $fname .
                 ' ' . $self->{database};
+    if(defined($self->{password}) && $self->{password} ne '') {
+        $fullcommand = 'PGPASSWORD="' . $self->{password} . '" ' . $fullcommand;
+    }
+
     if(defined($self->{sudouser}) && $self->{sudouser} ne '') {
         $fullcommand = "sudo -u " . $self->{sudouser} . " $fullcommand";
     }
+
+
     $reph->debuglog("Backup command $fullcommand");
     $dbh->commit;
 
