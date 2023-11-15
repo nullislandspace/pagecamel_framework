@@ -341,9 +341,40 @@ sub get_login($self, $ua) {
 
     my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
-    if($webdata{username} ne '' && $webdata{password} ne '') {
+    my $appkey = $ua->{url};
+    my $remove = $self->{login}->{webpath};
+    $appkey =~ s/^$remove//;
+    $appkey =~ s/^\///;
+    $appkey =~ s/\/$//;
 
-        my $pwok = $pwh->verify_password($webdata{username}, $webdata{password});
+    #print STDERR "URI: ", $ua->{url}, "  Appkey: ", $appkey, "\n";
+
+    if(length($appkey)) {
+        my @appkeyparts = split/\+/, $appkey;
+        if(scalar @appkeyparts == 2) {
+            $webdata{username} = $appkeyparts[0];
+            $appkey = $appkeyparts[1];
+
+            #print STDERR "USER: ", $webdata{username}, "  APPKEY: ", $appkey, "\n";
+        } else {
+            $appkey = '';
+        }
+    }
+
+    if($webdata{username} ne '' && ($webdata{password} ne '' || length($appkey))) {
+
+        my $pwok;
+        if(length($appkey)) {
+            print STDERR "APPKEY LOGIN for user ", $webdata{username}, " with APPKEY ", $appkey, "\n";
+            $pwok = $pwh->verify_appkey($webdata{username}, $appkey);
+
+            if($pwok) {
+                # We want to keep the app logged in, even if it goes to sleep for a couple of hours
+                $webdata{keeploggedin} = 1;
+            }
+        } else {
+            $pwok = $pwh->verify_password($webdata{username}, $webdata{password});
+        }
 
         my $clidmsg = '';
 
@@ -376,7 +407,11 @@ sub get_login($self, $ua) {
             $reph->auditlog($self->{modname}, "Login failed for user " . $webdata{username} . $clidmsg, $webdata{username});
             goto finishlogin;
         } else {
-            $reph->auditlog($self->{modname}, "Login success for user " . $webdata{username}, $webdata{username});
+            if(length($appkey)) {
+                $reph->auditlog($self->{modname}, "Login success for user " . $webdata{username} . " (APPKEY)", $webdata{username});
+            } else {
+                $reph->auditlog($self->{modname}, "Login success for user " . $webdata{username}, $webdata{username});
+            }
         }
 
         # Delete the old session if any

@@ -170,6 +170,41 @@ sub verify_password($self, $username, $password) {
     return 1;
 }
 
+sub verify_appkey($self, $username, $appkey) {
+
+    my $isLocked = 0;
+
+    my $selsth = $self->{dbh}->prepare("SELECT account_locked
+                              FROM users
+                              WHERE username = ?
+                              AND appkey = ?
+                              LIMIT 1")
+        or croak($self->{dbh}->errstr);
+    if(!$selsth->execute($username, $appkey)) {
+        $self->{reph}->debuglog($self->{dbh}->errstr);
+        return 0;
+    }
+
+    my $found = 0;
+    while((my $line = $selsth->fetchrow_arrayref)) {
+        ($isLocked) = @{$line};
+        $found = 1;
+        last;
+    }
+    $selsth->finish;
+
+    # sleep for a random amount of time, up to a third of second fo further limit
+    # bruteforcing and "unknown user" detection
+    my $sleeptime = int(rand(200) + 100) / 1000;
+    sleep($sleeptime);
+
+    if($isLocked || !$found) {
+        return 0;
+    }
+
+    return 1;
+}
+
 sub getSettings($self) {
 
     my $sysh = $self->{sysh};
