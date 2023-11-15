@@ -13,3 +13,4 @@ Makefile$
 pm_to_blib
 ^\.hgsubstate
 .*\.swp$
+node_modules
