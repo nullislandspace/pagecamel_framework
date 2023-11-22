@@ -1,4 +1,4 @@
-package PageCamel::Web::PluginConfig;
+package PageCamel::Worker::PluginConfig;
 #---AUTOPRAGMASTART---
 use v5.36;
 use strict;
@@ -17,7 +17,7 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
-use base qw(PageCamel::Web::BaseModule);
+use base qw(PageCamel::Worker::BaseModule);
 use PageCamel::Helpers::DateStrings;
 
 sub new($proto, %config) {
@@ -57,11 +57,11 @@ __END__
 
 =head1 NAME
 
-PageCamel::Web::PluginConfig -
+PageCamel::Worker::PluginConfig -
 
 =head1 SYNOPSIS
 
-  use PageCamel::Web::PluginConfig;
+  use PageCamel::Worker::PluginConfig;
 
 
 

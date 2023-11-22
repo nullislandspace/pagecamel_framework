@@ -44,7 +44,7 @@ sub init($self) {
         croak("Failed to load template toolkit engine");
     }
     
-    foreach my $key (qw[uninlineJavascript preventCSS db reporting]) {
+    foreach my $key (qw[uninlineJavascript preventCSS prerenderCallback db reporting]) {
         if(!defined($self->{$key})) {
             croak("Missing config $key in " . $self->{modname});
         }
@@ -112,6 +112,7 @@ sub reloadFiles($self, $ofh = undef) {
         $ofh = \*STDOUT;
     }
     delete $self->{cache} if defined $self->{cache};
+
 
     my %files;
     
@@ -181,7 +182,9 @@ sub load_dir($self, $dir, $base, $files) {
         $kname =~ s/^\///o;
         $kname =~s /\.tt$//g;
         my $data = decode_utf8(slurpBinFile($nfname));
-        $data = $self->do_uninline($data, $kname, $nfname);
+        if($self->{uninlineJavascript}) {
+            $data = $self->do_uninline($data, $kname, $nfname);
+        }
         $files->{$kname} = $data;
     }
     closedir($dfh);
@@ -199,6 +202,11 @@ sub addTranslateKey($self, $key) {
 sub runFinalcheck($self) {
     foreach my $key (@{$self->{translatekeys}}) {
         tr_rememberkey($key);
+    }
+
+    print "\n\n???\nTemplates available:\n";
+    foreach my $name (sort keys %{$self->{cache}}) {
+        print $name, "\n";
     }
 
     return;
@@ -234,22 +242,27 @@ sub get($self, $name, $uselayout, %webdata) {
         $reph->debuglog("Missing template $name");
         return;
     } else {
-        $reph->debuglog("Rendering template $name");
+        #$reph->debuglog("Rendering template $name");
     }
 
-    # Run a prerender callback on our webdata, so modules
-    # like the "views" module can add missing data depending
-    # on what the current module put into webdata
-    if(!defined($webdata{_templatecache_prerender_done}) || $webdata{_templatecache_prerender_done} != 1) {
-        $self->{server}->prerender(\%webdata);
-        $self->{server}->lateprerender(\%webdata);
-        $webdata{_templatecache_prerender_done} = 1;
+    if($self->{prerenderCallback}) {
+        # Run a prerender callback on our webdata, so modules
+        # like the "views" module can add missing data depending
+        # on what the current module put into webdata
+        if(!defined($webdata{_templatecache_prerender_done}) || $webdata{_templatecache_prerender_done} != 1) {
+            $self->{server}->prerender(\%webdata);
+            $self->{server}->lateprerender(\%webdata);
+            $webdata{_templatecache_prerender_done} = 1;
+        }
     }
 
     my $fullpage;
 
-    my $layoutname = $self->{layout};
-    if(defined($webdata{MobileDesktopClientMode}) && $webdata{MobileDesktopClientMode} eq 'mobile') {
+    my $layoutname = '';
+    if(defined($self->{layout}) && $self->{layout} ne '') {
+       $layoutname = $self->{layout};
+   }
+    if(defined($self->{mobilelayout}) && defined($webdata{MobileDesktopClientMode}) && $webdata{MobileDesktopClientMode} eq 'mobile') {
         $layoutname = $self->{mobilelayout};
     }
     if(defined($webdata{UserLayout}) && defined($self->{cache}->{$webdata{UserLayout}})) {
@@ -257,6 +270,10 @@ sub get($self, $name, $uselayout, %webdata) {
     }
     if(defined($webdata{override_template})) {
         $layoutname = $webdata{override_template};
+    }
+
+    if($layoutname eq '' && $uselayout && !defined($self->{cache}->{$uselayout})) {
+        croak("uselayout is true (but not an existing template name) but we have no corresponding default layout configured!");
     }
 
     if($uselayout) {
@@ -408,9 +425,9 @@ sub do_uninline($self, $data, $kname, $fname) {
             }
         }
         
-        if($line =~ /(?:\s+|^)style\s*\=\s*\"/i || $line =~ /\<style/i) {
+        if($self->{preventCSS} && ($line =~ /(?:\s+|^)style\s*\=\s*\"/i || $line =~ /\<style/i)) {
             if($line !~ /DISABLE_INLINE_CSS_WARNINGS/) {
-                push @{$self->{reloaderrors}}, "unsafe inline CSS in$fname line $linecount";
+                push @{$self->{reloaderrors}}, "unsafe inline CSS in $fname line $linecount";
             }
         }
         

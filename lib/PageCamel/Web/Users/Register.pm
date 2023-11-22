@@ -26,11 +26,6 @@ use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::Strings qw(stripString webSafeString);
 
-use Readonly;
-
-
-Readonly my $TESTRANGE => 1_000_000;
-
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 

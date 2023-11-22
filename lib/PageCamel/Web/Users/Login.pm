@@ -27,10 +27,6 @@ use PageCamel::Helpers::UserAgent qw[simplifyUA];
 use PageCamel::Helpers::URI qw[decode_uri_path];
 use MIME::Base64;
 
-use Readonly;
-
-Readonly my $TESTRANGE => 1_000_000;
-
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 

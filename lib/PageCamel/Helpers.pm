@@ -47,6 +47,8 @@ use PageCamel::Helpers::PostgresDB;
 use PageCamel::Helpers::PrintProcessor;
 use PageCamel::Helpers::Strings;
 use PageCamel::Helpers::SystemSettings;
+use PageCamel::Helpers::TemplateEngine::Main;
+use PageCamel::Helpers::TemplateEngine::Translate;
 use PageCamel::Helpers::TestData;
 use PageCamel::Helpers::Translator;
 use PageCamel::Helpers::URI;

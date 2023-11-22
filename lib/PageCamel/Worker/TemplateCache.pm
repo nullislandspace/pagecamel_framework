@@ -1,4 +1,4 @@
-package PageCamel::Web::PluginConfig;
+package PageCamel::Worker::TemplateCache;
 #---AUTOPRAGMASTART---
 use v5.36;
 use strict;
@@ -17,8 +17,7 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
-use base qw(PageCamel::Web::BaseModule);
-use PageCamel::Helpers::DateStrings;
+use base qw(PageCamel::Worker::BaseModule PageCamel::Helpers::TemplateEngine::Main);
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -26,54 +25,37 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
-    #$self->pluginConfig();
+    $self->{uninlineJavascript} = 0;
+    $self->{preventCSS} = 0;
+    $self->{prerenderCallback} = 0;
+
+    $self->init();
 
     return $self;
 }
 
-sub crossregister($self) {
-    
-    if(defined($self->{templates})) {
-        # Configure an additional path in the TemplateCache module
-        my $tch = $self->{server}->{modules}->{$self->{templates}->{templatecache}};
-        $tch->addView($self->{templates}->{path}, $self->{templates}->{base});
-    }
-
-    if(defined($self->{staticfiles})) {
-        # Configure an additional path in the StaticCache module
-        my $sch = $self->{server}->{modules}->{$self->{staticfiles}->{staticcache}};
-        foreach my $view (@{$self->{staticfiles}->{view}}) {
-            $sch->addView($view->{path}, $view->{base});
-        }
-    }
-
-
-    return;
+sub reload($self, $ofh = undef) {
+    return $self->reloadFiles($ofh);
 }
 
+sub finalcheck($self) {
+    return $self->runFinalcheck();
+}
 
 1;
 __END__
 
 =head1 NAME
 
-PageCamel::Web::PluginConfig -
+PageCamel::Worker::TemplateCache -
 
 =head1 SYNOPSIS
 
-  use PageCamel::Web::PluginConfig;
+  use PageCamel::Worker::TemplateCache;
 
 
 
 =head1 DESCRIPTION
-
-
-
-=head2 new
-
-
-
-=head2 crossregister
 
 
 

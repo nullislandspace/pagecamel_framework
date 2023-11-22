@@ -18,22 +18,6 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule PageCamel::Helpers::TemplateEngine::Main);
-use Template;
-use HTML::Entities;
-use IO::Compress::Gzip qw(gzip $GzipError);
-use Digest::SHA1  qw(sha1_hex);
-use PageCamel::Helpers::DateStrings;
-use Time::HiRes qw(sleep);
-use PageCamel::Helpers::Padding qw(trim);
-
-use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
-use PageCamel::Helpers::Strings qw(stripString);
-use PageCamel::Helpers::AutoDialogs;
-use PageCamel::Helpers::Translator;
-use JavaScript::Minifier qw(minify);
-
-my $templatemodulecount = 0;
-my @knowntemplatemodules;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -44,6 +28,7 @@ sub new($proto, %config) {
 
     $self->{uninlineJavascript} = 1;
     $self->{preventCSS} = 1;
+    $self->{prerenderCallback} = 0;
 
     $self->init();
 

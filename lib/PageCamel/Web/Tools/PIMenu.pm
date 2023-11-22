@@ -26,9 +26,6 @@ use PageCamel::Helpers::DataBlobs;
 use JSON::XS;
 use PageCamel::Helpers::DateStrings;
 
-use Readonly;
-Readonly my $TESTRANGE => 1_000_000;
-
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 

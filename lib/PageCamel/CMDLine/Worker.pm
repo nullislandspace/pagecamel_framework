@@ -47,7 +47,7 @@ sub init($self) {
         print "Loading config file ", $self->{configfile}, "\n";
         
         my $config = LoadConfig($self->{configfile},
-                            ForceArray => [ 'module', 'directory', 'reciever', 'users', 'sourceip', 'item', 'argument', 'crop' ],);
+                            ForceArray => [ 'module', 'directory', 'reciever', 'users', 'sourceip', 'item', 'argument', 'crop', 'view' ],);
         
         
         my $APPNAME = $config->{appname};

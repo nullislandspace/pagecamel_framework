@@ -22,11 +22,6 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::Padding qw[doSpacePad];
 use PageCamel::Helpers::Strings qw[stripString];
 
-use Readonly;
-
-
-Readonly my $TESTRANGE => 1_000_000;
-
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 

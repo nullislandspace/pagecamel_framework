@@ -9,6 +9,7 @@ devscripts/compilecanvasjs.pl
 devscripts/compilecanvasuijs.pl
 devscripts/compilecss.pl
 devscripts/compilejs.pl
+devscripts/compiletypescript.sh
 devscripts/debuginject.pl
 devscripts/debugremove.pl
 devscripts/findbrokenforms.pl
@@ -65,6 +66,8 @@ lib/PageCamel/Helpers/PostgresDB.pm
 lib/PageCamel/Helpers/PrintProcessor.pm
 lib/PageCamel/Helpers/Strings.pm
 lib/PageCamel/Helpers/SystemSettings.pm
+lib/PageCamel/Helpers/TemplateEngine/Main.pm
+lib/PageCamel/Helpers/TemplateEngine/Translate.pm
 lib/PageCamel/Helpers/TestData.pm
 lib/PageCamel/Helpers/Translator.pm
 lib/PageCamel/Helpers/URI.pm
@@ -2806,9 +2809,6 @@ lib/PageCamel/Web/Static/pchelpers/out/test/test_websocket_local.js.map
 lib/PageCamel/Web/Static/pchelpers/out/translate.d.ts
 lib/PageCamel/Web/Static/pchelpers/out/translate.js
 lib/PageCamel/Web/Static/pchelpers/out/translate.js.map
-lib/PageCamel/Web/Static/pchelpers/out/utils.d.ts
-lib/PageCamel/Web/Static/pchelpers/out/utils.js
-lib/PageCamel/Web/Static/pchelpers/out/utils.js.map
 lib/PageCamel/Web/Static/pchelpers/out/websocket.d.ts
 lib/PageCamel/Web/Static/pchelpers/out/websocket.js
 lib/PageCamel/Web/Static/pchelpers/out/websocket.js.map
@@ -2962,7 +2962,6 @@ lib/PageCamel/Web/Tools/Templates/workercontrol.tt
 lib/PageCamel/Web/Tools/WebDrive.pm
 lib/PageCamel/Web/Tools/WorkerControl.pm
 lib/PageCamel/Web/Translate.pm
-lib/PageCamel/Web/TT/Translate.pm
 lib/PageCamel/Web/Users/Edit.pm
 lib/PageCamel/Web/Users/Login.pm
 lib/PageCamel/Web/Users/PWChange.pm
@@ -3050,6 +3049,7 @@ lib/PageCamel/Worker/Minecraft/RCON.pm
 lib/PageCamel/Worker/MYCPAN/AutoScheduler.pm
 lib/PageCamel/Worker/MYCPAN/LocalCommands.pm
 lib/PageCamel/Worker/PingCheck.pm
+lib/PageCamel/Worker/PluginConfig.pm
 lib/PageCamel/Worker/PostfixCommands.pm
 lib/PageCamel/Worker/PostgresDB.pm
 lib/PageCamel/Worker/PostgreSQL2Clacks.pm
@@ -3058,6 +3058,7 @@ lib/PageCamel/Worker/SendMail.pm
 lib/PageCamel/Worker/SerialCommands.pm
 lib/PageCamel/Worker/SystemSettings.pm
 lib/PageCamel/Worker/TableStatistics.pm
+lib/PageCamel/Worker/TemplateCache.pm
 lib/PageCamel/Worker/Twitter/BlogTweet.pm
 lib/PageCamel/Worker/Twitter/HistoryTweet.pm
 lib/PageCamel/Worker/Twitter/TweetOutbox.pm
