@@ -28,7 +28,7 @@ sub new($proto, %config) {
 
     $self->{uninlineJavascript} = 1;
     $self->{preventCSS} = 1;
-    $self->{prerenderCallback} = 0;
+    $self->{prerenderCallback} = 1;
 
     $self->init();
 
