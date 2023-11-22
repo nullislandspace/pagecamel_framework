@@ -7,12 +7,8 @@ import { Database } from "sql.js";
 const initSqlJs = window.initSqlJs;
 
 declare var LZString: {
-    compress: (
-        data: string
-    ) => string;
-    decompress: (
-        data: string
-    ) => string;
+    compress: (data: string) => string;
+    decompress: (data: string) => string;
 };
 
 /**
