@@ -176,6 +176,11 @@ sub tr_translate($lang, $key) {
         return $key;
     }
 
+    if(!defined($lang)) {
+        #croak('$lang not defined');
+        $lang = 'eng';
+    }
+
     if(contains($key, $localcache->{keys})) {
         if(defined($localcache->{lang}->{$lang}) &&
                defined($localcache->{lang}->{$lang}->{$key})) {
