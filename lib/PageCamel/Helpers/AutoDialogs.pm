@@ -393,11 +393,11 @@ __END__
 
 =head1 NAME
 
-PageCamel::Web::TT::AutoDialogs -
+PageCamel::Helpers::AutoDialogs -
 
 =head1 SYNOPSIS
 
-  use PageCamel::Web::TT::AutoDialogs;
+  use PageCamel::Helpers::AutoDialogs;
 
 
 

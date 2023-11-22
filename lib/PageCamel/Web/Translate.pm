@@ -22,7 +22,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
-use PageCamel::Web::TT::Translate;
+use PageCamel::Helpers::TemplateEngine::Translate;
 use PageCamel::Helpers::Translator;
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 
@@ -378,7 +378,7 @@ sub prerender($self, $webdata) {
               !defined($webdata->{userData}->{user}) ||
               $webdata->{userData}->{user} eq "") {
               $webdata->{UserLanguage} = "eng";
-              PageCamel::Web::TT::Translate->setLang("eng");
+              PageCamel::Helpers::TemplateEngine::Translate->setLang("eng");
     }
 
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
@@ -399,7 +399,7 @@ sub prerender($self, $webdata) {
     }
 
     $webdata->{UserLanguage} = $lang;
-    PageCamel::Web::TT::Translate->setLang($lang);
+    PageCamel::Helpers::TemplateEngine::Translate->setLang($lang);
 
     # Remember for postfilter
     $self->{lastuserlanguage} = $lang;

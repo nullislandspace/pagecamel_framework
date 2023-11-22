@@ -1,4 +1,4 @@
-package PageCamel::Web::TT::Translate;
+package PageCamel::Helpers::TemplateEngine::Translate;
 #---AUTOPRAGMASTART---
 use v5.36;
 use strict;
@@ -109,11 +109,11 @@ __END__
 
 =head1 NAME
 
-PageCamel::Web::TT::Translate -
+PageCamel::Helpers::TemplateEngine::Translate -
 
 =head1 SYNOPSIS
 
-  use PageCamel::Web::TT::Translate;
+  use PageCamel::Helpers::TemplateEngine::Translate;
 
 
 

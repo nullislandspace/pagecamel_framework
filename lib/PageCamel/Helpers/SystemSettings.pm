@@ -264,7 +264,7 @@ sub set($self, $modulename, $settingname, $value) {
 
 
     # Now, reload complete data set and also push it into memcached
-    my $sth = $dbh->prepare_cached("SELECT * FROM system_settings " .
+    my $sth = $dbh->prepare("SELECT * FROM system_settings " .
                             "WHERE modulename = ? AND settingname = ?")
                     or croak($dbh->errstr);
 

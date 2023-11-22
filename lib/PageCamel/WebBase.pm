@@ -96,7 +96,6 @@ use PageCamel::Web::Style::Fonts;
 use PageCamel::Web::Style::Menubars;
 use PageCamel::Web::Style::Themes;
 use PageCamel::Web::SystemSettings;
-use PageCamel::Web::TT::Translate;
 use PageCamel::Web::TemplateCache;
 use PageCamel::Web::Testing::Microphone;
 use PageCamel::Web::Testing::VoiceComm;
