@@ -39,7 +39,7 @@ sub encode_uri_part($orig) {
 
     my @parts = split//, $orig;
     foreach my $part (@parts) {
-        if($part =~ /^[a-zA-Z0-9\/\:\~]/) {
+        if($part =~ /^[a-zA-Z0-9\:\~]/) {
             $encoded .= $part;
         }elsif($part eq ' ') {
             $encoded .= '+';
