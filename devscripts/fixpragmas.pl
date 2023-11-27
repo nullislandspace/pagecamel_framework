@@ -49,7 +49,7 @@ foreach my $file (@files) {
                 $skip = 1;
             }
 
-            if($file =~ /Helpers\/UTF\.pm$/ && $pragma =~ /Encode/) {
+            if(($file =~ /Helpers\/UTF\.pm$/ || $file =~ /LetsEncrypt\.pm/)&& $pragma =~ /Encode/) {
                 # Don't skip this one instance, this is the only place that loads the Encode module
                 $skip = 0;
             }
