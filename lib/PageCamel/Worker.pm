@@ -78,6 +78,7 @@ use PageCamel::Worker::Minecraft::Mapcrafter;
 use PageCamel::Worker::Minecraft::PlayerCoords;
 use PageCamel::Worker::Minecraft::RCON;
 use PageCamel::Worker::PingCheck;
+use PageCamel::Worker::PluginConfig;
 use PageCamel::Worker::PostfixCommands;
 use PageCamel::Worker::PostgreSQL2Clacks;
 use PageCamel::Worker::PostgresDB;
@@ -86,9 +87,7 @@ use PageCamel::Worker::SendMail;
 use PageCamel::Worker::SerialCommands;
 use PageCamel::Worker::SystemSettings;
 use PageCamel::Worker::TableStatistics;
-use PageCamel::Worker::Twitter::BlogTweet;
-use PageCamel::Worker::Twitter::HistoryTweet;
-use PageCamel::Worker::Twitter::TweetOutbox;
+use PageCamel::Worker::TemplateCache;
 use PageCamel::Worker::Wansview::Stream;
 #=!=END-AUTO-INCLUDES
 

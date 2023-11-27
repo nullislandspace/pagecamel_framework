@@ -3059,9 +3059,6 @@ lib/PageCamel/Worker/SerialCommands.pm
 lib/PageCamel/Worker/SystemSettings.pm
 lib/PageCamel/Worker/TableStatistics.pm
 lib/PageCamel/Worker/TemplateCache.pm
-lib/PageCamel/Worker/Twitter/BlogTweet.pm
-lib/PageCamel/Worker/Twitter/HistoryTweet.pm
-lib/PageCamel/Worker/Twitter/TweetOutbox.pm
 lib/PageCamel/Worker/Wansview/Stream.pm
 Makefile.PL
 makeppd.bat

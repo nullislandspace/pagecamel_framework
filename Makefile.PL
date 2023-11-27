@@ -137,7 +137,6 @@ WriteMakefile(
         'Net::Server' => 0,
         'Net::SNMP' => 0,
         'Net::Syslogd' => 0,
-        'Net::Twitter' => 0,
         'Net::VNC' => 0,
         'Net::Whois::Parser' => 0,
         'Net::Whois::Raw' => 0,
