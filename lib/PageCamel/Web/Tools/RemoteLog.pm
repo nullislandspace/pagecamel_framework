@@ -1,6 +1,6 @@
 package PageCamel::Web::Tools::RemoteLog;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';

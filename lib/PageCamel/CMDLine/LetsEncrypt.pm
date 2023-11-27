@@ -2,7 +2,7 @@
 # Developed under Artistic license
 package PageCamel::CMDLine::LetsEncrypt;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
@@ -31,7 +31,6 @@ use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::DateStrings;
 use XML::RPC;
 #use Getopt::Long;
-use Encode;
 
 use DBI;
 use Sys::Hostname;

@@ -1,4 +1,4 @@
-use 5.022;
+use v5.38;
 use ExtUtils::MakeMaker;
 
 ######### PRECOMPILE TYPESCRIPT FILES ##########

@@ -1,6 +1,6 @@
 package PageCamel::Helpers;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
@@ -52,7 +52,6 @@ use PageCamel::Helpers::TemplateEngine::Translate;
 use PageCamel::Helpers::TestData;
 use PageCamel::Helpers::Translator;
 use PageCamel::Helpers::URI;
-use PageCamel::Helpers::UTF;
 use PageCamel::Helpers::UserAgent;
 use PageCamel::Helpers::VoiceClient;
 use PageCamel::Helpers::WSockFrame;

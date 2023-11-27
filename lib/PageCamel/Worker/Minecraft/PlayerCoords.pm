@@ -2,7 +2,7 @@
 # Developed under Artistic license
 package PageCamel::Worker::Minecraft::PlayerCoords;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
