@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.3;
+our $VERSION = 4.2;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -78,7 +78,6 @@ use PageCamel::Worker::Minecraft::Mapcrafter;
 use PageCamel::Worker::Minecraft::PlayerCoords;
 use PageCamel::Worker::Minecraft::RCON;
 use PageCamel::Worker::PingCheck;
-use PageCamel::Worker::PluginConfig;
 use PageCamel::Worker::PostfixCommands;
 use PageCamel::Worker::PostgreSQL2Clacks;
 use PageCamel::Worker::PostgresDB;
@@ -87,7 +86,6 @@ use PageCamel::Worker::SendMail;
 use PageCamel::Worker::SerialCommands;
 use PageCamel::Worker::SystemSettings;
 use PageCamel::Worker::TableStatistics;
-use PageCamel::Worker::TemplateCache;
 use PageCamel::Worker::Twitter::BlogTweet;
 use PageCamel::Worker::Twitter::HistoryTweet;
 use PageCamel::Worker::Twitter::TweetOutbox;
@@ -168,12 +166,14 @@ sub endconfig($self) {
         $self->{modules}->{$modname}->reload;   # Reload module's data
     }
 
-    print "Data loaded - calling finalcheck...\n";
+    print "Running final checks in modules before endconfig...\n";
     foreach my $modname (keys %{$self->{modules}}) {
-           $self->{modules}->{$modname}->finalcheck;   # finish up configuration and prepare for cycling
+        print "  finalcheck for $modname\n";
+        $self->{modules}->{$modname}->finalcheck;   # finalcheck() calls
     }
 
     print "Nearly ready - calling endconfig...\n";
+
     foreach my $modname (keys %{$self->{modules}}) {
            $self->{modules}->{$modname}->endconfig;   # finish up configuration and prepare for cycling
     }
