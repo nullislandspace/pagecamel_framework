@@ -30,6 +30,7 @@ use PageCamel::Helpers::ConfigLoader;
 use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::DateStrings;
 use XML::RPC;
+use Encode;
 #use Getopt::Long;
 
 use DBI;
