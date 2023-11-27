@@ -1,12 +1,12 @@
 package PageCamel::WebBase;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
+our $VERSION = 4.3;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -96,7 +96,6 @@ use PageCamel::Web::Style::Fonts;
 use PageCamel::Web::Style::Menubars;
 use PageCamel::Web::Style::Themes;
 use PageCamel::Web::SystemSettings;
-use PageCamel::Web::TT::Translate;
 use PageCamel::Web::TemplateCache;
 use PageCamel::Web::Testing::Microphone;
 use PageCamel::Web::Testing::VoiceComm;
