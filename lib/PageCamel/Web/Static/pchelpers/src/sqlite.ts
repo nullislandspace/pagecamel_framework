@@ -6,6 +6,11 @@ import { Database } from "sql.js";
 
 const initSqlJs = window.initSqlJs;
 
+declare var LZString: {
+    compress: (data: string) => string;
+    decompress: (data: string) => string;
+};
+
 /**
  * Sqlite database connection class
  * @remarks
@@ -111,7 +116,7 @@ export class PCSqlite {
                         );
                     this._SQL = SQL;
                     // either get from Mobile Device or load from IndexedDB
-                    if (this._loadFromExternalStorage) {
+                    /* if (this._loadFromExternalStorage) {
                         var data = await this._loadFromExternalStorage();
                         if (data) {
                             this._db = new SQL.Database(
@@ -123,21 +128,21 @@ export class PCSqlite {
                         }
                         this._dbloaded = true;
                         if (this._isdebug) resolve("PCSqlite initialized");
-                    } else {
-                        this._loadFromIndexedDB().then(async (data) => {
-                            if (data) {
-                                var decompressed = LZString.decompress(data);
-                                this._db = new SQL.Database(
-                                    this._SQLtoBinArray(decompressed)
-                                );
-                            } else {
-                                this._db = new SQL.Database();
-                                this.save();
-                            }
-                            this._dbloaded = true;
-                            if (this._isdebug) resolve("PCSqlite initialized");
-                        });
-                    }
+                    } else { */
+                    this._loadFromIndexedDB().then(async (data) => {
+                        if (data) {
+                            var decompressed = LZString.decompress(data);
+                            this._db = new SQL.Database(
+                                this._SQLtoBinArray(decompressed)
+                            );
+                        } else {
+                            this._db = new SQL.Database();
+                            this.save();
+                        }
+                        this._dbloaded = true;
+                        if (this._isdebug) resolve("PCSqlite initialized");
+                    });
+                    // }
                 });
             } else {
                 console.error("========= sql.js not loaded =========");
@@ -325,11 +330,11 @@ export class PCSqlite {
     }
 
     save(): void {
-        if (this._saveToExternalStorage) {
+        /*  if (this._saveToExternalStorage) {
             this._saveToExternalStorage(this.dbstring);
-        } else {
-            this._binWorker.postMessage(["SQLTOSTRING", this._db?.export()]);
-        }
+        } else { */
+        this._binWorker.postMessage(["SQLTOSTRING", this._db?.export()]);
+        // }
     }
     /**
      * Reset the database and create a new one
@@ -352,16 +357,16 @@ export class PCSqlite {
     /**
      * Method to save the database to a file on the mobile device
      */
-    set saveToExternalStorage(func: ((data: string) => void) | undefined) {
+    /* set saveToExternalStorage(func: ((data: string) => void) | undefined) {
         this._saveToExternalStorage = func;
     }
     get saveToExternalStorage(): ((data: string) => void) | undefined {
         return this._saveToExternalStorage;
-    }
+    } */
     /**
      * Method to get the database from a file on the mobile device
      */
-    set loadFromExternalStorage(
+    /* set loadFromExternalStorage(
         func: (() => Promise<string | null>) | undefined
     ) {
         console.log("loadFromExternalStorage", func);
@@ -374,5 +379,5 @@ export class PCSqlite {
     }
     get loadFromExternalStorage(): (() => Promise<string | null>) | undefined {
         return this._loadFromExternalStorage;
-    }
+    } */
 }

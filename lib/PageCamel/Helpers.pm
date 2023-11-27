@@ -1,12 +1,12 @@
 package PageCamel::Helpers;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
+our $VERSION = 4.3;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -20,6 +20,7 @@ use PageCamel::Helpers::UTF;
 use base qw(Exporter);
 
 #=!=START-AUTO-INCLUDES
+use PageCamel::Helpers::APPQRCode;
 use PageCamel::Helpers::ArduinoDisplay;
 use PageCamel::Helpers::AutoDialogs;
 use PageCamel::Helpers::CSVFilter;
@@ -46,10 +47,11 @@ use PageCamel::Helpers::PostgresDB;
 use PageCamel::Helpers::PrintProcessor;
 use PageCamel::Helpers::Strings;
 use PageCamel::Helpers::SystemSettings;
+use PageCamel::Helpers::TemplateEngine::Main;
+use PageCamel::Helpers::TemplateEngine::Translate;
 use PageCamel::Helpers::TestData;
 use PageCamel::Helpers::Translator;
 use PageCamel::Helpers::URI;
-use PageCamel::Helpers::UTF;
 use PageCamel::Helpers::UserAgent;
 use PageCamel::Helpers::VoiceClient;
 use PageCamel::Helpers::WSockFrame;

@@ -1,12 +1,12 @@
 package PageCamel::Worker::BackupCommand;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
+our $VERSION = 4.3;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -95,9 +95,15 @@ sub do_backup($self, $arguments) {
 #                ' --verbose ' .
                 ' --file ' . $fname .
                 ' ' . $self->{database};
+    if(defined($self->{password}) && $self->{password} ne '') {
+        $fullcommand = 'PGPASSWORD="' . $self->{password} . '" ' . $fullcommand;
+    }
+
     if(defined($self->{sudouser}) && $self->{sudouser} ne '') {
         $fullcommand = "sudo -u " . $self->{sudouser} . " $fullcommand";
     }
+
+
     $reph->debuglog("Backup command $fullcommand");
     $dbh->commit;
 

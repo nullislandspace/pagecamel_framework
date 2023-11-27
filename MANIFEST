@@ -2,12 +2,14 @@
 Changes
 database/0001_remoteconsolelog.sql
 database/0002_database_tuning.sql
+database/0003_users_app_userkey.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
 devscripts/compilecanvasuijs.pl
 devscripts/compilecss.pl
 devscripts/compilejs.pl
+devscripts/compiletypescript.sh
 devscripts/debuginject.pl
 devscripts/debugremove.pl
 devscripts/findbrokenforms.pl
@@ -37,6 +39,7 @@ lib/PageCamel/CMDLine/Worker.pm
 lib/PageCamel/DNS.pm
 lib/PageCamel/Framework.pm
 lib/PageCamel/Helpers.pm
+lib/PageCamel/Helpers/APPQRCode.pm
 lib/PageCamel/Helpers/ArduinoDisplay.pm
 lib/PageCamel/Helpers/AutoDialogs.pm
 lib/PageCamel/Helpers/ClacksCache.pm
@@ -63,6 +66,8 @@ lib/PageCamel/Helpers/PostgresDB.pm
 lib/PageCamel/Helpers/PrintProcessor.pm
 lib/PageCamel/Helpers/Strings.pm
 lib/PageCamel/Helpers/SystemSettings.pm
+lib/PageCamel/Helpers/TemplateEngine/Main.pm
+lib/PageCamel/Helpers/TemplateEngine/Translate.pm
 lib/PageCamel/Helpers/TestData.pm
 lib/PageCamel/Helpers/Translator.pm
 lib/PageCamel/Helpers/URI.pm
@@ -2957,7 +2962,6 @@ lib/PageCamel/Web/Tools/Templates/workercontrol.tt
 lib/PageCamel/Web/Tools/WebDrive.pm
 lib/PageCamel/Web/Tools/WorkerControl.pm
 lib/PageCamel/Web/Translate.pm
-lib/PageCamel/Web/TT/Translate.pm
 lib/PageCamel/Web/Users/Edit.pm
 lib/PageCamel/Web/Users/Login.pm
 lib/PageCamel/Web/Users/PWChange.pm
@@ -3045,6 +3049,7 @@ lib/PageCamel/Worker/Minecraft/RCON.pm
 lib/PageCamel/Worker/MYCPAN/AutoScheduler.pm
 lib/PageCamel/Worker/MYCPAN/LocalCommands.pm
 lib/PageCamel/Worker/PingCheck.pm
+lib/PageCamel/Worker/PluginConfig.pm
 lib/PageCamel/Worker/PostfixCommands.pm
 lib/PageCamel/Worker/PostgresDB.pm
 lib/PageCamel/Worker/PostgreSQL2Clacks.pm
@@ -3053,9 +3058,7 @@ lib/PageCamel/Worker/SendMail.pm
 lib/PageCamel/Worker/SerialCommands.pm
 lib/PageCamel/Worker/SystemSettings.pm
 lib/PageCamel/Worker/TableStatistics.pm
-lib/PageCamel/Worker/Twitter/BlogTweet.pm
-lib/PageCamel/Worker/Twitter/HistoryTweet.pm
-lib/PageCamel/Worker/Twitter/TweetOutbox.pm
+lib/PageCamel/Worker/TemplateCache.pm
 lib/PageCamel/Worker/Wansview/Stream.pm
 Makefile.PL
 makeppd.bat

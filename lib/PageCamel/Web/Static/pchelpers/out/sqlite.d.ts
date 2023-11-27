@@ -32,9 +32,5 @@ export declare class PCSqlite {
     private _loadFromIndexedDB;
     save(): void;
     reset(): boolean;
-    set saveToExternalStorage(func: ((data: string) => void) | undefined);
-    get saveToExternalStorage(): ((data: string) => void) | undefined;
-    set loadFromExternalStorage(func: (() => Promise<string | null>) | undefined);
-    get loadFromExternalStorage(): (() => Promise<string | null>) | undefined;
 }
 export {};
