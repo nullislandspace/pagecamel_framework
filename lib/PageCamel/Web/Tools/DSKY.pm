@@ -50,7 +50,7 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
         push @{$webdata->{HeadExtraScripts}}, '/static/canvasjs.compiled-min.js';
     }
     
-    return;
+    return 200;
 }
 
 sub wshandlerstart($self, $ua, $settings) {
