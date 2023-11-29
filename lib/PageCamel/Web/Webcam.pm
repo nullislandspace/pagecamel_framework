@@ -54,7 +54,7 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
 
     $webdata->{WebcamAdminMode} = $self->{adminmode};
     
-    return;
+    return 200;
 }
 
 sub wshandlerstart($self, $ua, $settings) {

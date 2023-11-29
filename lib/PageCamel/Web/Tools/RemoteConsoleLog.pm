@@ -62,7 +62,7 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
                                             '/static/codemirror/theme/3024-night.css',
                                       );
 
-    return;
+    return 200;
 }
 
 sub wscrossregister($self) {
