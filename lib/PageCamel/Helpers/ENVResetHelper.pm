@@ -23,6 +23,8 @@ our @EXPORT= qw(ENVReset); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
 sub ENVReset {
+    warn("ENVReset helper is deprecated and disabled");
+    return;
     #if(!defined($ENV{HOME})) {
     #    print STDERR "HOME environment variable not set!\n";
     #    return;
