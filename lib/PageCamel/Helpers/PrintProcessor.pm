@@ -25,12 +25,14 @@ use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::TestData;
 use Crypt::Digest::SHA256 qw[sha256_hex];
 
+my %globalimagecache;
+
 sub new($proto, $config) {
     my $class = ref($proto) || $proto;
     
     my $self = bless $config, $class;
 
-    $self->{imagecache} = {};
+    $self->{imagecache} = \%globalimagecache; # Cache works over multiple instances
 
     if(!defined($self->{reph})) {
         croak('PageCamel::Helpers::PrintProcessor needs reph');
