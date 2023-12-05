@@ -30,14 +30,14 @@ sub new($proto, $config) {
     
     my $self = bless $config, $class;
 
-    if(!defined($self->{use_eog})) {
-        $self->{use_eog} = 0;
-    }
-    
     $self->{imagecache} = {};
 
     if(!defined($self->{reph})) {
         croak('PageCamel::Helpers::PrintProcessor needs reph');
+    }
+
+    if(!defined($self->{generateEscPos})) {
+        $self->{generateEscPos} = 0;
     }
     
     return $self;
@@ -55,7 +55,7 @@ sub printStartDocument($self) {
     return;
 }
 
-sub printEndDocument($self, $cupsprinters = []) {
+sub printEndDocument($self) {
     my $reph = $self->{reph};
     
     # Need to downsize image to minimum required length
@@ -70,53 +70,111 @@ sub printEndDocument($self, $cupsprinters = []) {
                           $self->{width}, $self->{imgoffs}, # SRC W H
                           );
     
-    my $ofname = $self->makeFName();
+    $self->{imagedata} = $cropped->png;
 
-    if($self->{use_eog}) {
-        $ofname = '/home/cavac/src/temp/posprint.png';
+    if($self->{generateEscPos}) {
+        $self->{escposimagedata} = $self->_generateEscPos($cropped);
     }
 
-    my $imagedata = $cropped->png;
+    return;
+}
 
-    my $printimagedata = $imagedata;
+sub _generateEscPos($self, $img) {
+    my $reph = $self->{reph};
+    $reph->debuglog("Converting image to ESC/POS");
 
-    writeBinFile($ofname, $printimagedata);
-    
-    if($self->{use_eog}) {
-        my $cmd = 'gimp ' . $ofname;
-        `$cmd`;
-    } else {
-        if(ref $cupsprinters ne 'ARRAY') {
-            my @tmp;
-            if(!defined($cupsprinters) || $cupsprinters eq '') {
-                $reph->debuglog("No printer name given!!!!!!");
-                if(!defined($self->{defaultprinter})) {
-                    $reph->debuglog("...and no default printer set!!!!");
-                } else {
-                    push @tmp, $self->{defaultprinter};
+    my $raw = '';
+
+    my ($w, $h) = $img->getBounds();
+
+    # Remove line spacing
+    $raw .=  chr(0x1B) . chr(0x33) . chr(3) . "\n";
+
+    # Make darker
+    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(127);
+
+    # Make faster
+    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) .chr(1);
+
+    # 24 pixel height per line
+    for(my $y = 0; $y < $h; $y += 24) {
+        # Command "Send pixel data"
+        $raw .= chr(0x1B) . chr(0x2A) .  chr(33);
+
+        # Send width definition
+        my $leadingwhitespace = 32;
+        my $virtualw = $w + $leadingwhitespace;
+        $raw .= chr($virtualw & 0xff);
+        $raw .= chr(($virtualw >> 8) & 0xff);
+
+        for(1..($leadingwhitespace*3)) {
+            $raw .= chr(0x00);
+        }
+
+        for(my $x = 0; $x < $w; $x++) {
+            for(my $ybyte = 0; $ybyte < 3; $ybyte++) {
+                my $byte = 0;
+                for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
+                    $byte <<= 1;
+                    if(!$img->getPixel($x, $y + $yoffs + ($ybyte * 8))) {
+                        $byte = $byte | 0x01;
+                    }
                 }
-            } else {
-                push @tmp, $cupsprinters . '';
+                $raw .= chr($byte);
             }
-
-            $cupsprinters = \@tmp;
         }
 
-        foreach my $printername (@{$cupsprinters}) {
-            my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
-            $reph->debuglog("Running print command: $cmd");
-            `$cmd`;
+        # Line break
+        $raw .= "\n";
+    }
+
+    # ESC @ for reinit the printer, then new lines, then ESC i   for cutting
+    $raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x69) . "\n";
+
+    return $raw;
+}
+
+
+sub printSendToPrinter($self, $cupsprinters = []) {
+    my $reph = $self->{reph};
+    
+    my $ofname = $self->makeFName();
+
+    if($self->{generateEscPos}) {
+        writeBinFile($ofname, $self->{escposimagedata});
+    } else {
+        writeBinFile($ofname, $self->{imagedata});
+    }
+    
+    if(ref $cupsprinters ne 'ARRAY') {
+        my @tmp;
+        if(!defined($cupsprinters) || $cupsprinters eq '') {
+            $reph->debuglog("No printer name given!!!!!!");
+            if(!defined($self->{defaultprinter})) {
+                $reph->debuglog("...and no default printer set!!!!");
+            } else {
+                push @tmp, $self->{defaultprinter};
+            }
+        } else {
+            push @tmp, $cupsprinters . '';
         }
+
+        $cupsprinters = \@tmp;
+    }
+
+    foreach my $printername (@{$cupsprinters}) {
+        my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
+        $reph->debuglog("Running print command: $cmd");
+        `$cmd`;
     }
     
     unlink $ofname;
-    
-    delete $self->{img};
-    delete $self->{imgoffs};
-    delete $self->{imgblack};
-    delete $self->{imgwhite};
-    return $imagedata;
 }
+
+sub printGetImagedata($self) {
+    return $self->{imagedata};
+}
+
 
 sub printMoveOffset($self, $offset) {
     $self->{imgoffs} += $offset;
@@ -504,24 +562,21 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     return;
 }
 
-sub rememberPrint($self, $imagedata, $description, $markascopytext = undef, $copy_y = undef) {
+sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
+    
+    $self->{img}->stringFT($self->{imgblack}, $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
+
+    return;
+}
+
+sub rememberPrint($self, $description) {
     
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
 
-    if(defined($markascopytext)) {
-        my $img = GD::Image->new($imagedata);
-        my $black = $img->colorAllocate(0, 0, 0);
-        my $white = $img->colorAllocate(255, 255, 255);
-        #$img->stringFT($black, $self->{font}, 20, 0, 10, $copy_y + 10, $markascopytext);
-        $img->stringFT($black, $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
-
-        $imagedata = $img->png;
-    }
-    
     my $blob = PageCamel::Helpers::DataBlobs->new($dbh);
     $blob->blobOpen();
-    $blob->blobWrite(\$imagedata);
+    $blob->blobWrite(\$self->{imagedata});
     my $filesize = $blob->getLength();
     my $blobid = $blob->blobID();
     $blob->blobClose();
@@ -581,6 +636,11 @@ sub reprintDocument($self, $documentid, $printername) {
     
     my $ofname = $self->makeFName();
     print STDERR $ofname, "\n";
+
+    if($self->{generateEscPos}) {
+        my $img = GD::Image->newFromPngData($imagedata, 0);
+        $imagedata = $self->_generateEscPos($self, $img);
+    }
 
     writeBinFile($ofname, $imagedata);
     
@@ -665,7 +725,7 @@ sub printAddTestPattern_Rectangle($self) {
 }
 
 
-sub printTestMessage($self, $printer, $tests) {
+sub printTestMessage($self, $tests) {
     
     my @lines = PageCamel::Helpers::TestData::getTestLines();
     
@@ -740,19 +800,22 @@ sub printTestMessage($self, $printer, $tests) {
         $self->printAddTextLine('');
     }
     
-    my $imagedata = $self->printEndDocument($printer);
-    return $imagedata;
+    $self->printEndDocument();
+    return;
 }
 
 sub makeFName($self) {
-    
     my $fname = '';
     while($fname eq '') {
         $fname = '/tmp/posprint_' . $PID . '_';
         for(1..10) {
             $fname .= '' . int(rand(10)) . '';
         }
-        $fname .= '.png';
+        if($self->{generateEscPos}) {
+            $fname .= '.bin';
+        } else {
+            $fname .= '.png';
+        }
     }
     
     return $fname;
