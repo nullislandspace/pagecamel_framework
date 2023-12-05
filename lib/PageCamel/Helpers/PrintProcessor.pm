@@ -635,13 +635,21 @@ sub reprintDocument($self, $documentid, $printername) {
     $blob->blobRead(\$imagedata);
     $blob->blobClose();
     $dbh->commit;
-    
+
+    $self->reprintDocumentData($imagedata, $printername);
+
+    return;
+}
+
+sub reprintDocumentData($self, $imagedata, $printername) {
+    my $reph = $self->{reph};
+
     my $ofname = $self->makeFName();
-    print STDERR $ofname, "\n";
+    $reph->debuglog("Spooling $ofname to $printername\n");
 
     if($self->{generateEscPos}) {
         my $img = GD::Image->newFromPngData($imagedata, 0);
-        $imagedata = $self->_generateEscPos($self, $img);
+        $imagedata = $self->_generateEscPos($img);
     }
 
     writeBinFile($ofname, $imagedata);
@@ -652,8 +660,6 @@ sub reprintDocument($self, $documentid, $printername) {
     }
     $cmd .= ' ' . $ofname;
     `$cmd`;
-    
-    $reph->debuglog("    " . $line->{description});
     
     unlink $ofname;
     
