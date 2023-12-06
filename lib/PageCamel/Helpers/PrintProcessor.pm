@@ -762,6 +762,9 @@ sub printTestMessage($self, $tests) {
     my @lines = PageCamel::Helpers::TestData::getTestLines();
     
     $self->printStartDocument();
+    for(1..3) {
+        $self->printAddTextLine('');
+    }
     
     if(contains('text', $tests)) {
         $self->printAddTextLine("TEST 'Text'");
@@ -804,6 +807,9 @@ sub printTestMessage($self, $tests) {
         
         $self->printAddTextLine("TEST 'Heat up/Cooldown'");
         $self->printAddTestPattern_HeatupCooldown();
+        for(1..3) {
+            $self->printAddTextLine('');
+        }
     }
     
     if(contains('greyscale', $tests)) {
@@ -812,9 +818,10 @@ sub printTestMessage($self, $tests) {
             $self->printAddTextLine("   Softness $softness");    
             $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage1(), 1, $softness);
             $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage2(), 1, $softness);
-        }
-        for(1..3) {
-            $self->printAddTextLine('');
+
+            for(1..3) {
+                $self->printAddTextLine('');
+            }
         }
     }
     
