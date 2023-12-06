@@ -692,14 +692,27 @@ sub reprintDocumentData($self, $imagedata, $printername) {
 
 sub printAddTestPattern_HeatupCooldown($self) {
     
-    for(1..3) {
+    for(1..2) {
         $self->{img}->filledRectangle(0, $self->{imgoffs},
                                       $self->{width}, $self->{imgoffs} + 200,
                                               $self->{imgblack});
         $self->{imgoffs} += 400;
     }
+
+    $self->{img}->filledRectangle(0, $self->{imgoffs},
+                                  $self->{width}, $self->{imgoffs} + 200,
+                                          $self->{imgblack});
+    $self->{imgoffs} += 200;
+    for(my $i = 512; $i > 0; $i--) {
+        $self->{img}->filledRectangle(0, $self->{imgoffs}, $i,
+                                          $self->{imgoffs} + 0,
+                                          $self->{imgblack});
+        
+        $self->{imgoffs} += 1;
+        
+    }
     
-    return
+    return;
 }
 
 sub printAddTestPattern_VerticalLines($self, $pointsize) {
@@ -718,7 +731,7 @@ sub printAddTestPattern_VerticalLines($self, $pointsize) {
     
     $self->{imgoffs} += 40;
     
-    return
+    return;
 }
 
 sub printAddTestPattern_HorizontalLines($self, $pointsize) {
@@ -734,7 +747,7 @@ sub printAddTestPattern_HorizontalLines($self, $pointsize) {
         
     }
     
-    return
+    return;
 }
 
 sub printAddTestPattern_Rectangle($self) {
@@ -753,7 +766,7 @@ sub printAddTestPattern_Rectangle($self) {
         $self->{imgoffs}++;
     }
     
-    return
+    return;
 }
 
 
