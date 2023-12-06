@@ -568,18 +568,15 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
         
         for(my $y = 0; $y < $desth; $y++) {
             for(my $x = 0; $x < $destw; $x++) {    
-                my $index = $pic->getPixel($x, $y);
-                my ($r,$g,$b) = $pic->rgb($index);
-                my $greypixel = int(($r+$g+$b)/3);
-                my $level = int($greypixel / (255 / $levels));
-                
+                my $greypixel = $pixels[$x]->[$y];
+                my $level = int($greypixel / (256 / $levels));
+
                 my $offs = int(rand($bitlen));
                 my $bit = $greys[$level]->[($x + $offs) % $bitlen];
                 
                 if(!$bit) {
                     $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
                     $cachepic->setPixel($x, $y, $cacheblack);
-                } else {
                 }
             }
         }
