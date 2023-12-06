@@ -136,8 +136,9 @@ sub _generateEscPos($self, $img) {
             for(my $ybyte = 0; $ybyte < 3; $ybyte++) {
                 my $byte = 0;
                 for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
+                    my $ytotal = $y + $yoffs + ($ybyte * 8);
                     $byte <<= 1;
-                    if(!$img->getPixel($x, $y + $yoffs + ($ybyte * 8))) {
+                    if($ytotal < $h && !$img->getPixel($x, $ytotal)) {
                         $byte = $byte | 0x01;
                     }
                 }
