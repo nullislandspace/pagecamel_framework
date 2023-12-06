@@ -53,6 +53,8 @@ sub printStartDocument($self) {
     $self->{imgwhite} = $self->{img}->colorAllocate(255, 255, 255);
     
     $self->{img}->filledRectangle(0, 0, $self->{width}, $self->{height}, $self->{imgwhite});
+
+    $self->{kickCashdrawer} = 0;
     
     return;
 }
@@ -81,11 +83,28 @@ sub printEndDocument($self) {
     return;
 }
 
+sub printKickCashdrawer($self, $kick = 1) {
+    # This currently only works in EscPos mode
+    $self->{kickCashdrawer} = $kick;
+
+    return;
+}
+
 sub _generateEscPos($self, $img) {
     my $reph = $self->{reph};
     $reph->debuglog("Converting image to ESC/POS");
 
     my $raw = '';
+
+    if($self->{kickCashdrawer}) {
+        $reph->debuglog("   Opening cash drawer at the start of printing this document in ESC/POS mode");
+
+        # Kick drawer 1
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        
+        # Kick drawer 2
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+    }
 
     my ($w, $h) = $img->getBounds();
 
@@ -130,8 +149,15 @@ sub _generateEscPos($self, $img) {
         $raw .= "\n";
     }
 
-    # ESC @ for reinit the printer, then new lines, then ESC i   for cutting
-    $raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x69) . "\n";
+    #   # ESC @ for reinit the printer, then new lines, then ESC i for cutting
+    #   $raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x69) . "\n";
+    # ESC @ for reinit the printer, then new lines, then ESC k for HALF cutting
+    #$raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x6B) . "\n";
+    #$raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x69) . "\n";
+    #$raw .= chr(0x1B) . chr(0x69) . "\n";
+    
+    # Feed and half-cut
+    $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
     return $raw;
 }
