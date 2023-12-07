@@ -34,3 +34,4 @@ export declare class PCSqlite {
     reset(): boolean;
 }
 export {};
+//# sourceMappingURL=sqlite.d.ts.map
