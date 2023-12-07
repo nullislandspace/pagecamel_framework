@@ -112,7 +112,8 @@ sub _generateEscPos($self, $img) {
     $raw .=  chr(0x1B) . chr(0x33) . chr(3) . "\n";
 
     # Make darker
-    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(127);
+    # GS ( K 
+    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(240);
 
     # Make faster
     #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) .chr(1);
