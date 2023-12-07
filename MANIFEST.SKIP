@@ -62,3 +62,7 @@
 
 # cxpos
 lib/PageCamel/Web/Static/pchelpers/node_modules
+
+\.vscode
+
+\.map$

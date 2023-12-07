@@ -11,6 +11,10 @@ MYMETA.json
 MYMETA.yml
 Makefile$
 pm_to_blib
-^\.hgsubstate
+#^\.hgsubstate
 .*\.swp$
 node_modules
+\.vscode
+package-lock.json
+
+\.map$

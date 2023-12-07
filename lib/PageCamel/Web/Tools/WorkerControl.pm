@@ -47,7 +47,7 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
             or croak($dbh->errstr);
     if(!$selsth->execute()) {
         $dbh->rollback;
-        return;
+        return 500;
     } else {
         while((my $line = $selsth->fetchrow_hashref)) {
             my $statusname = $line->{settingname};
@@ -78,7 +78,7 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
     $webdata->{Workers} = \@workers;
     $dbh->commit;
 
-    return;
+    return 200;
 }
 
 sub wshandlerstart($self, $ua, $settings) {

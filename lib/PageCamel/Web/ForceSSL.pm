@@ -28,11 +28,17 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    if(!defined($self->{disabled})) {
+        $self->{disabled} = 0;
+    }
+
     return $self;
 }
 
 sub register($self) {
-    $self->register_prefilter("prefilter");
+    if(!$self->{disabled}) {
+        $self->register_prefilter("prefilter");
+    }
     return;
 }
 

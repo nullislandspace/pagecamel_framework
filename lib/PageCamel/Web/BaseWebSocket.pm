@@ -148,7 +148,7 @@ sub wsreload($self) {
 
 sub wsmaskget($self, $ua, $settings, $webdata) {
 
-    return;
+    return 200; # HTTP Status OK
 }
 
 sub wsstart($self, $ua, $webdata) {
@@ -264,7 +264,10 @@ sub get($self, $ua) {
 
     push @{$webdata{HeadExtraModuleScriptsNoPostfix}}, '/static/pchelpers/import_pcwebsocket.js';
     
-    $self->wsmaskget($ua, \%settings, \%webdata);
+    my $substatus = $self->wsmaskget($ua, \%settings, \%webdata);
+    if($substatus != 200) {
+        return (status => $substatus);
+    }
 
     my $subtemplate = $th->render_partials($self->{template}, %webdata);
     if(!defined($subtemplate)) {
