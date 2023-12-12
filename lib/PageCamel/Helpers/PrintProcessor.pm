@@ -41,6 +41,18 @@ sub new($proto, $config) {
     if(!defined($self->{generateEscPos})) {
         $self->{generateEscPos} = 0;
     }
+
+    if(!defined($self->{escPosSGT116})) {
+        $self->{escPosSGT116} = 0;
+    }
+
+    if(!defined($self->{escPosSpeed})) {
+        $self->{escPosSpeed} = 1; ; # 1-9 or 1-12 depending on model
+    }
+
+    if(!defined($self->{escPosDensity})) {
+        $self->{escPosDensity} = 1; # Darkness 1-13 or 0-15, depending on model
+    }
     
     return $self;
 }
@@ -75,10 +87,7 @@ sub printEndDocument($self) {
                           );
     
     $self->{imagedata} = $cropped->png;
-
-    if($self->{generateEscPos}) {
-        $self->{escposimagedata} = $self->_generateEscPos($cropped);
-    }
+    $self->{img} = $cropped;
 
     return;
 }
@@ -90,20 +99,61 @@ sub printKickCashdrawer($self, $kick = 1) {
     return;
 }
 
-sub _generateEscPos($self, $img) {
+sub _generateEscPos($self) {
     my $reph = $self->{reph};
     $reph->debuglog("Converting image to ESC/POS");
 
     my $raw = '';
+    my $img = $self->{img};
+
+    # Reset printer
+    #$raw .= chr(0x1B) . chr(0x40);
+
+    $reph->debuglog("DENSITY: ", $self->{escPosDensity});
+
+    if(!$self->{escPosSGT116}) {
+        # Epson standard way of setting speed and density (darkness)
+        $reph->debuglog("Standard Print mode");
+
+        # ***** ENTER USER CONFIG MODE
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x45) . chr(0x03) . chr(0x00) . chr(0x01) . chr(0x49) . chr(0x4E);
+
+        # Set Darkness / "density"
+        $raw .= chr(0x1D) . chr(0x2B) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x05) . chr(0x05) . chr($self->{escPosDensity}) . chr(0x00);
+
+        # Set speed
+        $raw .= chr(0x1D) . chr(0x2B) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x05) . chr(0x06) . chr($self->{escPosSpeed}) . chr(0x00);
+
+        # ***** LEAVE USER CONFIG MODE
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x02) . chr(0x4F) . chr(0x55) . chr(0x54);
+
+        # Select speed and density from user config
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(0x00);
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr(0x00);
+    } else {
+        $reph->debuglog("SGT116 print mode");
+        # Chinesium version of ESC/POS for SGT116
+        $raw .= chr(0x12) . chr(0x23) . chr($self->{escPosDensity});
+
+        # Does not support a speed setting at all
+
+    }
 
     if($self->{kickCashdrawer}) {
         $reph->debuglog("   Opening cash drawer at the start of printing this document in ESC/POS mode");
 
-        # Kick drawer 1
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
-        
-        # Kick drawer 2
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        if(!$self->{escPosSGT116}) {
+            # Epson standard way
+            # Kick drawer 1
+            $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+            
+            # Kick drawer 2
+            $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        } else {
+            # Chinesium version of ESC/POS for SGT116?
+            #$raw .= chr(0x1b) . chr(0x70) . chr(0x00) . chr(0x60);
+            $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+        }
     }
 
     my ($w, $h) = $img->getBounds();
@@ -161,7 +211,9 @@ sub _generateEscPos($self, $img) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
-    return $raw;
+    $self->{escposimagedata} = $raw;
+
+    return;
 }
 
 
@@ -171,6 +223,7 @@ sub printSendToPrinter($self, $cupsprinters = []) {
     my $ofname = $self->makeFName();
 
     if($self->{generateEscPos}) {
+        $self->_generateEscPos();
         writeBinFile($ofname, $self->{escposimagedata});
     } else {
         writeBinFile($ofname, $self->{imagedata});
@@ -667,27 +720,10 @@ sub reprintDocument($self, $documentid, $printername) {
 }
 
 sub reprintDocumentData($self, $imagedata, $printername) {
-    my $reph = $self->{reph};
+    $self->{imagedata} = $imagedata;
+    $self->{img} = GD::Image->newFromPngData($imagedata, 0);
+    $self->printSendToPrinter($printername);
 
-    my $ofname = $self->makeFName();
-    $reph->debuglog("Spooling $ofname to $printername\n");
-
-    if($self->{generateEscPos}) {
-        my $img = GD::Image->newFromPngData($imagedata, 0);
-        $imagedata = $self->_generateEscPos($img);
-    }
-
-    writeBinFile($ofname, $imagedata);
-    
-    my $cmd = $self->{printcommand};
-    if(defined($printername) && $printername ne '') {
-        $cmd .= ' -P ' . $printername;
-    }
-    $cmd .= ' ' . $ofname;
-    `$cmd`;
-    
-    unlink $ofname;
-    
     return;
 }
 
