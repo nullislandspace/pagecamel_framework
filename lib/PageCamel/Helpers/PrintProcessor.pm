@@ -41,6 +41,18 @@ sub new($proto, $config) {
     if(!defined($self->{generateEscPos})) {
         $self->{generateEscPos} = 0;
     }
+
+    if(!defined($self->{escPosSGT116})) {
+        $self->{escPosSGT116} = 0;
+    }
+
+    if(!defined($self->{escPosSpeed})) {
+        $self->{escPosSpeed} = 1; ; # 1-9 or 1-12 depending on model
+    }
+
+    if(!defined($self->{escPosDensity})) {
+        $self->{escPosDensity} = 1; # Darkness 1-13 or 0-15, depending on model
+    }
     
     return $self;
 }
@@ -49,8 +61,10 @@ sub printStartDocument($self) {
     
     $self->{img} = GD::Image->new($self->{width}, $self->{height});
     $self->{imgoffs} = 0;
-    $self->{imgblack} = $self->{img}->colorAllocate(0, 0, 0);
     $self->{imgwhite} = $self->{img}->colorAllocate(255, 255, 255);
+    $self->{imgblack} = $self->{img}->colorAllocate(0, 0, 0);
+    $self->{imgred} = $self->{img}->colorAllocate(255, 0, 0);
+    $self->{printcolor} = 'imgblack';
     
     $self->{img}->filledRectangle(0, 0, $self->{width}, $self->{height}, $self->{imgwhite});
 
@@ -64,8 +78,9 @@ sub printEndDocument($self) {
     
     # Need to downsize image to minimum required length
     my $cropped = GD::Image->new($self->{width}, $self->{imgoffs});
-    my $black = $cropped->colorAllocate(0, 0, 0);
     my $white = $cropped->colorAllocate(255, 255, 255);
+    my $black = $cropped->colorAllocate(0, 0, 0);
+    my $red = $cropped->colorAllocate(255, 0, 0);
     
     $cropped->copyResized($self->{img},
                           0, 0, # DEST X Y
@@ -75,10 +90,7 @@ sub printEndDocument($self) {
                           );
     
     $self->{imagedata} = $cropped->png;
-
-    if($self->{generateEscPos}) {
-        $self->{escposimagedata} = $self->_generateEscPos($cropped);
-    }
+    $self->{img} = $cropped;
 
     return;
 }
@@ -90,20 +102,61 @@ sub printKickCashdrawer($self, $kick = 1) {
     return;
 }
 
-sub _generateEscPos($self, $img) {
+sub _generateEscPos($self) {
     my $reph = $self->{reph};
     $reph->debuglog("Converting image to ESC/POS");
 
     my $raw = '';
+    my $img = $self->{img};
+
+    # Reset printer
+    #$raw .= chr(0x1B) . chr(0x40);
+
+    $reph->debuglog("DENSITY: ", $self->{escPosDensity});
+
+    if(!$self->{escPosSGT116}) {
+        # Epson standard way of setting speed and density (darkness)
+        $reph->debuglog("Standard Print mode");
+
+        # ***** ENTER USER CONFIG MODE
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x45) . chr(0x03) . chr(0x00) . chr(0x01) . chr(0x49) . chr(0x4E);
+
+        # Set Darkness / "density"
+        $raw .= chr(0x1D) . chr(0x2B) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x05) . chr(0x05) . chr($self->{escPosDensity}) . chr(0x00);
+
+        # Set speed
+        $raw .= chr(0x1D) . chr(0x2B) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x05) . chr(0x06) . chr($self->{escPosSpeed}) . chr(0x00);
+
+        # ***** LEAVE USER CONFIG MODE
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x02) . chr(0x4F) . chr(0x55) . chr(0x54);
+
+        # Select speed and density from user config
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(0x00);
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr(0x00);
+    } else {
+        $reph->debuglog("SGT116 print mode");
+        # Chinesium version of ESC/POS for SGT116
+        $raw .= chr(0x12) . chr(0x23) . chr($self->{escPosDensity});
+
+        # Does not support a speed setting at all
+
+    }
 
     if($self->{kickCashdrawer}) {
         $reph->debuglog("   Opening cash drawer at the start of printing this document in ESC/POS mode");
 
-        # Kick drawer 1
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
-        
-        # Kick drawer 2
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        if(!$self->{escPosSGT116}) {
+            # Epson standard way
+            # Kick drawer 1
+            $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+            
+            # Kick drawer 2
+            $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        } else {
+            # Chinesium version of ESC/POS for SGT116?
+            #$raw .= chr(0x1b) . chr(0x70) . chr(0x00) . chr(0x60);
+            $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+        }
     }
 
     my ($w, $h) = $img->getBounds();
@@ -112,7 +165,8 @@ sub _generateEscPos($self, $img) {
     $raw .=  chr(0x1B) . chr(0x33) . chr(3) . "\n";
 
     # Make darker
-    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(127);
+    # GS ( K 
+    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(240);
 
     # Make faster
     #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) .chr(1);
@@ -138,7 +192,7 @@ sub _generateEscPos($self, $img) {
                 for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
                     my $ytotal = $y + $yoffs + ($ybyte * 8);
                     $byte <<= 1;
-                    if($ytotal < $h && !$img->getPixel($x, $ytotal)) {
+                    if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
                         $byte = $byte | 0x01;
                     }
                 }
@@ -160,7 +214,9 @@ sub _generateEscPos($self, $img) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
-    return $raw;
+    $self->{escposimagedata} = $raw;
+
+    return;
 }
 
 
@@ -170,6 +226,7 @@ sub printSendToPrinter($self, $cupsprinters = []) {
     my $ofname = $self->makeFName();
 
     if($self->{generateEscPos}) {
+        $self->_generateEscPos();
         writeBinFile($ofname, $self->{escposimagedata});
     } else {
         writeBinFile($ofname, $self->{imagedata});
@@ -209,6 +266,18 @@ sub printMoveOffset($self, $offset) {
     $self->{imgoffs} += $offset;
 }
 
+sub printSetColorRed($self, $val) {
+    if($val) {
+        $self->{printcolor} = 'imgred';
+    } else {
+        $self->{printcolor} = 'imgblack';
+    }
+}
+
+sub _getPrintColor($self) {
+    return $self->{$self->{printcolor}};
+}
+
 sub printAddTextLine($self, $line, $y = undef) {
     
     chomp $line;
@@ -216,11 +285,11 @@ sub printAddTextLine($self, $line, $y = undef) {
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
-        $self->{img}->stringFT($self->{imgblack}, $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 24;
     } else {
-        $self->{img}->stringFT($self->{imgblack}, $self->{font}, 20, 0, 10, $y + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{font}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
     
@@ -234,11 +303,11 @@ sub printAddBoldTextLine($self, $line, $y = undef) {
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
-        $self->{img}->stringFT($self->{imgblack}, $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 24;
     } else {
-        $self->{img}->stringFT($self->{imgblack}, $self->{boldfont}, 20, 0, 10, $y + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
     
@@ -250,9 +319,9 @@ sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
-        $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, $x, $y + 8, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{smallfont}, 15, 0, $x, $y + 8, $line);
     } else {
-        $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 19;
     }
     
@@ -263,7 +332,7 @@ sub printAddBigTextLine($self, $line) {
     
     chomp $line;
     
-    $self->{img}->stringFT($self->{imgblack}, $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
+    $self->{img}->stringFT($self->_getPrintColor(), $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
     
     $self->{imgoffs} += 58;
     
@@ -274,7 +343,7 @@ sub printAddMediumBigTextLine($self, $line) {
     
     chomp $line;
     
-    $self->{img}->stringFT($self->{imgblack}, $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
+    $self->{img}->stringFT($self->_getPrintColor(), $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
     
     $self->{imgoffs} += 38;
     
@@ -284,7 +353,7 @@ sub printAddMediumBigTextLine($self, $line) {
 sub printAddSingleLine($self) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
-                                      $self->{imgblack});
+                                      $self->_getPrintColor());
     $self->{imgoffs} += 24;
 
     return;
@@ -293,10 +362,10 @@ sub printAddSingleLine($self) {
 sub printAddDoubleLine($self) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
-                                      $self->{imgblack});
+                                      $self->_getPrintColor());
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 12, $self->{width},
                                       $self->{imgoffs} + 1 + 12,
-                                      $self->{imgblack});
+                                      $self->_getPrintColor());
     $self->{imgoffs} += 24;
 
     return;
@@ -306,7 +375,7 @@ sub printAddDottedLine($self) {
     for(my $i = 0; $i < $self->{width}; $i += 6) {
         $self->{img}->filledRectangle($i, $self->{imgoffs} + 5, $i + 3,
                                           $self->{imgoffs} + 1 + 5,
-                                          $self->{imgblack});
+                                          $self->_getPrintColor());
     }
     $self->{imgoffs} += 24;
 
@@ -330,6 +399,7 @@ sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $dos
         $reph->debuglog("Switching to (slower) printAddGreyscaleImage() processing");
         return $self->printAddGreyscaleImage($filename, $isbindata, $imagesoftness);
     }
+    $reph->debuglog("printAddImage detected an image with exactly 2 colors!");
     
     my ($w, $h) = $pic->getBounds();
     
@@ -382,7 +452,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     # Check if we got that image already cached
     my $cachekey = $imagesoftness . '_' . sha256_hex($rawpic->png);
     $reph->debuglog("   KEY $cachekey");
-    if(defined($self->{imagecache}->{$cachekey})) {
+    if(1 && defined($self->{imagecache}->{$cachekey})) {
         $reph->debuglog("   using cached greyscale image conversion");
         $self->{img}->copyResized($self->{imagecache}->{$cachekey},
                           0, $self->{imgoffs}, # DEST X Y
@@ -416,6 +486,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     my $cachepic = GD::Image->new($destw, $desth);
     my $cachewhite = $cachepic->colorAllocate(255, 255, 255);
     my $cacheblack = $cachepic->colorAllocate(0, 0, 0);
+    my $cachered = $cachepic->colorAllocate(255, 0, 0);
 
     my @pixels;
     # Prepare for dithering
@@ -437,7 +508,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     
                 # Simple monochrome conversion
                 if($oldpixel < 128) {
-                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->_getPrintColor());
                     $cachepic->setPixel($x, $y, $cacheblack);
                 }
             }
@@ -482,7 +553,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
             for(my $x = 0; $x < $destw; $x++) {    
                 if($pixels[$x]->[$y] < 128) {
                     #print "$x $y ", $pixels[$x]->[$y], "\n";
-                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->_getPrintColor());
                     $cachepic->setPixel($x, $y, $cacheblack);
                 }
             }
@@ -530,7 +601,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
             for(my $x = 0; $x < $destw; $x++) {    
                 if($pixels[$x]->[$y] < 128) {
                     #print "$x $y ", $pixels[$x]->[$y], "\n";
-                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->_getPrintColor());
                     $cachepic->setPixel($x, $y, $cacheblack);
                 }
             }
@@ -575,7 +646,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
                 my $bit = $greys[$level]->[($x + $offs) % $bitlen];
                 
                 if(!$bit) {
-                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->_getPrintColor());
                     $cachepic->setPixel($x, $y, $cacheblack);
                 }
             }
@@ -590,7 +661,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
 
 sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
     
-    $self->{img}->stringFT($self->{imgblack}, $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
+    $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
 
     return;
 }
@@ -666,27 +737,10 @@ sub reprintDocument($self, $documentid, $printername) {
 }
 
 sub reprintDocumentData($self, $imagedata, $printername) {
-    my $reph = $self->{reph};
+    $self->{imagedata} = $imagedata;
+    $self->{img} = GD::Image->newFromPngData($imagedata, 0);
+    $self->printSendToPrinter($printername);
 
-    my $ofname = $self->makeFName();
-    $reph->debuglog("Spooling $ofname to $printername\n");
-
-    if($self->{generateEscPos}) {
-        my $img = GD::Image->newFromPngData($imagedata, 0);
-        $imagedata = $self->_generateEscPos($img);
-    }
-
-    writeBinFile($ofname, $imagedata);
-    
-    my $cmd = $self->{printcommand};
-    if(defined($printername) && $printername ne '') {
-        $cmd .= ' -P ' . $printername;
-    }
-    $cmd .= ' ' . $ofname;
-    `$cmd`;
-    
-    unlink $ofname;
-    
     return;
 }
 
@@ -695,18 +749,18 @@ sub printAddTestPattern_HeatupCooldown($self) {
     for(1..2) {
         $self->{img}->filledRectangle(0, $self->{imgoffs},
                                       $self->{width}, $self->{imgoffs} + 200,
-                                              $self->{imgblack});
+                                              $self->_getPrintColor());
         $self->{imgoffs} += 400;
     }
 
     $self->{img}->filledRectangle(0, $self->{imgoffs},
                                   $self->{width}, $self->{imgoffs} + 200,
-                                          $self->{imgblack});
+                                          $self->_getPrintColor());
     $self->{imgoffs} += 200;
     for(my $i = 512; $i > 0; $i--) {
         $self->{img}->filledRectangle(0, $self->{imgoffs}, $i,
                                           $self->{imgoffs} + 0,
-                                          $self->{imgblack});
+                                          $self->_getPrintColor());
         
         $self->{imgoffs} += 1;
         
@@ -725,7 +779,7 @@ sub printAddTestPattern_VerticalLines($self, $pointsize) {
         
         $self->{img}->filledRectangle($x, $self->{imgoffs},
                                       $x + $pointsize, $self->{imgoffs} + 40,
-                                          $self->{imgblack});
+                                          $self->_getPrintColor());
     }
 
     
@@ -741,7 +795,7 @@ sub printAddTestPattern_HorizontalLines($self, $pointsize) {
 
         $self->{img}->filledRectangle(0, $self->{imgoffs}, $self->{width},
                                           $self->{imgoffs} + $pointsize,
-                                          $self->{imgblack});
+                                          $self->_getPrintColor());
         
         $self->{imgoffs} += $pointsize * 2;
         
@@ -755,13 +809,13 @@ sub printAddTestPattern_Rectangle($self) {
     for(my $i = 0; $i < $self->{width}; $i++) {
         if($i == 0 || $i == ($self->{width} - 1)) {
             for(my $j = 0; $j <= $self->{width}; $j++) {
-                $self->{img}->setPixel($j, $self->{imgoffs}, $self->{imgblack});
+                $self->{img}->setPixel($j, $self->{imgoffs}, $self->_getPrintColor());
             }
         } else {
-            $self->{img}->setPixel(0, $self->{imgoffs}, $self->{imgblack});
-            $self->{img}->setPixel($i, $self->{imgoffs}, $self->{imgblack});
-            $self->{img}->setPixel($self->{width} - $i - 1, $self->{imgoffs}, $self->{imgblack});
-            $self->{img}->setPixel($self->{width} - 1, $self->{imgoffs}, $self->{imgblack});
+            $self->{img}->setPixel(0, $self->{imgoffs}, $self->_getPrintColor());
+            $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+            $self->{img}->setPixel($self->{width} - $i - 1, $self->{imgoffs}, $self->_getPrintColor());
+            $self->{img}->setPixel($self->{width} - 1, $self->{imgoffs}, $self->_getPrintColor());
         }
         $self->{imgoffs}++;
     }

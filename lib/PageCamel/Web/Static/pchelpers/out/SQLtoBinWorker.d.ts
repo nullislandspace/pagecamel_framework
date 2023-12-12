@@ -6,3 +6,4 @@ declare var LZString: {
     decompress: (data: string) => string;
 };
 declare function dataConverter(): void;
+//# sourceMappingURL=SQLtoBinWorker.d.ts.map
