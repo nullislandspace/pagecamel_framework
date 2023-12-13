@@ -73,12 +73,31 @@ sub new($class, $isDebugging, $configfile) {
 }
 
 sub init($self) {
-    
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => [ 'service', 'ip'],);
     
     $self->{config} = $config;
+
+    my $hname = hostname;
+    if(defined($config->{hosts}->{$hname})) {
+        print "   Host-specific configuration for '$hname'\n";
+        foreach my $keyname (keys %{$config->{hosts}->{$hname}}) {
+            $config->{$keyname} = $config->{hosts}->{$hname}->{$keyname};
+        }
+    }
+
+    if(defined($ENV{PC_LOCALHOSTONLY}) && $ENV{PC_LOCALHOSTONLY}) {
+        print "   PC_LOCALHOSTONLY mode active, 'forgetting' all usessl=1 services\n";
+        my @newservices;
+        foreach my $service (@{$config->{external_network}->{service}}) {
+            if(defined($service->{usessl}) && $service->{usessl}) {
+                next;
+            }
+            push @newservices, $service;
+        }
+        $config->{external_network}->{service} = \@newservices;
+    }    
 
     # Turn any comma-separated ip addresses into their own entry
     foreach my $service (@{$config->{external_network}->{service}}) {
@@ -93,14 +112,6 @@ sub init($self) {
         $service->{bind_adresses}->{ip} = \@newips;
     }
 
-
-    my $hname = hostname;
-    if(defined($config->{hosts}->{$hname})) {
-        print "   Host-specific configuration for '$hname'\n";
-        foreach my $keyname (keys %{$config->{hosts}->{$hname}}) {
-            $config->{$keyname} = $config->{hosts}->{$hname}->{$keyname};
-        }
-    }
     
     my $APPNAME = $config->{appname};
     PageCamelLogo($APPNAME, $VERSION);
@@ -127,9 +138,13 @@ sub init($self) {
     $PROGRAM_NAME = $ps_appname . '_master';
 
 
+    my $hasssl = 0;
     my @tcpsockets;
     foreach my $service (@{$config->{external_network}->{service}}) {
         print '** Service at port ', $service->{port}, ' does ', $service->{usessl} ? '' : 'NOT', " use SSL/TLS\n";
+        if($service->{usessl}) {
+            $hasssl = 1;
+        }
         foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
             my $tcp = IO::Socket::IP->new(
                     LocalHost => $ip,
@@ -146,59 +161,63 @@ sub init($self) {
     my $select = IO::Select->new(@tcpsockets);
     $self->{select} = $select;
 
-    if(!defined($self->{config}->{sslconfig}->{ssldefaultdomain})) {
-        print Dumper($self->{config}->{sslconfig});
-        croak("ssldefaultdomain not set!");
-    }
-    my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-    print "Default domain: $defaultdomain\n";
-    my $ok = 1;
-    if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}) ||
-        !defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}) ||
-        !defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey})) {
-        print STDERR "ssl default domain not fully configured!\n";
-        $ok = 0;
+    if($hasssl) {
+        if(!defined($self->{config}->{sslconfig}->{ssldefaultdomain})) {
+            print Dumper($self->{config}->{sslconfig});
+            croak("ssldefaultdomain not set!");
+        }
+        my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+        print "Default domain: $defaultdomain\n";
+        my $ok = 1;
+        if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}) ||
+            !defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}) ||
+            !defined($self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey})) {
+            print STDERR "ssl default domain not fully configured!\n";
+            $ok = 0;
+        } else {
+            if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}) {
+                print STDERR "File not found: ", $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}, "\n";
+                $ok = 0;
+            }
+            if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}) {
+                print STDERR "File not found: ", $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}, "\n";
+                $ok = 0;
+            }
+        }
+
+        my @removedomains;
+        foreach my $domain (sort keys %{$self->{config}->{sslconfig}->{ssldomains}}) {
+            my $domainok = 1;
+            if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}) ||
+                !defined($self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslkey})) {
+                print STDERR "ssl domain $domain not fully configured!\n";
+                $ok = 0;
+                next;
+            }
+            if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}) {
+                print STDERR "Warning: File not found: " . $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}, "\n";
+                $domainok = 0;
+            }
+            if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}) {
+                print STDERR "Warning: File not found: " . $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslkey}, "\n";
+                $domainok = 0;
+            }
+
+            if(!$domainok) {
+                push @removedomains, $domain;
+            }
+        }
+
+        foreach my $domain (@removedomains) {
+            print STDERR "WARNING: Disabling domain $domain due to missing SSL files!\n";
+            delete $self->{config}->{sslconfig}->{ssldomains}->{$domain};
+        }
+
+        if(!$ok) {
+            croak("Startup aborted due to configuration errors!");
+        }
     } else {
-        if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}) {
-            print STDERR "File not found: ", $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert}, "\n";
-            $ok = 0;
-        }
-        if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}) {
-            print STDERR "File not found: ", $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}, "\n";
-            $ok = 0;
-        }
-    }
-
-    my @removedomains;
-    foreach my $domain (sort keys %{$self->{config}->{sslconfig}->{ssldomains}}) {
-        my $domainok = 1;
-        if(!defined($self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}) ||
-            !defined($self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslkey})) {
-            print STDERR "ssl domain $domain not fully configured!\n";
-            $ok = 0;
-            next;
-        }
-        if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}) {
-            print STDERR "Warning: File not found: " . $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslcert}, "\n";
-            $domainok = 0;
-        }
-        if(!-f $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey}) {
-            print STDERR "Warning: File not found: " . $self->{config}->{sslconfig}->{ssldomains}->{$domain}->{sslkey}, "\n";
-            $domainok = 0;
-        }
-
-        if(!$domainok) {
-            push @removedomains, $domain;
-        }
-    }
-
-    foreach my $domain (@removedomains) {
-        print STDERR "WARNING: Disabling domain $domain due to missing SSL files!\n";
-        delete $self->{config}->{sslconfig}->{ssldomains}->{$domain};
-    }
-
-    if(!$ok) {
-        croak("Startup aborted due to configuration errors!");
+        print "Insecure mode! Completely disabling ALL SSL handling!\n";
     }
         
     
