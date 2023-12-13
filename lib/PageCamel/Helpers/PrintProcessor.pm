@@ -257,6 +257,65 @@ sub printSendToPrinter($self, $cupsprinters = []) {
     unlink $ofname;
 }
 
+sub printerOpenCashdrawer($self, $cupsprinters = []) {
+    my $reph = $self->{reph};
+
+    if(!$self->{generateEscPos}) {
+        # FIXME not implemented yet for non ESC/POS printers
+        return;
+    }
+
+    my $raw = '';
+
+    if(!$self->{escPosSGT116}) {
+        # Epson standard way
+        # Kick drawer 1
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        
+        # Kick drawer 2
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+    } else {
+        # Chinesium version of ESC/POS for SGT116
+        # Remove line spacing
+        $raw .=  chr(0x1B) . chr(0x33) . chr(3);
+
+        # Open Drawer
+        $raw .= chr(0x1b) . chr(0x70) . chr(0x01) . "\n";
+
+        # Reset
+        $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+    }
+
+
+
+    my $ofname = $self->makeFName();
+    writeBinFile($ofname, $raw);
+
+    if(ref $cupsprinters ne 'ARRAY') {
+        my @tmp;
+        if(!defined($cupsprinters) || $cupsprinters eq '') {
+            $reph->debuglog("No printer name given!!!!!!");
+            if(!defined($self->{defaultprinter})) {
+                $reph->debuglog("...and no default printer set!!!!");
+            } else {
+                push @tmp, $self->{defaultprinter};
+            }
+        } else {
+            push @tmp, $cupsprinters . '';
+        }
+
+        $cupsprinters = \@tmp;
+    }
+
+    foreach my $printername (@{$cupsprinters}) {
+        my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
+        $reph->debuglog("Running 'open cashdrawer' printer command: $cmd");
+        `$cmd`;
+    }
+    
+    unlink $ofname;
+}
+
 sub printGetImagedata($self) {
     return $self->{imagedata};
 }

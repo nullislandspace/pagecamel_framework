@@ -10,6 +10,7 @@ devscripts/compilecanvasuijs.pl
 devscripts/compilecss.pl
 devscripts/compilejs.pl
 devscripts/compiletypescript.sh
+devscripts/convertprintforsgt116.pl
 devscripts/debuginject.pl
 devscripts/debugremove.pl
 devscripts/findbrokenforms.pl
