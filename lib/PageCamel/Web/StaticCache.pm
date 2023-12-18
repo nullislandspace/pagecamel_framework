@@ -1,12 +1,12 @@
 package PageCamel::Web::StaticCache;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
+our $VERSION = 4.3;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -339,7 +339,7 @@ sub execute_external_command($self, $cmd, $ofh) {
 
     my ($child_pid, $child_rc);
 
-    unless ($child_pid = open(OUTPUT, '-|')) {
+    unless ($child_pid = open(my $ofh, '-|')) {
       open(STDERR, ">&STDOUT");
       {
           exec('/bin/true | ' . $cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
@@ -351,7 +351,7 @@ sub execute_external_command($self, $cmd, $ofh) {
     $child_rc = $CHILD_ERROR >> 8;
 
     my $ok = 1;
-    while(my $line = <OUTPUT>) {
+    while(my $line = <$ofh>) {
         chomp $line;
         if($line =~ /PAGECAMEL_EXECUTE_ERROR/) {
             $ok = 0;
@@ -360,7 +360,7 @@ sub execute_external_command($self, $cmd, $ofh) {
         print $ofh ":           $line\n";
     }
     eval {
-        close(OUTPUT);
+        close($ofh);
     };
 
     if(!$ok) {

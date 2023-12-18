@@ -48,3 +48,4 @@ export declare class PCWebsocket {
     stopMessageQueueing(): void;
 }
 export {};
+//# sourceMappingURL=websocket.d.ts.map

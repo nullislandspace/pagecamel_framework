@@ -1,12 +1,12 @@
 package PageCamel::Helpers::PrintProcessor;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
+our $VERSION = 4.3;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -25,19 +25,33 @@ use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::TestData;
 use Crypt::Digest::SHA256 qw[sha256_hex];
 
+my %globalimagecache;
+
 sub new($proto, $config) {
     my $class = ref($proto) || $proto;
     
     my $self = bless $config, $class;
 
-    if(!defined($self->{use_eog})) {
-        $self->{use_eog} = 0;
-    }
-    
-    $self->{imagecache} = {};
+    $self->{imagecache} = \%globalimagecache; # Cache works over multiple instances
 
     if(!defined($self->{reph})) {
         croak('PageCamel::Helpers::PrintProcessor needs reph');
+    }
+
+    if(!defined($self->{generateEscPos})) {
+        $self->{generateEscPos} = 0;
+    }
+
+    if(!defined($self->{escPosSGT116})) {
+        $self->{escPosSGT116} = 0;
+    }
+
+    if(!defined($self->{escPosSpeed})) {
+        $self->{escPosSpeed} = 1; ; # 1-9 or 1-12 depending on model
+    }
+
+    if(!defined($self->{escPosDensity})) {
+        $self->{escPosDensity} = 1; # Darkness 1-13 or 0-15, depending on model
     }
     
     return $self;
@@ -47,21 +61,26 @@ sub printStartDocument($self) {
     
     $self->{img} = GD::Image->new($self->{width}, $self->{height});
     $self->{imgoffs} = 0;
-    $self->{imgblack} = $self->{img}->colorAllocate(0, 0, 0);
     $self->{imgwhite} = $self->{img}->colorAllocate(255, 255, 255);
+    $self->{imgblack} = $self->{img}->colorAllocate(0, 0, 0);
+    $self->{imgred} = $self->{img}->colorAllocate(255, 0, 0);
+    $self->{printcolor} = 'imgblack';
     
     $self->{img}->filledRectangle(0, 0, $self->{width}, $self->{height}, $self->{imgwhite});
+
+    $self->{kickCashdrawer} = 0;
     
     return;
 }
 
-sub printEndDocument($self, $cupsprinters = []) {
+sub printEndDocument($self) {
     my $reph = $self->{reph};
     
     # Need to downsize image to minimum required length
     my $cropped = GD::Image->new($self->{width}, $self->{imgoffs});
-    my $black = $cropped->colorAllocate(0, 0, 0);
     my $white = $cropped->colorAllocate(255, 255, 255);
+    my $black = $cropped->colorAllocate(0, 0, 0);
+    my $red = $cropped->colorAllocate(255, 0, 0);
     
     $cropped->copyResized($self->{img},
                           0, 0, # DEST X Y
@@ -70,56 +89,252 @@ sub printEndDocument($self, $cupsprinters = []) {
                           $self->{width}, $self->{imgoffs}, # SRC W H
                           );
     
-    my $ofname = $self->makeFName();
+    $self->{imagedata} = $cropped->png;
+    $self->{img} = $cropped;
 
-    if($self->{use_eog}) {
-        $ofname = '/home/cavac/src/temp/posprint.png';
+    return;
+}
+
+sub printKickCashdrawer($self, $kick = 1) {
+    # This currently only works in EscPos mode
+    $self->{kickCashdrawer} = $kick;
+
+    return;
+}
+
+sub _generateEscPos($self) {
+    my $reph = $self->{reph};
+    $reph->debuglog("Converting image to ESC/POS");
+
+    my $raw = '';
+    my $img = $self->{img};
+
+    # Reset printer
+    #$raw .= chr(0x1B) . chr(0x40);
+
+    $reph->debuglog("DENSITY: ", $self->{escPosDensity});
+
+    if(!$self->{escPosSGT116}) {
+        # Epson standard way of setting speed and density (darkness)
+        $reph->debuglog("Standard Print mode");
+
+        # ***** ENTER USER CONFIG MODE
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x45) . chr(0x03) . chr(0x00) . chr(0x01) . chr(0x49) . chr(0x4E);
+
+        # Set Darkness / "density"
+        $raw .= chr(0x1D) . chr(0x2B) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x05) . chr(0x05) . chr($self->{escPosDensity}) . chr(0x00);
+
+        # Set speed
+        $raw .= chr(0x1D) . chr(0x2B) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x05) . chr(0x06) . chr($self->{escPosSpeed}) . chr(0x00);
+
+        # ***** LEAVE USER CONFIG MODE
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x02) . chr(0x4F) . chr(0x55) . chr(0x54);
+
+        # Select speed and density from user config
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(0x00);
+        $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr(0x00);
+    } else {
+        $reph->debuglog("SGT116 print mode");
+        # Chinesium version of ESC/POS for SGT116
+        $raw .= chr(0x12) . chr(0x23) . chr($self->{escPosDensity});
+
+        # Does not support a speed setting at all
+
     }
 
-    my $imagedata = $cropped->png;
+    if($self->{kickCashdrawer}) {
+        $reph->debuglog("   Opening cash drawer at the start of printing this document in ESC/POS mode");
 
-    my $printimagedata = $imagedata;
+        if(!$self->{escPosSGT116}) {
+            # Epson standard way
+            # Kick drawer 1
+            $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+            
+            # Kick drawer 2
+            $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        } else {
+            # Chinesium version of ESC/POS for SGT116?
+            #$raw .= chr(0x1b) . chr(0x70) . chr(0x00) . chr(0x60);
+            $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+        }
+    }
 
-    writeBinFile($ofname, $printimagedata);
-    
-    if($self->{use_eog}) {
-        my $cmd = 'gimp ' . $ofname;
-        `$cmd`;
-    } else {
-        if(ref $cupsprinters ne 'ARRAY') {
-            my @tmp;
-            if(!defined($cupsprinters) || $cupsprinters eq '') {
-                $reph->debuglog("No printer name given!!!!!!");
-                if(!defined($self->{defaultprinter})) {
-                    $reph->debuglog("...and no default printer set!!!!");
-                } else {
-                    push @tmp, $self->{defaultprinter};
+    my ($w, $h) = $img->getBounds();
+
+    # Remove line spacing
+    $raw .=  chr(0x1B) . chr(0x33) . chr(3) . "\n";
+
+    # Make darker
+    # GS ( K 
+    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(240);
+
+    # Make faster
+    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) .chr(1);
+
+    # 24 pixel height per line
+    for(my $y = 0; $y < $h; $y += 24) {
+        # Command "Send pixel data"
+        $raw .= chr(0x1B) . chr(0x2A) .  chr(33);
+
+        # Send width definition
+        my $leadingwhitespace = 32;
+        my $virtualw = $w + $leadingwhitespace;
+        $raw .= chr($virtualw & 0xff);
+        $raw .= chr(($virtualw >> 8) & 0xff);
+
+        for(1..($leadingwhitespace*3)) {
+            $raw .= chr(0x00);
+        }
+
+        for(my $x = 0; $x < $w; $x++) {
+            for(my $ybyte = 0; $ybyte < 3; $ybyte++) {
+                my $byte = 0;
+                for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
+                    my $ytotal = $y + $yoffs + ($ybyte * 8);
+                    $byte <<= 1;
+                    if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
+                        $byte = $byte | 0x01;
+                    }
                 }
-            } else {
-                push @tmp, $cupsprinters . '';
+                $raw .= chr($byte);
             }
-
-            $cupsprinters = \@tmp;
         }
 
-        foreach my $printername (@{$cupsprinters}) {
-            my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
-            $reph->debuglog("Running print command: $cmd");
-            `$cmd`;
+        # Line break
+        $raw .= "\n";
+    }
+
+    #   # ESC @ for reinit the printer, then new lines, then ESC i for cutting
+    #   $raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x69) . "\n";
+    # ESC @ for reinit the printer, then new lines, then ESC k for HALF cutting
+    #$raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x6B) . "\n";
+    #$raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x69) . "\n";
+    #$raw .= chr(0x1B) . chr(0x69) . "\n";
+    
+    # Feed and half-cut
+    $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+
+    $self->{escposimagedata} = $raw;
+
+    return;
+}
+
+
+sub printSendToPrinter($self, $cupsprinters = []) {
+    my $reph = $self->{reph};
+    
+    my $ofname = $self->makeFName();
+
+    if($self->{generateEscPos}) {
+        $self->_generateEscPos();
+        writeBinFile($ofname, $self->{escposimagedata});
+    } else {
+        writeBinFile($ofname, $self->{imagedata});
+    }
+    
+    if(ref $cupsprinters ne 'ARRAY') {
+        my @tmp;
+        if(!defined($cupsprinters) || $cupsprinters eq '') {
+            $reph->debuglog("No printer name given!!!!!!");
+            if(!defined($self->{defaultprinter})) {
+                $reph->debuglog("...and no default printer set!!!!");
+            } else {
+                push @tmp, $self->{defaultprinter};
+            }
+        } else {
+            push @tmp, $cupsprinters . '';
         }
+
+        $cupsprinters = \@tmp;
+    }
+
+    foreach my $printername (@{$cupsprinters}) {
+        my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
+        $reph->debuglog("Running print command: $cmd");
+        `$cmd`;
     }
     
     unlink $ofname;
-    
-    delete $self->{img};
-    delete $self->{imgoffs};
-    delete $self->{imgblack};
-    delete $self->{imgwhite};
-    return $imagedata;
 }
+
+sub printerOpenCashdrawer($self, $cupsprinters = []) {
+    my $reph = $self->{reph};
+
+    if(!$self->{generateEscPos}) {
+        # FIXME not implemented yet for non ESC/POS printers
+        return;
+    }
+
+    my $raw = '';
+
+    if(!$self->{escPosSGT116}) {
+        # Epson standard way
+        # Kick drawer 1
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        
+        # Kick drawer 2
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+    } else {
+        # Chinesium version of ESC/POS for SGT116
+        # Remove line spacing
+        $raw .=  chr(0x1B) . chr(0x33) . chr(3);
+
+        # Open Drawer
+        $raw .= chr(0x1b) . chr(0x70) . chr(0x01) . "\n";
+
+        # Reset
+        $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+    }
+
+
+
+    my $ofname = $self->makeFName();
+    writeBinFile($ofname, $raw);
+
+    if(ref $cupsprinters ne 'ARRAY') {
+        my @tmp;
+        if(!defined($cupsprinters) || $cupsprinters eq '') {
+            $reph->debuglog("No printer name given!!!!!!");
+            if(!defined($self->{defaultprinter})) {
+                $reph->debuglog("...and no default printer set!!!!");
+            } else {
+                push @tmp, $self->{defaultprinter};
+            }
+        } else {
+            push @tmp, $cupsprinters . '';
+        }
+
+        $cupsprinters = \@tmp;
+    }
+
+    foreach my $printername (@{$cupsprinters}) {
+        my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
+        $reph->debuglog("Running 'open cashdrawer' printer command: $cmd");
+        `$cmd`;
+    }
+    
+    unlink $ofname;
+}
+
+sub printGetImagedata($self) {
+    return $self->{imagedata};
+}
+
 
 sub printMoveOffset($self, $offset) {
     $self->{imgoffs} += $offset;
+}
+
+sub printSetColorRed($self, $val) {
+    if($val) {
+        $self->{printcolor} = 'imgred';
+    } else {
+        $self->{printcolor} = 'imgblack';
+    }
+}
+
+sub _getPrintColor($self) {
+    return $self->{$self->{printcolor}};
 }
 
 sub printAddTextLine($self, $line, $y = undef) {
@@ -129,11 +344,11 @@ sub printAddTextLine($self, $line, $y = undef) {
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
-        $self->{img}->stringFT($self->{imgblack}, $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 24;
     } else {
-        $self->{img}->stringFT($self->{imgblack}, $self->{font}, 20, 0, 10, $y + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{font}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
     
@@ -147,11 +362,11 @@ sub printAddBoldTextLine($self, $line, $y = undef) {
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
-        $self->{img}->stringFT($self->{imgblack}, $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 24;
     } else {
-        $self->{img}->stringFT($self->{imgblack}, $self->{boldfont}, 20, 0, 10, $y + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
     
@@ -163,9 +378,9 @@ sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
-        $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, $x, $y + 8, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{smallfont}, 15, 0, $x, $y + 8, $line);
     } else {
-        $self->{img}->stringFT($self->{imgblack}, $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 19;
     }
     
@@ -176,7 +391,7 @@ sub printAddBigTextLine($self, $line) {
     
     chomp $line;
     
-    $self->{img}->stringFT($self->{imgblack}, $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
+    $self->{img}->stringFT($self->_getPrintColor(), $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
     
     $self->{imgoffs} += 58;
     
@@ -187,7 +402,7 @@ sub printAddMediumBigTextLine($self, $line) {
     
     chomp $line;
     
-    $self->{img}->stringFT($self->{imgblack}, $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
+    $self->{img}->stringFT($self->_getPrintColor(), $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
     
     $self->{imgoffs} += 38;
     
@@ -197,7 +412,7 @@ sub printAddMediumBigTextLine($self, $line) {
 sub printAddSingleLine($self) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
-                                      $self->{imgblack});
+                                      $self->_getPrintColor());
     $self->{imgoffs} += 24;
 
     return;
@@ -206,10 +421,10 @@ sub printAddSingleLine($self) {
 sub printAddDoubleLine($self) {
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 5, $self->{width},
                                       $self->{imgoffs} + 1 + 5,
-                                      $self->{imgblack});
+                                      $self->_getPrintColor());
     $self->{img}->filledRectangle(0, $self->{imgoffs} + 12, $self->{width},
                                       $self->{imgoffs} + 1 + 12,
-                                      $self->{imgblack});
+                                      $self->_getPrintColor());
     $self->{imgoffs} += 24;
 
     return;
@@ -219,7 +434,7 @@ sub printAddDottedLine($self) {
     for(my $i = 0; $i < $self->{width}; $i += 6) {
         $self->{img}->filledRectangle($i, $self->{imgoffs} + 5, $i + 3,
                                           $self->{imgoffs} + 1 + 5,
-                                          $self->{imgblack});
+                                          $self->_getPrintColor());
     }
     $self->{imgoffs} += 24;
 
@@ -243,6 +458,7 @@ sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $dos
         $reph->debuglog("Switching to (slower) printAddGreyscaleImage() processing");
         return $self->printAddGreyscaleImage($filename, $isbindata, $imagesoftness);
     }
+    $reph->debuglog("printAddImage detected an image with exactly 2 colors!");
     
     my ($w, $h) = $pic->getBounds();
     
@@ -295,7 +511,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     # Check if we got that image already cached
     my $cachekey = $imagesoftness . '_' . sha256_hex($rawpic->png);
     $reph->debuglog("   KEY $cachekey");
-    if(defined($self->{imagecache}->{$cachekey})) {
+    if(1 && defined($self->{imagecache}->{$cachekey})) {
         $reph->debuglog("   using cached greyscale image conversion");
         $self->{img}->copyResized($self->{imagecache}->{$cachekey},
                           0, $self->{imgoffs}, # DEST X Y
@@ -329,6 +545,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     my $cachepic = GD::Image->new($destw, $desth);
     my $cachewhite = $cachepic->colorAllocate(255, 255, 255);
     my $cacheblack = $cachepic->colorAllocate(0, 0, 0);
+    my $cachered = $cachepic->colorAllocate(255, 0, 0);
 
     my @pixels;
     # Prepare for dithering
@@ -350,7 +567,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     
                 # Simple monochrome conversion
                 if($oldpixel < 128) {
-                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->_getPrintColor());
                     $cachepic->setPixel($x, $y, $cacheblack);
                 }
             }
@@ -395,7 +612,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
             for(my $x = 0; $x < $destw; $x++) {    
                 if($pixels[$x]->[$y] < 128) {
                     #print "$x $y ", $pixels[$x]->[$y], "\n";
-                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->_getPrintColor());
                     $cachepic->setPixel($x, $y, $cacheblack);
                 }
             }
@@ -443,7 +660,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
             for(my $x = 0; $x < $destw; $x++) {    
                 if($pixels[$x]->[$y] < 128) {
                     #print "$x $y ", $pixels[$x]->[$y], "\n";
-                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->_getPrintColor());
                     $cachepic->setPixel($x, $y, $cacheblack);
                 }
             }
@@ -481,18 +698,15 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
         
         for(my $y = 0; $y < $desth; $y++) {
             for(my $x = 0; $x < $destw; $x++) {    
-                my $index = $pic->getPixel($x, $y);
-                my ($r,$g,$b) = $pic->rgb($index);
-                my $greypixel = int(($r+$g+$b)/3);
-                my $level = int($greypixel / (255 / $levels));
-                
+                my $greypixel = $pixels[$x]->[$y];
+                my $level = int($greypixel / (256 / $levels));
+
                 my $offs = int(rand($bitlen));
                 my $bit = $greys[$level]->[($x + $offs) % $bitlen];
                 
                 if(!$bit) {
-                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->{imgblack});
+                    $self->{img}->setPixel($x, $y + $self->{imgoffs}, $self->_getPrintColor());
                     $cachepic->setPixel($x, $y, $cacheblack);
-                } else {
                 }
             }
         }
@@ -504,24 +718,21 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     return;
 }
 
-sub rememberPrint($self, $imagedata, $description, $markascopytext = undef, $copy_y = undef) {
+sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
+    
+    $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
+
+    return;
+}
+
+sub rememberPrint($self, $description) {
     
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
 
-    if(defined($markascopytext)) {
-        my $img = GD::Image->new($imagedata);
-        my $black = $img->colorAllocate(0, 0, 0);
-        my $white = $img->colorAllocate(255, 255, 255);
-        #$img->stringFT($black, $self->{font}, 20, 0, 10, $copy_y + 10, $markascopytext);
-        $img->stringFT($black, $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
-
-        $imagedata = $img->png;
-    }
-    
     my $blob = PageCamel::Helpers::DataBlobs->new($dbh);
     $blob->blobOpen();
-    $blob->blobWrite(\$imagedata);
+    $blob->blobWrite(\$self->{imagedata});
     my $filesize = $blob->getLength();
     my $blobid = $blob->blobID();
     $blob->blobClose();
@@ -578,36 +789,43 @@ sub reprintDocument($self, $documentid, $printername) {
     $blob->blobRead(\$imagedata);
     $blob->blobClose();
     $dbh->commit;
-    
-    my $ofname = $self->makeFName();
-    print STDERR $ofname, "\n";
 
-    writeBinFile($ofname, $imagedata);
-    
-    my $cmd = $self->{printcommand};
-    if(defined($printername) && $printername ne '') {
-        $cmd .= ' -P ' . $printername;
-    }
-    $cmd .= ' ' . $ofname;
-    `$cmd`;
-    
-    $reph->debuglog("    " . $line->{description});
-    
-    unlink $ofname;
-    
+    $self->reprintDocumentData($imagedata, $printername);
+
+    return;
+}
+
+sub reprintDocumentData($self, $imagedata, $printername) {
+    $self->{imagedata} = $imagedata;
+    $self->{img} = GD::Image->newFromPngData($imagedata, 0);
+    $self->printSendToPrinter($printername);
+
     return;
 }
 
 sub printAddTestPattern_HeatupCooldown($self) {
     
-    for(1..3) {
+    for(1..2) {
         $self->{img}->filledRectangle(0, $self->{imgoffs},
                                       $self->{width}, $self->{imgoffs} + 200,
-                                              $self->{imgblack});
+                                              $self->_getPrintColor());
         $self->{imgoffs} += 400;
     }
+
+    $self->{img}->filledRectangle(0, $self->{imgoffs},
+                                  $self->{width}, $self->{imgoffs} + 200,
+                                          $self->_getPrintColor());
+    $self->{imgoffs} += 200;
+    for(my $i = 512; $i > 0; $i--) {
+        $self->{img}->filledRectangle(0, $self->{imgoffs}, $i,
+                                          $self->{imgoffs} + 0,
+                                          $self->_getPrintColor());
+        
+        $self->{imgoffs} += 1;
+        
+    }
     
-    return
+    return;
 }
 
 sub printAddTestPattern_VerticalLines($self, $pointsize) {
@@ -620,13 +838,13 @@ sub printAddTestPattern_VerticalLines($self, $pointsize) {
         
         $self->{img}->filledRectangle($x, $self->{imgoffs},
                                       $x + $pointsize, $self->{imgoffs} + 40,
-                                          $self->{imgblack});
+                                          $self->_getPrintColor());
     }
 
     
     $self->{imgoffs} += 40;
     
-    return
+    return;
 }
 
 sub printAddTestPattern_HorizontalLines($self, $pointsize) {
@@ -636,13 +854,13 @@ sub printAddTestPattern_HorizontalLines($self, $pointsize) {
 
         $self->{img}->filledRectangle(0, $self->{imgoffs}, $self->{width},
                                           $self->{imgoffs} + $pointsize,
-                                          $self->{imgblack});
+                                          $self->_getPrintColor());
         
         $self->{imgoffs} += $pointsize * 2;
         
     }
     
-    return
+    return;
 }
 
 sub printAddTestPattern_Rectangle($self) {
@@ -650,26 +868,29 @@ sub printAddTestPattern_Rectangle($self) {
     for(my $i = 0; $i < $self->{width}; $i++) {
         if($i == 0 || $i == ($self->{width} - 1)) {
             for(my $j = 0; $j <= $self->{width}; $j++) {
-                $self->{img}->setPixel($j, $self->{imgoffs}, $self->{imgblack});
+                $self->{img}->setPixel($j, $self->{imgoffs}, $self->_getPrintColor());
             }
         } else {
-            $self->{img}->setPixel(0, $self->{imgoffs}, $self->{imgblack});
-            $self->{img}->setPixel($i, $self->{imgoffs}, $self->{imgblack});
-            $self->{img}->setPixel($self->{width} - $i - 1, $self->{imgoffs}, $self->{imgblack});
-            $self->{img}->setPixel($self->{width} - 1, $self->{imgoffs}, $self->{imgblack});
+            $self->{img}->setPixel(0, $self->{imgoffs}, $self->_getPrintColor());
+            $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+            $self->{img}->setPixel($self->{width} - $i - 1, $self->{imgoffs}, $self->_getPrintColor());
+            $self->{img}->setPixel($self->{width} - 1, $self->{imgoffs}, $self->_getPrintColor());
         }
         $self->{imgoffs}++;
     }
     
-    return
+    return;
 }
 
 
-sub printTestMessage($self, $printer, $tests) {
+sub printTestMessage($self, $tests) {
     
     my @lines = PageCamel::Helpers::TestData::getTestLines();
     
     $self->printStartDocument();
+    for(1..3) {
+        $self->printAddTextLine('');
+    }
     
     if(contains('text', $tests)) {
         $self->printAddTextLine("TEST 'Text'");
@@ -712,6 +933,9 @@ sub printTestMessage($self, $printer, $tests) {
         
         $self->printAddTextLine("TEST 'Heat up/Cooldown'");
         $self->printAddTestPattern_HeatupCooldown();
+        for(1..3) {
+            $self->printAddTextLine('');
+        }
     }
     
     if(contains('greyscale', $tests)) {
@@ -720,9 +944,10 @@ sub printTestMessage($self, $printer, $tests) {
             $self->printAddTextLine("   Softness $softness");    
             $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage1(), 1, $softness);
             $self->printAddGreyscaleImage(PageCamel::Helpers::TestData::getTestImage2(), 1, $softness);
-        }
-        for(1..3) {
-            $self->printAddTextLine('');
+
+            for(1..3) {
+                $self->printAddTextLine('');
+            }
         }
     }
     
@@ -740,19 +965,22 @@ sub printTestMessage($self, $printer, $tests) {
         $self->printAddTextLine('');
     }
     
-    my $imagedata = $self->printEndDocument($printer);
-    return $imagedata;
+    $self->printEndDocument();
+    return;
 }
 
 sub makeFName($self) {
-    
     my $fname = '';
     while($fname eq '') {
         $fname = '/tmp/posprint_' . $PID . '_';
         for(1..10) {
             $fname .= '' . int(rand(10)) . '';
         }
-        $fname .= '.png';
+        if($self->{generateEscPos}) {
+            $fname .= '.bin';
+        } else {
+            $fname .= '.png';
+        }
     }
     
     return $fname;

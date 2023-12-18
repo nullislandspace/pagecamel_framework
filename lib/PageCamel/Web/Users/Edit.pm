@@ -1,12 +1,12 @@
 package PageCamel::Web::Users::Edit;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
+our $VERSION = 4.3;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -22,6 +22,7 @@ use PageCamel::Helpers::Strings qw(elemNameQuote);
 use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::Strings qw(stripString);
 use PageCamel::Helpers::URI qw(encode_uri_path);
+use PageCamel::Helpers::APPQRCode;
 
 sub register($self) {
     
@@ -45,6 +46,8 @@ sub register($self) {
     if(!defined($self->{switchtouser})) {
         $self->{switchtouser} = '';
     }
+
+    $self->{qrcode} = PageCamel::Helpers::APPQRCode->new(scale => 5);
 
     $self->register_webpath($self->{list}->{webpath}, "get_list");
     $self->register_webpath($self->{edit}->{webpath}, "get_edit");
@@ -421,7 +424,7 @@ reloaddata:
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
         while((my $user = $selsth->fetchrow_hashref)) {
-            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name name_initials company_name password_can_expire force_password_change hardware_fob]) {
+            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name name_initials company_name password_can_expire force_password_change hardware_fob appkey]) {
                 $webdata{$fieldname} = $user->{$fieldname};
             }
 
@@ -457,6 +460,10 @@ reloaddata:
         $selsth->finish;
         $webdata{oldusername} = $webdata{username};
     }
+
+    $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey});
+    $webdata{appqrcodeserver} = $ua->{headers}->{Host};
+    $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
 
     my $compsth = $dbh->prepare_cached("SELECT * FROM company
                                        ORDER BY company_name")

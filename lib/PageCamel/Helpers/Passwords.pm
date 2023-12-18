@@ -1,12 +1,12 @@
 package PageCamel::Helpers::Passwords;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
+our $VERSION = 4.3;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -164,6 +164,41 @@ sub verify_password($self, $username, $password) {
     sleep($sleeptime);
 
     if($isLocked || !$found || $pwsalted ne $pwhash) {
+        return 0;
+    }
+
+    return 1;
+}
+
+sub verify_appkey($self, $username, $appkey) {
+
+    my $isLocked = 0;
+
+    my $selsth = $self->{dbh}->prepare("SELECT account_locked
+                              FROM users
+                              WHERE username = ?
+                              AND appkey = ?
+                              LIMIT 1")
+        or croak($self->{dbh}->errstr);
+    if(!$selsth->execute($username, $appkey)) {
+        $self->{reph}->debuglog($self->{dbh}->errstr);
+        return 0;
+    }
+
+    my $found = 0;
+    while((my $line = $selsth->fetchrow_arrayref)) {
+        ($isLocked) = @{$line};
+        $found = 1;
+        last;
+    }
+    $selsth->finish;
+
+    # sleep for a random amount of time, up to a third of second fo further limit
+    # bruteforcing and "unknown user" detection
+    my $sleeptime = int(rand(200) + 100) / 1000;
+    sleep($sleeptime);
+
+    if($isLocked || !$found) {
         return 0;
     }
 

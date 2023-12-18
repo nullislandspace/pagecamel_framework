@@ -1,12 +1,12 @@
 package PageCamel::Helpers::ENVResetHelper;
 #---AUTOPRAGMASTART---
-use v5.36;
+use v5.38;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.2;
+our $VERSION = 4.3;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -23,6 +23,8 @@ our @EXPORT= qw(ENVReset); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
 sub ENVReset {
+    warn("ENVReset helper is deprecated and disabled");
+    return;
     #if(!defined($ENV{HOME})) {
     #    print STDERR "HOME environment variable not set!\n";
     #    return;
