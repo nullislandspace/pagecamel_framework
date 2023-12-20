@@ -182,18 +182,21 @@ sub wscyclic($self) {
     return 1;
 }
 
-sub wsprint($self, $message) {
+sub wsprint($self, $message, $usebinary = 0) {
     
     my $frame = $self->{sessiondata}->{frame};
     my $ua = $self->{sessiondata}->{ua};
     my $settings = $self->{sessiondata}->{settings};
     
-    my $frametype = 'text';
-
     my $buffer = encode_json($message);
     #print STDERR "JSON: $buffer\n";
     
-    my $framedata = $frame->new(buffer => $buffer, type => 'text')->to_bytes;
+    my $frametype = 'text';
+    if($usebinary) {
+        $frametype = 'binary';
+    }
+    
+    my $framedata = $frame->new(buffer => $buffer, type => $frametype)->to_bytes;
 
     #print STDERR "Sending ", length($framedata) , " bytes (= original buffer length ", length($buffer) , " bytes)\n";
     #my $starttime = time;
@@ -319,10 +322,8 @@ sub socketstart($self, $ua) {
 
     $seckey = encode_base64(sha1($seckey), '');
 
-    my $proto = 'base64';
-    if($settings{binaryMode}) {
-        $proto = 'binary';
-    }
+    # $proto must match the same string from  JavaScript side: new WebSocket(ttvars.websocketurl, 'pagecamel');
+    my $proto = 'pagecamel';
     
     $self->wsstart($ua, \%webdata);
 
