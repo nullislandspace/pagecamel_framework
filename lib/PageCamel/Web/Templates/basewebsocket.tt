@@ -112,7 +112,7 @@
     }
     
     function handleServerRequests(ev) {
-        console.log(ev);
+        //console.log(ev);
 
         if(ev.data instanceof ArrayBuffer) {
             // binary frame
