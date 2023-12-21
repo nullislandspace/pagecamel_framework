@@ -178,6 +178,17 @@ sub reload($self) {
                                             ])
             or croak("Failed to create setting password_bcryptcost!");
 
+    if(defined($self->{foblogin}->{webpath})) {
+        $sysh->createBool(modulename => 'security',
+                            settingname => 'enable_fob_login',
+                            settingvalue => 1,
+                            description => 'Enable the use of FOBs to login',
+                            processinghints => [
+                                'type=switch',
+                                                ])
+                or croak("Failed to create setting enable_fob_login!");
+    }
+
     # Update "sessions" table
     {
         my $type = $dbh->getColumnType('pagecamel.sessions', 'valid_interval');
@@ -1405,7 +1416,8 @@ sub get_defaultwebdata($self, $webdata) {
         $webdata->{isPublicUrl} = $self->{isPublicUrl};
     }
 
-    if(defined($self->{foblogin}->{webpath})) {
+    my $settings = $self->getSettings();
+    if($settings->{enable_fob_login}) {
         $webdata->{FobLogin} = $self->{foblogin}->{webpath};
     } else {
         $webdata->{FobLogin} = '';
@@ -1693,7 +1705,16 @@ sub getSettings($self) {
         keeploggedin_valid_time => '90 days',
     );
 
-    foreach my $key (qw[allow_keep_logged_in standard_valid_time keeploggedin_valid_time]) {
+    my @keys = qw[allow_keep_logged_in standard_valid_time keeploggedin_valid_time];
+
+    # If foblogin is configured, look at system settings if we want to allow it, otherwise disable it
+    if(defined($self->{foblogin}->{webpath})) {
+        push @keys, 'enable_fob_login';
+    } else {
+        $settings{enable_fob_login} = 0;
+    }
+
+    foreach my $key (@keys) {
         my ($ok, $sysval) = $sysh->get('security', $key);
         if($ok) {
             $settings{$key} = $sysval->{settingvalue};
