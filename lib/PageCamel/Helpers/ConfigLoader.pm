@@ -36,13 +36,14 @@ sub LoadConfig {
     }
 
     my $filedata;
+    my $fullfname;
     foreach my $path (@paths) {
         if($path ne '' && $path !~ /\/$/) {
             $path .= '/';
         }
-        my $fullfname = $path . $fname;
+        $fullfname = $path . $fname;
         next unless (-f $fullfname);
-        print "   Loading config file $fullfname\n";
+        #print "   Loading config file $fullfname\n";
 
         $filedata = slurpBinFile($fullfname);
 
@@ -51,7 +52,7 @@ sub LoadConfig {
 
             my $newval = $ENV{$varname};
 
-            print "$varname = $newval\n";
+            #print "$varname = $newval\n";
             $filedata =~ s/$varname/$newval/g;
         }
 
@@ -62,7 +63,7 @@ sub LoadConfig {
         croak("Can't load config file $fname: Not found or empty!");
     }
 
-    print "------- Parsing config file $fname ------\n";
+    print "------- Parsing config file $fullfname ------\n";
 
     my $config = XMLin($filedata, %options);
 
