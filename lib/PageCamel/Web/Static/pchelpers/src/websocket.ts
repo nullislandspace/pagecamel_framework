@@ -539,7 +539,7 @@ export class PCWebsocket {
             return;
         }
         args.forEach((val) => {
-            console.debug(val);
+            //console.debug(val);
         });
     }
 
