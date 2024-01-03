@@ -29,8 +29,15 @@ sub new($class, %config) {
 
     my $js;
     if(!defined($self->{timeout})) {
-        cluck('PageCamel::Helpers::JavaScript configured without a timeout!');
+        croak('PageCamel::Helpers::JavaScript missing timeout setting!');
+    } elsif(!$self->{timeout}) {
         $js = JavaScript::Embedded->new();
+        print STDERR "*******************\n";
+        print STDERR "**               **\n";
+        print STDERR "**  DANGER AHEAD **\n";
+        print STDERR "**               **\n";
+        print STDERR "*******************\n";
+        cluck('PageCamel::Helpers::JavaScript configured with a DISABLED timeout!');
     } else {
         $js = JavaScript::Embedded->new(timeout => $self->{timeout});
     }
