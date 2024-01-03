@@ -19,6 +19,7 @@ use PageCamel::Helpers::UTF;
 
 use JavaScript::Embedded;
 use JSON::XS;
+use PageCamel::Helpers::DangerSign;
 
 sub new($class, %config) {
     my $self = bless \%config, $class;
@@ -32,11 +33,7 @@ sub new($class, %config) {
         croak('PageCamel::Helpers::JavaScript missing timeout setting!');
     } elsif(!$self->{timeout}) {
         $js = JavaScript::Embedded->new();
-        print STDERR "*******************\n";
-        print STDERR "**               **\n";
-        print STDERR "**  DANGER AHEAD **\n";
-        print STDERR "**               **\n";
-        print STDERR "*******************\n";
+        print STDERR DangerSignUTF8();
         cluck('PageCamel::Helpers::JavaScript configured with a DISABLED timeout!');
     } else {
         $js = JavaScript::Embedded->new(timeout => $self->{timeout});
