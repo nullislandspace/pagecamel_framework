@@ -27,11 +27,14 @@ sub new($class, %config) {
         croak('PageCamel::Helpers::JavaScript needs reph reporting handler');
     }
 
+    my $js;
     if(!defined($self->{timeout})) {
-        croak('PageCamel::Helpers::JavaScript needs timeout (default timeout value)');
+        cluck('PageCamel::Helpers::JavaScript configured without a timeout!');
+        $js = JavaScript::Embedded->new();
+    } else {
+        $js = JavaScript::Embedded->new(timeout => $self->{timeout});
     }
 
-    my $js = JavaScript::Embedded->new(timeout => $self->{timeout});
     $self->{js} = $js;
 
     $self->{js}->set('debuglog' => sub {
