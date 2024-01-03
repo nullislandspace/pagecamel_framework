@@ -195,6 +195,8 @@ sub handleClient($self, $client) {
 
     my $header = $self->readFrontendheader($client);
 
+    # We need to tell all modules if we are using ssl
+    $self->{webserver}->set_usessl($header->{ssl});
 
     $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
