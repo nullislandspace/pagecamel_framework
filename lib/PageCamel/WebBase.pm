@@ -367,6 +367,16 @@ sub post_process_request_hook($self) {
     return;
 }
 
+sub set_usessl($self, $usessl) {
+
+    $self->{usessl} = $usessl;
+    foreach my $modname (keys %{$self->{modules}}) {
+        $self->{modules}->{$modname}->{usessl} = $usessl;
+    }
+
+    return;
+}
+
 sub child_init_hook($self) {
 
     if(0 && $self->{isDebugging}) {
