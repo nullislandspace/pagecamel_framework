@@ -64,12 +64,12 @@ sub register_cleanup($self, $funcname) {
     return;
 }
 
-sub finalcheck {
+sub finalcheck($self) {
     # finalcheck is purely optional
     return;
 }
 
-sub endconfig {
+sub endconfig($self) {
     # Nothing to do by default
     return;
 }
