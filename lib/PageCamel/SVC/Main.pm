@@ -82,6 +82,11 @@ sub checkDatabase($self) {
         my $dbh = DBI->connect($self->{db}->{dburl}, $self->{db}->{dbuser}, $self->{db}->{dbpassword}, {AutoCommit => 0, RaiseError => 0});
         if(defined($dbh)) {
             $self->{dbh} = $dbh;
+
+            my $appname = $self->{APPNAME} . "/Main.pm $PID";
+            if($dbh->do("SET application_name = '$appname'; ")) {
+                $dbh->commit;
+            }
         }
     }
 
