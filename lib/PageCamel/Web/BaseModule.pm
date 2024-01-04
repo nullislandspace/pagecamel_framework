@@ -120,12 +120,12 @@ sub create_cookie($self, $ua, %fields) {
 
 }
 
-sub finalcheck {
+sub finalcheck($self) {
     # finalcheck is purely optional
     return;
 }
 
-sub endconfig {
+sub endconfig($self) {
     # Called after everything is configured and the webserver is ready to serve data.
     # This method is most likely only usefull in forking servers to dump any data
     # that needs to be re-initialized after forking, for example database handles
