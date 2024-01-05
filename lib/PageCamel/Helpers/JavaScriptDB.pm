@@ -99,6 +99,7 @@ sub load($self) {
     }
     $self->loadCode($line->{usercode});
     $self->setMemory($line->{memory});
+    $self->{loaded} = 1;
 
     return 1;
 }
