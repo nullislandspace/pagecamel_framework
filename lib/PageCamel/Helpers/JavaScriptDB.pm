@@ -22,6 +22,10 @@ use base qw(PageCamel::Helpers::JavaScript);
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
+    if(!defined($config{timeout})) {
+        $config{timeout} = 0; # Disable timeout when not set
+    }
+
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
@@ -40,7 +44,7 @@ sub init($self, $usercode, $systemcode) {
         croak("init() called when script already loaded");
     }
 
-    my $insth = $self->{dbh}->prepare_cached("INSERT TO " . $self->{table} . " (scriptname, usercode, systemcode, memory) VALUES
+    my $insth = $self->{dbh}->prepare_cached("INSERT INTO " . $self->{table} . " (scriptname, usercode, systemcode, memory) VALUES
                                         (?, ?, ?, ?)")
             or croak($self->{dbh}->errstr);
 
