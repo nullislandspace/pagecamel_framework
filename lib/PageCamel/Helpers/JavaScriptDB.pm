@@ -115,7 +115,7 @@ sub save($self) {
 
     my $memory = $self->getMemory();
 
-    if(!$upsth->execute($memory, $self->{id})) {
+    if(!$upsth->execute($memory, $self->{scriptname})) {
         return 0;
     }
 
