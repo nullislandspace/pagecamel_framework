@@ -18,6 +18,7 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Helpers::JavaScript);
+use SUPER;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -30,11 +31,23 @@ sub new($proto, %config) {
     bless $self, $class; # Re-bless with our class
 
     foreach my $key (qw[dbh reph table scriptname]) {
-        if(!defined($self->{dbh})) {
-            croak('PageCamel::Helpers::JavaScriptDB needs $key');
+        if(!defined($self->{$key})) {
+            croak("PageCamel::Helpers::JavaScriptDB needs $key");
         }
     }
     $self->{loaded} = 0;
+
+    if(!defined($self->{logerror})) {
+        $self->{logerror} = 0;
+    }
+
+    if($self->{logerror}) {
+        foreach my $key (qw[errordbh errortextcolumn errorcountcolumn]) {
+            if(!defined($self->{$key})) {
+                croak("PageCamel::Helpers::JavaScriptDB needs $key");
+            }
+        }
+    }
 
     return $self;
 }
@@ -52,12 +65,26 @@ sub init($self, $usercode, $systemcode) {
     my $memory;
     eval {
         if($systemcode ne '') {
-            $self->loadCode($systemcode);
+            if(!$self->loadCode($systemcode)) {
+                $self->saveLastError();
+                return 0;
+            }
         }
-        $self->loadCode($usercode);
-        $self->initMemory();
+        if(!$self->loadCode($usercode)) {
+            $self->saveLastError();
+            return 0;
+        }
+        if(!$self->initMemory()) {
+            $self->saveLastError();
+            return 0;
+        }
 
         $memory = $self->getMemory();
+        if(!defined($memory)) {
+            $self->saveLastError();
+            return 0;
+        }
+
         $loadok = 1;
     };
 
@@ -95,10 +122,21 @@ sub load($self) {
     }
 
     if($line->{systemcode} ne '') {
-        $self->loadCode($line->{systemcode});
+        if(!$self->loadCode($line->{systemcode})) {
+            $self->saveLastError();
+            return 0;
+        }
     }
-    $self->loadCode($line->{usercode});
-    $self->setMemory($line->{memory});
+    if(!$self->loadCode($line->{usercode})) {
+        $self->saveLastError();
+        return 0;
+    }
+
+    if(!$self->setMemory($line->{memory})) {
+        $self->saveLastError();
+        return 0;
+    }
+
     $self->{loaded} = 1;
 
     return 1;
@@ -115,11 +153,52 @@ sub save($self) {
 
     my $memory = $self->getMemory();
 
+    if(!defined($memory)) {
+        $self->saveLastError();
+        return 0;
+    }
+
     if(!$upsth->execute($memory, $self->{scriptname})) {
         return 0;
     }
 
     return 1;
+}
+
+sub call($self, $name, @arguments) {
+
+    my $retval = $self->SUPER($name, @arguments);
+
+    if($self->{logerror} && $self->{hasError}) {
+        $self->saveLastError();
+    }
+
+    return $retval;
+}
+
+sub saveLastError($self) {
+    #print STDERR "LOGERROR ", $self->{logerror}, " HASERROR ", $self->{hasError}, " LASTERROR", $self->{lastError}, "\n";
+    if(!$self->{logerror} || !$self->{hasError}) {
+        return;
+    }
+
+    my $upsth = $self->{errordbh}->prepare_cached("UPDATE " . $self->{table} .
+                                                  " SET " . $self->{errortextcolumn} . " = ?," . 
+                                                  " " . $self->{errorcountcolumn} . ' = ' . $self->{errorcountcolumn} . " + 1" .
+                                                  " WHERE scriptname = ?"
+                                              )
+            or croak($self->{errordbh}->errstr);
+
+
+    if(!$upsth->execute($self->{lastError}, $self->{scriptname})) {
+        $self->{reph}->debuglog($self->{errordbh}->errstr);
+        $self->{errordbh}->rollback;
+        return;
+    }
+
+    $self->{errordbh}->commit;
+
+    return;
 }
     
 # WARNING: This is experimental, since we are loading new javascript functions with the same name over the existing ones
