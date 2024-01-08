@@ -209,10 +209,25 @@ sub get_css($self, $ua) {
         return (status => 404);
     }
     
-    my $data = "* {\n" .
+    my $data = "body {\n" .
                "    font-family: " . $fontfamilies{$userFont} . ";\n" .
+               "}\n" .
+               "input,button,select {\n" .
+               "    font-family: " . $fontfamilies{$userFont} . ";\n" .
+               "}\n" .
+               "button {\n" .
+               "    font-family: " . $fontfamilies{$userFont} . ";\n" .
+               "}\n" .
+               "tr,td {\n" .
+               "    font-family: " . $fontfamilies{$userFont} . ";\n" .
+               "}\n" .
+               ".ui-widget {\n" .
+               "    font-family: " . $fontfamilies{$userFont} . ";\n" .
+               "}\n" .
+               "textarea {\n" .
+               "    font-family: monospace;\n" .
                "}\n";
-    
+
     my $etag = sha1_hex($data);
 
     return (status  =>  200,
