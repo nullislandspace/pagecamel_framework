@@ -49,6 +49,24 @@ sub new($proto, %config) {
         }
     }
 
+    if(defined($self->{moduletable}) && $self->{moduletable} ne '') {
+        my $modulecode = <<~ENDJSMODULECODE;
+            Duktape.modSearch = function (id) {
+                var jscode = _loadJSModule(id);
+                if(jscode != '') {
+                    return jscode;
+                } else {
+                    throw new Error('module not found: ' + id);
+                }
+            };
+            ENDJSMODULECODE
+
+        $self->{js}->eval($modulecode);
+        $self->{js}->set('_loadJSModule' => sub {
+            return $self->_loadJSModule($_[0]);
+        });
+    }
+
     return $self;
 }
 
@@ -174,6 +192,30 @@ sub call($self, $name, @arguments) {
     }
 
     return $retval;
+}
+
+sub _loadJSModule($self, $id) {
+
+    $self->{reph}->debuglog("   Loading JS module $id");
+    my $selsth = $self->{dbh}->prepare_cached("SELECT usercode FROM " . $self->{moduletable} . " " .
+                                              "WHERE scriptname = ?")
+            or croak($self->{dbh}->errstr);
+
+    if(!$selsth->execute($id)) {
+        $self->{reph}->debuglog($self->{dbh}->errstr);
+        $self->{dbh}->rollback;
+        return '';
+    }
+
+    my $line = $selsth->fetchrow_hashref;
+    $selsth->finish;
+    $self->{dbh}->commit;
+
+    if(defined($line) && defined($line->{usercode}) && $line->{usercode} ne '') {
+        return $line->{usercode};
+    }
+
+    return '';
 }
 
 sub saveLastError($self) {

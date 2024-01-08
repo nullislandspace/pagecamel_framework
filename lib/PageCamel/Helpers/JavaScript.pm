@@ -45,30 +45,33 @@ sub new($class, %config) {
         $self->_logfromjs($_[0]);
     });
 
-    $self->{js}->eval(qq{
+    my $basecode = <<~ENDJSBASECODE;
         var memory = new Object;
         function __encode(obj) {
             return JSON.stringify(obj);
         }
-
+        
         function __decode(txt) {
             return JSON.parse(txt);
         }
-
+        
         function __setmemory(txt) {
             memory = __decode(txt);
         }
-
+        
         function __getmemory() {
             return __encode(memory);
         }
-
+        
         function __getKeys(obj) {
             var keys = Object.keys(obj);
             return keys;
         }
-        
-    });
+        ENDJSBASECODE
+
+
+
+    $self->{js}->eval($basecode);
 
     $self->{lastError} = '';
     $self->{hasError} = 0;
