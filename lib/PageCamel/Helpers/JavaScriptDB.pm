@@ -65,6 +65,14 @@ sub new($proto, %config) {
         $self->{js}->set('_loadJSModule' => sub {
             return $self->_loadJSModule($_[0]);
         });
+    } else {
+        my $modulecode = <<~ENDJSNOMODULECODE;
+            Duktape.modSearch = function (id) {
+                throw new Error('Module loading not implemented');
+            };
+            ENDJSNOMODULECODE
+
+        $self->{js}->eval($modulecode);
     }
 
     return $self;
@@ -212,8 +220,10 @@ sub _loadJSModule($self, $id) {
     $self->{dbh}->commit;
 
     if(defined($line) && defined($line->{usercode}) && $line->{usercode} ne '') {
+        $self->{reph}->debuglog("   Loaded module $id for ", $self->{scriptname});
         return $line->{usercode};
     }
+    $self->{reph}->debuglog("   Module $id not found for ", $self->{scriptname});
 
     return '';
 }
