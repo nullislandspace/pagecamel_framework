@@ -190,7 +190,7 @@
             });
         }
 
-        letable = $('#ListAndEditTable').dataTable( {
+        letable = $('#ListAndEditTable').DataTable( {
             "fnDrawCallback": function( oSettings ) {
                 $('pre code').each(function(i, block) {
                     if(ttvars.userawhtml == 1) {
@@ -223,13 +223,23 @@
             },
         });
 
+        // Column auto-resize event handling
+        letable.on('draw', function () {
+            //console.log( 'Table draw' );
+            letable.columns.adjust();
+            setTimeout(() => {
+                //console.log("Table draw 2");
+                letable.columns.adjust();
+                }, 100);
+        } );
+
         if(ttvars.userawhtml == 1) {
             hljs.initHighlightingOnLoad();
         }
 
         if(ttvars.columnfilters == 1) {
             // Apply column filters
-            letable.api().columns().every(function() {
+            letable.columns().every(function() {
                 var that = this;
 
                 $('input[type=search]', this.footer()).on('keyup change search', function() {
@@ -255,8 +265,9 @@
     }
     
     function reloadLETable() {
+        console.log("reloadLETable()");
         console.log(letable.ajax);
-        letable.api().ajax.reload(null, false);
+        letable.ajax.reload(null, false);
     }
 
     function quickSelect(primkey) {
