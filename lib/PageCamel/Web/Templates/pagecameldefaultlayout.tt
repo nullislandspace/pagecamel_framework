@@ -111,7 +111,7 @@
             data-trquote-maxrecords="[% tr.trquote("(filtered from _MAX_ total records)") %]"
             data-trquote-first="[% tr.trquote("First") %]"
             data-trquote-last="[% tr.trquote("Last") %]"
-            data-trquote-filteresults="[% tr.trquote("Filter results") %]"
+            data-trquote-filterresults="[% tr.trquote("Filter results") %]"
             data-trquote-logout="[% tr.trquote("Logout") %]"
             data-trquote-cancel="[% tr.trquote("Cancel") %]"
             data-trquote-close="[% tr.trquote("Close") %]"
