@@ -10,8 +10,8 @@
         [% END %]
 
 
-        <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
         <link REL="stylesheet" TYPE="text/css" href="/static/jquery.compiled-min_[% UIThemeName %].css[% URLReloadPostfix %]"></link>
+        <link REL="stylesheet" TYPE="text/css" href="[% UIThemeFontCSSFile %][% URLReloadPostfix %]"></link>
         <link REL="stylesheet" TYPE="text/css" href="/layout/pagecamel_webgui.css[% URLReloadPostfix %]"></link>
 
         [% FOREACH HeadExtraCS IN HeadExtraCSS %]
