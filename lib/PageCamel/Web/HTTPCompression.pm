@@ -20,6 +20,7 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use IO::Compress::Gzip qw(gzip $GzipError);
+use IO::Compress::Brotli;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -29,6 +30,10 @@ sub new($proto, %config) {
 
     if(!defined($self->{gzip})) {
         $self->{gzip} = 0;
+    }
+
+    if(!defined($self->{brotli})) {
+        $self->{brotli} = 0;
     }
 
     return $self;
@@ -56,14 +61,41 @@ sub postfilter($self, $ua, $header, $result) {
     # Ignore content that already has a Content-Encoding
     return if(defined($result->{"Content-Encoding"}) || (defined($result->{"disable_compression"}) && $result->{"disable_compression"}));
 
-    # We use an old internal bot that annouces http compression but doesn't actually
-    # support it
-    my $userAgent = $ua->{headers}->{'User-Agent'} || "Unknown";
-    return if($userAgent =~ /CCOld\ Bot/o);
+    # Ignore clients that don't support compression
+    return if(!defined($ua->{headers}->{'Accept-Encoding'}) || $ua->{headers}->{'Accept-Encoding'} eq '');
 
-    my $supportedcompress = $ua->{headers}->{'Accept-Encoding'} || '';
+    my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
 
-    if($self->{gzip} && $supportedcompress =~ /gzip/io) {
+    my $iscompressed = 0;
+
+    if($self->{brotli} && contains('br', $supportedcompress)) {
+        my $tmp;
+        my $compressok = 0;
+
+        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+            my $tmpdata;
+            if(is_utf8($result->{data})) {
+                $tmpdata = encode_utf8($result->{data});
+            } else {
+                $tmpdata = $result->{data};
+            }
+            $tmp = bro($tmpdata, 5); # Use relatively quick (but inefficient) compression factor for just-in-time compression
+            $compressok = 1;
+        };
+
+        if(!$compressok) {
+            #print STDERR "HTTP BROTLI COMPRESSION FAILURE: $EVAL_ERROR!\n";
+        } else {
+            if(length($tmp) < length($result->{data})) {
+                #print STDERR "*****  BROTLI ORIG: ", length($result->{data}), "  NEW: ", length($tmp), "  at ", $ua->{url} . "\n";
+                $result->{data} = $tmp;
+                $result->{"Content-Encoding"} = "br";
+                $self->extend_header($result, "Vary", "Accept-Encoding");
+                $iscompressed = 1;
+            }
+        }
+    }
+    if(!$iscompressed && $self->{gzip} && contains('gzip', $supportedcompress)) {
         my $tmp;
         my $compressok = 0;
         my $compressstatus;
@@ -75,18 +107,19 @@ sub postfilter($self, $ua, $header, $result) {
             } else {
                 $tmpdata = $result->{data};
             }
-            $compressstatus = gzip(\$tmpdata => \$tmp);
+            $compressstatus = gzip(\$tmpdata => \$tmp, '-Level' => 3); # Use very fast (but inefficient) compression for dynamic stuff
             $compressok = 1;
         };
 
         if(!$compressstatus || !$compressok) {
-            print STDERR "HTTP COMPRESSION FAILURE: $EVAL_ERROR!\n";
+            print STDERR "HTTP GZIP COMPRESSION FAILURE: $EVAL_ERROR!\n";
         } else {
             if(length($tmp) < length($result->{data})) {
-                #print STDERR "*****   ORIG: ", length($result->{data}), "  NEW: ", length($tmp), "  at ", $ua->{url} . "\n";
+                #print STDERR "*****  GZIP ORIG: ", length($result->{data}), "  NEW: ", length($tmp), "  at ", $ua->{url} . "\n";
                 $result->{data} = $tmp;
                 $result->{"Content-Encoding"} = "gzip";
                 $self->extend_header($result, "Vary", "Accept-Encoding");
+                $iscompressed = 1;
             }
         }
     }

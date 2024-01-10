@@ -20,6 +20,7 @@ use PageCamel::Helpers::UTF;
 use Template;
 use HTML::Entities;
 use IO::Compress::Gzip qw(gzip $GzipError);
+use IO::Compress::Brotli;
 use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use Time::HiRes qw(sleep);
@@ -588,10 +589,18 @@ sub do_uninline($self, $data, $kname, $fname) {
             $filedata{uncompresseddata} = '[% USE tr %]' . $filedata{uncompresseddata} . "\n";
             $self->{uninlinefiles}->{$jsname_dynamic}= \%filedata;
         } else {
-            my $gzipped;
-            if(gzip(\$jsdata => \$gzipped)) {
-                if(length($gzipped) < length($jsdata)) {
-                    $filedata{gzipdata} = $gzipped;
+            {
+                my $gzipped;
+                if(gzip(\$jsdata => \$gzipped, '-Level' => 9)) { # Use best available gzip compression for static stuff
+                    if(length($gzipped) < length($jsdata)) {
+                        $filedata{gzipdata} = $gzipped;
+                    }
+                }
+            }
+            {
+                my $brotli = bro($jsdata, 9);
+                if(length($brotli) < length($jsdata)) {
+                    $filedata{brotlidata} = $brotli
                 }
             }
             $self->{uninlinefiles}->{$jsname_static}= \%filedata;
@@ -649,15 +658,30 @@ sub get_uninline_static($self, $ua) {
         cache_control   =>  $self->{uninline}->{cache_control},
     );
 
-    my $supportedcompress = $ua->{headers}->{'Accept-Encoding'} || '';
-    if($supportedcompress =~ /gzip/io && defined($self->{uninlinefiles}->{$fname}->{gzipdata})) {
-        $retpage{data} = $self->{uninlinefiles}->{$fname}->{gzipdata};
-        $retpage{"Content-Encoding"} = "gzip";
-        $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
-    } else {
-        $retpage{data} = $self->{uninlinefiles}->{$fname}->{uncompresseddata};
-        $retpage{disable_compression} = 1;
+    my $compressed = 0;
+
+    if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
+        my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
+        if(!$compressed && contains('br', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{brotlidata})) {
+            $retpage{data} = $self->{uninlinefiles}->{$fname}->{brotlidata};
+            $retpage{"Content-Encoding"} = "br";
+            $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
+            $compressed = 1;
+        }
+        if(!$compressed && contains('gzip', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{gzipdata})) {
+            $retpage{data} = $self->{uninlinefiles}->{$fname}->{gzipdata};
+            $retpage{"Content-Encoding"} = "gzip";
+            $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
+            $compressed = 1;
+        }
     }
+
+    if(!$compressed) {
+        $retpage{data} = $self->{uninlinefiles}->{$fname}->{uncompresseddata};
+    }
+
+    # No need for dynamic compression
+    $retpage{disable_compression} = 1;
     
     if(defined($self->{uninlinefiles}->{$fname}->{"Last-Modified"})) {
         $retpage{"Last-Modified"} = $self->{uninlinefiles}->{$fname}->{"Last-Modified"};
@@ -692,34 +716,16 @@ sub get_uninline_dynamic($self, $ua) {
     }
     
     
+    # No need to implement compression for dynamic files here, we just defer it to the general HTTP compression module
     my %retpage = (
         status          =>  200,
         type            => 'application/javascript',
         expires         => 0,
         cache_control   =>  'no-store, no-cache, must-revalidate',
         pagecamel_debug_info => 'Source template: ' . $line->{source_template},
+        data            => $line->{scriptdata},
+        disable_compression => 0,
     );
-
-    my $iszipped = 0;
-    my $supportedcompress = $ua->{headers}->{'Accept-Encoding'} || '';
-    if($supportedcompress =~ /gzip/io) {
-        my $gzipped;
-        my $raw = $line->{scriptdata};
-        if(gzip(\$raw => \$gzipped)) {
-            if(length($gzipped) < length($raw)) {
-                $iszipped = 1;
-                $retpage{data} = $gzipped;
-                $retpage{"Content-Encoding"} = "gzip";
-                $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
-            }
-        }
-    }
-        
-        
-    if(!$iszipped) {
-        $retpage{data} = $line->{scriptdata};
-        $retpage{disable_compression} = 1;
-    }
     
     return %retpage;
 }

@@ -21,6 +21,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use XML::Simple;
 use IO::Compress::Gzip qw(gzip $GzipError);
+use IO::Compress::Brotli;
 use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use CSS::Minifier::XS;
@@ -117,6 +118,8 @@ sub reload($self, $ofh = undef) {
         push @DIRS, @{$self->{EXTRAINC}};
     }
 
+    $self->{compression_brotli} = 0;
+    $self->{compression_gzip} = 0;
     foreach my $view (@{$self->{view}}) {
         foreach my $bdir (@DIRS) {
             next if($bdir eq ".");
@@ -128,6 +131,8 @@ sub reload($self, $ofh = undef) {
             }
         }
     }
+
+    #print STDERR "Compression saves BROTLI ", $self->{compression_brotli}, " GZIP ", $self->{compression_gzip}, "\n";
     
     $fcount += 0; # Dummy for debug breakpoint
 
@@ -234,7 +239,6 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
                     size    => length($data),
                     etag    => sha1_hex($self->{reloadTime} . sha1_hex($data)), # Force browser reload after pagecamel reload with timestamp
                     "Last-Modified" => $lastmodified,
-                    disable_compression => 0,
                     dynamic => $dynamic,
                     );
 
@@ -250,16 +254,28 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
         } else {
             $entry{data} = $data;
 
-            if($nfname !~ /\.(?:exe|msi|swf)/gio) {
-                #print STDERR "Compressing $nfname\n";
+            #print STDERR "Compressing $nfname\n";
+            { # Try GZIP compression
+                my $ldata = $data . '';
                 my $gzipped;
-                if(gzip(\$data => \$gzipped)) {
+                if(gzip(\$ldata => \$gzipped, '-Level' => 9)) {
                     if(length($gzipped) < length($data)) {
                         $entry{gzipdata} = $gzipped;
+                        #print STDERR "  GZIP compressed from ", length($data), " to ", length($gzipped), "\n";
+                        $self->{compression_gzip} += length($data) - length($gzipped);
                     }
                 }
-            } else {
-                $entry{disable_compression} = 1;
+            }
+
+            { # Try BROTLI compression
+                #print STDERR "Compressing $nfname\n";
+                my $ldata = $data . '';
+                my $brotli = bro($ldata, 9); # Best compression (11) is way too slow, use a slghtly lower level
+                if(length($brotli) < length($data)) {
+                    $entry{brotlidata} = $brotli;
+                    #print STDERR "  Brotli compressed from ", length($data), " to ", length($brotli), "\n";
+                    $self->{compression_brotli} += length($data) - length($brotli);
+                }
             }
         }
 
@@ -450,14 +466,22 @@ sub get($self, $ua) {
 
     if(defined($self->{cache}->{$name}->{data})) {
         # Deliver directly from cache RAM
-        my $supportedcompress = $ua->{headers}->{'Accept-Encoding'} || '';
-        if($supportedcompress =~ /gzip/io && defined($self->{cache}->{$name}->{gzipdata})) {
-            $retpage{data} = $self->{cache}->{$name}->{gzipdata};
-            $retpage{"Content-Encoding"} = "gzip";
-            $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
-        } elsif($self->{cache}->{$name}->{disable_compression}) {
-            $retpage{disable_compression} = $self->{cache}->{$name}->{disable_compression};
+        my $compressed = 0;
+        if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
+            # Prefer brotli over gzip
+            if(!$compressed && contains('br', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{brotlidata})) {
+                $retpage{data} = $self->{cache}->{$name}->{brotlidata};
+                $retpage{"Content-Encoding"} = "br";
+                $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
+            } elsif(contains('gzip', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{gzipdata})) {
+                $retpage{data} = $self->{cache}->{$name}->{gzipdata};
+                $retpage{"Content-Encoding"} = "gzip";
+                $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
+            }
         }
+
+        # We already got pre-compressed data (or we *tried* to compress but the result was *larger*), so disable dynamic compression
+        $retpage{disable_compression} = 1;
     } else {
         # Bigger file. No RAM caching. Just load, send and forget
         $retpage{disable_compression} = 0;
