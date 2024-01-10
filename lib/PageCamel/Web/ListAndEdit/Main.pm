@@ -281,8 +281,8 @@ sub reload($self) {
     }
 
     if($self->{quickselect}) {
-        if($self->{listonly} && $self->{iframemode} ne 'list') {
-            print "    Attribute quickselect not allowed in listonly mode!\n";
+        if($self->{listonly} && $self->{iframemode} ne 'list' && !$self->{listonly_customselect}) {
+            print "    Attribute quickselect not allowed in listonly mode without listonly_customselect!\n";
             $ok = 0;
         } elsif($self->{radiobuttonhtml} ne '') {
             print "    Attributes quickselect and radiobuttonhtml are mutually exclusive!\n";
