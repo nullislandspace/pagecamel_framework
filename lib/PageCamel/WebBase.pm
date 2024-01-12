@@ -555,7 +555,15 @@ sub parse_header_line($self, $ua, $header) {
             $name = $httpheadersmapping{lc $name};
         }
 
-            $ua->{headers}->{$name} = $value;
+        if($name eq 'Accept-Encoding') {
+            my $lval = '' . $value;
+            $lval = lc $lval;
+            $lval =~ s/\ //g; # Remove whitespaces
+            my @parts = split/\,/, $lval;
+            $ua->{headers}->{'Accept-Encoding-Array'} = \@parts;
+        }
+
+        $ua->{headers}->{$name} = $value;
         if($name eq 'Cookie') {
             my @parts = split/\;/, $value;
             foreach my $part (@parts) {

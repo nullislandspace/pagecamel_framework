@@ -123,6 +123,8 @@
         data-listlength="[% ListLength %]"
         data-trquote-sendingcsv="[% tr.trquote("Sending CSV mail!") %]"
         data-quickselect="[% QuickSelect %]"
+        data-listonly="[% ListOnly %]"
+        data-listonlycustomselect="[% ListOnlyCustomSelect %]"
 ></span>
 <!-- mask template TT vars dataset -->
 
@@ -276,7 +278,15 @@
             return false;
         }
         $('input[name="primary_key"]').val(primkey);
-        $('#ListAndEditForm').submit();
+        if(ttvars.listonlycustomselect != 1) {
+            $('#ListAndEditForm').submit();
+        } else {
+            if(window.quickSelectCallback) {
+                quickSelectCallback(primkey);
+            } else {
+                console.log("quickSelectCallback() not defined");
+            }
+        }
         return true;
     }
 

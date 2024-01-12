@@ -31,6 +31,7 @@ use PageCamel::Helpers::Colors qw[colorHexMaxContrast colorHex2RGB colorSwatchHT
 use MIME::Base64;
 use Digest::SHA1  qw(sha1_hex);
 use IO::Compress::Gzip qw(gzip $GzipError);
+use IO::Compress::Brotli;
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 
@@ -156,10 +157,18 @@ sub new($proto, %config) {
         $self->{extraeditscript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
         $self->{extraeditscript_webdate} = getWebdate();
 
-        my $gzipped;
-        if(gzip(\$extrajavascript => \$gzipped)) {
-            if(length($gzipped) < length($extrajavascript)) {
-                $self->{extraeditscript_gzip} = $gzipped;
+        {
+            my $gzipped;
+            if(gzip(\$extrajavascript => \$gzipped, '-Level' => 9)) {
+                if(length($gzipped) < length($extrajavascript)) {
+                    $self->{extraeditscript_gzip} = $gzipped;
+                }
+            }
+        }
+        {
+            my $brotli = bro($extrajavascript, 9);;
+            if(length($brotli) < length($extrajavascript)) {
+                $self->{extraeditscript_brotli} = $brotli;
             }
         }
     }
@@ -182,10 +191,18 @@ sub new($proto, %config) {
         $self->{extralistscript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
         $self->{extralistscript_webdate} = getWebdate();
 
-        my $gzipped;
-        if(gzip(\$extrajavascript => \$gzipped)) {
-            if(length($gzipped) < length($extrajavascript)) {
-                $self->{extralistscript_gzip} = $gzipped;
+        {
+            my $gzipped;
+            if(gzip(\$extrajavascript => \$gzipped, '-Level' => 9)) {
+                if(length($gzipped) < length($extrajavascript)) {
+                    $self->{extralistscript_gzip} = $gzipped;
+                }
+            }
+        }
+        {
+            my $brotli = bro($extrajavascript, 9);;
+            if(length($brotli) < length($extrajavascript)) {
+                $self->{extralistscript_brotli} = $brotli;
             }
         }
     }
@@ -264,8 +281,8 @@ sub reload($self) {
     }
 
     if($self->{quickselect}) {
-        if($self->{listonly} && $self->{iframemode} ne 'list') {
-            print "    Attribute quickselect not allowed in listonly mode!\n";
+        if($self->{listonly} && $self->{iframemode} ne 'list' && !$self->{listonly_customselect}) {
+            print "    Attribute quickselect not allowed in listonly mode without listonly_customselect!\n";
             $ok = 0;
         } elsif($self->{radiobuttonhtml} ne '') {
             print "    Attributes quickselect and radiobuttonhtml are mutually exclusive!\n";
@@ -1179,15 +1196,29 @@ sub get_pagescript($self, $ua, $mode) {
         }
     }
 
-    my $supportedcompress = $ua->{headers}->{'Accept-Encoding'} || '';
-    if($supportedcompress =~ /gzip/io && defined($self->{$prefix . '_gzip'})) {
-        $retpage{data} = $self->{$prefix . '_gzip'};
-        $retpage{"Content-Encoding"} = "gzip";
-        $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
-    } else {
-        $retpage{data} = $self->{$prefix};
-        $retpage{disable_compression} = 1;
+    my $compressed = 0;
+
+    if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
+        my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
+        if(!$compressed && contains('br', $supportedcompress) && defined($self->{$prefix . '_brotli'})) {
+            $retpage{data} = $self->{$prefix . '_brotli'};
+            $retpage{"Content-Encoding"} = "br";
+            $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
+            $compressed = 1;
+        }
+        if(!$compressed && contains('gzip', $supportedcompress) && defined($self->{$prefix . '_gzip'})) {
+            $retpage{data} = $self->{$prefix . '_gzip'};
+            $retpage{"Content-Encoding"} = "gzip";
+            $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
+            $compressed = 1;
+        }
     }
+    
+    if(!$compressed) {
+        $retpage{data} = $self->{$prefix};
+    }
+
+    $retpage{disable_compression} = 1;
 
     return %retpage;
 }
