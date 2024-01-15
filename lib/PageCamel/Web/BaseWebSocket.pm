@@ -268,6 +268,15 @@ sub get($self, $ua) {
     push @{$webdata{HeadExtraModuleScriptsNoPostfix}}, '/static/pchelpers/import_pcwebsocket.js';
     
     my $substatus = $self->wsmaskget($ua, \%settings, \%webdata);
+    if($substatus == 999) {
+        # Display mask with error message instead
+        my $errortemplate = $th->get("basewebsocket_error", 1, %webdata);
+        return (status  =>  404) unless $errortemplate;
+        return (status  =>  200,
+                type    => "text/html",
+                data    => $errortemplate);
+    }
+
     if($substatus != 200) {
         return (status => $substatus);
     }

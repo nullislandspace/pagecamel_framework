@@ -2887,6 +2887,7 @@ lib/PageCamel/Web/TemplateCache.pm
 lib/PageCamel/Web/Templates/accesslogdetail.tt
 lib/PageCamel/Web/Templates/auditlogdetail.tt
 lib/PageCamel/Web/Templates/basewebsocket.tt
+lib/PageCamel/Web/Templates/basewebsocket_error.tt
 lib/PageCamel/Web/Templates/browserworkarounds_redirect.tt
 lib/PageCamel/Web/Templates/canvasuijs.js.tt
 lib/PageCamel/Web/Templates/commandqueue_admin.tt
