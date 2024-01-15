@@ -238,7 +238,7 @@
             maskExtraOnLoad();
         }
         if(ttvars.foblogin != '') {
-            setInterval(runFobReader, 1000);
+            setInterval(runFobReader, 3000);
         }
     }
 
