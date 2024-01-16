@@ -68,12 +68,7 @@
                                 <div displaytype="switch">
                                     <input type="hidden" name="[% tr.quote(setting.modulename) %]::[% tr.quote(setting.settingname) %]::settingvalue" value="[% tr.quote(setting.settingvalue) %]"
                                                 id="[% tr.quote(setting.modulename) %]_[% tr.quote(setting.settingname) %]_value">
-                                    <table>
-                                        <tr>
-                                            <td width="20px"><img desc="led" id="[% tr.quote(setting.modulename) %]_[% tr.quote(setting.settingname) %]_led" src="/pics/led_UNKNOWN.png"></td>
-                                            <td width="87px"><img desc="switch" id="[% tr.quote(setting.modulename) %]_[% tr.quote(setting.settingname) %]_switch" src="/pics/switch_ON.png"></td>
-                                        </tr>
-                                    </table>
+                                    <img desc="switch" id="[% tr.quote(setting.modulename) %]_[% tr.quote(setting.settingname) %]_switch" src="/pics/switch_ON.png">
                                 </div>
 
                             [% ELSIF setting.displaytype == "dropdown" %]
@@ -152,17 +147,12 @@
         $("div[displaytype='switch']").each(function(index) {
             var vinput = $(this).children('input:first');
             //console.log(vinput);
-            var vtable = $(this).children('table:first');
-            //console.log(vtable);
-            var vled = vtable.find("img[desc='led']");
-            var vswitch = vtable.find("img[desc='switch']");
+            var vswitch = $(this).find("img[desc='switch']");
             var vstate = vinput.val();
             if(vstate == "1") {
                 vswitch.attr("src", "/pics/switch_ON.png");
-                vled.attr("src", "/pics/led_OK.png");
             } else {
                 vswitch.attr("src", "/pics/switch_OFF.png");
-                vled.attr("src", "/pics/led_BLACK.png");
             }
             vswitch.on('click', function () {
                 var curstate = vinput.val();
@@ -174,10 +164,8 @@
                 vinput.val(curstate);
                 if(curstate == "1") {
                     vswitch.attr("src", "/pics/switch_ON.png");
-                    vled.attr("src", "/pics/led_OK.png");
                 } else {
                     vswitch.attr("src", "/pics/switch_OFF.png");
-                    vled.attr("src", "/pics/led_BLACK.png");
                 }
             });
 
