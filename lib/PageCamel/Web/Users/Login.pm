@@ -79,10 +79,6 @@ sub new($proto, %config) {
         $self->{forcelowercase} = 1;
     }
 
-    if(defined($self->{login}) && !defined($self->{login}->{userlistdropdown})) {
-        $self->{login}->{userlistdropdown} = 0;
-    }
-
     return $self;
 }
 
@@ -148,6 +144,15 @@ sub reload($self) {
                             'type=switch',
                                             ])
             or croak("Failed to create setting allow_keep_logged_in!");
+
+    $sysh->createBool(modulename => 'security',
+                        settingname => 'username_dropdown',
+                        settingvalue => 0,
+                        description => 'Show dropdown list for usernames in login (insecure!)',
+                        processinghints => [
+                            'type=switch',
+                                            ])
+            or croak("Failed to create setting username_dropdown!");
 
     $sysh->createText(modulename => 'security',
                     settingname => 'standard_valid_time',
@@ -598,8 +603,8 @@ sub get_login($self, $ua) {
     }
 
     # Prepare data for user dropdown if required
-    $webdata{userlistdropdown} = $self->{login}->{userlistdropdown};
-    if($self->{login}->{userlistdropdown} && ($webdata{statustext} ne '' || $webdata{statuscolor} ne 'okcolor')) {
+    $webdata{userlistdropdown} = $settings->{username_dropdown};
+    if($webdata{userlistdropdown} && ($webdata{statustext} ne '' || $webdata{statuscolor} ne 'okcolor')) {
         my $userselsth = $dbh->prepare_cached("SELECT username, first_name || ' ' || last_name AS fullname
                                                FROM users
                                                ORDER BY username")
@@ -1703,9 +1708,10 @@ sub getSettings($self) {
         allow_keep_logged_in => 0,
         standard_valid_time => '10 minutes',
         keeploggedin_valid_time => '90 days',
+        username_dropdown => 0,
     );
 
-    my @keys = qw[allow_keep_logged_in standard_valid_time keeploggedin_valid_time];
+    my @keys = keys %settings;
 
     # If foblogin is configured, look at system settings if we want to allow it, otherwise disable it
     if(defined($self->{foblogin}->{webpath})) {
