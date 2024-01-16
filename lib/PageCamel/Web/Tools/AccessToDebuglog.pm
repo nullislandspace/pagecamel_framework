@@ -49,7 +49,7 @@ sub log($self, $logdata) {
                 $logdata->{client} . " " .
                 $webpath . " " .
                 $logdata->{webapimethod} . ' ' .
-                $logdata->{allowedmethods} .
+                $logdata->{allowedmethods} . ' ' .
                 $logdata->{timetaken} . 'ms ';
     $reph->debuglog($data);
 
