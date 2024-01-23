@@ -113,7 +113,7 @@ sub debuglog($self, @parts) {
     $memh->clacks_set($name, $line);
 
     if($self->{std_out}) {
-        print "\n$line";
+        print "\n", encode_utf8($line);
         $self->{lastlinelen} = length($line);
 
     }
