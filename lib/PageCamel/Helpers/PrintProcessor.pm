@@ -735,6 +735,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
 sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
     
     $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
+    $self->{imagedata} = $self->{img}->png;
 
     return;
 }
