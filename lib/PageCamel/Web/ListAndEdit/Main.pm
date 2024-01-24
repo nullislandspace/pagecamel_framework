@@ -1324,11 +1324,14 @@ sub get_list($self, $ua, $usemasterlayout = true) {
     if($self->{column_filters}) {
         my $rawfilters = $sesh->get($self->{sessionname} . '::rawColumnFilters') || "";
         $rawfilters = dbderef($rawfilters);
-    
         if($rawfilters eq '') {
             # Make sorting the default sort order
             $rawfilters = [];
-        }
+        } else {
+            foreach my $singlefilter (@{$rawfilters}) {
+                $singlefilter->{filter} = decode_utf8($singlefilter->{filter});
+            }
+    	}
     
         $webdata{rawColumnFilters} = $rawfilters;
     }
