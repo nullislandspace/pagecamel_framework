@@ -66,6 +66,8 @@ sub new {
     }
     $self->{sysh} = PageCamel::SVC::Settings->new($self->{dbh}, $self->{clacks});
 
+    $self->{sysh}->set_softupdates(0);
+
     $self->{nextkeepalive} = 0;
 
 
@@ -82,6 +84,11 @@ sub checkDatabase($self) {
         my $dbh = DBI->connect($self->{db}->{dburl}, $self->{db}->{dbuser}, $self->{db}->{dbpassword}, {AutoCommit => 0, RaiseError => 0});
         if(defined($dbh)) {
             $self->{dbh} = $dbh;
+
+            my $appname = $self->{APPNAME} . "/Main.pm $PID";
+            if($dbh->do("SET application_name = '$appname'; ")) {
+                $dbh->commit;
+            }
         }
     }
 
@@ -235,18 +242,8 @@ sub startup($self) {
 
     # Set status bit to "not started"
     foreach my $app (@{$self->{apps}}) {
-        $self->{sysh}->get('pagecamel_services', $app->{status_name}, 0);
-        my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
-        if($ok && $refshouldrun->{settingvalue}) {
-            $self->{clacks}->set($app->{clacks_name}, 2);
-        } else {
-            $self->{clacks}->set($app->{clacks_name}, 0);
-        }
-        $self->{clacks}->doNetwork();
-    }
-
-    foreach my $app (@{$self->{apps}}) {
-        my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
+        my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name}, 1); # $forcedb = 1
+        $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
         if($ok && $refshouldrun->{settingvalue}) {
             $self->{clacks}->set($app->{clacks_name}, 2);
         } else {
@@ -259,8 +256,12 @@ sub startup($self) {
         #$self->check_app($app);
         #$self->handleClacksCommands();
     }
+
     print "Initial startup complete\n";
     $self->{shutdown_complete} = 0;
+
+    # Enable soft updates to reduce postgresql calls to merge_systemsettings()
+    $self->{sysh}->set_softupdates(1);
 
     return;
 }

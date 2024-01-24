@@ -26,7 +26,8 @@ sub initDB($self) {
 
     # Update system_settings table
     {
-        my $type = $dbh->getColumnType('pagecamel.system_settings', 'is_hidden');
+        # Since we don't know if we are using Helpers::PostgreSQL or DBI directly (in SVC for example), we use our own internal copy of getColumnType
+        my $type = $self->_getColumnType($dbh, 'pagecamel.system_settings', 'is_hidden');
         if(!defined($type)) {
             print "Updating system_settings table (add is_hidden column)\n";
             if(!$dbh->do("ALTER TABLE pagecamel.system_settings ADD COLUMN is_hidden boolean NOT NULL DEFAULT false")) {
@@ -36,6 +37,10 @@ sub initDB($self) {
         } elsif($type ne 'boolean') {
             croak("system_settings column is_hidden has wrong type. Should be 'boolean' but is $type");
         }
+    }
+
+    if(!defined($self->{soft_updates})) {
+        $self->{soft_updates} = 0;
     }
 
 }
@@ -185,6 +190,17 @@ sub createEnum($self, %setting) {
     return 1;
 }
 
+sub set_softupdates($self, $val) {
+    if($val) {
+        $self->{soft_updates} = 1;
+    } else {
+        $self->{soft_updates} = 0;
+    }
+
+    return;
+}
+
+
 sub get($self, $modulename, $settingname, $forcedb = false) {
     if(!defined($modulename) || !defined($settingname)) {
         return 0;
@@ -227,13 +243,24 @@ sub get($self, $modulename, $settingname, $forcedb = false) {
     }
 }
 
-sub set($self, $modulename, $settingname, $value) {
+# For backwards compatibility and data integrity, default is to ALWAYS write to the database
+# Clients can enable "soft" updates by either setting config "soft_updates" to true or setting $forcedb to false
+sub set($self, $modulename, $settingname, $value, $forcedb = 1) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $memhname = "SystemSettings::" . $modulename . "::" . $settingname;
 
     $value = encode_utf8($value);
+
+    if(!$forcedb || $self->{soft_updates}) {
+        my $settingref = $memh->get($memhname);
+        if(defined($settingref)) {
+            if($settingref->{settingvalue} eq $value) {
+                return 1;
+            }
+        }
+    }
 
     my $upsth = $dbh->prepare_cached("SELECT merge_system_settings(?, ?, ?)")
             or return 0;
@@ -464,6 +491,58 @@ sub updateMinMax($self, $modulename, $settingname, $min, $max) {
     $sth->finish;
     $dbh->rollback;
     return 0;
+}
+
+sub _getColumnType($self, $dbh, $xtable, $xcolumn) {
+
+    my $table = '' . $xtable;
+    my $column = '' . $xcolumn;
+
+    my $schema = 'public';
+    my $subtype;
+    if($table =~ /\./) {
+        ($schema, $table) = split/\./, $table;
+    }
+
+    if($column =~ /\./) {
+        ($column, $subtype) = split/\./, $column;
+    }
+
+    # Normalize array element to the base array
+    if($column =~ /\[\d+\]$/) {
+        $column =~ s/\[\d+\]$//;
+    }
+
+    my $type;
+    my $backuptype;
+
+    my $sth = $dbh->prepare_cached("SELECT pg_catalog.format_type(c.atttypid, NULL) AS data_type
+                                                FROM pg_attribute c
+                                                  JOIN pg_class t on c.attrelid = t.oid
+                                                  JOIN pg_namespace n on t.relnamespace = n.oid
+                                                WHERE 
+                                                  n.nspname = ?
+                                                  AND t.relname = ?
+                                                  AND c.attname = ?
+                                                  AND c.attnum >= 0")
+            or croak($dbh->errstr);
+    $sth->execute($schema, $table, $column) or croak($dbh->errstr);
+    while ((my $line = $sth->fetchrow_hashref)) {
+        $type = lc $line->{data_type};
+        if($type =~ /\[\]$/) {
+            $type =~ s/\[\]$//;
+        }
+    }
+    $sth->finish;
+
+    $dbh->commit;
+
+    if(defined($subtype) && defined($type)) {
+        $type = $self->getColumnType($type, $subtype);
+    }
+
+
+    return $type;
 }
 
 

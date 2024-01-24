@@ -367,6 +367,16 @@ sub post_process_request_hook($self) {
     return;
 }
 
+sub set_usessl($self, $usessl) {
+
+    $self->{usessl} = $usessl;
+    foreach my $modname (keys %{$self->{modules}}) {
+        $self->{modules}->{$modname}->{usessl} = $usessl;
+    }
+
+    return;
+}
+
 sub child_init_hook($self) {
 
     if(0 && $self->{isDebugging}) {
@@ -545,7 +555,15 @@ sub parse_header_line($self, $ua, $header) {
             $name = $httpheadersmapping{lc $name};
         }
 
-            $ua->{headers}->{$name} = $value;
+        if($name eq 'Accept-Encoding') {
+            my $lval = '' . $value;
+            $lval = lc $lval;
+            $lval =~ s/\ //g; # Remove whitespaces
+            my @parts = split/\,/, $lval;
+            $ua->{headers}->{'Accept-Encoding-Array'} = \@parts;
+        }
+
+        $ua->{headers}->{$name} = $value;
         if($name eq 'Cookie') {
             my @parts = split/\;/, $value;
             foreach my $part (@parts) {

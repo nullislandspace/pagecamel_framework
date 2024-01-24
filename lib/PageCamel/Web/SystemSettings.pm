@@ -62,6 +62,15 @@ sub reload($self) {
     return;
 }
 
+# After configuration, switch to soft updates (e.g. only update database when clacks cached value differs from new value)
+sub endconfig($self) {
+
+    $self->set_softupdates(1);
+    
+    return;
+}
+
+
 sub getEdit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

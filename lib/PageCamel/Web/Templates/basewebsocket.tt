@@ -64,7 +64,11 @@
             return;
         }
     
-        ws = new WebSocket(ttvars.websocketurl, 'base64');
+        // Second argument is the custom protocol name. It must match $proto in socketstart() in BaseWebSocket.pm
+        ws = new WebSocket(ttvars.websocketurl, 'pagecamel');
+
+        // When receiving a BINARY frame, make sure we get it as ArrayBuffer instead of Blob
+        ws.binaryType = "arraybuffer";
 
         ws.onopen = function(ev) {
             if(ttvars.blockui == "1") {
@@ -108,15 +112,44 @@
     }
     
     function handleServerRequests(ev) {
-        var rawmsg = String(ev.data);
-        
-        //console.log("Parsing " + rawmsg.length + "  JSON bytes");
-        //var starttime = Date.now();
-        var msg = JSON.parse(rawmsg);
-        //var endtime = Date.now();
-        //console.log("   took " + (endtime - starttime) + " milliseconds");
+        //console.log(ev);
 
-        //console.log(msg);
+        if(ev.data instanceof ArrayBuffer) {
+            // binary frame
+
+            var view = new DataView(ev.data);
+
+            var binaryhandled = 0;
+            if(window.handleBinaryMessage) {
+                var starttime = Date.now();
+                handleBinaryMessage(view);
+                var endtime = Date.now();
+                var timeused = endtime - starttime;
+                if(timeused > 2000) {
+                    console.log("PERFORMANCE: handleBinaryMessage() took too long: " + timeused + "ms!");
+                }
+                binaryhandled = 1;
+            }
+            if(window.pcws.spoolbinaryincoming) {
+                var starttime = Date.now();
+                window.pcws.spoolbinaryincoming(view);
+                var endtime = Date.now();
+                var timeused = endtime - starttime;
+                if(timeused > 2000) {
+                    console.log("PERFORMANCE: window.pcws.spoolbinaryincoming() took too long: " + timeused + "ms!");
+                }
+                binaryhandled = 1;
+            }
+
+            if(!binaryhandled) {
+                console.log("NO HANDLER FOR BINARY WEBSOCKET MESSAGE");
+            }
+
+            return;
+        }
+        
+        var rawmsg = String(ev.data);
+        var msg = JSON.parse(rawmsg);
         
         if(msg.type === "PING") {
             lastPing = Math.round(Date.now() / 1000);
@@ -132,7 +165,7 @@
                     console.log("PERFORMANCE: handleMessage() for " + msg.type + " took too long: " + timeused + "ms!");
                 }
             }
-            if(1) {
+            if(window.pcws.spoolincoming) {
                 var starttime = Date.now();
                 window.pcws.spoolincoming(msg.type, msg.data);
                 var endtime = Date.now();

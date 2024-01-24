@@ -88,6 +88,8 @@ sub checkDBH($self, $hasforked = false) {
     $self->{mdbh} = $dbh;
     #$dbh->{pg_enable_utf8} = 1;
 
+    $dbh->{pg_prepare_now} = 1; # prepare() and prepare_cached() run immediately in most standard cases, not on the first execute(). This makes debugging easier.
+
     my $appname = $self->{APPNAME} . "/" . $self->{modname} . " $PID";
     if($dbh->do("SET application_name = '$appname'; ")) {
         $dbh->commit;

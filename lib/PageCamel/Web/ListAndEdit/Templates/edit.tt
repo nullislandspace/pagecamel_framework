@@ -166,12 +166,7 @@
                                                 <div displaytype="switch">
                                                     <input type="hidden" name="[% tr.quote(column.columnname) %]" value="[% tr.quote(column.columnvalue) %]"
                                                                 id="[% tr.quote(column.columnname) %]_value" switchpart="value">
-                                                    <table>
-                                                        <tr>
-                                                            <td width="20px"><img id="[% tr.quote(column.columnname) %]_led" switchpart="led" src="/pics/led_UNKNOWN.png"></td>
-                                                            <td width="87px"><img id="[% tr.quote(column.columnname) %]_switch" switchpart="switch" src="/pics/switch_ON.png"></td>
-                                                        </tr>
-                                                    </table>
+                                                    <img id="[% tr.quote(column.columnname) %]_switch" switchpart="switch" src="/pics/switch_ON.png">
                                                 </div>
 
                                             [% ELSIF column.displaytype == "enum" %]
@@ -454,15 +449,12 @@
 
     function updateSwitch(element) {
         var dataelem = element.find("input[switchpart='value']");
-        var ledelem = element.find("img[switchpart='led']");
         var switchelem = element.find("img[switchpart='switch']");
         var state = dataelem.val();
         if(state == "1") {
             switchelem.attr("src", "/pics/switch_ON.png");
-            ledelem.attr("src", "/pics/led_OK.png");
         } else {
             switchelem.attr("src", "/pics/switch_OFF.png");
-            ledelem.attr("src", "/pics/led_BLACK.png");
         }
     }
 

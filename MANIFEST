@@ -49,6 +49,7 @@ lib/PageCamel/Helpers/CommandHelper.pm
 lib/PageCamel/Helpers/ConfigData.pm
 lib/PageCamel/Helpers/ConfigLoader.pm
 lib/PageCamel/Helpers/CSVFilter.pm
+lib/PageCamel/Helpers/DangerSign.pm
 lib/PageCamel/Helpers/DataBlobs.pm
 lib/PageCamel/Helpers/DateStrings.pm
 lib/PageCamel/Helpers/DBSerialize.pm
@@ -2823,8 +2824,6 @@ lib/PageCamel/Web/Static/remoteconsolelog.js
 lib/PageCamel/Web/Static/service_worker.js
 lib/PageCamel/Web/Static/sha256.js
 lib/PageCamel/Web/Static/snow.js
-lib/PageCamel/Web/Static/sqljs/sql-wasm-debug.js
-lib/PageCamel/Web/Static/sqljs/sql-wasm-debug.wasm
 lib/PageCamel/Web/Static/sqljs/sql-wasm.js
 lib/PageCamel/Web/Static/sqljs/sql-wasm.wasm
 lib/PageCamel/Web/Static/sqljs/version.txt
@@ -2888,6 +2887,7 @@ lib/PageCamel/Web/TemplateCache.pm
 lib/PageCamel/Web/Templates/accesslogdetail.tt
 lib/PageCamel/Web/Templates/auditlogdetail.tt
 lib/PageCamel/Web/Templates/basewebsocket.tt
+lib/PageCamel/Web/Templates/basewebsocket_error.tt
 lib/PageCamel/Web/Templates/browserworkarounds_redirect.tt
 lib/PageCamel/Web/Templates/canvasuijs.js.tt
 lib/PageCamel/Web/Templates/commandqueue_admin.tt

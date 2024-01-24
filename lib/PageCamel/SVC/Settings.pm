@@ -37,7 +37,9 @@ sub new($proto, $dbh, $clacks) {
     $self->{memcache} = 'memcache';
     $self->{server}->{modules}->{maindb} = $dbh;
     $self->{server}->{modules}->{memcache} = $clackscache;
-        
+
+    $self->initDB();
+
     return $self;
 }
 

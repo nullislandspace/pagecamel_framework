@@ -72,6 +72,9 @@ sub logstart($self, $ua) {
     my @hnames = sort keys %{$ua->{headers}};
     foreach my $hname (@hnames) {
         my $hval = $ua->{headers}->{$hname};
+        if(ref $hval eq 'ARRAY') {
+            $hval = 'ARRAY(' . join(', ', @{$hval}) . ')'
+        }
         push @headers, $hname . ': ' . $hval;
     }
     my $headerlist = join("\n", @headers);

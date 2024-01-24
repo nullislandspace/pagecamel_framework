@@ -12,6 +12,7 @@ export declare class PCSqlite {
     private _dbVersion;
     private _saveToExternalStorage;
     private _loadFromExternalStorage;
+    private _multiinsertstmt;
     constructor({ config, dbname, debug, saveToExternalStorage, loadFromExternalStorage, }: {
         config: initSqlJs.SqlJsConfig;
         dbname?: string;
@@ -28,6 +29,9 @@ export declare class PCSqlite {
     private _SQLtoBinString;
     private _logdebug;
     executeSQL: (statement: string, ...args: string[]) => initSqlJs.ParamsObject[] | null;
+    multiInsert_Start: (statement: string) => initSqlJs.ParamsObject[] | null;
+    multiInsert_End: () => initSqlJs.ParamsObject[] | null;
+    multiInsert_Execute: (...args: string[]) => initSqlJs.ParamsObject[] | null;
     private _saveToIndexedDB;
     private _loadFromIndexedDB;
     save(): void;

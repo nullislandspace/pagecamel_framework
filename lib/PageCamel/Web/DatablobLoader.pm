@@ -38,6 +38,10 @@ sub new($proto, %config) {
         $self->{useconvert} = 0;
     }
 
+    if(!defined($self->{disable_compression})) {
+        $self->{disable_compression} = 0;
+    }
+
     return $self;
 }
 
@@ -137,6 +141,7 @@ sub get_blob($self, $ua) {
     return (status  =>  200,
             type    => $self->{filetype},
             data    => $blobdata,
+            disable_compression => $self->{disable_compression},
     );
 
 
