@@ -4,6 +4,7 @@
     </p>
 [% END %]
 <form name="pwchange" method="post" action="[% PostLink %]" id="pwform">
+    <input type="text" hidden name="username" value="[% userData.user %]" autocomplete="username"> <!-- Google chrome is too stupid to work with type="hidden". -->
     <table class="data" align="center" id="MainDataTable">
         <tr class="tabheader">
             <th colspan="2">
@@ -13,7 +14,7 @@
         <tr>
             <td align="right">[% tr.trquote("Old Password") %]</td>
             <td align="left">
-                <input type="password" name="pwold" value="" maxLength="40" size="20" id="pwold"><br/>
+                <input type="password" name="pwold" value="" maxLength="40" size="20" id="pwold" autocomplete="current-password"><br/>
                 [% IF ResetLink != '' %]
                     <a href="[% ResetLink %]">[% tr.trquote("I don't know my old password...") %]</a>
                 [% END %]
@@ -22,7 +23,7 @@
         <tr>
             <td align="right">[% tr.trquote("New Password") %]</td>
             <td align="left">
-                <input type="password" name="pwnew1" value="" id="pwnew1"><br>
+                <input type="password" name="pwnew1" value="" id="pwnew1" autocomplete="new-password"><br>
                 <div>
                     <div id="progressbar" align="left"><div id="progress"></div></div>
                     <div id="complexity">0%</div>
@@ -32,7 +33,7 @@
         <tr>
             <td align="right">[% tr.trquote("Repeat Password") %]</td>
             <td align="left">
-                <input type="password" name="pwnew2" value="" id="pwnew2">
+                <input type="password" name="pwnew2" value="" id="pwnew2" autocomplete="new-password">
             </td>
         </tr>
         <tr>
