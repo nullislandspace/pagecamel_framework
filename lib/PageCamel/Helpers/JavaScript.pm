@@ -20,6 +20,7 @@ use PageCamel::Helpers::UTF;
 use JavaScript::Embedded;
 use JSON::XS;
 use PageCamel::Helpers::DangerSign;
+use Storable 'dclone';
 
 sub new($class, %config) {
     my $self = bless \%config, $class;
@@ -45,7 +46,10 @@ sub new($class, %config) {
         $self->_logfromjs($_[0]);
     });
 
+    $self->{rawlines} = [];
+
     my $basecode = <<~ENDJSBASECODE;
+        // START JavaScript.pm
         var memory = new Object;
         function __encode(obj) {
             return JSON.stringify(obj);
@@ -67,11 +71,14 @@ sub new($class, %config) {
             var keys = Object.keys(obj);
             return keys;
         }
+        // END JavaScript.pm
         ENDJSBASECODE
 
 
 
-    $self->{js}->eval($basecode);
+    if(!$self->loadCode($basecode)) {
+        croak("Could not initialize JavaScript basecode");
+    }
 
     $self->{lastError} = '';
     $self->{hasError} = 0;
@@ -91,13 +98,17 @@ sub loadCode($self, $code) {
         croak("JS code undefined!");
     }
 
-    $self->{code} = $code;
+    my @lines = split/\n/, $code;
+    foreach my $line (@lines) {
+        $line =~ s/\r//g;
+        push @{$self->{rawlines}}, $line;
+    }
  
     $self->{hasError} = 0;
     $self->{lastError} = '';
     my $ok = 0;
     eval {
-        $self->{js}->eval($self->{code});
+        $self->{js}->eval($code);
         $ok = 1;
     };
 
@@ -108,6 +119,15 @@ sub loadCode($self, $code) {
     }
     return $ok;
 }
+
+sub getCode($self) {
+    # Don't return a reference to our internal lines, make sure we return a deep copy.
+    # We might need to use those lines to re-init JavaScrip::Embedded in the future
+    my $templines = dclone($self->{rawlines});
+
+    return $templines;
+}
+    
 
 sub call($self, $name, @arguments) {
 

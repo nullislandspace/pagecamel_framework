@@ -91,11 +91,13 @@ sub init($self, $usercode, $systemcode) {
     my $memory;
     eval {
         if($systemcode ne '') {
+            $systemcode = "// START systemcode (JavaScriptDB.pm)\n" . $systemcode . "//END systemcode (JavaScriptDB.pm)\n";
             if(!$self->loadCode($systemcode)) {
                 $self->saveLastError();
                 return 0;
             }
         }
+        $usercode = "// START usercode (JavaScriptDB.pm)\n" . $usercode . "//END usercode (JavaScriptDB.pm)\n";
         if(!$self->loadCode($usercode)) {
             $self->saveLastError();
             return 0;
