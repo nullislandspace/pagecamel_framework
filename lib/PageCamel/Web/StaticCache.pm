@@ -27,6 +27,7 @@ use PageCamel::Helpers::DateStrings;
 use CSS::Minifier::XS;
 use File::Type;
 use POSIX;
+use PageCamel::Helpers::DangerSign;
 
 my $cachemodulecount = 0;
 my @knownstaticmodules;
@@ -53,6 +54,7 @@ sub new($proto, %config) {
     $cachemodulecount++;
     push @knownstaticmodules, $self->{modname};
     if($cachemodulecount > 1) {
+        print STDERR DangerSignUTF8();
         print STDERR "***** StaticCache configured more then once (", join(',', @knownstaticmodules), ")!\n";
         print STDERR "***** This is usually inefficient and can lead to duplicate files in memory, are you sure you want to do that?\n";
         print STDERR "***** Instead of multiple StaticCache instances, you can use PluginConfig to add more views!\n";
@@ -497,6 +499,14 @@ sub get($self, $ua) {
     }
 
     return %retpage;
+}
+
+sub getFilename($self, $uri) {
+    if(defined($self->{cache}->{$uri}->{fullname})) {
+        return $self->{cache}->{$uri}->{fullname};
+    }
+
+    return;
 }
 
 sub sitemap($self, $sitemap) {

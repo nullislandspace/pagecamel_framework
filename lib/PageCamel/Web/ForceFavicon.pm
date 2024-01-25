@@ -19,12 +19,22 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
+use PageCamel::Helpers::DangerSign;
+use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
+use XML::Simple;
+use JSON::XS;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
+
+    if(!defined($self->{staticcache})) {
+        print STDERR DangerSignUTF8();
+        cluck('PageCamel::Web::ForceFavicon configured without reference to the StaticCache module, assuming default name!');
+        $self->{staticcache} = 'staticcache';
+    }
 
     return $self;
 }
@@ -37,27 +47,108 @@ sub register($self) {
     return;
 }
 
-sub prefilter($self, $ua) {
+# preparing our data needs to run AFTER StaticCache has loaded all files
+sub finalcheck($self) {
+    my $cacheh = $self->{server}->{modules}->{$self->{staticcache}};
 
-    my $webpath = $ua->{url} || '--unknown--';
-    return unless($webpath =~ /favicon/);
+    my $fname = $cacheh->getFilename($self->{favicon});
+    if(!defined($fname)) {
+        croak("File not found for URI " . $self->{favicon});
+    }
 
-    if(defined($self->{exceptions})) {
-        foreach my $exception (@{$self->{exceptions}->{item}}) {
-            if($ua->{url} =~ /$exception/) {
-                return;
+    $fname =~ /^(.*)\//;
+    my $dirname = $1 . '/';
+
+    my $uridir = '' . $self->{favicon};
+    $uridir =~ s/favicon\.ico$//;
+
+    print "favicon: $fname has basedir $dirname\n";
+
+    my %map;
+
+    my $xmlfname = $dirname . 'browserconfig.xml';
+    if(-f $xmlfname) {
+        print "   Loading $xmlfname\n";
+        my $xml = XMLin($xmlfname, ForceArray => [ 'tile']);
+
+        if(defined($xml->{msapplication}->{tile})) {
+            foreach my $tile (@{$xml->{msapplication}->{tile}}) {
+                foreach my $key (keys %{$tile}) {
+                    if(ref $tile->{$key} eq 'HASH' && defined($tile->{$key}->{src})) {
+                        my $orig = '' . $tile->{$key}->{src};
+                        my $modified = '' . $orig;
+                        $modified =~ s/.*\///;
+                        $modified = $uridir . $modified;
+                        $map{$orig} = $modified;
+
+                        # Also put in root path
+                        $orig =~ s/.*\///g;
+                        $map{'/' . $orig} = $modified;
+                        
+                        # ... and the default pagecamel path
+                        $orig = '/pics/favicons/' . $orig;
+                        $map{$orig} = $modified;
+
+                    } 
+                }
             }
         }
     }
 
-    if($webpath =~ /\/favicon\.ico$/i && $webpath ne $self->{favicon}) {
-        print STDERR "Changing internal favicon path from $webpath to ", $self->{favicon}, "\n";
-        $ua->{url} = $self->{favicon};
-    }
-    
-    return unless($self->{debugreplace} && $self->{isDebugging});
+    my $jsonfname = $dirname . 'site.webmanifest';
+    if(-f $jsonfname) {
+        print "   Loading $jsonfname\n";
+        my $jsondata = slurpBinFile($jsonfname);
+        my $json = decode_json($jsondata);
+        if(defined($json->{icons}) && ref $json->{icons} eq 'ARRAY') {
+            foreach my $icon (@{$json->{icons}}) {
+                print Dumper($icon);
+                if(defined($icon->{src})) {
+                    my $orig = '' . $icon->{src};
+                    my $modified = '' . $orig;
+                    $modified =~ s/.*\///;
+                    $modified = $uridir . $modified;
+                    $map{$orig} = $modified;
 
-    $ua->{url} =~ s#^/pics/favicons/#/pics/favicons_debug/#;
+                    # Also put in root path
+                    $orig =~ s/.*\///g;
+                    $map{'/' . $orig} = $modified;
+
+                    # ... and the default pagecamel path
+                    $orig = '/pics/favicons/' . $orig;
+                    $map{$orig} = $modified;
+                }
+            }
+        }
+
+    }
+
+    $map{'/favicon.ico'} = $self->{favicon};
+    $map{'/pics/favicons/favicon.ico'} = $self->{favicon};
+
+    $self->{map} = \%map;
+
+    return;
+
+}
+
+sub prefilter($self, $ua) {
+    if(!defined($ua->{url}) || $ua->{url} eq '') {
+        return;
+    }
+
+    my $webpath = $ua->{url};
+
+    if($webpath =~ /android/) {
+        print STDERR $webpath, "\n";
+        print STDERR Dumper($self->{map});
+    }
+
+    if(defined($self->{map}->{$webpath})) {
+        print STDERR "***** MAPPING $webpath to ", $self->{map}->{$webpath}, "\n";
+        $ua->{url} = $self->{map}->{$webpath};
+        return;
+    }
 
     return;
 }
