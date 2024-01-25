@@ -41,6 +41,7 @@ export class PCSqlite {
     private _loadFromExternalStorage:
         | (() => Promise<string | null>)
         | undefined = undefined;
+    private _multiinsertstmt: any;
 
     constructor({
         config,
@@ -222,6 +223,54 @@ export class PCSqlite {
         } else {
             return null;
         }
+    };
+
+    multiInsert_Start = (
+        statement: string
+    ): initSqlJs.ParamsObject[] | null => {
+        //statement = 'PRAGMA foreign_keys = ON;' + statement;
+        //noerror();
+        if (this._db && this._dbloaded) {
+            var stmt: initSqlJs.Statement = this._db.prepare(statement);
+            this._multiinsertstmt = stmt;
+        }
+        return null;
+    };
+
+    multiInsert_End = (
+    ): initSqlJs.ParamsObject[] | null => {
+        //statement = 'PRAGMA foreign_keys = ON;' + statement;
+        //noerror();
+        if (this._db && this._dbloaded && this._multiinsertstmt != null) {
+            this._multiinsertstmt.free();
+            this._multiinsertstmt = null;
+
+            if(this._autocommit) {
+                this.save();
+            }
+        }
+        return null;
+    };
+
+    multiInsert_Execute = (
+        ...args: string[]
+    ): initSqlJs.ParamsObject[] | null => {
+        //statement = 'PRAGMA foreign_keys = ON;' + statement;
+        //noerror();
+        if (this._db && this._dbloaded) {
+            try {
+                if (this._multiinsertstmt.bind(args)) {
+                    while (this._multiinsertstmt.step()) {
+                        //var row = stmt.getAsObject();
+                        //results.push(row);
+                    }
+                }
+            } catch (fail) {
+                console.error("sqllite error: ", fail);
+                //results.push(stmt.getAsObject(args));
+            }
+        }
+        return null;
     };
 
     /**

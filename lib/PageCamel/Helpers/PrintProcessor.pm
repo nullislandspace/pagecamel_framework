@@ -387,6 +387,20 @@ sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     return;
 }
 
+sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
+    
+    chomp $line;
+    
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 15, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 19;
+    }
+    
+    return;
+}
+
 sub printAddBigTextLine($self, $line) {
     
     chomp $line;
@@ -721,6 +735,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
 sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
     
     $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
+    $self->{imagedata} = $self->{img}->png;
 
     return;
 }
