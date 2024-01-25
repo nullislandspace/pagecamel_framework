@@ -62,13 +62,13 @@ sub finalcheck($self) {
     my $uridir = '' . $self->{favicon};
     $uridir =~ s/favicon\.ico$//;
 
-    print "favicon: $fname has basedir $dirname\n";
+    #print "favicon: $fname has basedir $dirname\n";
 
     my %map;
 
     my $xmlfname = $dirname . 'browserconfig.xml';
     if(-f $xmlfname) {
-        print "   Loading $xmlfname\n";
+        #print "   Loading $xmlfname\n";
         my $xml = XMLin($xmlfname, ForceArray => [ 'tile']);
 
         if(defined($xml->{msapplication}->{tile})) {
@@ -97,12 +97,12 @@ sub finalcheck($self) {
 
     my $jsonfname = $dirname . 'site.webmanifest';
     if(-f $jsonfname) {
-        print "   Loading $jsonfname\n";
+        #print "   Loading $jsonfname\n";
         my $jsondata = slurpBinFile($jsonfname);
         my $json = decode_json($jsondata);
         if(defined($json->{icons}) && ref $json->{icons} eq 'ARRAY') {
             foreach my $icon (@{$json->{icons}}) {
-                print Dumper($icon);
+                #print Dumper($icon);
                 if(defined($icon->{src})) {
                     my $orig = '' . $icon->{src};
                     my $modified = '' . $orig;
@@ -139,13 +139,8 @@ sub prefilter($self, $ua) {
 
     my $webpath = $ua->{url};
 
-    if($webpath =~ /android/) {
-        print STDERR $webpath, "\n";
-        print STDERR Dumper($self->{map});
-    }
-
     if(defined($self->{map}->{$webpath})) {
-        print STDERR "***** MAPPING $webpath to ", $self->{map}->{$webpath}, "\n";
+        #print STDERR "***** MAPPING $webpath to ", $self->{map}->{$webpath}, "\n";
         $ua->{url} = $self->{map}->{$webpath};
         return;
     }
