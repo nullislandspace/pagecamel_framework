@@ -20,7 +20,7 @@
                     <td align="right">[% tr.trquote("Username") %]:</td>
                     <td align="left">
                         [% IF userlistdropdown == "0" %]
-                            <input type="text" name="username" size="50" value="[% tr.quote(username) %]" maxLength="70" id="username">
+                            <input type="text" name="username" size="50" value="[% tr.quote(username) %]" maxLength="70" id="username" autocomplete="username">
                         [% ELSE %]
                             <select name="username" id="username" searchable="1">
                                 <option value=""></option>
@@ -34,7 +34,7 @@
                 <tr>
                     <td align="right">[% tr.trquote("Password") %]:</td>
                     <td align="left">
-                        <input type="password" name="password" size="50" maxlength="70" id="password" value="">
+                        <input type="password" name="password" size="50" maxlength="70" id="password" value="" autocomplete="current-password">
                         <input type="hidden" name="mode" id="mode" value="username">
                         <input type="hidden" name="tempsessionid" id="tempsessionid" value="[% tempsessionid %]">
                         <input type="hidden" name="tempclientid" id="tempclientid" value="[% tempclientid %]">
