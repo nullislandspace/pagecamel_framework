@@ -47,7 +47,7 @@ sub reload($self) {
 
 sub register($self) {
 
-    # Register ourselfs in the RBSCommands module with additional commands
+    # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
 
     foreach my $cmd (sort keys %{$self->{extcommands}}) {
@@ -65,7 +65,7 @@ sub execute($self, $command, $arguments) {
     return;
 }
 
-sub do_svc_reset_all_services($self, $command, $arguments) {
+sub do_svc_reset_all_services($self, $arguments) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -116,9 +116,15 @@ sub do_svc_reset_all_services($self, $command, $arguments) {
 
     my $clacks = $self->newClacksFromConfig($clconf);
     foreach my $worker (@workers) {
+        $reph->debuglog("   Restarting $worker");
         $clacks->set('pagecamel_services::restart::service', $worker);
+        for(1..10) {
+            $clacks->doNetwork();
+            sleep(1);
+        }
     }
     # Send out restart request for our own service as the LAST command
+    $reph->debuglog("Restarting our own worker $appworkername");
     $clacks->set('pagecamel_services::restart::service', $appworkername);
 
     # Make sure everything is sent. We can do a long loong here, since we get restarted anyway...

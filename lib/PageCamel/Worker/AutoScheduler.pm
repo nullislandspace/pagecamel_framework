@@ -243,7 +243,7 @@ sub work_day($self) {
         my ($ndate, $ntime) = getDateAndTime();
 
         $reph->debuglog("Scheduling daily Service reset");
-        my $starttime = "$ndate 01:40:00";
+        my $starttime = "$ndate 05:20";
         my @args = ();
         if($csth->execute('SVC_RESET_ALL_SERVICES', \@args, $starttime)) {
             $workCount++;

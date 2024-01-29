@@ -147,7 +147,7 @@ sub work($self) {
                 $printarglist = "(" . join(",", @{$command->{arguments}}) . ")";
             }
 
-            $reph->debuglog("RBSCommands " . $command->{command} . " $printarglist");
+            $reph->debuglog("PageCamel Command " . $command->{command} . " $printarglist");
 
             if($self->{log_all}) {
                 $reph->dblog("OTHER", "DEBUG Command " . $command->{command} . " $printarglist started");
@@ -159,12 +159,14 @@ sub work($self) {
 
             if(defined($self->{extcommand}->{$command->{command}})) {
                 my $tmplogtype;
+                $reph->debuglog("Running command ", $command->{command}, "...");
                 eval {
                     ($done, $tmplogtype) = $self->{extcommand}->{$command->{command}}->execute($command->{command}, $command->{arguments});
                     1;
                 } or do {
                     $dbh->rollback;
                     $done = 0;
+                    $reph->debuglog("Command has eval error $EVAL_ERROR: " . $command->{command} . " $printarglist failed");
                     $reph->dblog($logtype, "Command has eval error $EVAL_ERROR: " . $command->{command} . " $printarglist failed");
                 };
                 if(defined($tmplogtype) && $tmplogtype ne '') {
@@ -179,6 +181,7 @@ sub work($self) {
                 # Ok, so.... "Someone has set up us the bomb!"
                 $logtype = "OTHER"; # "We get signal!"
                 $reph->dblog($logtype, "Command " . $command->{command} . " not implemented"); # "Main screen turn on!"
+                $reph->debuglog("Command " . $command->{command} . " not implemented");
             }
 
             $memh->refresh_lifetick;
