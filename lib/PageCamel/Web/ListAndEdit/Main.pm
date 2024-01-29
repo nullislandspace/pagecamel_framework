@@ -33,6 +33,7 @@ use Digest::SHA1  qw(sha1_hex);
 use IO::Compress::Gzip qw(gzip $GzipError);
 use IO::Compress::Brotli;
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
+use Storable qw[dclone];
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -1842,6 +1843,19 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mode = $ua->{postparams}->{'mode'} || 'list';
 
+    # "copy" mode is special. First, we treat it as "edit", then with an original, untouched copy of the $ua (but mode='create', primarykey='__NEW__'), we re-call get_edit to make the actual copy
+    my $copyua;
+    if($mode eq 'copy') {
+        if(!$self->{cancopy}) {
+            return (status => 403); # Forbidden!
+        }
+        $copyua = dclone $ua->{postparams};
+        $mode = 'edit';
+
+        $copyua->{'primary_key'} = '__NEW__';
+        $copyua->{'mode'} = 'create';
+    }
+
     # re-bracketify encoded postparam names
     if(defined($ua->{postparams}) && ref $ua->{postparams} eq 'HASH') {
         foreach my $key (keys %{$ua->{postparams}}) {
@@ -1869,13 +1883,6 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         $mode = 'select';
     }
     
-    if($mode eq 'copy') {
-        if(!$self->{cancopy}) {
-            return (status => 403); # Forbidden!
-        }
-        $primarykey = '__NEW__';
-        $mode = 'create';
-    }
     
     my $saveandclose = 0;
     if($mode eq 'editandclose') {
@@ -2560,6 +2567,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     }
 
     #print STDERR Dumper(\%webdata); 
+    
+    if(defined($copyua)) {
+        $ua->{postparams} = $copyua;
+        return $self->get_edit($ua);
+    }
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/edit", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
