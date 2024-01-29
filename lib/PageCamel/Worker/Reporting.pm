@@ -49,10 +49,10 @@ sub reload($self) {
     }
 
     if($restart) {
-        $self->debuglog("****** RESTART DETECTED ********");
+        #$self->debuglog("****** RESTART DETECTED ********");
         #$self->auditlog($self->{modname}, 'RESTART DETECTED');
     } else {
-        $self->debuglog("****** SERVICE STARTED ********");
+        #$self->debuglog("****** SERVICE STARTED ********");
         #$self->auditlog($self->{modname}, 'SERVICE STARTED');
     }
 

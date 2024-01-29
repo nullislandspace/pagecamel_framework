@@ -419,15 +419,13 @@ sub get($self, $ua) {
 
     my $name = $ua->{url};
 
-    print STDERR "##########   $name\n";
-
     return (status  =>  404) unless defined($self->{cache}->{$name});
 
     my $cachecontrol = $self->{cache_control}; 
     my $expires = $self->{expires}; 
 
     if($self->{cache}->{$name}->{dynamic}) {
-        print STDERR "------ $name is a dynamic file, checking for newer version\n";
+        #print STDERR "------ $name is a dynamic file, checking for newer version\n";
         $cachecontrol = "no-cache, no-store, must-revalidate";
         $expires = 'now';
 
@@ -436,7 +434,7 @@ sub get($self, $ua) {
         $newlastmodified = getWebdate($tmp);
 
         if($self->{cache}->{$name}->{"Last-Modified"} ne $newlastmodified) {
-            print STDERR "------ $name is a dynamic file and has a newer version available, reloading metadata\n";
+            #print STDERR "------ $name is a dynamic file and has a newer version available, reloading metadata\n";
             my $data = slurpBinFile($self->{cache}->{$name}->{fullname});
             $self->{cache}->{$name}->{size} = length($data);
             $self->{cache}->{$name}->{"Last-Modified"} = $newlastmodified;

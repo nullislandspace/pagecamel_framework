@@ -22,6 +22,17 @@ div.webgui_headermessage {
     overflow: auto;
 }
 
+/* Red Warning/Error bar */
+div.webgui_headerwarning {
+	padding-top: 5px;
+	padding-bottom: 5px;
+    width: 100%;
+    background-color: #A00000;
+    color: #FFFFFF;
+    text-align: center;
+}
+
+
 div.webgui_headermessage_left {
     float: left;
     width: 33%;

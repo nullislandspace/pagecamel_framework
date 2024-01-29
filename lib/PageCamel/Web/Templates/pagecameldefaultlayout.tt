@@ -146,6 +146,9 @@
                 <div class="webgui_headermessage_right"><img src="/pics/hackman2.gif"></div>
             </div>
         [% END %]
+        [% IF header_warning %]
+            <div class="webgui_headerwarning">[% tr.trquote(header_warning) %]</div>
+        [% END %]
 
 
         <div class="webgui_projectbar">
