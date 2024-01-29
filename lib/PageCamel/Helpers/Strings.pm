@@ -36,6 +36,9 @@ sub tabsToTable($txt, @lengths) {
 
 # strip string of leading and trailing whitespace
 sub stripString($val) {
+    if(!defined($val)) {
+        $val = '';
+    }
 
     $val =~ s/^\s+//o;
     $val =~ s/\s+$//o;
@@ -46,6 +49,9 @@ sub stripString($val) {
 
 # Removes all unneeded whitespace and non-word characters
 sub normalizeString($val) {
+    if(!defined($val)) {
+        $val = '';
+    }
 
     $val =~ s/\t/ /go;
     $val =~ s/^\s+//o;
@@ -57,6 +63,9 @@ sub normalizeString($val) {
 }
 
 sub webSafeString($val) {
+    if(!defined($val)) {
+        $val = '';
+    }
 
     $val =~ s/\t/ /go;
     $val =~ s/^\ +//o;
@@ -70,6 +79,9 @@ sub webSafeString($val) {
 }
 
 sub splitStringWithQuotes($val) {
+    if(!defined($val)) {
+        $val = '';
+    }
 
     # Double backslash in search fields
     $val =~ s/\\/\\\\/g;
@@ -128,6 +140,9 @@ sub splitStringWithQuotes($val) {
 }
 
 sub elemNameQuote($val) {
+    if(!defined($val)) {
+        $val = '';
+    }
 
     #$val = normalizeString($val);
     $val =~ s/\s/_/g;
@@ -137,6 +152,9 @@ sub elemNameQuote($val) {
 }
 
 sub windowsStringsQuote($val) {
+    if(!defined($val)) {
+        $val = '';
+    }
 
     $val =~ s/\ä/ae/go;
     $val =~ s/\ö/oe/go;
@@ -164,6 +182,9 @@ sub humanFilesize($size) {
 
 # Encode a string for VNC session recording
 sub encodeVNCString($val) {
+    if(!defined($val)) {
+        $val = '';
+    }
 
     my $out = "";
     my @chars = split//, $val;
@@ -184,7 +205,6 @@ sub encodeVNCString($val) {
 
 # 'cut -c' compatible implementation
 sub cutStrings($definition, $seperator, @lines) {
-
     my @outlines;
 
     my @cuts;
@@ -222,6 +242,9 @@ sub cutStrings($definition, $seperator, @lines) {
 
 # Line-wrap a string
 sub lineWrap($val, $linelength) {
+    if(!defined($val)) {
+        $val = '';
+    }
 
     my @lines;
     my $line = '';
