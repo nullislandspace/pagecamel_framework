@@ -19,6 +19,9 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
+use PageCamel::Helpers::Padding qw(doSpacePad);
+
+use IO::Handle;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -29,6 +32,8 @@ sub new($proto, %config) {
     if(!defined($self->{memcache})) {
         croak("No memcache defined for module " . $self->{modname});
     }
+    STDERR->autoflush(1);
+    $self->{lastlinelen} = 0;
 
     return $self;
 }
@@ -78,20 +83,25 @@ sub debuglog($self, @parts) {
 
     my $line = '';
     foreach my $part (@parts) {
+        next unless(defined($part));
         chomp $part;
         $line .= $part;
     }
 
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
+
     $line = getISODate() . " " . $line;
+
     my $name = 'Debuglog::' . $self->{APPNAME} . '::new';
     $name =~ s/\ /\_/g;
 
-    my $memh = $self->{server}->{modules}->{$self->{memcache}};
     $memh->clacks_set($name, $line);
 
     if($self->{std_out}) {
-        print STDERR "$line\n";
+        print STDERR "\n", encode_utf8($line);
+        $self->{lastlinelen} = length($line);
     }
+
     return;
 }
 
@@ -103,15 +113,25 @@ sub debuglog_overwrite($self, @parts) {
         $line .= $part;
     }
 
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
+
     $line = getISODate() . " " . $line;
+
     my $name = 'Debuglog::' . $self->{APPNAME} . '::overwrite';
     $name =~ s/\ /\_/g;
-
-    $self->{clacks}->set($name, $line);
+    $memh->clacks_set($name, $line);
 
     if($self->{std_out}) {
-        print STDERR "$line\n";
+        if(length($line) < $self->{lastlinelen}) {
+            my $newlinelen = length($line);
+            $line = doSpacePad($line, $self->{lastlinelen});
+            $self->{lastlinelen} = $newlinelen;
+        } else {
+            $self->{lastlinelen} = length($line);
+        }
+        print STDERR "\r", encode_utf8($line);
     }
+
     return;
 }
 

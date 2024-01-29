@@ -19,7 +19,6 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Worker::BaseModule);
 use PageCamel::Helpers::DateStrings;
-use Net::Clacks::Client;
 use PageCamel::Helpers::Padding qw(doSpacePad);
 
 use IO::Handle;
@@ -29,8 +28,6 @@ sub new($proto, %config) {
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
-
-    $self->{nextping} = 0;
 
     if(!$self->{isDebugging}) {
         $self->{stdout} = 0;
@@ -95,9 +92,6 @@ sub debuglog($self, @parts) {
 
     my $line = '';
     foreach my $part (@parts) {
-        #if(!defined($part)) {
-        #    croak("debuglog called with undefined part");
-        #}
         next unless(defined($part));
         chomp $part;
         $line .= $part;
@@ -115,7 +109,6 @@ sub debuglog($self, @parts) {
     if($self->{std_out}) {
         print "\n", encode_utf8($line);
         $self->{lastlinelen} = length($line);
-
     }
 
     return;
@@ -145,7 +138,7 @@ sub debuglog_overwrite($self, @parts) {
         } else {
             $self->{lastlinelen} = length($line);
         }
-        print "\r$line";
+        print "\r", encode_utf8($line);
     }
 
     return;

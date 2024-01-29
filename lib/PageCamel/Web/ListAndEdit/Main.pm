@@ -34,7 +34,6 @@ use IO::Compress::Gzip qw(gzip $GzipError);
 use IO::Compress::Brotli;
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
-
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
@@ -275,7 +274,7 @@ sub reload($self) {
 
     foreach my $optionalattr (qw[radiobuttonhtml]) {
         if(!defined($self->{$optionalattr})) {
-            print "    Attribute $optionalattr is undefined, set to empty string\n";
+            #print "    Attribute $optionalattr is undefined, set to empty string\n";
             $self->{$optionalattr} = '';
         }
     }

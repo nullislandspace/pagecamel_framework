@@ -102,7 +102,7 @@ sub reload($self) {
             if(!defined($self->{fields}->{$setting})) {
                 # Just make a dummy entry so the value gets loaded in get_defaultwebdata()
                 $self->{fields}->{$setting} = '';
-                print "    ** registering DB-only key $setting\n";
+                #print "    ** registering DB-only key $setting\n";
             }
         }
     }

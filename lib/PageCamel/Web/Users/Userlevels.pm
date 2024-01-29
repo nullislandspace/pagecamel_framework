@@ -63,7 +63,7 @@ sub finalcheck($self) {
     }
     $levelcount{UNKNOWN} = 0;
 
-    print "** Normal webpaths:\n";
+    #print "** Normal webpaths:\n";
     my $paths = $self->{server}->get_webpaths;
     foreach my $path (sort keys %{$paths}) {
         my $dbpath = 'UNKNOWN';
@@ -74,10 +74,10 @@ sub finalcheck($self) {
             }
         }
         $levelcount{$dbpath}++;
-        print '      ', doSpacePad($dbpath, 10), ' ', "$path\n";
+        #print '      ', doSpacePad($dbpath, 10), ' ', "$path\n";
     }
 
-    print "** Override webpaths:\n";
+    #print "** Override webpaths:\n";
     my $opaths = $self->{server}->get_overridewebpaths;
     foreach my $path (sort keys %{$opaths}) {
         my $dbpath = 'UNKNOWN';
@@ -88,15 +88,15 @@ sub finalcheck($self) {
             }
         }
         $levelcount{$dbpath}++;
-        print '      ', doSpacePad($dbpath, 10), ' ', "$path\n";
+        #print '      ', doSpacePad($dbpath, 10), ' ', "$path\n";
     }
 
-    print "    --- path statistics START ---\n";
+    #print "    --- path statistics START ---\n";
     foreach my $key (sort keys %levelcount) {
-        print "     $key: $levelcount{$key}\n";
+        #print "     $key: $levelcount{$key}\n";
     }
 
-    print "    ---  path statistics END  ---\n";
+    #print "    ---  path statistics END  ---\n";
 
     return;
 }
