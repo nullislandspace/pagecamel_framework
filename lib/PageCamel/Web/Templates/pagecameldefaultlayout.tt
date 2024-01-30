@@ -121,6 +121,8 @@
             data-fontfamily="[% UIThemeFont %]"
             data-fontface="[% UIThemeFontFace %]"
             data-keyfoblogout="[% userData.keyfob_logout %]"
+            data-keyfobsoftlogout="[% userData.keyfob_softlogout %]"
+            data-keyfobid="[% userData.keyfob_id %]"
             data-trquote-keyfoblogout="[% tr.trquote("Key fob logout...") %]"
             data-isdebugging="[% isDebugging %]"
             data-touchinputenabled="[% TouchinputEnabled %]"
@@ -188,8 +190,10 @@
                         [% ELSE %]
                             <div class="webgui_projectusername">[% tr.quote(userData.first_name) %] [% tr.quote(userData.last_name) %]
                         [% END %]
-                        [% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
-                        <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a>
+                        [% IF userData.keyfob_logout == 0 %]
+                            [% IF userData.headerinfo != "" %] [% tr.quote(userData.headerinfo) %][% END %]&nbsp;/&nbsp;
+                            <a class="webgui_projectloginlink" href="/user/logout" onClick="CheckLogout(); return false;">[% tr.trquote("Logout") %]</a>
+                        [% END %]
                         [% IF userData.hasrealuser == 1 %]
                             / <a class="webgui_projectloginlink" href="/user/switchback">[% tr.trquote("Back") %]</a>
                         [% END %]

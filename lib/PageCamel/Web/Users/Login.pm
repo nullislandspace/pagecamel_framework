@@ -473,6 +473,7 @@ sub get_login($self, $ua) {
             $user{user_id} = $line->{user_id};
             $user{require_password_change} = $line->{require_password_change};
             $user{keyfob_logout} = 0;
+            $user{keyfob_id} = '';
             last;
         }
         $sth->finish;
@@ -681,7 +682,7 @@ sub get_keyfoblogin($self, $ua) {
         );
     }
 
-    my ($session, $expires, $startpage) = $self->getAutologin($ua, $user->{username});
+    my ($session, $expires, $startpage) = $self->getAutologin($ua, $user->{username}, $keyfobid);
 
     if($session eq '') {
         return (
@@ -722,7 +723,7 @@ sub get_keyfoblogin($self, $ua) {
             data    => $template);
 }
 
-sub getAutologin($self, $ua, $username) {
+sub getAutologin($self, $ua, $username, $keyfobid = '') {
 
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -790,6 +791,7 @@ sub getAutologin($self, $ua, $username) {
     } else {
         $user{keyfob_logout} = 1;
     }
+    $user{keyfob_id} = $keyfobid;
 
     my @dbRights;
     my $rightssth = $dbh->prepare_cached("SELECT * FROM users_permissions
@@ -951,6 +953,7 @@ sub adminSwitchToUser($self, $username, $ua) {
         last;
     }
     $user->{keyfob_logout} = $user->{realuser}->{keyfob_logout};
+    $user->{keyfob_id} = $user->{realuser}->{keyfob_id};
     $sth->finish;
 
     my @dbRights;
@@ -1032,6 +1035,7 @@ sub adminSwitchFromUser($self, $ua) {
     $user->{company} = $user->{realuser}->{company};
     $user->{user_id} = $user->{realuser}->{user_id};
     $user->{keyfob_logout} = $user->{realuser}->{keyfob_logout};
+    $user->{keyfob_id} = $user->{realuser}->{keyfob_id};
     $user->{rights} = \@realrights;
 
     delete $user->{realuser};
@@ -1175,6 +1179,7 @@ sub prefilter($self, $ua) {
                                require_password_change  => $user->{require_password_change},
                                expires      => $user->{expires},
                                keyfob_logout => $user->{keyfob_logout},
+                               keyfob_id => $user->{keyfob_id},
                               );
 
             if(defined($user->{realuser})) {

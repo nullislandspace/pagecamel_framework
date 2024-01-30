@@ -213,15 +213,22 @@
 
     var fobreader = new XMLHttpRequest();
     var fobloginrunning = 0;
+    var fobrequestactive = 0;
     function runFobReader() {
-        if(fobloginrunning == 1) {
+        if(fobloginrunning == 1 || fobrequestactive == 1) {
             return;
         }
-        fobreader.open("GET", '/user/fobreader?keychange=ignore', true);
+        fobreader.open("GET", '/user/fobreader', true);
         fobreader.onreadystatechange=function() {
             if(fobreader.readyState == 4) {
+                fobrequestactive = 0;
+                if(fobreader.status != 200) {
+                    //console.log("REQUEST FAILED");
+                    return;
+                }
                 var newfob = fobreader.responseText;
-                if(newfob != '') {
+                //console.log(newfob + ' # ');
+                if(newfob != '' && newfob != '00 00 00 00 00 00') {
                     console.log("Starting FOB login...");
                     fobloginrunning = 1;
                     $('#fobid').val(newfob);
@@ -230,6 +237,7 @@
                 }
             }
         }
+        fobrequestactive = 1;
         fobreader.send(null);
     }
 
@@ -238,7 +246,7 @@
             maskExtraOnLoad();
         }
         if(ttvars.foblogin != '') {
-            setInterval(runFobReader, 3000);
+            setInterval(runFobReader, 100);
         }
     }
 
