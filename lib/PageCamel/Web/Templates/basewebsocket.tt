@@ -167,6 +167,8 @@
             }
             if(window.pcws.spoolincoming) {
                 var starttime = Date.now();
+                //console.log("** MESSAGE TYPE " + msg.type);
+                //console.log(msg.data);
                 window.pcws.spoolincoming(msg.type, msg.data);
                 var endtime = Date.now();
                 var timeused = endtime - starttime;
