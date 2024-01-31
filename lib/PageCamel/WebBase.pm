@@ -810,11 +810,11 @@ nextrequest:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    my $requestline = $self->readheader(10, $realsocket);
+    my $requestline = $self->readheader(15, $realsocket);
     if(!defined($requestline)) {
         #print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
-        #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+        webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
 
         goto cleanup;
     }
@@ -830,9 +830,9 @@ nextrequest:
     while(1) {
         my $header = $self->readheader(5, $realsocket);
         if(!defined($header)) {
-            print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
+            #print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
             $ua->{keepalive} = 0;
-            #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
         $hcount++;
