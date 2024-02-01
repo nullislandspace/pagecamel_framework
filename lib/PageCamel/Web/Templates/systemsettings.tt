@@ -24,6 +24,12 @@
                                 <input type="text" name="[% tr.quote(setting.modulename) %]::[% tr.quote(setting.settingname) %]::settingvalue" value="[% tr.quote(setting.settingvalue) %]" size="60" maxlength="200">
                             [% ELSIF setting.displaytype == "textarea" %]
                                 <textarea name="[% tr.quote(setting.modulename) %]::[% tr.quote(setting.settingname) %]::settingvalue" rows="10" cols="80">[% tr.quote(setting.settingvalue) %]</textarea>
+                            [% ELSIF setting.displaytype == "timeonly" %]
+                                <input type="text" name="[% tr.quote(setting.modulename) %]::[% tr.quote(setting.settingname) %]::settingvalue" value="[% tr.quote(setting.settingvalue) %]" displaytype="timeonly">
+                            [% ELSIF setting.displaytype == "dateonly" %]
+                                <input type="text" name="[% tr.quote(setting.modulename) %]::[% tr.quote(setting.settingname) %]::settingvalue" value="[% tr.quote(setting.settingvalue) %]" displaytype="dateonly">
+                            [% ELSIF setting.displaytype == "dateandtime" %]
+                                <input type="text" name="[% tr.quote(setting.modulename) %]::[% tr.quote(setting.settingname) %]::settingvalue" value="[% tr.quote(setting.settingvalue) %]" displaytype="dateandtime">
                             [% ELSIF setting.displaytype == "checkbox" %]
                                 <input type="checkbox" name="[% tr.quote(setting.modulename) %]::[% tr.quote(setting.settingname) %]::settingvalue"
                                     [% IF setting.settingvalue == 1 %]

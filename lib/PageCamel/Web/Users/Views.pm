@@ -76,7 +76,7 @@ sub iterateCheckViews($self, $checkview) {
         }
         croak("Config errors detected!") unless $ok;
 
-        print "    view ", $view->{display}, "\n";
+        #print "    view ", $view->{display}, "\n";
 
         my $startpage = $view->{startpage};
         my $viewname = $view->{display};
@@ -87,7 +87,7 @@ sub iterateCheckViews($self, $checkview) {
                 print STDERR "Menu entry does not define property path!\n";
                 $ok = 0;
             } else {
-                print "      menu ", $menu->{path}, "\n";
+                #print "      menu ", $menu->{path}, "\n";
             }
 
             if(contains($menu->{path}, $self->{configured})) {

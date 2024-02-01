@@ -29,13 +29,18 @@ sub new($proto, %config) {
     $self->{preventCSS} = 0;
     $self->{prerenderCallback} = 0;
 
+    if(!defined($self->{reporting})) {
+        croak($self->{modname} . " requires reporting config");
+    }
+
     $self->init();
 
     return $self;
 }
 
 sub reload($self, $ofh = undef) {
-    return $self->reloadFiles($ofh);
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    return $self->reloadFiles($reph);
 }
 
 sub finalcheck($self) {

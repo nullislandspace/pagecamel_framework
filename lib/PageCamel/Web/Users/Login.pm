@@ -19,6 +19,7 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 
+use Time::HiRes qw(time);
 use Crypt::Digest::SHA256 qw[sha256_hex];
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
@@ -270,6 +271,7 @@ sub reload($self) {
 sub get_logout($self, $ua) {
 
     my $session = $ua->{cookies}->{"pagecamel-session"};
+
     if(!$self->validateSession($session, $ua)) {
         return (status      => 303,
                 location    => $self->{login}->{webpath},
@@ -473,6 +475,7 @@ sub get_login($self, $ua) {
             $user{user_id} = $line->{user_id};
             $user{require_password_change} = $line->{require_password_change};
             $user{keyfob_logout} = 0;
+            $user{keyfob_id} = '';
             last;
         }
         $sth->finish;
@@ -681,7 +684,7 @@ sub get_keyfoblogin($self, $ua) {
         );
     }
 
-    my ($session, $expires, $startpage) = $self->getAutologin($ua, $user->{username});
+    my ($session, $expires, $startpage) = $self->getAutologin($ua, $user->{username}, $keyfobid);
 
     if($session eq '') {
         return (
@@ -722,7 +725,7 @@ sub get_keyfoblogin($self, $ua) {
             data    => $template);
 }
 
-sub getAutologin($self, $ua, $username) {
+sub getAutologin($self, $ua, $username, $keyfobid = '') {
 
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -790,6 +793,7 @@ sub getAutologin($self, $ua, $username) {
     } else {
         $user{keyfob_logout} = 1;
     }
+    $user{keyfob_id} = $keyfobid;
 
     my @dbRights;
     my $rightssth = $dbh->prepare_cached("SELECT * FROM users_permissions
@@ -951,6 +955,7 @@ sub adminSwitchToUser($self, $username, $ua) {
         last;
     }
     $user->{keyfob_logout} = $user->{realuser}->{keyfob_logout};
+    $user->{keyfob_id} = $user->{realuser}->{keyfob_id};
     $sth->finish;
 
     my @dbRights;
@@ -1032,6 +1037,7 @@ sub adminSwitchFromUser($self, $ua) {
     $user->{company} = $user->{realuser}->{company};
     $user->{user_id} = $user->{realuser}->{user_id};
     $user->{keyfob_logout} = $user->{realuser}->{keyfob_logout};
+    $user->{keyfob_id} = $user->{realuser}->{keyfob_id};
     $user->{rights} = \@realrights;
 
     delete $user->{realuser};
@@ -1175,6 +1181,7 @@ sub prefilter($self, $ua) {
                                require_password_change  => $user->{require_password_change},
                                expires      => $user->{expires},
                                keyfob_logout => $user->{keyfob_logout},
+                               keyfob_id => $user->{keyfob_id},
                               );
 
             if(defined($user->{realuser})) {
@@ -1453,7 +1460,7 @@ sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin
     for(1..25) {
         $randchars .= substr($validChars, int(rand(length($validChars))), 1);
     }
-    my $session = "3SESSION" . sha256_hex(time() . $randchars . $host_addr);
+    my $session = "3SESSION" . sha256_hex(int(time) . $randchars . $host_addr);
 
 
     $session .= sha256_hex($host_addr);
@@ -1485,12 +1492,15 @@ sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin
 }
 
 sub deleteSession($self, $session) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     # CALL ON_LOGOUT
     # We need to temporarily force the session ID for the logout callbacks. This is so that
     # session settings handlers can work on the logged out session, not the current one. This
     # is so because we may be working with a stale session, instead of the actual session we are
     # handling now
+
+    my $starttime = time;
     $self->{forcedSessionID} = $session;
     $self->{server}->user_logout($session);
     delete $self->{forcedSessionID};
@@ -1512,6 +1522,10 @@ sub deleteSession($self, $session) {
     }
 
     $memh->delete($session);
+
+    my $endtime = time;
+
+    #$reph->debuglog("***** LOGOUT SESSION DELETE TOOK ", $endtime - $starttime, " seconds");
 
     return;
 }

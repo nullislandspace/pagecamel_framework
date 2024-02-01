@@ -326,7 +326,7 @@
                                                 <input type="button" value="[% tr.tr("Change&Close") %]" onclick="setMode('editandclose'); checkinput();">
                                             [% END %]
                                             [% IF cancopy == "1" %]
-                                                <input type="button" value="[% tr.tr("Copy") %]" onclick="setMode('copy'); checkinput();">
+                                                <input type="button" value="[% tr.tr("Save&Copy") %]" onclick="setMode('copy'); checkinput();">
                                             [% END %]
                                             [% IF candelete == "1" %]
                                                 &nbsp;
@@ -360,7 +360,7 @@
                                     <input type="button" value="[% tr.tr("Change&Close") %]" onclick="setMode('editandclose'); checkinput();">
                                 [% END %]
                                 [% IF cancopy == "1" %]
-                                    <input type="button" value="[% tr.tr("Copy") %]" onclick="setMode('copy'); checkinput();">
+                                    <input type="button" value="[% tr.tr("Save&Copy") %]" onclick="setMode('copy'); checkinput();">
                                 [% END %]
                                 [% IF candelete == "1" %]
                                     &nbsp;

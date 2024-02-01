@@ -108,11 +108,11 @@ sub addView($self, $path, $base) {
 
 }
 
-sub reloadFiles($self, $ofh = undef) {
-    if(!defined($ofh)) {
-        $ofh = \*STDOUT;
-    }
+sub reloadFiles($self, $reph) {
     delete $self->{cache} if defined $self->{cache};
+
+    $reph->debuglog("TemplateEngine loading files");
+    $reph->debuglog("...");
 
 
     my %files;
@@ -129,18 +129,18 @@ sub reloadFiles($self, $ofh = undef) {
         foreach my $bdir (@DIRS) {
             next if($bdir eq "."); # Load "./" at the end
             my $fulldir = $bdir . "/" . $view->{path};
-            print $ofh "   ** checking $fulldir \n";
+            $reph->debuglog_overwrite("   ** checking $fulldir");
             if(-d $fulldir) {
                 #print $ofh "   **** loading extra template files\n";
-                $self->load_dir($fulldir, $view->{base}, \%files);
+                $self->load_dir($fulldir, $view->{base}, \%files, $reph);
             }
         }
         { # Load "./"
             my $fulldir = $view->{path};
-            print $ofh "   ** checking $fulldir \n";
+            $reph->debuglog_overwrite("   ** checking $fulldir");
             if(-d $fulldir) {
                 #print $ofh "   **** loading local template files\n";
-                $self->load_dir($fulldir, $view->{base}, \%files);
+                $self->load_dir($fulldir, $view->{base}, \%files, $reph);
             }
         }
     }
@@ -150,10 +150,10 @@ sub reloadFiles($self, $ofh = undef) {
     }
     
     foreach my $errline (@{$self->{reloadwarnings}}) {
-        print STDERR "TEMPLATE WARNING: $errline\n";
+        $reph->debuglog("TEMPLATE WARNING: $errline");
     }
     foreach my $errline (@{$self->{reloaderrors}}) {
-        print STDERR "TEMPLATE ERROR: $errline\n";
+        $reph->debuglog(print STDERR "TEMPLATE ERROR: $errline");
     }
     if(@{$self->{reloaderrors}}) {
         croak("Encountered errors in Template loading.");
@@ -165,15 +165,17 @@ sub reloadFiles($self, $ofh = undef) {
 
     $self->{cache} = \%files;
 
+    $reph->debuglog(""); # make sure we end with a proper newline
+
     return;
 }
 
-sub load_dir($self, $dir, $base, $files) {
+sub load_dir($self, $dir, $base, $files, $reph) {
 
     $base =~ s/^\///o;
     $base =~ s/\/$//o;
 
-    print "LOADING DIR ", $dir, " as ", $base, "\n";
+    $reph->debuglog_overwrite("LOADING DIR ", $dir, " as ", $base);
 
     opendir(my $dfh, $dir) or croak("$ERRNO");
     while((my $fname = readdir($dfh))) {
@@ -205,10 +207,10 @@ sub runFinalcheck($self) {
         tr_rememberkey($key);
     }
 
-    print "\n\n???\nTemplates available:\n";
-    foreach my $name (sort keys %{$self->{cache}}) {
-        print $name, "\n";
-    }
+    #print "\nTemplates available:\n";
+    #foreach my $name (sort keys %{$self->{cache}}) {
+    #    print $name, "\n";
+    #}
 
     return;
 }

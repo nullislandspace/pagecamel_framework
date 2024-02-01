@@ -101,11 +101,8 @@ sub addView($self, $dirpath, $urlpath) {
     
 }
 
-sub reload($self, $ofh = undef) {
-
-    if(!defined($ofh)) {
-        $ofh = \*STDOUT;
-    }
+sub reload($self) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     # Empty cache
     my %files;
@@ -122,19 +119,24 @@ sub reload($self, $ofh = undef) {
 
     $self->{compression_brotli} = 0;
     $self->{compression_gzip} = 0;
+
+    $reph->debuglog("Loading StaticCache files...");
+    $reph->debuglog("...");
+
     foreach my $view (@{$self->{view}}) {
         foreach my $bdir (@DIRS) {
             next if($bdir eq ".");
             my $fulldir = $bdir . '/' . $view->{path};
-            print $ofh "   ** checking $fulldir \n";
+            $reph->debuglog_overwrite("   ** checking ", $fulldir);
             if(-d $fulldir) {
-                #print $ofh "   **** loading extra static files\n";
-                $fcount += $self->load_dir($fulldir, $view->{webpath}, $ofh);
+                $fcount += $self->load_dir($fulldir, $view->{webpath});
             }
         }
     }
 
-    #print STDERR "Compression saves BROTLI ", $self->{compression_brotli}, " GZIP ", $self->{compression_gzip}, "\n";
+    $reph->debuglog("Compression saves BROTLI ", $self->{compression_brotli}, " GZIP ", $self->{compression_gzip});
+
+    $reph->debuglog(""); # Make sure we end with a newline
     
     $fcount += 0; # Dummy for debug breakpoint
 
@@ -142,18 +144,19 @@ sub reload($self, $ofh = undef) {
 
 }
 
-sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
+sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $fcount = 0;
     my $ft = File::Type->new();
 
-    print $ofh "StaticCache loading directory $basedir into $basewebpath...\n";
+    $reph->debuglog_overwrite("StaticCache loading directory $basedir into $basewebpath..");
 
     my @ignore;
 
     if(-f $basedir . '/pagecamel.xml') {
         # Special directives for static loading
         my $signore;
-        ($signore, $dynamic) = $self->process_special_directives($basedir, $ofh);
+        ($signore, $dynamic) = $self->process_special_directives($basedir);
         push @ignore, @{$signore};
         push @ignore, 'pagecamel.xml';
     }
@@ -167,14 +170,14 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
         next if($fname eq 'gettranslatekeys.pl');
 
         if(contains($fname, \@ignore)) {
-            print $ofh "      Ignoring $fname in $basedir\n";
+            $reph->debuglog_overwrite("      Ignoring $fname in $basedir");
             next; # Ignore files specified in special directives
         }
 
         my $nfname = $basedir . "/" . $fname;
         if(-d $nfname) {
             # Got ourself a directory, go recursive
-            $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $ofh, $dynamic);
+            $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $dynamic);
             next;
         }
 
@@ -246,13 +249,13 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
 
         # !!! only store the data itself in RAM if the file is small enough !!!
         if($self->{isDebugging}) {
-            #print $ofh "   !Debugging mode, will only cache metadata: $nfname\n";
+            $reph->debuglog_overwrite("   !Debugging mode, will only cache metadata: $nfname");
         } elsif($dynamic) {
-            #print $ofh "   !Dynamic file, will only cache metadata: $nfname\n";
+            $reph->debuglog_overwrite("   !Dynamic file, will only cache metadata: $nfname");
         } elsif(!$self->{sizelimit}) {
-            print $ofh "   !Size limit = 0, will only cache metadata: $nfname\n";
+            $reph->debuglog_overwrite("   !Size limit = 0, will only cache metadata: $nfname");
         } elsif($entry{size} > $self->{sizelimit}) {
-            print $ofh "   !File too big (", $entry{size}, " > ", $self->{sizelimit}, "bytes), will only cache metadata: $nfname\n";
+            $reph->debuglog_overwrite("   !File too big (", $entry{size}, " > ", $self->{sizelimit}, "bytes), will only cache metadata: $nfname");
         } else {
             $entry{data} = $data;
 
@@ -286,11 +289,12 @@ sub load_dir($self, $basedir, $basewebpath, $ofh, $dynamic=0) {
     }
     closedir($dfh);
 
-    print $ofh "StaticCache loading directory $basedir into $basewebpath... done\n";
+    $reph->debuglog_overwrite("StaticCache loading directory $basedir into $basewebpath... done");
     return $fcount;
 }
 
-sub process_special_directives($self, $basedir, $ofh) {
+sub process_special_directives($self, $basedir) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my @ignore;
 
     my $directivefname = $basedir . '/pagecamel.xml';
@@ -330,10 +334,10 @@ sub process_special_directives($self, $basedir, $ofh) {
         my $currentwd = getcwd();
         chdir $basedir;
         my $newwd = getcwd();
-        print $ofh   "  Changing working directory from $currentwd to $newwd to execute commands\n";
+        $reph->debuglog_overwrite("  Changing working directory from $currentwd to $newwd to execute commands");
 
         foreach my $cmd (@{$directives->{$commandpath}->{item}}) {
-            my $ok = $self->execute_external_command($cmd, $ofh);
+            my $ok = $self->execute_external_command($cmd);
             if(!$ok) {
                 croak("Failed to execute external command");
             }
@@ -351,13 +355,15 @@ sub process_special_directives($self, $basedir, $ofh) {
 
 }
 
-sub execute_external_command($self, $cmd, $ofh) {
+sub execute_external_command($self, $cmd) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    print $ofh "       Executing command $cmd\n";
+    $reph->debuglog_overwrite("       Executing command $cmd");
 
     my ($child_pid, $child_rc);
 
-    unless ($child_pid = open(my $ofh, '-|')) {
+    my $ofh;
+    unless ($child_pid = open($ofh, '-|')) {
       open(STDERR, ">&STDOUT");
       {
           exec('/bin/true | ' . $cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
@@ -375,14 +381,17 @@ sub execute_external_command($self, $cmd, $ofh) {
             $ok = 0;
             next;
         }
-        print $ofh ":           $line\n";
+        $reph->debuglog(":           $line");
     }
     eval {
         close($ofh);
     };
 
     if(!$ok) {
-        print "ERROR EXECUTING CHILD!\n";
+        $reph->debuglog("ERROR EXECUTING CHILD!");
+    } else {
+        $reph->debuglog("External command finished");
+
     }
 
     return $ok;
@@ -410,15 +419,13 @@ sub get($self, $ua) {
 
     my $name = $ua->{url};
 
-    print STDERR "##########   $name\n";
-
     return (status  =>  404) unless defined($self->{cache}->{$name});
 
     my $cachecontrol = $self->{cache_control}; 
     my $expires = $self->{expires}; 
 
     if($self->{cache}->{$name}->{dynamic}) {
-        print STDERR "------ $name is a dynamic file, checking for newer version\n";
+        #print STDERR "------ $name is a dynamic file, checking for newer version\n";
         $cachecontrol = "no-cache, no-store, must-revalidate";
         $expires = 'now';
 
@@ -427,7 +434,7 @@ sub get($self, $ua) {
         $newlastmodified = getWebdate($tmp);
 
         if($self->{cache}->{$name}->{"Last-Modified"} ne $newlastmodified) {
-            print STDERR "------ $name is a dynamic file and has a newer version available, reloading metadata\n";
+            #print STDERR "------ $name is a dynamic file and has a newer version available, reloading metadata\n";
             my $data = slurpBinFile($self->{cache}->{$name}->{fullname});
             $self->{cache}->{$name}->{size} = length($data);
             $self->{cache}->{$name}->{"Last-Modified"} = $newlastmodified;

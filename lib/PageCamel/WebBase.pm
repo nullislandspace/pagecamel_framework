@@ -810,11 +810,11 @@ nextrequest:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    my $requestline = $self->readheader(10, $realsocket);
+    my $requestline = $self->readheader(15, $realsocket);
     if(!defined($requestline)) {
         #print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
-        #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+        webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
 
         goto cleanup;
     }
@@ -830,9 +830,9 @@ nextrequest:
     while(1) {
         my $header = $self->readheader(5, $realsocket);
         if(!defined($header)) {
-            print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
+            #print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
             $ua->{keepalive} = 0;
-            #webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
         $hcount++;
@@ -1632,23 +1632,43 @@ sub startconfig($self) {
     return;
 }
 
+sub load_base_project($self, $projectname) {
+    my $perlmodule = "PageCamel::Web::$projectname";
+    if(!defined($perlmodule->VERSION)) {
+        print "Dynamically loading base project module $perlmodule...\n";
+        load $perlmodule;
+    }
+
+    # Check again
+    if(!defined($perlmodule->VERSION)) {
+        croak("$perlmodule not loaded");
+    }
+
+    # Module must be the same version as this module
+    if($perlmodule->VERSION ne $VERSION) {
+        croak("$perlmodule has version " . $perlmodule->VERSION . " but we need $VERSION");
+    }
+
+    return;
+}
+
 sub endconfig($self) {
 
     print "For great justice...\n"; # We REQUIRE an all-your-base reference here!!1!
     print "Cross registering modules...\n";
     foreach my $modname (keys %{$self->{modules}}) {
-        print "  crossregistering for $modname\n";
+        #print "  crossregistering for $modname\n";
         $self->{modules}->{$modname}->crossregister;   # Reload module's data
     }
     print "Loading dynamic data...\n";
     foreach my $modname (keys %{$self->{modules}}) {
-        print "  Loading data for $modname\n";
+        #print "  Loading data for $modname\n";
         $self->{modules}->{$modname}->reload;   # Reload module's data
     }
 
     print "Running final checks in modules before preparing to fork...\n";
     foreach my $modname (keys %{$self->{modules}}) {
-        print "  finalcheck for $modname\n";
+        #print "  finalcheck for $modname\n";
         $self->{modules}->{$modname}->finalcheck;   # finalcheck() calls
     }
 
@@ -1669,7 +1689,7 @@ sub endconfig($self) {
     foreach my $dpath (keys %{$self->{webpaths}}) {
         my $pathmodule = $self->{webpaths}->{$dpath};
         $pathcount++;
-        print "      Path: $dpath  ", join(' ', sort @{$pathmodule->{Methods}}), "\n";
+        #print "      Path: $dpath  ", join(' ', sort @{$pathmodule->{Methods}}), "\n";
 
         foreach my $method (@{$pathmodule->{Methods}}) {
             if(!defined($methods{$method})) {
@@ -1681,7 +1701,7 @@ sub endconfig($self) {
     foreach my $dpath (keys %{$self->{overridewebpaths}}) {
         my $pathmodule = $self->{overridewebpaths}->{$dpath};
         $pathcount++;
-        print "      Path: $dpath  ", join(' ', sort @{$pathmodule->{Methods}}), "\n";
+        #print "      Path: $dpath  ", join(' ', sort @{$pathmodule->{Methods}}), "\n";
 
         foreach my $method (@{$pathmodule->{Methods}}) {
             if(!defined($methods{$method})) {
@@ -1785,7 +1805,7 @@ sub configure_module($self, $modname, $perlmodulename, %config) {
 
     $self->{modules}->{$modname} = $perlmodule->new(%config);
     $self->{modules}->{$modname}->register; # Register handlers provided by the module
-    print "Module $modname ($perlmodule) configured.\n";
+    #print "Module $modname ($perlmodule) configured.\n";
     return;
 }
 
@@ -1876,10 +1896,15 @@ sub user_login($self, $username, $sessionid) {
 
 sub user_logout($self, $sessionid) {
 
+    print STDERR "\n\n";
     foreach my $item (@{$self->{logoutitems}}) {
         my $module = $item->{Module};
         my $funcname = $item->{Function};
+        #my $starttime = time;
         $module->$funcname($sessionid);
+        #my $endtime = time;
+        #print STDERR "***** logoutitem for ", $module->{modname}, " took ", $endtime - $starttime, " seconds\n";
+
     }
     return;
 }

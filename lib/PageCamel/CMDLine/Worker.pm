@@ -62,12 +62,15 @@ sub init($self) {
             $config->{mincycletime} = 10;
         }
         
+        $worker->startconfig($self->{isDebugging});
+
+        if(defined($config->{baseprojects})) {
+            foreach my $item (@{$config->{baseprojects}->{item}}) {
+                $worker->load_base_project($item);
+            }
+        }
         
         my @modlist = @{$config->{module}};
-        
-        $worker->startconfig($self->{isDebugging});
-        
-        
         foreach my $module (@modlist) {
             # Notify all modules if we are debugging (for example for "no compression=faster startup")
             $module->{options}->{isDebugging} = $self->{isDebugging};

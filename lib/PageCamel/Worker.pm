@@ -113,6 +113,27 @@ sub startconfig($self, $isDebug = false) {
     return;
 }
 
+sub load_base_project($self, $projectname) {
+    my $perlmodule = "PageCamel::Worker::$projectname";
+    if(!defined($perlmodule->VERSION)) {
+        print "Dynamically loading base project module $perlmodule...\n";
+        load $perlmodule;
+    }
+
+    # Check again
+    if(!defined($perlmodule->VERSION)) {
+        croak("$perlmodule not loaded");
+    }
+
+    # Module must be the same version as this module
+    if($perlmodule->VERSION ne $VERSION) {
+        croak("$perlmodule has version " . $perlmodule->VERSION . " but we need $VERSION");
+    }
+
+    return;
+}
+
+
 sub configure($self, $modname, $perlmodulename, %config) {
 
     # Let the module know its configured module name...
@@ -146,7 +167,7 @@ sub configure($self, $modname, $perlmodulename, %config) {
 
     $self->{modules}->{$modname} = $perlmodule->new(%config);
     $self->{modules}->{$modname}->register; # Register handlers provided by the module
-    print "Module $modname ($perlmodule) configured.\n";
+    #print "Module $modname ($perlmodule) configured.\n";
     return;
 }
 
@@ -156,18 +177,18 @@ sub endconfig($self) {
     print "Guidance is internal!\n"; # We REQUIRE an Apollo reference here!!1!
     print "Cross registering modules...\n";
     foreach my $modname (keys %{$self->{modules}}) {
-        print "  crossregistering for $modname\n";
+        #print "  crossregistering for $modname\n";
         $self->{modules}->{$modname}->crossregister;   # Reload module's data
     }
     print "Loading dynamic data...\n";
     foreach my $modname (keys %{$self->{modules}}) {
-        print "  Loading data for $modname\n";
+        #print "  Loading data for $modname\n";
         $self->{modules}->{$modname}->reload;   # Reload module's data
     }
 
     print "Running final checks in modules before endconfig...\n";
     foreach my $modname (keys %{$self->{modules}}) {
-        print "  finalcheck for $modname\n";
+        #print "  finalcheck for $modname\n";
         $self->{modules}->{$modname}->finalcheck;   # finalcheck() calls
     }
 

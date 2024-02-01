@@ -40,7 +40,7 @@ sub new($proto, %config) {
 
 sub crossregister($self) {
 
-    # Register ourselfs in the RBSCommands module with additional commands
+    # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
 
     foreach my $cmd (sort keys %{$self->{extcommands}}) {

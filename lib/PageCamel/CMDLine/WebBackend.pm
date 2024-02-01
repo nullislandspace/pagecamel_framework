@@ -101,10 +101,16 @@ sub init($self) {
     my $webserver = PageCamel::WebBase->new($config);
     
     $webserver->startconfig();
+
+    if(defined($config->{baseprojects})) {
+        foreach my $item (@{$config->{baseprojects}->{item}}) {
+            $webserver->load_base_project($item);
+        }
+    }
     
     my @modlist = @{$config->{module}};
     foreach my $module (@modlist) {
-        if($self->{isDebugging}) {
+        if(0 && $self->{isDebugging}) {
             print "(Debug) Going to configure module ", $module->{modname}, "\n";
         }
         $module->{options}->{EXTRAINC} = \@extrainc;
