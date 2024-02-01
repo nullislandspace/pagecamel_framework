@@ -1896,10 +1896,15 @@ sub user_login($self, $username, $sessionid) {
 
 sub user_logout($self, $sessionid) {
 
+    print STDERR "\n\n";
     foreach my $item (@{$self->{logoutitems}}) {
         my $module = $item->{Module};
         my $funcname = $item->{Function};
+        #my $starttime = time;
         $module->$funcname($sessionid);
+        #my $endtime = time;
+        #print STDERR "***** logoutitem for ", $module->{modname}, " took ", $endtime - $starttime, " seconds\n";
+
     }
     return;
 }

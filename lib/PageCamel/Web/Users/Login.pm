@@ -19,6 +19,7 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 
+use Time::HiRes qw(time);
 use Crypt::Digest::SHA256 qw[sha256_hex];
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
@@ -270,6 +271,7 @@ sub reload($self) {
 sub get_logout($self, $ua) {
 
     my $session = $ua->{cookies}->{"pagecamel-session"};
+
     if(!$self->validateSession($session, $ua)) {
         return (status      => 303,
                 location    => $self->{login}->{webpath},
@@ -1458,7 +1460,7 @@ sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin
     for(1..25) {
         $randchars .= substr($validChars, int(rand(length($validChars))), 1);
     }
-    my $session = "3SESSION" . sha256_hex(time() . $randchars . $host_addr);
+    my $session = "3SESSION" . sha256_hex(int(time) . $randchars . $host_addr);
 
 
     $session .= sha256_hex($host_addr);
@@ -1490,12 +1492,15 @@ sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin
 }
 
 sub deleteSession($self, $session) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     # CALL ON_LOGOUT
     # We need to temporarily force the session ID for the logout callbacks. This is so that
     # session settings handlers can work on the logged out session, not the current one. This
     # is so because we may be working with a stale session, instead of the actual session we are
     # handling now
+
+    my $starttime = time;
     $self->{forcedSessionID} = $session;
     $self->{server}->user_logout($session);
     delete $self->{forcedSessionID};
@@ -1517,6 +1522,10 @@ sub deleteSession($self, $session) {
     }
 
     $memh->delete($session);
+
+    my $endtime = time;
+
+    #$reph->debuglog("***** LOGOUT SESSION DELETE TOOK ", $endtime - $starttime, " seconds");
 
     return;
 }
