@@ -76,6 +76,7 @@
             }
 
         </script>
+
         <script type="text/javascript" src="/static/pagecameldefaultlayout.js[% URLReloadPostfix %]"></script>
 
         [% IF ExtraHEADElements %]
