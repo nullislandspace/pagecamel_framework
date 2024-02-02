@@ -17,6 +17,7 @@ export declare class PCWebsocket {
     private _dbtable;
     private _dbcaching;
     private _createtablesql;
+    private _cleanuptablesql;
     private _getrowsql;
     private _deleterowsql;
     private _insertrowsql;

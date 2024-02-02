@@ -57,6 +57,7 @@ export class PCWebsocket {
     private _dbtable: string;
     private _dbcaching: boolean;
     private _createtablesql: string;
+    private _cleanuptablesql: string;
     private _getrowsql: string;
     private _deleterowsql: string;
     private _insertrowsql: string;
@@ -90,6 +91,9 @@ export class PCWebsocket {
             "CREATE TABLE IF NOT EXISTS " +
             this._dbtable +
             " (time INT, msg TEXT, data TEXT);";
+        //this._createdbsql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (msg TEXT, data TEXT);";
+        this._cleanuptablesql =
+            "DELETE FROM " + this._dbtable + " WHERE msg = 'LOGOUT' OR msg = 'URICHANGE';";
         //this._createdbsql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (msg TEXT, data TEXT);";
         this._droptablesql = "DROP TABLE " + this._dbtable + ";";
         this._getrowsql =
@@ -366,7 +370,6 @@ export class PCWebsocket {
         this._logdebug("DBType: " + typeof db);
         if (typeof db === "object") {
             this._db = db;
-
             this._logdebug("Execute SQL: " + this._createtablesql);
             try {
                 this._db.executeSQL(this._createtablesql);
@@ -376,6 +379,11 @@ export class PCWebsocket {
                 console.error("initializeSQL error: " + err);
                 //disable dbcaching
                 this._dbcaching = false;
+            }
+            try {
+                this._db.executeSQL(this._cleanuptablesql);
+            } catch (err) {
+                console.error("initializeSQL error: " + err);
             }
         } else {
             //disable dbcaching
