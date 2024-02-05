@@ -149,7 +149,8 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
     my $fcount = 0;
     my $ft = File::Type->new();
 
-    $reph->debuglog_overwrite("StaticCache loading directory $basedir into $basewebpath..");
+    #$reph->debuglog_overwrite("StaticCache loading directory $basedir into $basewebpath..");
+    $reph->debuglog_overwrite("  loading $basedir");
 
     my @ignore;
 
@@ -249,9 +250,9 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
 
         # !!! only store the data itself in RAM if the file is small enough !!!
         if($self->{isDebugging}) {
-            $reph->debuglog_overwrite("   !Debugging mode, will only cache metadata: $nfname");
+            #$reph->debuglog_overwrite("   !Debugging mode, will only cache metadata: $nfname");
         } elsif($dynamic) {
-            $reph->debuglog_overwrite("   !Dynamic file, will only cache metadata: $nfname");
+            #$reph->debuglog_overwrite("   !Dynamic file, will only cache metadata: $nfname");
         } elsif(!$self->{sizelimit}) {
             $reph->debuglog_overwrite("   !Size limit = 0, will only cache metadata: $nfname");
         } elsif($entry{size} > $self->{sizelimit}) {
@@ -289,7 +290,8 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
     }
     closedir($dfh);
 
-    $reph->debuglog_overwrite("StaticCache loading directory $basedir into $basewebpath... done");
+    #$reph->debuglog_overwrite("StaticCache loading directory $basedir into $basewebpath... done");
+    $reph->debuglog_overwrite("  loading $basedir done");
     return $fcount;
 }
 
@@ -370,7 +372,7 @@ sub execute_external_command($self, $cmd) {
       }
       croak("ERROR: Could not execute program: $ERRNO");
     }
-    print "Waiting for child $child_pid\n";
+    #print "Waiting for child $child_pid\n";
     waitpid($child_pid, 0);
     $child_rc = $CHILD_ERROR >> 8;
 
