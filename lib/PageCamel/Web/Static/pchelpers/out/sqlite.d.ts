@@ -13,6 +13,8 @@ export declare class PCSqlite {
     private _saveToExternalStorage;
     private _loadFromExternalStorage;
     private _multiinsertstmt;
+    private _currentSaveID;
+    private _seenSaveID;
     constructor({ config, dbname, debug, saveToExternalStorage, loadFromExternalStorage, }: {
         config: initSqlJs.SqlJsConfig;
         dbname?: string;
@@ -36,6 +38,7 @@ export declare class PCSqlite {
     private _loadFromIndexedDB;
     save(): void;
     reset(): boolean;
+    isAllSaved(): boolean;
 }
 export {};
 //# sourceMappingURL=sqlite.d.ts.map

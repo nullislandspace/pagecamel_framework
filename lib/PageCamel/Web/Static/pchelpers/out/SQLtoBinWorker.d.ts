@@ -1,4 +1,5 @@
 declare var nextSave: Uint8Array;
+declare var nextSaveID: number;
 declare var hasnextSave: boolean;
 declare var intervalhandler: any;
 declare var LZString: {

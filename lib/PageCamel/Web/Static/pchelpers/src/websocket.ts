@@ -325,6 +325,7 @@ export class PCWebsocket {
     spoolincoming(msgname: string, data: string): void {
         msgname = msgname.toUpperCase();
         //this._logdebug("Type " + msgname + "  Data " + data);
+        //console.log("Type " + msgname + "  Data " + data);
 
         //Commit for a cached message sent
         if (msgname === this._msgrecieved) {
@@ -402,6 +403,25 @@ export class PCWebsocket {
     get isconnected(): boolean {
         return this._isconnected;
     }
+
+    public checkOutboxEmpty(): boolean {
+        if(this._db) {
+            let num = this._db.executeSQL(this._countcacheditemssql);
+            this._logdebug("Number of cached items: ", num![0].num);
+            if (num![0].num == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public isAllSaved(): boolean {
+        if(this._db && this._db.isAllSaved()) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Overwritable function to handle the connection state change
      * @param isconnected - TRUE if connected
