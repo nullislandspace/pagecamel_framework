@@ -57,7 +57,6 @@ export class PCWebsocket {
     private _dbtable: string;
     private _dbcaching: boolean;
     private _createtablesql: string;
-    private _cleanuptablesql: string;
     private _getrowsql: string;
     private _deleterowsql: string;
     private _insertrowsql: string;
@@ -86,31 +85,24 @@ export class PCWebsocket {
         //db init
         this._db = null;
         this._dbtable = "wstransmit_" + Date.now().toString();
-        this._dbtable = "wstransmit";
+        this._dbtable = "wsoutbox";
         this._createtablesql =
             "CREATE TABLE IF NOT EXISTS " +
             this._dbtable +
-            " (time INT, msg TEXT, data TEXT);";
-        //this._createdbsql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (msg TEXT, data TEXT);";
-        this._cleanuptablesql =
-            "DELETE FROM " + this._dbtable + " WHERE msg = 'LOGOUT' OR msg = 'URICHANGE';";
-        //this._createdbsql="CREATE TABLE IF NOT EXISTS " + this._dbtable + " (msg TEXT, data TEXT);";
+            " (dbid INT, msg TEXT, data TEXT);";
         this._droptablesql = "DROP TABLE " + this._dbtable + ";";
         this._getrowsql =
-            "SELECT CAST(rowid as text) || '_' || CAST(time as text) AS dbid, msg, data FROM " +
+            "SELECT dbid, msg, data FROM " +
             this._dbtable +
-            " ORDER BY time,rowid LIMIT 1;";
-        //this._getrowsql="SELECT rowid, msg, data FROM " + this._dbtable + " ORDER BY rowid LIMIT 1;";
+            " ORDER BY dbid LIMIT 1;";
         this._deleterowsql =
             "DELETE FROM " +
             this._dbtable +
-            " WHERE CAST(rowid as text) || '_' || CAST(time as text) = ?;";
-        //this._insertrowsql="INSERT INTO " + this._dbtable + "(time, msg, data) VALUES (strftime('%f','now'),?, ?);";
+            " WHERE dbid = ?;";
         this._insertrowsql =
             "INSERT INTO " +
             this._dbtable +
-            "(time, msg, data) VALUES ((strftime('%s','now') || substr(strftime('%f','now'),4)),?, ?);";
-        //this._insertrowsql="INSERT INTO " + this._dbtable + "(msg, data) VALUES (?, ?);";
+            "(dbid, msg, data) VALUES (?, ?, ?);";
         this._countcacheditemssql =
             "SELECT count(*) as num FROM " + this._dbtable + ";";
 
@@ -277,7 +269,10 @@ export class PCWebsocket {
                 if (this._db && this._dbcaching) {
                     //let str = "INSERT INTO " + this._dbtable + "(msg, data) VALUES ('" + msgname + "','" + mdata + "');";
                     //this._logdebug("Execute SQL: " + str)
-                    this._db.executeSQL(this._insertrowsql, msgname, mdata);
+                    var timestamp = new Date().getTime();
+                    var randidx = Math.floor(Math.random() * 10000);
+                    var dbid = ((timestamp * 10000) + randidx).toString();
+                    this._db.executeSQL(this._insertrowsql, dbid, msgname, mdata);
                     //this._db.executeSQL(str);
                     sent = true;
                 } else {
@@ -379,11 +374,6 @@ export class PCWebsocket {
                 console.error("initializeSQL error: " + err);
                 //disable dbcaching
                 this._dbcaching = false;
-            }
-            try {
-                this._db.executeSQL(this._cleanuptablesql);
-            } catch (err) {
-                console.error("initializeSQL error: " + err);
             }
         } else {
             //disable dbcaching
