@@ -178,7 +178,7 @@
         $('#readfobbutton').on('click', function() {
             $('#fobdiv').block({ message: ttvars.trquote.Loading });
 
-            fobreader.open("GET", '/user/fobreader?keychange=ignore', true);
+            fobreader.open("GET", '/user/fobreader?valid=ignore', true);
             fobreader.onreadystatechange=function() {
                 if(fobreader.readyState == 4) {
                     var newfob = fobreader.responseText;
