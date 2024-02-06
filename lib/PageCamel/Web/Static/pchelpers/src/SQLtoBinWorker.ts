@@ -5,6 +5,7 @@
 importScripts("/static/lz-string.js");
 
 var nextSave : Uint8Array;
+var nextSaveID : number = 0;
 var hasnextSave = false;
 var intervalhandler : any;
 
@@ -30,6 +31,7 @@ onmessage = function (e: MessageEvent): void {
             console.log("Dropping intermediate conversion request");
         }
         nextSave = e.data[1];
+        nextSaveID = e.data[2];
         hasnextSave = true;
     }
 };
@@ -39,9 +41,10 @@ function dataConverter() {
         return;
     }
 
+    var uarr: Uint8Array = new Uint8Array(nextSave);
+    var saveID = nextSaveID;
     hasnextSave = false;
 
-    var uarr: Uint8Array = new Uint8Array(nextSave);
     var strings: string[] = [],
         chunksize: number = 0x00ff;
     // There is a maximum stack size. We cannot call String.fromCharCode with as many arguments as we want
@@ -58,7 +61,7 @@ function dataConverter() {
     var compressed = LZString.compress(result);
     console.log("Compressed DB SAVE IS " + compressed.length + " bytes long");
     console.log("Compressed to " + ((compressed.length / result.length) * 100) + "% of original size");
-    postMessage(["SAVEDB", compressed]);
+    postMessage(["SAVEDB", compressed, saveID]);
 
     return;
 }

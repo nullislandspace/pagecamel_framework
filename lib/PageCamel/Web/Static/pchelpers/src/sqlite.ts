@@ -43,6 +43,9 @@ export class PCSqlite {
         | undefined = undefined;
     private _multiinsertstmt: any;
 
+    private _currentSaveID: number = 0;
+    private _seenSaveID: number = 0;
+
     constructor({
         config,
         dbname = "",
@@ -79,6 +82,12 @@ export class PCSqlite {
             if (command == "SAVEDB") {
                 if (this._isdebug)
                     console.debug("*** save database to " + this._dbname);
+                this._seenSaveID = e.data[2] as number;
+                if(this._seenSaveID == this._currentSaveID) {
+                    console.log("Saving latest database version " + this._seenSaveID);
+                } else {
+                    console.log("Saving intermediate database version " + this._seenSaveID);
+                }
                 this._saveToIndexedDB(data);
             }
         };
@@ -382,7 +391,8 @@ export class PCSqlite {
         /*  if (this._saveToExternalStorage) {
             this._saveToExternalStorage(this.dbstring);
         } else { */
-        this._binWorker.postMessage(["SQLTOSTRING", this._db?.export()]);
+        this._currentSaveID++;
+        this._binWorker.postMessage(["SQLTOSTRING", this._db?.export(), this._currentSaveID]);
         // }
     }
     /**
@@ -403,6 +413,14 @@ export class PCSqlite {
             return false;
         }
     }
+
+    isAllSaved(): boolean {
+        if(this._currentSaveID == this._seenSaveID) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Method to save the database to a file on the mobile device
      */
