@@ -17,7 +17,6 @@ export declare class PCWebsocket {
     private _dbtable;
     private _dbcaching;
     private _createtablesql;
-    private _cleanuptablesql;
     private _getrowsql;
     private _deleterowsql;
     private _insertrowsql;
@@ -38,6 +37,8 @@ export declare class PCWebsocket {
     initializeSQL(db: PCSqlite): boolean;
     set isconnected(val: boolean);
     get isconnected(): boolean;
+    checkOutboxEmpty(): boolean;
+    isAllSaved(): boolean;
     onConnectionChanged(isconnected: boolean): void;
     private _timerfunc;
     private _sendmsg;
