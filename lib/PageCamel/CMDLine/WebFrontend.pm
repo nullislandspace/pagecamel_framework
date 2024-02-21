@@ -112,6 +112,19 @@ sub init($self) {
         $service->{bind_adresses}->{ip} = \@newips;
     }
 
+    my @hosts = keys %{$self->{config}->{sslconfig}->{ssldomains}};
+    foreach my $host (@hosts) {
+        print "  ... SSLDOMAIN $host ...\n";
+        if($host =~ /^DUMMYTOKEN/) {
+            my $newhostname = '' . $host;
+            $newhostname =~ s/^DUMMYTOKEN//;
+            print "       renaming domain $host to $newhostname...\n";
+            $self->{config}->{sslconfig}->{ssldomains}->{$newhostname} = $self->{config}->{sslconfig}->{ssldomains}->{$host};
+            delete $self->{config}->{sslconfig}->{ssldomains}->{$host};
+        }
+    }
+
+
     
     my $APPNAME = $config->{appname};
     PageCamelLogo($APPNAME, $VERSION);
@@ -412,7 +425,7 @@ sub handleClient($self, $client) {
         my $backend = IO::Socket::UNIX->new(
                 Peer => $selectedbackend,
                 Type => SOCK_STREAM,
-            ) or croak("Failed to connect to backend: $ERRNO");
+            ) or croak("Failed to connect to backend $selectedbackend: $ERRNO");
 
         binmode($client);
         binmode($backend);
