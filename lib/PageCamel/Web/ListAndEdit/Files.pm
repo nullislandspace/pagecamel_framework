@@ -51,6 +51,19 @@ sub register($self) {
 
     $self->register_webpath($self->{selecttable}->{webpath}, "get_lines", 'POST');
 
+    if(defined($self->{upload}->{webpath})) {
+        $self->register_webpath($self->{upload}->{webpath}, "get_upload", 'PUT', 'DELETE');
+    }
+
+    return;
+}
+
+sub crossregister($self) {
+
+    if(defined($self->{upload}->{auth_realm})) {
+        $self->register_basic_auth($self->{upload}->{webpath}, $self->{upload}->{auth_realm});
+    }
+
     return;
 }
 
@@ -148,6 +161,77 @@ sub get_manage($self, $ua) {
     return (status  =>  200,
             type    => "text/html",
             data    => $template);
+}
+
+sub get_upload($self, $ua) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my $fname = '' . $ua->{url};
+    $fname =~ s/^$self->{upload}->{webpath}//;
+    $fname =~ s/\///g;
+    $fname =~ s/\ /_/g;
+
+    print STDERR Dumper($ua), "\n";
+    if($ua->{method} eq 'DELETE') {
+        return $self->get_delete($fname);
+    }
+
+    if($fname eq '' || !defined($ua->{postdata}) || !length($ua->{postdata})) {
+        return (status => 418); # No fitting error code, so it's gonna be I'M A TEAPOT
+    }
+
+    my $data = $ua->{postdata};
+
+    my $description = 'Uploaded via API';
+
+    # First delete the existing file (if there is one)
+    my $delsth = $dbh->prepare_cached("DELETE FROM " . $self->{tablename} . " WHERE filename = ?")
+            or croak($dbh->errstr);
+    if(!$delsth->execute($fname)) {
+        print STDERR $dbh->errstr, "\n";
+        $dbh->rollback;
+        return (status => 500);
+    }
+
+    my $blob = PageCamel::Helpers::DataBlobs->new($dbh);
+    $blob->blobOpen();
+    $blob->blobWrite(\$data);
+    my $filesize = $blob->getLength();
+    my $blobid = $blob->blobID();
+    $blob->blobClose();
+
+
+    my $insth = $dbh->prepare("INSERT INTO " . $self->{tablename} . " (filename, filesize_bytes, description, file_datablob_id)
+                              VALUES (?,?,?,?)")
+            or croak($dbh->errstr);
+    if(!$insth->execute($fname, $filesize, $description, $blobid)) {
+        print STDERR $dbh->errstr, "\n";
+        $dbh->rollback;
+        return (status => 500);
+    }
+    $dbh->commit;
+
+    return (status => 204);
+}
+
+sub get_delete($self, $fname) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    if($fname eq '') {
+        return (status => 418); # No fitting error code, so it's gonna be I'M A TEAPOT
+    }
+
+    # First delete the existing file (if there is one)
+    my $delsth = $dbh->prepare_cached("DELETE FROM " . $self->{tablename} . " WHERE filename = ?")
+            or croak($dbh->errstr);
+    if(!$delsth->execute($fname)) {
+        print STDERR $dbh->errstr, "\n";
+        $dbh->rollback;
+        return (status => 500);
+    }
+
+    $dbh->commit;
+    return (status => 204);
 }
 
 sub get_download($self, $ua) {
