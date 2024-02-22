@@ -17,8 +17,6 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
-
-
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile writeBinFile slurpBinFilehandle);
 use File::Basename;
@@ -171,7 +169,6 @@ sub get_upload($self, $ua) {
     $fname =~ s/\///g;
     $fname =~ s/\ /_/g;
 
-    print STDERR Dumper($ua), "\n";
     if($ua->{method} eq 'DELETE') {
         return $self->get_delete($fname);
     }
