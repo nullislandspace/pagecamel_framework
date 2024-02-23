@@ -184,6 +184,16 @@ sub register_protocolupgrade($self, $path, $funcname, @protocols) {
     return;
 }
 
+# Convenience functions for registering various callbacks
+sub register_continueheader($self, $path, $funcname) {
+
+    confess("No Webpath specified") unless defined($path);
+    confess("No function name specified") unless defined($funcname);
+
+    $self->{server}->add_continueheader($path, $self, $funcname);
+    return;
+}
+
 sub register_basic_auth($self, $url, $realm) {
 
     $self->{server}->add_basic_auth($url, $realm);
