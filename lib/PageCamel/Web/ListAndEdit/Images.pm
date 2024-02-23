@@ -41,6 +41,10 @@ sub new($proto, %config) {
         croak("orderby must be defined in " . $self->{modname});
     }
 
+    if(!defined($self->{sizelimit})) {
+        $self->{sizelimit} = 10*1024*1024; # Default limit 10 MB
+    }
+
     return $self;
 }
 
@@ -50,6 +54,7 @@ sub register($self) {
     $self->register_webpath($self->{download}->{webpath} . '/thumb', "get_thumb", 'GET');
 
     $self->register_webpath($self->{manage}->{webpath}, "get_manage", 'GET', 'POST');
+    $self->register_continueheader($self->{manage}->{webpath}, "check_continue");
 
     $self->register_webpath($self->{checkfname}->{webpath}, "get_fname", 'POST');
 
@@ -57,6 +62,7 @@ sub register($self) {
 
     if(defined($self->{upload}->{webpath})) {
         $self->register_webpath($self->{upload}->{webpath}, "get_upload", 'PUT', 'DELETE');
+        $self->register_continueheader($self->{upload}->{webpath}, "check_continue");
     }
 
     return;
@@ -81,6 +87,19 @@ sub clean_fname($self, $filename) {
     $filename =~ s/[^$safe_filename_characters]//g;
     return $filename;
 }
+
+sub check_continue($self, $ua) {
+    if(!defined($ua->{headers}->{'Content-Length'})) {
+        return 0;
+    }
+
+    if($ua->{headers}->{'Content-Length'} > $self->{sizelimit}) {
+        return 0;
+    }
+
+    return 1;
+}
+
 
 sub get_manage($self, $ua) {
 
@@ -118,6 +137,10 @@ sub get_manage($self, $ua) {
         #my $fh = $ua->upload("filename");
 
         if($filename ne '' && $realfname ne '' && defined($ua->{files}->{$realfname}->{data})) {
+            if(length($ua->{files}->{$realfname}->{data}) > $self->{sizelimit}) {
+                # Too big
+                return (status => 413); # Content too large
+            }
             # First delete the existing file (if there is one)
             my $delsth = $dbh->prepare_cached("DELETE FROM " . $self->{tablename} . " WHERE filename = ?")
                     or croak($dbh->errstr);
@@ -190,8 +213,8 @@ sub get_manage($self, $ua) {
         webpath         =>  $self->{manage}->{webpath},
         downwebpath     =>  $self->{download}->{webpath},
         checkfname      =>  $self->{checkfname}->{webpath},
-        AvailFiles  =>  \@files,
         showads => $self->{showads},
+        AvailFiles  =>  \@files,
     );
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/images", 1, %webdata);
@@ -218,6 +241,10 @@ sub get_upload($self, $ua) {
     }
 
     my $data = $ua->{postdata};
+    if(length($data) > $self->{sizelimit}) {
+        # Too big
+        return (status => 413); # Content too large
+    }
 
     my $description = 'Uploaded via API';
 

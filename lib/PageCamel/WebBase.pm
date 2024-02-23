@@ -1150,8 +1150,8 @@ nextrequest:
 
     if(!$result{pagedone}) {
         if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
-            print STDERR Dumper($ua->{headers});
             if(defined($ua->{headers}->{'Expect'}) && $ua->{headers}->{'Expect'} =~ /100\-continue/i) {
+                #print STDERR "Continue header detected\n";
 
                 my $expectok = 1;
                 foreach my $dpath (keys %{$self->{continueheaders}}) {
@@ -1169,9 +1169,11 @@ nextrequest:
                 if(!$expectok) {
                     $ua->{keepalive} = 0;
                     webPrint($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
+                    #print STDERR "      Expectation failed\n";
                     goto cleanup;
                 }
-                webPrint($realsocket, "HTTP/1.1 100 Continue\r\n");
+                #print STDERR "      Expectation matched\n";
+                webPrint($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
             }
 
             if(!$self->get_request_body($realsocket, $ua, 15, 1024)) {
