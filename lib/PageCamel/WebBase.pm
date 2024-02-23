@@ -853,20 +853,6 @@ nextrequest:
         }
     }
 
-    if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
-        if(!$self->get_request_body($realsocket, $ua, 15, 1024)) {
-            $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
-            goto cleanup;
-        }
-
-        if(!$self->parse_post_data($ua)) {
-            $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
-            goto cleanup;
-        }
-    }
-
     if($ua->{httpversion} eq '1.1') {
         # In HTTP/1.1 all connections are "keep-alive" by default,
         # except when declared "close" in the Connection header
@@ -1158,6 +1144,48 @@ nextrequest:
                 $result{pagedone} = 1;
             } else {
                 $ua->{extra_response_headers}->{'Access-Control-Allow-Origin'} = $ua->{headers}->{Origin};
+            }
+        }
+    }
+
+    if(!$result{pagedone}) {
+        if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
+            if(defined($ua->{headers}->{'Expect'}) && $ua->{headers}->{'Expect'} =~ /100\-continue/i) {
+                #print STDERR "Continue header detected\n";
+
+                my $expectok = 1;
+                foreach my $dpath (keys %{$self->{continueheaders}}) {
+                    if($webpath =~ /^$dpath/) {
+                        my $pathmodule = $self->{continueheaders}->{$dpath};
+                        my $module = $pathmodule->{Module};
+                        my $funcname = $pathmodule->{Function};
+                        if(!$module->$funcname($ua)) {
+                            $expectok = 0;
+                            last;
+                        }
+                    }
+                }
+
+                if(!$expectok) {
+                    $ua->{keepalive} = 0;
+                    webPrint($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
+                    #print STDERR "      Expectation failed\n";
+                    goto cleanup;
+                }
+                #print STDERR "      Expectation matched\n";
+                webPrint($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
+            }
+
+            if(!$self->get_request_body($realsocket, $ua, 15, 1024)) {
+                $ua->{keepalive} = 0;
+                webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+                goto cleanup;
+            }
+
+            if(!$self->parse_post_data($ua)) {
+                $ua->{keepalive} = 0;
+                webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
+                goto cleanup;
             }
         }
     }
@@ -1620,7 +1648,7 @@ cleanup:
 sub startconfig($self) {
 
     # Pre-create empty lists and hashes
-    foreach my $anonhash (qw[paths modules custom_methods protocolupgrade cors basic_auth]) {
+    foreach my $anonhash (qw[paths modules custom_methods protocolupgrade cors basic_auth continueheaders]) {
         $self->{$anonhash} = {};
     }
     foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished logstacktrace authcheck prefilter postauthfilter prerender lateprerender tasks postfilter
@@ -1967,6 +1995,20 @@ sub add_overridewebpath($self, $path, $module, $funcname, @methods) {
     );
 
     $self->{overridewebpaths}->{$path} = \%conf;
+    return;
+}
+
+sub add_continueheader($self, $path, $module, $funcname) {
+    if(defined($self->{continueheaders}->{$path})) {
+        croak($module->{modname} . " error: continueheader $path already registered, previously registered in " . $self->{continueheaders}->{$path}->{Module}->{modname});
+    }
+
+    my %conf = (
+        Module  => $module,
+        Function=> $funcname,
+    );
+
+    $self->{continueheaders}->{$path} = \%conf;
     return;
 }
 
