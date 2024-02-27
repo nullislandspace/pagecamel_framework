@@ -126,6 +126,7 @@ sub child_init_hook($self) {
     $self->{nameselsth} = $dbh->prepare_cached('SELECT * FROM nameserver_domain_entry
                                       WHERE host_fqdn = ?
                                       AND record_type = ?
+                                      AND is_disabled = false
                                       ORDER BY record_type, mxpriority')
             or croak($dbh->errstr);
 
@@ -133,17 +134,20 @@ sub child_init_hook($self) {
                                       WHERE host_fqdn = ?
                                       AND record_type = 'TXT'
                                       AND textrecord LIKE 'v=spf%'
+                                      AND is_disabled = false
                                       ORDER BY record_type, mxpriority")
             or croak($dbh->errstr);
 
     $self->{domainselsth} = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry
                                       WHERE host_fqdn = ?
+                                      AND is_disabled = false
                                       AND record_type IN ('NS','MX','A', 'AAAA', 'TXT', 'CNAME', 'SOA', 'LOC', 'SSHFP')
                                       ORDER BY decode_nameserver_record_type(record_type), record_type, mxpriority")
             or croak($dbh->errstr);
 
     $self->{axfrselsth} = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry
                                       WHERE domain_fqdn = ?
+                                      AND is_disabled = false
                                       AND record_type IN ('NS','MX','A', 'AAAA', 'TXT', 'CNAME', 'SOA', 'LOC', 'SSHFP')
                                       ORDER BY decode_nameserver_record_type(record_type), record_type, mxpriority")
             or croak($dbh->errstr);
@@ -164,6 +168,7 @@ sub child_init_hook($self) {
 
     $self->{soaselsth} = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry ent
                                         WHERE record_type = 'SOA'
+                                          AND is_disabled = false
                                         AND domain_fqdn IN (
                                             SELECT domain_fqdn FROM nameserver_domain_entry
                                             WHERE host_fqdn = ?
@@ -172,6 +177,7 @@ sub child_init_hook($self) {
 
     $self->{caaselsth} = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry ent
                                         WHERE record_type = 'CAA'
+                                          AND is_disabled = false
                                         AND domain_fqdn IN (
                                             SELECT domain_fqdn FROM nameserver_domain_entry
                                             WHERE host_fqdn = ?
