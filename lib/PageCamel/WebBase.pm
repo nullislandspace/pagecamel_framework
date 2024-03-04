@@ -112,6 +112,7 @@ use PageCamel::Web::Tools::PIMenu;
 use PageCamel::Web::Tools::RemoteConsoleLog;
 use PageCamel::Web::Tools::RemoteLog;
 use PageCamel::Web::Tools::SQLJS;
+use PageCamel::Web::Tools::ScriptDownload;
 use PageCamel::Web::Tools::ShortURL;
 use PageCamel::Web::Tools::Sitemap;
 use PageCamel::Web::Tools::WebDrive;
