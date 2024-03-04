@@ -162,7 +162,7 @@ sub init($self) {
             my $tcp = IO::Socket::IP->new(
                     LocalHost => $ip,
                     LocalPort => $service->{port},
-                    Listen => 1,
+                    Listen => 10, # Queue size 10
                     ReuseAddr => 1,
                     Proto => 'tcp',
             ) or croak("Failed to bind: " . $ERRNO);
