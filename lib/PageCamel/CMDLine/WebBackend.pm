@@ -140,7 +140,7 @@ sub init($self) {
     my $socket = IO::Socket::UNIX->new(
             Type => SOCK_STREAM(),
             Local => $config->{server}->{internal_socket},
-            Listen => 10, # Queue size of 10
+            Listen => 20, # Queue size of 20
     ) or croak("Failed to bind: " . $ERRNO);
     if(defined($config->{server}->{socketcommands})) {
         foreach my $cmd (@{$config->{server}->{socketcommands}->{item}}) {

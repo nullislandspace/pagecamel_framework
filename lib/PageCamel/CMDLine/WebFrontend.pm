@@ -22,7 +22,7 @@ use IO::Socket::SSL;
 use IO::Select;
 use IO::Socket::UNIX;
 use PageCamel::Helpers::ConfigLoader;
-use Time::HiRes qw(sleep usleep);
+use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
 use Sys::Hostname;
 use POSIX;
@@ -79,6 +79,8 @@ sub init($self) {
     
     $self->{config} = $config;
 
+    $self->{dynamicIP} = '';
+
     my $hname = hostname;
     if(defined($config->{hosts}->{$hname})) {
         print "   Host-specific configuration for '$hname'\n";
@@ -103,10 +105,15 @@ sub init($self) {
     foreach my $service (@{$config->{external_network}->{service}}) {
         my @newips;
         foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
-            if($ip !~ /\,/) {
-                push @newips, $ip;
-            } else {
+            if($ip =~ /\,/) {
                 push @newips, split/\,/, $ip;
+            } elsif($ip eq 'DYNAMIC') {
+                $self->{dynamicIP} = $self->_getLocalIPs();
+                print "Activating dynamic IP Adresses: ", $self->{dynamicIP}, "\n";
+                push @newips, split/\,/, $self->{dynamicIP};
+                $self->{dynamicIPnextcheck} = time + 15;
+            } else {
+                push @newips, $ip;
             }
         }
         $service->{bind_adresses}->{ip} = \@newips;
@@ -162,7 +169,7 @@ sub init($self) {
             my $tcp = IO::Socket::IP->new(
                     LocalHost => $ip,
                     LocalPort => $service->{port},
-                    Listen => 10, # Queue size 10
+                    Listen => 20, # Queue size 20
                     ReuseAddr => 1,
                     Proto => 'tcp',
             ) or croak("Failed to bind: " . $ERRNO);
@@ -240,7 +247,7 @@ sub init($self) {
 sub run($self) {
 
     while(1) {
-        while((my @connections = $self->{select}->can_read)) {
+        while((my @connections = $self->{select}->can_read(1))) {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
 
@@ -276,6 +283,18 @@ sub run($self) {
                     $childcount++;
                     next;
                 }
+            }
+        }
+
+        if($self->{dynamicIP} ne '') {
+            if($self->{dynamicIPnextcheck} < time) {
+                my $newips = $self->_getLocalIPs();
+                if($newips ne $self->{dynamicIP}) {
+                    print STDERR "IP ADRESSES HAVE CHANGED: ", $self->{dynamicIP}, ' --> ', $newips, "\n";
+                    print STDERR "     *** RESTARTING SERVICE ***\n";
+                    $self->endprogram();
+                }
+                $self->{dynamicIPnextcheck} = time + 15;
             }
         }
     }
@@ -638,5 +657,41 @@ sub endprogram($self) {
     }
 }
 
+sub _getLocalIPs($self) {
+    my $starttime = time;
+    my @lines = `ifconfig`;
+
+    my @ips;
+
+    my $ignorenext = 0;
+    foreach my $line (@lines) {
+        chomp $line;
+        if($line =~ /^docker\d\:/ || $line =~ /^lo\:/ || $line =~ /^wlo\d\:/) {
+            $ignorenext = 1;
+        }
+        if($ignorenext && $line eq '') {
+            $ignorenext = 0;
+        }
+        if($ignorenext) {
+            #print "Ignoring $line\n";
+            next;
+        }
+        if($line =~ /inet\ (.*)\ netmask/) {
+            my $ip = $1;
+            $ip =~ s/^\ +//g;
+            $ip =~ s/\ +$//g;
+            if($ip !~ /127\./) {
+                push @ips, $ip;
+            }
+        }
+    }
+
+    my $allips = join(',', sort @ips);
+    my $endtime = time;
+
+    print "Dynamic IP check took ", $endtime - $starttime, " seconds\n";
+
+    return $allips;
+}
 
 1;
