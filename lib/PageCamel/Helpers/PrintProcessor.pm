@@ -42,8 +42,8 @@ sub new($proto, $config) {
         $self->{generateEscPos} = 0;
     }
 
-    if(!defined($self->{escPosSGT116})) {
-        $self->{escPosSGT116} = 0;
+    if(!defined($self->{printerType})) {
+        $self->{printerType} = 'SGT116';
     }
 
     if(!defined($self->{escPosSpeed})) {
@@ -106,70 +106,154 @@ sub _generateEscPos($self) {
     my $reph = $self->{reph};
     $reph->debuglog("Converting image to ESC/POS");
 
+    if($self->{printerType} eq 'TMT88') {
+        $reph->debuglog("    Type: TMT88");
+        return $self->_escpos_tmt88();
+    } elsif($self->{printerType} eq 'SGT116') {
+        $reph->debuglog("    Type: SGT116");
+        return $self->_escpos_sgt116();
+    } elsif($self->{printerType} eq 'JWS360') {
+        $reph->debuglog("    Type: JWS360");
+        return $self->_escpos_jws360();
+    }
+
+    $reph->debuglog("   UNSUPPORTED PRINTER TYPE, TRYING TMT88 compatible");
+    return $self->_escpos_tmt88();
+}
+    
+
+sub _escpos_tmt88($self) {
+    my $reph = $self->{reph};
+
+    my $raw = '';
+    my $img = $self->{img};
+
+    # Reset printer
+    $raw .= chr(0x1B) . chr(0x40);
+
+    if($self->{kickCashdrawer}) {
+        # Kick drawer 1
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        
+        # Kick drawer 2
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+    }
+
+
+    # Remove line spacing
+    $raw .=  "\n" . chr(0x1B) . chr(0x33) . chr(0) . "\n";
+
+    # Make darker
+    # GS ( K 
+    my $densityrangeepson = 255 - int($self->{escPosDensity} * (250 / 15));
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr($densityrangeepson);
+
+    # Make faster
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr($self->{escPosSpeed});
+    
+    my ($w, $h) = $img->getBounds();
+
+
+if(1) {
+    # 24 pixel height per line
+    for(my $y = 0; $y < $h; $y += 24) {
+        # Command "Send pixel data"
+        $raw .= chr(0x1B) . chr(0x2A) .  chr(33);
+
+        # Send width definition
+        my $leadingwhitespace = 0;
+        my $virtualw = $w + $leadingwhitespace;
+        $raw .= chr($virtualw & 0xff);
+        $raw .= chr(($virtualw >> 8) & 0xff);
+
+        for(1..($leadingwhitespace*3)) {
+            $raw .= chr(0x00);
+        }
+
+        for(my $x = 0; $x < $w; $x++) {
+            for(my $ybyte = 0; $ybyte < 3; $ybyte++) {
+                my $byte = 0;
+                for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
+                    my $ytotal = $y + $yoffs + ($ybyte * 8);
+                    $byte <<= 1;
+                    if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
+                        $byte = $byte | 0x01;
+                    }
+                }
+                $raw .= chr($byte);
+            }
+        }
+
+        # Line break
+        #$raw .= "\n";
+    }
+}
+
+if(0) {
+    # Store image in print buffer
+    # GS 8 L
+    $h = 80;
+    $w = 80;
+    my $p = 9 + ($w * $h / 8);
+    my @ps;
+    for(1..4) {
+        push @ps, chr($p & 0xff);
+        $p = $p >> 8;
+    }
+    $p = join('', @ps);
+
+    #           GS          8           L       p1/p2/p3/p4         m           fn      a=48 (monochrome)    bx      by      c             xL                xH                    yL                yH
+    $raw .= chr(0x1D) . chr(0x38) . chr(0x4C) . $p  .          chr(0x30) . chr(0x70) . chr(48) .         chr(1) . chr(1) . chr(49) . chr($w & 0xff) . chr(($w >> 8) & 0xff) . chr($h & 0xff) . chr(($h >> 8) & 0xff); 
+
+    # Image data
+    for(my $y = 0; $y < $h; $y += 8) {
+        for(my $x = 0; $x < $w; $x++) {
+            my $byte = 0;
+            for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
+                my $ytotal = $y + $yoffs;
+                $byte <<= 1;
+                if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
+                    $byte = $byte | 0x01;
+                }
+            }
+            $raw .= chr($byte);
+        }
+    }
+    #           GS          (           L           pL           pH          m
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4C) . chr(0x02) . chr(0x00) . chr(0x30) . chr(50);
+}
+
+    # Feed and half-cut
+    $raw .= "Hello World\n";
+    $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+
+    $self->{escposimagedata} = $raw;
+
+    return;
+}
+
+sub _escpos_sgt116($self) {
+
     my $raw = '';
     my $img = $self->{img};
 
     # Reset printer
     #$raw .= chr(0x1B) . chr(0x40);
 
-    $reph->debuglog("DENSITY: ", $self->{escPosDensity});
+    # Chinesium version of ESC/POS for SGT116
+    $raw .= chr(0x12) . chr(0x23) . chr($self->{escPosDensity});
+    # Doesn't seem to have a configurable speed that actually works
 
-    if(!$self->{escPosSGT116}) {
-        # Epson standard way of setting speed and density (darkness)
-        $reph->debuglog("Standard Print mode");
 
-        # ***** ENTER USER CONFIG MODE
-        $raw .= chr(0x1D) . chr(0x28) . chr(0x45) . chr(0x03) . chr(0x00) . chr(0x01) . chr(0x49) . chr(0x4E);
-
-        # Set Darkness / "density"
-        $raw .= chr(0x1D) . chr(0x2B) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x05) . chr(0x05) . chr($self->{escPosDensity}) . chr(0x00);
-
-        # Set speed
-        $raw .= chr(0x1D) . chr(0x2B) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x05) . chr(0x06) . chr($self->{escPosSpeed}) . chr(0x00);
-
-        # ***** LEAVE USER CONFIG MODE
-        $raw .= chr(0x1D) . chr(0x28) . chr(0x45) . chr(0x04) . chr(0x00) . chr(0x02) . chr(0x4F) . chr(0x55) . chr(0x54);
-
-        # Select speed and density from user config
-        $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(0x00);
-        $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr(0x00);
-    } else {
-        $reph->debuglog("SGT116 print mode");
-        # Chinesium version of ESC/POS for SGT116
-        $raw .= chr(0x12) . chr(0x23) . chr($self->{escPosDensity});
-
-        # Does not support a speed setting at all
-
-    }
-
+    # Kick drawer
     if($self->{kickCashdrawer}) {
-        $reph->debuglog("   Opening cash drawer at the start of printing this document in ESC/POS mode");
-
-        if(!$self->{escPosSGT116}) {
-            # Epson standard way
-            # Kick drawer 1
-            $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
-            
-            # Kick drawer 2
-            $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
-        } else {
-            # Chinesium version of ESC/POS for SGT116?
-            #$raw .= chr(0x1b) . chr(0x70) . chr(0x00) . chr(0x60);
-            $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
-        }
+        $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
     }
 
     my ($w, $h) = $img->getBounds();
 
     # Remove line spacing
     $raw .=  chr(0x1B) . chr(0x33) . chr(3) . "\n";
-
-    # Make darker
-    # GS ( K 
-    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr(240);
-
-    # Make faster
-    #$raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) .chr(1);
 
     # 24 pixel height per line
     for(my $y = 0; $y < $h; $y += 24) {
@@ -204,13 +288,6 @@ sub _generateEscPos($self) {
         $raw .= "\n";
     }
 
-    #   # ESC @ for reinit the printer, then new lines, then ESC i for cutting
-    #   $raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x69) . "\n";
-    # ESC @ for reinit the printer, then new lines, then ESC k for HALF cutting
-    #$raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x6B) . "\n";
-    #$raw .= chr(0x1B) . chr(0x40) . "\n\n\n\n" . chr(0x1B) . chr(0x69) . "\n";
-    #$raw .= chr(0x1B) . chr(0x69) . "\n";
-    
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
@@ -219,6 +296,68 @@ sub _generateEscPos($self) {
     return;
 }
 
+sub _escpos_jws360($self) {
+    my $raw = '';
+    my $img = $self->{img};
+
+    # Reset printer
+    #$raw .= chr(0x1B) . chr(0x40);
+
+    # Chinesium version of ESC/POS for SGT116
+    #$raw .= chr(0x12) . chr(0x23) . chr($self->{escPosDensity});
+    # Doesn't seem to have a configurable speed that actually works
+
+
+    # Kick drawer
+    if($self->{kickCashdrawer}) {
+        $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+    }
+
+    my ($w, $h) = $img->getBounds();
+
+    # Remove line spacing
+    $raw .=  chr(0x1B) . chr(0x33) . chr(3) . "\n";
+
+    # 24 pixel height per line
+    for(my $y = 0; $y < $h; $y += 24) {
+        # Command "Send pixel data"
+        $raw .= chr(0x1B) . chr(0x2A) .  chr(33);
+
+        # Send width definition
+        my $leadingwhitespace = 32;
+        my $virtualw = $w + $leadingwhitespace;
+        $raw .= chr($virtualw & 0xff);
+        $raw .= chr(($virtualw >> 8) & 0xff);
+
+        for(1..($leadingwhitespace*3)) {
+            $raw .= chr(0x00);
+        }
+
+        for(my $x = 0; $x < $w; $x++) {
+            for(my $ybyte = 0; $ybyte < 3; $ybyte++) {
+                my $byte = 0;
+                for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
+                    my $ytotal = $y + $yoffs + ($ybyte * 8);
+                    $byte <<= 1;
+                    if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
+                        $byte = $byte | 0x01;
+                    }
+                }
+                $raw .= chr($byte);
+            }
+        }
+
+        # Line break
+        $raw .= "\n";
+    }
+
+    # Feed and half-cut
+    $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+
+    $self->{escposimagedata} = $raw;
+
+    return;
+}
 
 sub printSendToPrinter($self, $cupsprinters = []) {
     my $reph = $self->{reph};
