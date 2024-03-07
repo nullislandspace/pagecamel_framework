@@ -301,7 +301,7 @@ sub _escpos_jws360($self) {
     my $img = $self->{img};
 
     # Reset printer
-    #$raw .= chr(0x1B) . chr(0x40);
+    $raw .= chr(0x1B) . chr(0x40);
 
     # Chinesium version of ESC/POS for SGT116
     #$raw .= chr(0x12) . chr(0x23) . chr($self->{escPosDensity});
@@ -310,7 +310,7 @@ sub _escpos_jws360($self) {
     $raw .= "\n";
 
     # Kick drawer
-    if($self->{kickCashdrawer}) {
+    if(0 && $self->{kickCashdrawer}) {
         $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
     }
     $raw .= "\n";
@@ -355,7 +355,7 @@ sub _escpos_jws360($self) {
 
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
-    $raw .= "\n";
+    #$raw .= "\n";
 
     $self->{escposimagedata} = $raw;
 
