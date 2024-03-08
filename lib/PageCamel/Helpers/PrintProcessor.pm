@@ -79,7 +79,6 @@ sub new($proto, $config) {
         }
     }
 
-    
     return $self;
 }
 
@@ -90,6 +89,7 @@ sub printStartDocument($self) {
     $self->{imgwhite} = $self->{img}->colorAllocate(255, 255, 255);
     $self->{imgblack} = $self->{img}->colorAllocate(0, 0, 0);
     $self->{imgred} = $self->{img}->colorAllocate(255, 0, 0);
+
     $self->{printcolor} = 'imgblack';
     
     $self->{img}->filledRectangle(0, 0, $self->{width}, $self->{height}, $self->{imgwhite});
@@ -131,6 +131,10 @@ sub printKickCashdrawer($self, $kick = 1) {
 sub _generateEscPos($self) {
     my $reph = $self->{reph};
     $reph->debuglog("Converting image to ESC/POS");
+
+    if(!defined($self->{imgwhite})) {
+        $self->{imgwhite} = 0;
+    }
 
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
