@@ -154,77 +154,42 @@ sub _escpos_tmt88($self) {
     my ($w, $h) = $img->getBounds();
 
 
-if(1) {
-    # 24 pixel height per line
-    for(my $y = 0; $y < $h; $y += 24) {
-        # Command "Send pixel data"
-        $raw .= chr(0x1B) . chr(0x2A) .  chr(33);
+    # Print bitmap image
+    #print "\nTotal: $w x $h\n";
 
-        # Send width definition
-        my $leadingwhitespace = 0;
-        my $virtualw = $w + $leadingwhitespace;
-        $raw .= chr($virtualw & 0xff);
-        $raw .= chr(($virtualw >> 8) & 0xff);
+    my $blocksize = 1000;
+   
+    # Image data
 
-        for(1..($leadingwhitespace*3)) {
-            $raw .= chr(0x00);
+    my $bytew = $w / 8;
+
+    for(my $blockoffs = 0; $blockoffs < $h; $blockoffs += $blocksize) {
+        my $blockh = $h - $blockoffs;
+        if($blockh > $blocksize) {
+            $blockh = $blocksize;
         }
+        #print "Block: $w x $blockh\n";
+        #           GS          v           0       m         xL                xH                    yL                yH
+        $raw .= chr(0x1D) . chr(0x76) . chr(0x30) . chr(0) . chr($bytew & 0xff) . chr(($bytew >> 8) & 0xff) . chr($blockh & 0xff) . chr(($blockh >> 8) & 0xff); 
 
-        for(my $x = 0; $x < $w; $x++) {
-            for(my $ybyte = 0; $ybyte < 3; $ybyte++) {
+        for(my $y = 0; $y < $blockh; $y++) {
+            for(my $x = 0; $x < $w; $x+=8) {
                 my $byte = 0;
-                for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
-                    my $ytotal = $y + $yoffs + ($ybyte * 8);
+                for(my $xoffs = 0; $xoffs < 8; $xoffs++) {
+                    my $xtotal = $x + $xoffs;
                     $byte <<= 1;
-                    if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
+                    if($xtotal < $w && $img->getPixel($xtotal, $y + $blockoffs) != $self->{imgwhite}) {
                         $byte = $byte | 0x01;
                     }
                 }
                 $raw .= chr($byte);
             }
         }
-
-        # Line break
         #$raw .= "\n";
     }
-}
 
-if(0) {
-    # Store image in print buffer
-    # GS 8 L
-    $h = 80;
-    $w = 80;
-    my $p = 9 + ($w * $h / 8);
-    my @ps;
-    for(1..4) {
-        push @ps, chr($p & 0xff);
-        $p = $p >> 8;
-    }
-    $p = join('', @ps);
-
-    #           GS          8           L       p1/p2/p3/p4         m           fn      a=48 (monochrome)    bx      by      c             xL                xH                    yL                yH
-    $raw .= chr(0x1D) . chr(0x38) . chr(0x4C) . $p  .          chr(0x30) . chr(0x70) . chr(48) .         chr(1) . chr(1) . chr(49) . chr($w & 0xff) . chr(($w >> 8) & 0xff) . chr($h & 0xff) . chr(($h >> 8) & 0xff); 
-
-    # Image data
-    for(my $y = 0; $y < $h; $y += 8) {
-        for(my $x = 0; $x < $w; $x++) {
-            my $byte = 0;
-            for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
-                my $ytotal = $y + $yoffs;
-                $byte <<= 1;
-                if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
-                    $byte = $byte | 0x01;
-                }
-            }
-            $raw .= chr($byte);
-        }
-    }
-    #           GS          (           L           pL           pH          m
-    $raw .= chr(0x1D) . chr(0x28) . chr(0x4C) . chr(0x02) . chr(0x00) . chr(0x30) . chr(50);
-}
 
     # Feed and half-cut
-    $raw .= "Hello World\n";
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
     $self->{escposimagedata} = $raw;
