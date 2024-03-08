@@ -305,8 +305,8 @@ sub _escpos_jws360($self) {
     $raw .= "\n";
 
     # Kick drawer
-    if(0 && $self->{kickCashdrawer}) {
-        $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+    if(1 && $self->{kickCashdrawer}) {
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
     }
     $raw .= "\n";
 
