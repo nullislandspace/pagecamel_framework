@@ -1162,6 +1162,67 @@ sub printAddTestPattern_HorizontalLines($self, $pointsize) {
     return;
 }
 
+sub printAddTestPattern_GreyBlocks($self) {
+    { # Quarter-dark
+        my $evenodd  = 0;
+        for(1..100) {
+            my $val = 0;
+            for(my $i = 0; $i < $self->{width} - 1; $i++) {
+                if($val == $evenodd) {
+                    $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+                }
+                $val++;
+                if($val == 4) {
+                    $val = 0;
+                }
+            }
+            $self->{imgoffs}++;
+            $evenodd = 2 - $evenodd;
+        }
+    }
+    { # Half-dark
+        my $evenodd  = 1;
+        for(1..100) {
+            my $val = 0;
+            for(my $i = 0; $i < $self->{width} - 1; $i++) {
+                if($val == $evenodd) {
+                    $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+                }
+                $val = 1 - $val;
+            }
+            $self->{imgoffs}++;
+            $evenodd = 1 - $evenodd;
+        }
+    }
+    { # Three-Quarter-dark
+        my $evenodd  = 0;
+        for(1..100) {
+            my $val = 0;
+            for(my $i = 0; $i < $self->{width} - 1; $i++) {
+                if($val != $evenodd) {
+                    $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+                }
+                $val++;
+                if($val == 4) {
+                    $val = 0;
+                }
+            }
+            $self->{imgoffs}++;
+            $evenodd = 2 - $evenodd;
+        }
+    }
+    { # Dark
+        for(1..100) {
+            for(my $i = 0; $i < $self->{width} - 1; $i++) {
+                $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+            }
+            $self->{imgoffs}++;
+        }
+    }
+
+    return;
+}
+
 sub printAddTestPattern_Rectangle($self) {
     
     for(my $i = 0; $i < $self->{width}; $i++) {
@@ -1223,6 +1284,14 @@ sub printTestMessage($self, $tests) {
         for(my $i = 20; $i > 0; $i--) {
             $self->printAddTestPattern_HorizontalLines($i);
         }
+        for(1..3) {
+            $self->printAddTextLine('');
+        }
+    }
+
+    if(contains('greyblocks', $tests)) {
+        $self->printAddTextLine("TEST 'Greyscale Blocks'");
+        $self->printAddTestPattern_GreyBlocks();
         for(1..3) {
             $self->printAddTextLine('');
         }
