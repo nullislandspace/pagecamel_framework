@@ -139,6 +139,9 @@ sub _generateEscPos($self) {
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
         return $self->_escpos_tmt88();
+    } elsif($self->{printerType} eq 'CTS801') {
+        $reph->debuglog("    Type: CTS801");
+        return $self->_escpos_cts801();
     } elsif($self->{printerType} eq 'SGT116') {
         $reph->debuglog("    Type: SGT116");
         return $self->_escpos_sgt116();
@@ -203,6 +206,89 @@ sub _escpos_tmt88($self) {
         $raw .= chr(0x1D) . chr(0x76) . chr(0x30) . chr(0) . chr($bytew & 0xff) . chr(($bytew >> 8) & 0xff) . chr($blockh & 0xff) . chr(($blockh >> 8) & 0xff); 
 
         for(my $y = 0; $y < $blockh; $y++) {
+            for(my $x = 0; $x < $w; $x+=8) {
+                my $byte = 0;
+                for(my $xoffs = 0; $xoffs < 8; $xoffs++) {
+                    my $xtotal = $x + $xoffs;
+                    $byte <<= 1;
+                    if($xtotal < $w && $img->getPixel($xtotal, $y + $blockoffs) != $self->{imgwhite}) {
+                        $byte = $byte | 0x01;
+                    }
+                }
+                $raw .= chr($byte);
+            }
+        }
+        #$raw .= "\n";
+    }
+
+
+    # Feed and half-cut
+    $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+
+    $self->{escposimagedata} = $raw;
+
+    return;
+}
+
+sub _escpos_cts801($self) {
+    my $reph = $self->{reph};
+
+    # Citizen CTS801 is *mostly* compatible with Epson TM-T88V but has a wider print head that print right to (and sometimes over) the edge of the paper.
+    # Fortunately, the resolution (DPI) is the same, there are just more pixels left and right.
+    # For this printer, we just add a few blank spaces at the start of each line.
+    my $blankspaces = 8;
+
+    my $raw = '';
+    my $img = $self->{img};
+
+    # Reset printer
+    $raw .= chr(0x1B) . chr(0x40);
+
+    if($self->{kickCashdrawer}) {
+        # Kick drawer 1
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        
+        # Kick drawer 2
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+    }
+
+
+    # Remove line spacing
+    $raw .=  "\n" . chr(0x1B) . chr(0x33) . chr(0) . "\n";
+
+    # Make darker
+    # GS ( K 
+    my $densityrangeepson = 255 - int($self->{escPosDensity} * (250 / 15));
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr($densityrangeepson);
+
+    # Make faster
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr($self->{escPosSpeed});
+    
+    my ($w, $h) = $img->getBounds();
+
+
+    # Print bitmap image
+    #print "\nTotal: $w x $h\n";
+
+    my $blocksize = 1000;
+   
+    # Image data
+
+    my $bytew = ($w / 8) + $blankspaces;
+
+    for(my $blockoffs = 0; $blockoffs < $h; $blockoffs += $blocksize) {
+        my $blockh = $h - $blockoffs;
+        if($blockh > $blocksize) {
+            $blockh = $blocksize;
+        }
+        #print "Block: $w x $blockh\n";
+        #           GS          v           0       m         xL                xH                    yL                yH
+        $raw .= chr(0x1D) . chr(0x76) . chr(0x30) . chr(0) . chr($bytew & 0xff) . chr(($bytew >> 8) & 0xff) . chr($blockh & 0xff) . chr(($blockh >> 8) & 0xff); 
+
+        for(my $y = 0; $y < $blockh; $y++) {
+            for(my $i = 0; $i < $blankspaces; $i++) {
+                $raw .= chr(0x00);
+            }
             for(my $x = 0; $x < $w; $x+=8) {
                 my $byte = 0;
                 for(my $xoffs = 0; $xoffs < 8; $xoffs++) {
