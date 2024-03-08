@@ -24,6 +24,7 @@ use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::TestData;
 use Crypt::Digest::SHA256 qw[sha256_hex];
+use MIME::Base64 qw(encode_base64 decode_base64);
 
 my %globalimagecache;
 
@@ -36,6 +37,10 @@ sub new($proto, $config) {
 
     if(!defined($self->{reph})) {
         croak('PageCamel::Helpers::PrintProcessor needs reph');
+    }
+
+    if(!defined($self->{dbh})) {
+        croak('PageCamel::Helpers::PrintProcessor needs dbh');
     }
 
     if(!defined($self->{generateEscPos})) {
@@ -53,6 +58,27 @@ sub new($proto, $config) {
     if(!defined($self->{escPosDensity})) {
         $self->{escPosDensity} = 1; # Darkness 1-13 or 0-15, depending on model
     }
+
+    { # Make sure we have a cache table for more persistant caching
+        my $dbh = $self->{dbh};
+        my $reph = $self->{reph};
+        my $type = $dbh->getColumnType('pagecamel.printerimagecache', 'imagekey');
+        if(!defined($type)) {
+            $reph->debuglog("Creating printer image cache");
+            my $stmt = "CREATE TABLE pagecamel.printerimagecache (
+                            imagekey text NOT NULL,
+                            imagedata text NOT NULL,
+                            CONSTRAINT printerimagecache_pk PRIMARY KEY (imagekey)
+                        )";
+            if(!$dbh->do($stmt)) {
+                croak($dbh->errstr);
+            }
+            $dbh->commit;
+        } elsif($type ne 'text') {
+            croak("pagecamel.printerimagecache column imagekey has wrong type. Should be 'text' but is $type");
+        }
+    }
+
     
     return $self;
 }
@@ -632,7 +658,17 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     # Check if we got that image already cached
     my $cachekey = $imagesoftness . '_' . sha256_hex($rawpic->png);
     $reph->debuglog("   KEY $cachekey");
-    if(1 && defined($self->{imagecache}->{$cachekey})) {
+
+    if(!defined($self->{imagecache}->{$cachekey})) {
+        # We don't have it in RAM, let's try our secondary cache in the database
+        my $data = $self->loadDBCache($cachekey);
+        if(defined($data)) {
+            $reph->debuglog("       loaded from database");
+            $self->{imagecache}->{$cachekey} = GD::Image->newFromPngData($data, 0);
+        }
+    }
+
+    if(defined($self->{imagecache}->{$cachekey})) {
         $reph->debuglog("   using cached greyscale image conversion");
         $self->{img}->copyResized($self->{imagecache}->{$cachekey},
                           0, $self->{imgoffs}, # DEST X Y
@@ -643,7 +679,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
         $self->{imgoffs} += $desth;
         return;
     }
-    
+
     $reph->debuglog("   need to do image conversion");
     
     my $pic = GD::Image->new($destw, $desth);
@@ -694,6 +730,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
             }
         }
         $self->{imagecache}->{$cachekey} = $cachepic;
+        $self->saveDBCache($cachekey, $cachepic->png);
     } elsif($imagesoftness == 2) {
         # Floyd-Steinberg dithering
         my @dither = (
@@ -740,6 +777,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
         }
         
         $self->{imagecache}->{$cachekey} = $cachepic;
+        $self->saveDBCache($cachekey, $cachepic->png);
     } elsif($imagesoftness == 1) {
 
         # Dithering  https://en.wikipedia.org/wiki/Error_diffusion#minimized_average_error
@@ -787,6 +825,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
             }
         }
         $self->{imagecache}->{$cachekey} = $cachepic;
+        $self->saveDBCache($cachekey, $cachepic->png);
     } elsif($imagesoftness == 3) {
     
         my @rawgreys = (
@@ -833,6 +872,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
         }
         
         $self->{imagecache}->{$cachekey} = $cachepic;
+        $self->saveDBCache($cachekey, $cachepic->png);
     }
     
     $self->{imgoffs} += $desth;
@@ -844,6 +884,53 @@ sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
     $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
     $self->{imagedata} = $self->{img}->png;
 
+    return;
+}
+
+sub loadDBCache($self, $imagekey) {
+    my $dbh = $self->{dbh};
+    my $reph = $self->{reph};
+
+    my $selsth = $dbh->prepare_cached("SELECT * FROM pagecamel.printerimagecache
+                                        WHERE imagekey = ?")
+            or croak($dbh->errstr);
+    if(!$selsth->execute($imagekey)) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return;
+    }
+    my $line = $selsth->fetchrow_hashref;
+    $selsth->finish;
+    $dbh->commit;
+    
+    if(!defined($line) || !defined($line->{imagedata})) {
+        return;
+    }
+
+    my $data = decode_base64($line->{imagedata});
+    return $data;
+}
+
+sub saveDBCache($self, $imagekey, $imagedata) {
+    my $dbh = $self->{dbh};
+    my $reph = $self->{reph};
+
+    my $data = encode_base64($imagedata, '');
+
+    my $delsth = $dbh->prepare_cached("DELETE FROM pagecamel.printerimagecache
+                                        WHERE imagekey = ?")
+            or croak($dbh->errstr);
+
+    my $inssth = $dbh->prepare_cached("INSERT INTO pagecamel.printerimagecache (imagekey, imagedata) VALUES (?, ?)")
+            or croak($dbh->errstr);
+
+    if(!$delsth->execute($imagekey)) {
+        croak($dbh->errstr);
+    }
+    if(!$inssth->execute($imagekey, $data)) {
+        croak($dbh->errstr);
+    }
+    $dbh->commit;
     return;
 }
 
