@@ -24,6 +24,7 @@ use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::TestData;
 use Crypt::Digest::SHA256 qw[sha256_hex];
+use MIME::Base64 qw(encode_base64 decode_base64);
 
 my %globalimagecache;
 
@@ -36,6 +37,10 @@ sub new($proto, $config) {
 
     if(!defined($self->{reph})) {
         croak('PageCamel::Helpers::PrintProcessor needs reph');
+    }
+
+    if(!defined($self->{dbh})) {
+        croak('PageCamel::Helpers::PrintProcessor needs dbh');
     }
 
     if(!defined($self->{generateEscPos})) {
@@ -53,7 +58,27 @@ sub new($proto, $config) {
     if(!defined($self->{escPosDensity})) {
         $self->{escPosDensity} = 1; # Darkness 1-13 or 0-15, depending on model
     }
-    
+
+    { # Make sure we have a cache table for more persistant caching
+        my $dbh = $self->{dbh};
+        my $reph = $self->{reph};
+        my $type = $dbh->getColumnType('pagecamel.printerimagecache', 'imagekey');
+        if(!defined($type)) {
+            $reph->debuglog("Creating printer image cache");
+            my $stmt = "CREATE TABLE pagecamel.printerimagecache (
+                            imagekey text NOT NULL,
+                            imagedata text NOT NULL,
+                            CONSTRAINT printerimagecache_pk PRIMARY KEY (imagekey)
+                        )";
+            if(!$dbh->do($stmt)) {
+                croak($dbh->errstr);
+            }
+            $dbh->commit;
+        } elsif($type ne 'text') {
+            croak("pagecamel.printerimagecache column imagekey has wrong type. Should be 'text' but is $type");
+        }
+    }
+
     return $self;
 }
 
@@ -64,6 +89,7 @@ sub printStartDocument($self) {
     $self->{imgwhite} = $self->{img}->colorAllocate(255, 255, 255);
     $self->{imgblack} = $self->{img}->colorAllocate(0, 0, 0);
     $self->{imgred} = $self->{img}->colorAllocate(255, 0, 0);
+
     $self->{printcolor} = 'imgblack';
     
     $self->{img}->filledRectangle(0, 0, $self->{width}, $self->{height}, $self->{imgwhite});
@@ -106,9 +132,16 @@ sub _generateEscPos($self) {
     my $reph = $self->{reph};
     $reph->debuglog("Converting image to ESC/POS");
 
+    if(!defined($self->{imgwhite})) {
+        $self->{imgwhite} = 0;
+    }
+
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
         return $self->_escpos_tmt88();
+    } elsif($self->{printerType} eq 'CTS801') {
+        $reph->debuglog("    Type: CTS801");
+        return $self->_escpos_cts801();
     } elsif($self->{printerType} eq 'SGT116') {
         $reph->debuglog("    Type: SGT116");
         return $self->_escpos_sgt116();
@@ -154,77 +187,125 @@ sub _escpos_tmt88($self) {
     my ($w, $h) = $img->getBounds();
 
 
-if(1) {
-    # 24 pixel height per line
-    for(my $y = 0; $y < $h; $y += 24) {
-        # Command "Send pixel data"
-        $raw .= chr(0x1B) . chr(0x2A) .  chr(33);
+    # Print bitmap image
+    #print "\nTotal: $w x $h\n";
 
-        # Send width definition
-        my $leadingwhitespace = 0;
-        my $virtualw = $w + $leadingwhitespace;
-        $raw .= chr($virtualw & 0xff);
-        $raw .= chr(($virtualw >> 8) & 0xff);
+    my $blocksize = 1000;
+   
+    # Image data
 
-        for(1..($leadingwhitespace*3)) {
-            $raw .= chr(0x00);
+    my $bytew = $w / 8;
+
+    for(my $blockoffs = 0; $blockoffs < $h; $blockoffs += $blocksize) {
+        my $blockh = $h - $blockoffs;
+        if($blockh > $blocksize) {
+            $blockh = $blocksize;
         }
+        #print "Block: $w x $blockh\n";
+        #           GS          v           0       m         xL                xH                    yL                yH
+        $raw .= chr(0x1D) . chr(0x76) . chr(0x30) . chr(0) . chr($bytew & 0xff) . chr(($bytew >> 8) & 0xff) . chr($blockh & 0xff) . chr(($blockh >> 8) & 0xff); 
 
-        for(my $x = 0; $x < $w; $x++) {
-            for(my $ybyte = 0; $ybyte < 3; $ybyte++) {
+        for(my $y = 0; $y < $blockh; $y++) {
+            for(my $x = 0; $x < $w; $x+=8) {
                 my $byte = 0;
-                for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
-                    my $ytotal = $y + $yoffs + ($ybyte * 8);
+                for(my $xoffs = 0; $xoffs < 8; $xoffs++) {
+                    my $xtotal = $x + $xoffs;
                     $byte <<= 1;
-                    if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
+                    if($xtotal < $w && $img->getPixel($xtotal, $y + $blockoffs) != $self->{imgwhite}) {
                         $byte = $byte | 0x01;
                     }
                 }
                 $raw .= chr($byte);
             }
         }
-
-        # Line break
         #$raw .= "\n";
     }
-}
 
-if(0) {
-    # Store image in print buffer
-    # GS 8 L
-    $h = 80;
-    $w = 80;
-    my $p = 9 + ($w * $h / 8);
-    my @ps;
-    for(1..4) {
-        push @ps, chr($p & 0xff);
-        $p = $p >> 8;
-    }
-    $p = join('', @ps);
-
-    #           GS          8           L       p1/p2/p3/p4         m           fn      a=48 (monochrome)    bx      by      c             xL                xH                    yL                yH
-    $raw .= chr(0x1D) . chr(0x38) . chr(0x4C) . $p  .          chr(0x30) . chr(0x70) . chr(48) .         chr(1) . chr(1) . chr(49) . chr($w & 0xff) . chr(($w >> 8) & 0xff) . chr($h & 0xff) . chr(($h >> 8) & 0xff); 
-
-    # Image data
-    for(my $y = 0; $y < $h; $y += 8) {
-        for(my $x = 0; $x < $w; $x++) {
-            my $byte = 0;
-            for(my $yoffs = 0; $yoffs < 8; $yoffs++) {
-                my $ytotal = $y + $yoffs;
-                $byte <<= 1;
-                if($ytotal < $h && $img->getPixel($x, $ytotal) != $self->{imgwhite}) {
-                    $byte = $byte | 0x01;
-                }
-            }
-            $raw .= chr($byte);
-        }
-    }
-    #           GS          (           L           pL           pH          m
-    $raw .= chr(0x1D) . chr(0x28) . chr(0x4C) . chr(0x02) . chr(0x00) . chr(0x30) . chr(50);
-}
 
     # Feed and half-cut
-    $raw .= "Hello World\n";
+    $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+
+    $self->{escposimagedata} = $raw;
+
+    return;
+}
+
+sub _escpos_cts801($self) {
+    my $reph = $self->{reph};
+
+    # Citizen CTS801 is *mostly* compatible with Epson TM-T88V but has a wider print head that print right to (and sometimes over) the edge of the paper.
+    # Fortunately, the resolution (DPI) is the same, there are just more pixels left and right.
+    # For this printer, we just add a few blank spaces at the start of each line.
+    my $blankspaces = 8;
+
+    my $raw = '';
+    my $img = $self->{img};
+
+    # Reset printer
+    $raw .= chr(0x1B) . chr(0x40);
+
+    if($self->{kickCashdrawer}) {
+        # Kick drawer 1
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        
+        # Kick drawer 2
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+    }
+
+
+    # Remove line spacing
+    $raw .=  "\n" . chr(0x1B) . chr(0x33) . chr(0) . "\n";
+
+    # Make darker
+    # GS ( K 
+    my $densityrangeepson = 255 - int($self->{escPosDensity} * (250 / 15));
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr($densityrangeepson);
+
+    # Make faster
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr($self->{escPosSpeed});
+    
+    my ($w, $h) = $img->getBounds();
+
+
+    # Print bitmap image
+    #print "\nTotal: $w x $h\n";
+
+    my $blocksize = 1000;
+   
+    # Image data
+
+    my $bytew = ($w / 8) + $blankspaces;
+
+    for(my $blockoffs = 0; $blockoffs < $h; $blockoffs += $blocksize) {
+        my $blockh = $h - $blockoffs;
+        if($blockh > $blocksize) {
+            $blockh = $blocksize;
+        }
+        #print "Block: $w x $blockh\n";
+        #           GS          v           0       m         xL                xH                    yL                yH
+        $raw .= chr(0x1D) . chr(0x76) . chr(0x30) . chr(0) . chr($bytew & 0xff) . chr(($bytew >> 8) & 0xff) . chr($blockh & 0xff) . chr(($blockh >> 8) & 0xff); 
+
+        for(my $y = 0; $y < $blockh; $y++) {
+            for(my $i = 0; $i < $blankspaces; $i++) {
+                $raw .= chr(0x00);
+            }
+            for(my $x = 0; $x < $w; $x+=8) {
+                my $byte = 0;
+                for(my $xoffs = 0; $xoffs < 8; $xoffs++) {
+                    my $xtotal = $x + $xoffs;
+                    $byte <<= 1;
+                    if($xtotal < $w && $img->getPixel($xtotal, $y + $blockoffs) != $self->{imgwhite}) {
+                        $byte = $byte | 0x01;
+                    }
+                }
+                $raw .= chr($byte);
+            }
+        }
+        #$raw .= "\n";
+    }
+
+
+    # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
     $self->{escposimagedata} = $raw;
@@ -310,8 +391,8 @@ sub _escpos_jws360($self) {
     $raw .= "\n";
 
     # Kick drawer
-    if(0 && $self->{kickCashdrawer}) {
-        $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+    if(1 && $self->{kickCashdrawer}) {
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
     }
     $raw .= "\n";
 
@@ -667,7 +748,17 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
     # Check if we got that image already cached
     my $cachekey = $imagesoftness . '_' . sha256_hex($rawpic->png);
     $reph->debuglog("   KEY $cachekey");
-    if(1 && defined($self->{imagecache}->{$cachekey})) {
+
+    if(!defined($self->{imagecache}->{$cachekey})) {
+        # We don't have it in RAM, let's try our secondary cache in the database
+        my $data = $self->loadDBCache($cachekey);
+        if(defined($data)) {
+            $reph->debuglog("       loaded from database");
+            $self->{imagecache}->{$cachekey} = GD::Image->newFromPngData($data, 0);
+        }
+    }
+
+    if(defined($self->{imagecache}->{$cachekey})) {
         $reph->debuglog("   using cached greyscale image conversion");
         $self->{img}->copyResized($self->{imagecache}->{$cachekey},
                           0, $self->{imgoffs}, # DEST X Y
@@ -678,7 +769,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
         $self->{imgoffs} += $desth;
         return;
     }
-    
+
     $reph->debuglog("   need to do image conversion");
     
     my $pic = GD::Image->new($destw, $desth);
@@ -729,6 +820,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
             }
         }
         $self->{imagecache}->{$cachekey} = $cachepic;
+        $self->saveDBCache($cachekey, $cachepic->png);
     } elsif($imagesoftness == 2) {
         # Floyd-Steinberg dithering
         my @dither = (
@@ -775,6 +867,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
         }
         
         $self->{imagecache}->{$cachekey} = $cachepic;
+        $self->saveDBCache($cachekey, $cachepic->png);
     } elsif($imagesoftness == 1) {
 
         # Dithering  https://en.wikipedia.org/wiki/Error_diffusion#minimized_average_error
@@ -822,6 +915,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
             }
         }
         $self->{imagecache}->{$cachekey} = $cachepic;
+        $self->saveDBCache($cachekey, $cachepic->png);
     } elsif($imagesoftness == 3) {
     
         my @rawgreys = (
@@ -868,6 +962,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
         }
         
         $self->{imagecache}->{$cachekey} = $cachepic;
+        $self->saveDBCache($cachekey, $cachepic->png);
     }
     
     $self->{imgoffs} += $desth;
@@ -879,6 +974,53 @@ sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
     $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
     $self->{imagedata} = $self->{img}->png;
 
+    return;
+}
+
+sub loadDBCache($self, $imagekey) {
+    my $dbh = $self->{dbh};
+    my $reph = $self->{reph};
+
+    my $selsth = $dbh->prepare_cached("SELECT * FROM pagecamel.printerimagecache
+                                        WHERE imagekey = ?")
+            or croak($dbh->errstr);
+    if(!$selsth->execute($imagekey)) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return;
+    }
+    my $line = $selsth->fetchrow_hashref;
+    $selsth->finish;
+    $dbh->commit;
+    
+    if(!defined($line) || !defined($line->{imagedata})) {
+        return;
+    }
+
+    my $data = decode_base64($line->{imagedata});
+    return $data;
+}
+
+sub saveDBCache($self, $imagekey, $imagedata) {
+    my $dbh = $self->{dbh};
+    my $reph = $self->{reph};
+
+    my $data = encode_base64($imagedata, '');
+
+    my $delsth = $dbh->prepare_cached("DELETE FROM pagecamel.printerimagecache
+                                        WHERE imagekey = ?")
+            or croak($dbh->errstr);
+
+    my $inssth = $dbh->prepare_cached("INSERT INTO pagecamel.printerimagecache (imagekey, imagedata) VALUES (?, ?)")
+            or croak($dbh->errstr);
+
+    if(!$delsth->execute($imagekey)) {
+        croak($dbh->errstr);
+    }
+    if(!$inssth->execute($imagekey, $data)) {
+        croak($dbh->errstr);
+    }
+    $dbh->commit;
     return;
 }
 
@@ -1020,6 +1162,67 @@ sub printAddTestPattern_HorizontalLines($self, $pointsize) {
     return;
 }
 
+sub printAddTestPattern_GreyBlocks($self) {
+    { # Quarter-dark
+        my $evenodd  = 0;
+        for(1..100) {
+            my $val = 0;
+            for(my $i = 0; $i < $self->{width} - 1; $i++) {
+                if($val == $evenodd) {
+                    $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+                }
+                $val++;
+                if($val == 4) {
+                    $val = 0;
+                }
+            }
+            $self->{imgoffs}++;
+            $evenodd = 2 - $evenodd;
+        }
+    }
+    { # Half-dark
+        my $evenodd  = 1;
+        for(1..100) {
+            my $val = 0;
+            for(my $i = 0; $i < $self->{width} - 1; $i++) {
+                if($val == $evenodd) {
+                    $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+                }
+                $val = 1 - $val;
+            }
+            $self->{imgoffs}++;
+            $evenodd = 1 - $evenodd;
+        }
+    }
+    { # Three-Quarter-dark
+        my $evenodd  = 0;
+        for(1..100) {
+            my $val = 0;
+            for(my $i = 0; $i < $self->{width} - 1; $i++) {
+                if($val != $evenodd) {
+                    $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+                }
+                $val++;
+                if($val == 4) {
+                    $val = 0;
+                }
+            }
+            $self->{imgoffs}++;
+            $evenodd = 2 - $evenodd;
+        }
+    }
+    { # Dark
+        for(1..100) {
+            for(my $i = 0; $i < $self->{width} - 1; $i++) {
+                $self->{img}->setPixel($i, $self->{imgoffs}, $self->_getPrintColor());
+            }
+            $self->{imgoffs}++;
+        }
+    }
+
+    return;
+}
+
 sub printAddTestPattern_Rectangle($self) {
     
     for(my $i = 0; $i < $self->{width}; $i++) {
@@ -1081,6 +1284,14 @@ sub printTestMessage($self, $tests) {
         for(my $i = 20; $i > 0; $i--) {
             $self->printAddTestPattern_HorizontalLines($i);
         }
+        for(1..3) {
+            $self->printAddTextLine('');
+        }
+    }
+
+    if(contains('greyblocks', $tests)) {
+        $self->printAddTextLine("TEST 'Greyscale Blocks'");
+        $self->printAddTestPattern_GreyBlocks();
         for(1..3) {
             $self->printAddTextLine('');
         }
