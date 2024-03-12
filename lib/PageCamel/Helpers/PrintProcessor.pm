@@ -25,6 +25,7 @@ use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::TestData;
 use Crypt::Digest::SHA256 qw[sha256_hex];
 use MIME::Base64 qw(encode_base64 decode_base64);
+use Net::CUPS;
 
 my %globalimagecache;
 
@@ -471,10 +472,34 @@ sub printSendToPrinter($self, $cupsprinters = []) {
         $cupsprinters = \@tmp;
     }
 
+    my $cupsip = '127.0.0.1';
+    if(defined($ENV{PC_CUPS_SERVER}) && $ENV{PC_CUPS_SERVER} ne '') {
+        $cupsip = $ENV{PC_CUPS_SERVER};
+    }
+
+    my $cups = Net::CUPS->new();
+    $cups->setServer($cupsip);
+
     foreach my $printername (@{$cupsprinters}) {
-        my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
-        $reph->debuglog("Running print command: $cmd");
-        `$cmd`;
+        if($self->{printcommand} =~ /^\/bin\/true/) {
+            $reph->debuglog("Print command disabled");
+            next;
+        }
+        my @availprinters = $cups->getDestinations();
+        foreach my $availprinter (@availprinters) {
+            $reph->debuglog('   Available: ', $availprinter->getName(), " / ", $availprinter->getDescription());
+        }
+        my $printer = $cups->getDestination($printername);
+        if(!defined($printer)) {
+            $reph->debuglog("Printer ", $printername, " not found in CUPS server ", $cupsip);
+            next;
+        }
+        $reph->debuglog("Printing to CUPS server at ", $cupsip , " to printer ", $printername);
+        $printer->printFile($ofname, "PAGECAMEL PRINT SERVICE $VERSION");
+
+        #my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
+        #$reph->debuglog("Running print command: $cmd");
+        #`$cmd`;
     }
     
     unlink $ofname;
@@ -530,10 +555,34 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
         $cupsprinters = \@tmp;
     }
 
+    my $cupsip = '127.0.0.1';
+    if(defined($ENV{PC_CUPS_SERVER}) && $ENV{PC_CUPS_SERVER} ne '') {
+        $cupsip = $ENV{PC_CUPS_SERVER};
+    }
+
+    my $cups = Net::CUPS->new();
+    $cups->setServer($cupsip);
+
     foreach my $printername (@{$cupsprinters}) {
-        my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
-        $reph->debuglog("Running 'open cashdrawer' printer command: $cmd");
-        `$cmd`;
+        if($self->{printcommand} =~ /^\/bin\/true/) {
+            $reph->debuglog("Print command disabled");
+            next;
+        }
+        my @availprinters = $cups->getDestinations();
+        foreach my $availprinter (@availprinters) {
+            $reph->debuglog('   Available: ', $availprinter->getName(), " / ", $availprinter->getDescription());
+        }
+        my $printer = $cups->getDestination($printername);
+        if(!defined($printer)) {
+            $reph->debuglog("Printer ", $printername, " not found in CUPS server ", $cupsip);
+            next;
+        }
+        $reph->debuglog("Opening cash drawer on CUPS server at ", $cupsip , " on printer ", $printername);
+        $printer->printFile($ofname, "PAGECAMEL PRINT SERVICE $VERSION");
+
+        #my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
+        #$reph->debuglog("Running 'open cashdrawer' printer command: $cmd");
+        #`$cmd`;
     }
     
     unlink $ofname;
