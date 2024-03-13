@@ -487,7 +487,7 @@ sub printSendToPrinter($self, $cupsprinters = []) {
         }
         my @availprinters = $cups->getDestinations();
         foreach my $availprinter (@availprinters) {
-            $reph->debuglog('   Available: ', $availprinter->getName(), " / ", $availprinter->getDescription());
+            #$reph->debuglog('   Available: ', $availprinter->getName(), " / ", $availprinter->getDescription());
         }
         my $printer = $cups->getDestination($printername);
         if(!defined($printer)) {
@@ -514,26 +514,25 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     }
 
     my $raw = '';
-
-    if(!$self->{escPosSGT116}) {
-        # Epson standard way
+    if($self->{printerType} eq 'TMT88') {
+        $reph->debuglog("    Type: TMT88");
         # Kick drawer 1
         $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
-        
         # Kick drawer 2
         $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
-    } else {
-        # Chinesium version of ESC/POS for SGT116
-        # Remove line spacing
-        $raw .=  chr(0x1B) . chr(0x33) . chr(3);
-
-        # Open Drawer
-        $raw .= chr(0x1b) . chr(0x70) . chr(0x01) . "\n";
-
-        # Reset
-        $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+    } elsif($self->{printerType} eq 'CTS801') {
+        $reph->debuglog("    Type: CTS801");
+        # Kick drawer 1
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        # Kick drawer 2
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+    } elsif($self->{printerType} eq 'SGT116') {
+        $reph->debuglog("    Type: SGT116");
+        $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+    } elsif($self->{printerType} eq 'JWS360') {
+        $reph->debuglog("    Type: JWS360");
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
     }
-
 
 
     my $ofname = $self->makeFName();
@@ -570,7 +569,7 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
         }
         my @availprinters = $cups->getDestinations();
         foreach my $availprinter (@availprinters) {
-            $reph->debuglog('   Available: ', $availprinter->getName(), " / ", $availprinter->getDescription());
+            #$reph->debuglog('   Available: ', $availprinter->getName(), " / ", $availprinter->getDescription());
         }
         my $printer = $cups->getDestination($printername);
         if(!defined($printer)) {
