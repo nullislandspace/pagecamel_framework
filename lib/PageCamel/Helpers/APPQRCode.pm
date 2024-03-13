@@ -39,7 +39,7 @@ sub generate($self, %elements) {
     }
     my $qrtext = join("\n", @lines);
 
-    print STDERR "QRTEXT:\n", $qrtext, "\n----\n";
+    #print STDERR "QRTEXT:\n", $qrtext, "\n----\n";
 
     my $imgdata;
     qrpng(text => $qrtext, scale => $self->{scale}, out => \$imgdata);
