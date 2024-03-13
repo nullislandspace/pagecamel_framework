@@ -127,6 +127,7 @@ WriteMakefile(
         'Minecraft::RCON' => 0,
         'Module::Load' => 0,
         'Net::Clacks::Client' => 28,
+        'Net::CUPS' => 0,
         'Net::DNS' => 0,
         'Net::DNS::Packet' => 0,
         'Net::DNS::Resolver' => 0,
