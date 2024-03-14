@@ -23,6 +23,8 @@
     
 ></span>
 
+<!--<div id="logtext" align="left"><p>Logtext:</p></div>-->
+
 <script>
     var ws;
     var wsconnected = 0;
@@ -111,6 +113,7 @@
         return;
     }
     
+    var lastprintid = 0;
     function handleServerRequests(ev) {
         //console.log(ev);
 
@@ -155,6 +158,50 @@
             lastPing = Math.round(Date.now() / 1000);
         } else if(msg.type === "CONSOLELOG") {
             console.log(msg.logline);
+        } else if(msg.type === "REMOTEPRINT") {
+            console.log(msg); 
+            var printobj = {
+                type: "raw",
+                encoding: "base64",
+                data: msg.data
+            };
+
+            var printdoc = JSON.stringify(printobj);
+
+            var retval = "";
+            if(window.onPrintStart) {
+                debuglog("Printing locally via window.onPrintStart");
+                retval = window.onPrintStart(printdoc);
+                debuglog("retval: " + retval);
+            } else if(document.onPrintStart) {
+                debuglog("Printing locally via document.onPrintStart");
+                retval = document.onPrintStart(printdoc);
+                debuglog("retval: " + retval);
+            } else if(window.flutter_inappwebview) {
+                debuglog("Printing via flutter app");
+                lastprintid = msg.printid;
+                retval = window.flutter_inappwebview.callHandler("onPrintStart", printdoc);
+                debuglog("Got promise");
+                retval.then(
+                    function(value) {
+                        sendPrintStatus(value.result, lastprintid);
+                        debuglog("Got: <code>" + JSON.stringify(value) + "</code>");
+                        //sendPrintStatus(value, lastprintid);
+                    },
+                    function(error) {
+                        debuglog("Promise failed");
+                        sendPrintStatus("error promise failed", lastprintid);
+                    }
+                );
+
+            } else {
+                debuglog("onPrintStart not available");
+                retval = "error onPrintStart not available";
+            }
+
+            if(retval != "") {
+                sendPrintStatus(retval, msg.printid);
+            }
         } else {
             if(window.handleMessage) {
                 var starttime = Date.now();
@@ -178,6 +225,14 @@
             }
         }
         
+    }
+
+    function sendPrintStatus(retval, printid) {
+        wstransmit('REMOTEPRINTSTATUS', retval, printid);
+    }
+
+    function debuglog(textline) {
+        //$('<p>' + textline + '</p>').appendTo('#logtext');
     }
 
     // new send interface
