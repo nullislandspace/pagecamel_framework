@@ -540,11 +540,11 @@ sub _escpos_jws360($self) {
 sub printSendToPrinter($self, $cupsprinters = []) {
     my $reph = $self->{reph};
     
-    my $ofname = $self->makeFName();
+    #my $ofname = $self->makeFName();
 
     if($self->{generateEscPos}) {
         $self->_generateEscPos();
-        writeBinFile($ofname, $self->{escposimagedata});
+        #writeBinFile($ofname, $self->{escposimagedata});
         #writeBinFile('/home/cavac/lastprint.dat', $self->{escposimagedata});
         return $self->_printFile($self->{escposimagedata}, $cupsprinters);
     } else {
@@ -583,8 +583,7 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
         # Cash drawer not supported on this printer
         return;
     }
-
-    return $self->_printFile($raw, $cupsprinters);
+    return $raw;
 }
 
 sub _printFile($self, $raw, $cupsprinters = []) {
@@ -631,7 +630,7 @@ sub _printFile($self, $raw, $cupsprinters = []) {
             $reph->debuglog("Printer ", $printername, " not found in CUPS server ", $cupsip);
             next;
         }
-        $reph->debuglog("Opening cash drawer on CUPS server at ", $cupsip , " on printer ", $printername);
+        $reph->debuglog("Printing to CUPS server at ", $cupsip , " on printer ", $printername);
         $printer->printFile($ofname, "PAGECAMEL PRINT SERVICE $VERSION");
 
         #my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
