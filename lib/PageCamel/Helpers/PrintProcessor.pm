@@ -140,6 +140,9 @@ sub _generateEscPos($self) {
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
         return $self->_escpos_tmt88();
+    } elsif($self->{printerType} eq 'TMP20') {
+        $reph->debuglog("    Type: TMP20");
+        return $self->_escpos_tmp20();
     } elsif($self->{printerType} eq 'CTS801') {
         $reph->debuglog("    Type: CTS801");
         return $self->_escpos_cts801();
@@ -161,6 +164,7 @@ sub _escpos_tmt88($self) {
 
     my $raw = '';
     my $img = $self->{img};
+
 
     # Reset printer
     $raw .= chr(0x1B) . chr(0x40);
@@ -186,7 +190,6 @@ sub _escpos_tmt88($self) {
     $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr($self->{escPosSpeed});
     
     my ($w, $h) = $img->getBounds();
-
 
     # Print bitmap image
     #print "\nTotal: $w x $h\n";
@@ -230,6 +233,96 @@ sub _escpos_tmt88($self) {
 
     return;
 }
+
+sub _escpos_tmp20($self) {
+    my $reph = $self->{reph};
+
+    my $raw = '';
+    my $img;
+
+    # Bluetooth belt printer
+    # This is largely compatible to the Epson TM-T88 models. Of course, it doesn't have a cash drawer and it only has 384 pixels width, so we need to downscale the image
+    
+    {
+        my ($w, $h) = $self->{img}->getBounds();
+        my $destw = 384;
+        my $scale = $w / $destw;
+        my $desth = int($h / $scale);
+        print STDERR "Scale $scale H $desth\n";
+        #croak("BLA");
+
+        $img = GD::Image->new($destw, $desth);
+        $img->colorAllocate(255, 255, 255);
+        $img->colorAllocate(0, 0, 0);
+        $img->colorAllocate(255, 0, 0);
+
+        $img->copyResized($self->{img},
+                              0, 0, # DEST X Y
+                              0, 0, # SRC X Y
+                              $destw, $desth, # DEST W H
+                              $w, $h, # SRC W H
+                              );
+    }
+
+    # Reset printer
+    $raw .= chr(0x1B) . chr(0x40);
+
+    # Remove line spacing
+    $raw .=  "\n" . chr(0x1B) . chr(0x33) . chr(0) . "\n";
+
+    # Make darker
+    # GS ( K 
+    my $densityrangeepson = 255 - int($self->{escPosDensity} * (250 / 15));
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x31) . chr($densityrangeepson);
+
+    # Make faster
+    $raw .= chr(0x1D) . chr(0x28) . chr(0x4B) . chr(0x02) . chr(0x00) . chr(0x32) . chr($self->{escPosSpeed});
+    
+    my ($w, $h) = $img->getBounds();
+
+    # Print bitmap image
+    #print "\nTotal: $w x $h\n";
+
+    my $blocksize = 1000;
+   
+    # Image data
+
+    my $bytew = $w / 8;
+
+    for(my $blockoffs = 0; $blockoffs < $h; $blockoffs += $blocksize) {
+        my $blockh = $h - $blockoffs;
+        if($blockh > $blocksize) {
+            $blockh = $blocksize;
+        }
+        #print "Block: $w x $blockh\n";
+        #           GS          v           0       m         xL                xH                    yL                yH
+        $raw .= chr(0x1D) . chr(0x76) . chr(0x30) . chr(0) . chr($bytew & 0xff) . chr(($bytew >> 8) & 0xff) . chr($blockh & 0xff) . chr(($blockh >> 8) & 0xff); 
+
+        for(my $y = 0; $y < $blockh; $y++) {
+            for(my $x = 0; $x < $w; $x+=8) {
+                my $byte = 0;
+                for(my $xoffs = 0; $xoffs < 8; $xoffs++) {
+                    my $xtotal = $x + $xoffs;
+                    $byte <<= 1;
+                    if($xtotal < $w && $img->getPixel($xtotal, $y + $blockoffs) != $self->{imgwhite}) {
+                        $byte = $byte | 0x01;
+                    }
+                }
+                $raw .= chr($byte);
+            }
+        }
+        #$raw .= "\n";
+    }
+
+
+    # Feed and half-cut
+    $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
+
+    $self->{escposimagedata} = $raw;
+
+    return;
+}
+
 
 sub _escpos_cts801($self) {
     my $reph = $self->{reph};
@@ -452,57 +545,11 @@ sub printSendToPrinter($self, $cupsprinters = []) {
     if($self->{generateEscPos}) {
         $self->_generateEscPos();
         writeBinFile($ofname, $self->{escposimagedata});
+        #writeBinFile('/home/cavac/lastprint.dat', $self->{escposimagedata});
+        return $self->_printFile($self->{escposimagedata}, $cupsprinters);
     } else {
-        writeBinFile($ofname, $self->{imagedata});
+        return $self->_printFile($self->{imagedata}, $cupsprinters);
     }
-    
-    if(ref $cupsprinters ne 'ARRAY') {
-        my @tmp;
-        if(!defined($cupsprinters) || $cupsprinters eq '') {
-            $reph->debuglog("No printer name given!!!!!!");
-            if(!defined($self->{defaultprinter})) {
-                $reph->debuglog("...and no default printer set!!!!");
-            } else {
-                push @tmp, $self->{defaultprinter};
-            }
-        } else {
-            push @tmp, $cupsprinters . '';
-        }
-
-        $cupsprinters = \@tmp;
-    }
-
-    my $cupsip = '127.0.0.1';
-    if(defined($ENV{PC_CUPS_SERVER}) && $ENV{PC_CUPS_SERVER} ne '') {
-        $cupsip = $ENV{PC_CUPS_SERVER};
-    }
-
-    my $cups = Net::CUPS->new();
-    $cups->setServer($cupsip);
-
-    foreach my $printername (@{$cupsprinters}) {
-        if($self->{printcommand} =~ /^\/bin\/true/) {
-            $reph->debuglog("Print command disabled");
-            next;
-        }
-        my @availprinters = $cups->getDestinations();
-        foreach my $availprinter (@availprinters) {
-            #$reph->debuglog('   Available: ', $availprinter->getName(), " / ", $availprinter->getDescription());
-        }
-        my $printer = $cups->getDestination($printername);
-        if(!defined($printer)) {
-            $reph->debuglog("Printer ", $printername, " not found in CUPS server ", $cupsip);
-            next;
-        }
-        $reph->debuglog("Printing to CUPS server at ", $cupsip , " to printer ", $printername);
-        $printer->printFile($ofname, "PAGECAMEL PRINT SERVICE $VERSION");
-
-        #my $cmd = $self->{printcommand} . ' -P ' . $printername . ' ' . $ofname;
-        #$reph->debuglog("Running print command: $cmd");
-        #`$cmd`;
-    }
-    
-    unlink $ofname;
 }
 
 sub printerOpenCashdrawer($self, $cupsprinters = []) {
@@ -532,8 +579,16 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     } elsif($self->{printerType} eq 'JWS360') {
         $reph->debuglog("    Type: JWS360");
         $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+    } else {
+        # Cash drawer not supported on this printer
+        return;
     }
 
+    return $self->_printFile($raw, $cupsprinters);
+}
+
+sub _printFile($self, $raw, $cupsprinters = []) {
+    my $reph = $self->{reph};
 
     my $ofname = $self->makeFName();
     writeBinFile($ofname, $raw);
@@ -585,6 +640,8 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     }
     
     unlink $ofname;
+
+    return $raw;
 }
 
 sub printGetImagedata($self) {
