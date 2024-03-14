@@ -3052,6 +3052,7 @@ lib/PageCamel/Worker/SystemSettings.pm
 lib/PageCamel/Worker/TableStatistics.pm
 lib/PageCamel/Worker/TemplateCache.pm
 lib/PageCamel/Worker/Wansview/Stream.pm
+LICENSE
 Makefile.PL
 makeppd.bat
 MANIFEST			This list of files
