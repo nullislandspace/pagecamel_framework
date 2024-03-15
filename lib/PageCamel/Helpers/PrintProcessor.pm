@@ -1193,6 +1193,7 @@ sub reprintDocument($self, $documentid, $printername) {
     $blob->blobClose();
     $dbh->commit;
 
+    $self->{kickCashdrawer} = 0;
     $self->reprintDocumentData($imagedata, $printername);
 
     return;
