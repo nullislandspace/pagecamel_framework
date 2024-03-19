@@ -523,9 +523,36 @@ sub reload($self) {
         $self->{allowautosave} = 1;
     }
     
-    if($self->{cancopy} && !$self->{useserial}) {
-        print "    Attribute cancopy is true but useserial is not. Can only copy when using serial datatype for primary key!\n";
+    if($self->{cancopy} && !$self->{useserial} && scalar @{$self->{primarykey}->{item}} != 1) {
+        print "    Attribute cancopy is true, useserial is not. Primary key must have EXACTLY one field!\n";
         $ok = 0
+    }
+
+    if(defined($self->{askoncopy})) {
+        if($self->{askoncopy} eq '') {
+            print "    Attribute askoncopy is defined but empty!\n";
+            $ok = 0
+        }
+        if(!$self->{cancopy}) {
+            print "    Attribute askoncopy is defined but cancopy is disabled!\n";
+            $ok = 0
+        }
+        if(!$self->{useserial}) {
+            print "    Attribute askoncopy is defined but useserial is disabled!\n";
+            $ok = 0
+        }
+
+        my $validname = 0;
+        foreach my $item (@{$self->{edit}->{item}}) {
+            if(defined($item->{column}) && $item->{column} eq $self->{askoncopy}) {
+                $validname = 1;
+                last;
+            }
+        }
+        if(!$validname) {
+            print "    Attribute askoncopy is defined but does not point to a valid edit field!\n";
+            $ok = 0
+        }
     }
     
     if($self->{cancopy} && !$self->{cancreate}) {
@@ -1869,6 +1896,18 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         $mode = 'edit';
 
         $copyua->{'primary_key'} = '__NEW__';
+
+        # Handle special case when we need to copy a dataset with a non-serial primary key
+        if($self->{cancopy} && !$self->{useserial}) {
+            my $newname = $copyua->{copy_primary_key};
+            my $fieldname = $self->{primarykey}->{item}->[0]->{column};
+            $copyua->{$fieldname} = $newname;
+        } elsif(defined($self->{askoncopy})) {
+            my $newname = $copyua->{copy_field};
+            my $fieldname = $self->{askoncopy};
+            $copyua->{$fieldname} = $newname;
+        }
+
         $copyua->{'mode'} = 'create';
     }
 
@@ -1929,7 +1968,17 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         showads => $self->{edit}->{showads},
         SidebarHTML => $self->{edit}->{sidebarhtml},
         iFrameMode => $self->{iframemode},
+        TextualCopyPrimaryKey => 0,
+        AskOnCopy => '',
     );
+
+    if($self->{cancopy} && !$self->{useserial}) {
+        $webdata{TextualCopyPrimaryKey} = 1;
+    }
+
+    if(defined($self->{askoncopy})) {
+        $webdata{AskOnCopy} = $self->{askoncopy};
+    }
      
     # Disable touch input in iframe mode
     if($self->{iframemode} ne '') {

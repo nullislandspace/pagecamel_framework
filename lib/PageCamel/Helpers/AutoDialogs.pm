@@ -131,6 +131,7 @@ sub simpleform($self, $data) {
     my $text = $data->{text} || 'UNDEFINED';
     my $action = $data->{confirm} || 'OK';
     my $cancel = $data->{cancel} || 'Cancel';
+    my $callback = $data->{callback} || 'undefined_function_name';
     
     my $trquoteactionshortname = $self->elemNameQuote(lc $action);
     my $trquoteactionlongname = 'ttvars.trquote.Autodialog' . $trquoteactionshortname;
@@ -144,6 +145,7 @@ sub simpleform($self, $data) {
         croak("undefined value name, can't continue");
     }
     my $name = $data->{name};
+    my $inputname = 'input_' . $name;
     my $icon = $data->{icon};
     my $picture = $data->{picture} || '';
     if($picture ne '') {
@@ -154,6 +156,7 @@ my $markup = <<"ENDMARKUP";
 <!-- AutoDialog markup for $name -->
 <div id="dialog-$name" title="\[\% tr.trquote(\"$title\") \%\]">
     <p><span class="ui-icon ui-icon-$icon pagecameldialoglayout"></span>\[\% tr.trquote(\"$text\") \%\]</p>
+    <p><input type=\"text\" size=\"30\" name=\"$inputname\"></p>
 </div>
 
 ENDMARKUP
@@ -161,13 +164,10 @@ ENDMARKUP
 
     my $js = <<"ENDJS";
 // AutoDialog wrapper
-function $name(formname) {
-    if(!formname) {
-        alert("No formname given in call to " + $name);
-        return false;
-    }
-    autodialogs_form = formname;
+function $name(defaultvalue) {
     \$( "#dialog-$name" ).dialog("open");
+    \$('input[name=\"$inputname\"]').val(defaultvalue);
+    \$('input[name=\"$inputname\"]').focus();
     return false;
 }
 
@@ -193,14 +193,14 @@ ENDJS
             {
                 text: $trquoteactionlongname,
                 click: function() {
+                    var newval = \$('input[name=\"$inputname\"]').val();
                     \$( this ).dialog( "close" );
-                    document.forms[autodialogs_form].submit();
+                    $callback(newval);
                 }
             },
             {
                 text: $trquotecancellongname,
                 click: function() {
-                    autodialogs_form = "";
                     \$( this ).dialog( "close" );
                 }
             }

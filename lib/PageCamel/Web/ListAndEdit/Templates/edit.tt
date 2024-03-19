@@ -5,6 +5,26 @@
                         confirm => "Delete",
                         cancel => "Cancel",
                         mode => "delete") %]
+[% IF TextualCopyPrimaryKey == "1" %]
+    [% dialog.simpleform(name => "primarykeyEntry",
+                            title => "New name",
+                            text => "Please enter the new name:",
+                            icon => "disk",
+                            confirm => "OK",
+                            cancel => "Cancel",
+                            callback => "copyCallback",
+    ) %]
+[% END %]
+[% IF AskOnCopy != "" %]
+    [% dialog.simpleform(name => "copyFieldNameChange",
+                            title => "New name",
+                            text => "Please enter the new name:",
+                            icon => "copy",
+                            confirm => "OK",
+                            cancel => "Cancel",
+                            callback => "copyFieldNameCallback",
+    ) %]
+[% END %]
 [% IF EditPageHeader != "" %][% EditPageHeader %][% END %]
 [% IF errstr != '' %]
     <div class="errortext" onclick="removeStatusText();" id="errorstatustext"><p align="center" >[% tr.quote(errstr) %]</div>
@@ -21,6 +41,12 @@
     [% END %]
                 <form name="listandedit" method="post" action="[% webpath %]"  id="MainForm" enctype="multipart/form-data">
                     <input type="hidden" name="primary_key" value="[% primary_key %]">
+                    [% IF TextualCopyPrimaryKey == "1" %]
+                        <input type="hidden" name="copy_primary_key" value="">
+                    [% END %]
+                    [% IF AskOnCopy != "1" %]
+                        <input type="hidden" name="copy_field" value="">
+                    [% END %]
                     <input type="hidden" name="mode" value="list" id="mode">
                     [% IF UseTabs == 0 %]
                         <table class="data" align="center" id="MainDataTable">
@@ -326,7 +352,7 @@
                                                 <input type="button" value="[% tr.tr("Change&Close") %]" onclick="setMode('editandclose'); checkinput();">
                                             [% END %]
                                             [% IF cancopy == "1" %]
-                                                <input type="button" value="[% tr.tr("Save&Copy") %]" onclick="setMode('copy'); checkinput();">
+                                                <input type="button" value="[% tr.tr("Save&Copy") %]" onclick="setMode('copy'); checkcopy();">
                                             [% END %]
                                             [% IF candelete == "1" %]
                                                 &nbsp;
@@ -360,7 +386,7 @@
                                     <input type="button" value="[% tr.tr("Change&Close") %]" onclick="setMode('editandclose'); checkinput();">
                                 [% END %]
                                 [% IF cancopy == "1" %]
-                                    <input type="button" value="[% tr.tr("Save&Copy") %]" onclick="setMode('copy'); checkinput();">
+                                    <input type="button" value="[% tr.tr("Save&Copy") %]" onclick="setMode('copy'); checkcopy();">
                                 [% END %]
                                 [% IF candelete == "1" %]
                                     &nbsp;
@@ -386,6 +412,7 @@
 <span id="masktemplatedataset"
     data-trquote-charactersleft="[% tr.trquote("characters left") %]"
     data-trquote-requiredfield="[% tr.trquote("Required field") %]"
+    data-trquote-cantbeempty="[% tr.trquote("Required field can not be empty") %]"
     data-usetabs="[% UseTabs %]"
     data-primarykey="[% primary_key %]"
     data-autosave="[% autosave %]"
@@ -393,6 +420,8 @@
     data-editmode="[% mode %]"
     data-iframemode="[% iFrameMode %]"
     data-editcolumnlist="[% editcolumnlist %]"
+    data-textualcopyprimarykey="[% TextualCopyPrimaryKey %]"
+    data-askoncopy="[% AskOnCopy %]"
     [% FOREACH colorname IN colors.keys %]
         data-colorswatch[% tr.cleancolorname(colorname) %]="[% colors.$colorname %]"
     [% END %]
@@ -401,17 +430,73 @@
 
 
 <script>
+    var specialcopymode = false;
     function setMode(newmode) {
         $('#mode').val(newmode);
         return true;
     }
+
+    function checkcopy() {
+        if(ttvars.textualcopyprimarykey != "1" && ttvars.askoncopy == "") {
+            return checkinput();
+        }
+        console.log("Checking input");
+        specialcopymode = true;
+        var checkresult = checkinput();
+        specialcopymode = false;
+        if(!checkresult) {
+            console.log("Input check failed");
+            return;
+        }
+
+        if(ttvars.textualcopyprimarykey == "1") {
+            console.log("Opening PK dialog");
+            var newpk = $('input[name="primary_key"]').val() + '_copy';
+            primarykeyEntry(newpk);
+        } else if(ttvars.askoncopy != "") {
+            console.log("Opening new name dialog");
+            var newval = $('input[name="' + ttvars.askoncopy + '"]').val() + '_copy';
+            copyFieldNameChange(newval);
+        } else {
+            console.log("Unhandled settings combination");
+        }
+    }
+        
+
+    function copyCallback(newpk) {
+        console.log("Copy callback");
+        if(newpk == "") {
+            alert(ttvars.trquote.Cantbeempty);
+            return;
+        }
+        
+        $('input[name="copy_primary_key"').val(newpk);
+        $('#MainForm').submit();
+    }
+
+
+    function copyFieldNameCallback(newval) {
+        console.log("Copy callback");
+        if(newval == "") {
+            alert(ttvars.trquote.Cantbeempty);
+            return;
+        }
+        
+        $('input[name="copy_field"').val(newval);
+        $('#MainForm').submit();
+    }
+
 
     function checkinput() {
         var inputok = 1;
 
         $("input[mustfield='1'],textarea[mustfield='1']").each(function() {
             if(inputok == 0) {
-                return;
+                if(specialcopymode) {
+                    return false;
+                } else {
+                    return;
+                }
             }
             if($(this).val() == '') {
                 /*
@@ -427,9 +512,19 @@
                 inputok = 0;
             }
         });
+
+        if(specialcopymode) {
+            if(inputok == 1) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
         if(inputok == 1) {
             $('#MainForm').submit();
         }
+        return;
     }
 
     function customSelect2Format(state) {
