@@ -15,6 +15,16 @@
                             callback => "copyCallback",
     ) %]
 [% END %]
+[% IF AskOnCopy != "" %]
+    [% dialog.simpleform(name => "copyFieldNameChange",
+                            title => "New name",
+                            text => "Please enter the new name:",
+                            icon => "copy",
+                            confirm => "OK",
+                            cancel => "Cancel",
+                            callback => "copyFieldNameCallback",
+    ) %]
+[% END %]
 [% IF EditPageHeader != "" %][% EditPageHeader %][% END %]
 [% IF errstr != '' %]
     <div class="errortext" onclick="removeStatusText();" id="errorstatustext"><p align="center" >[% tr.quote(errstr) %]</div>
@@ -33,6 +43,9 @@
                     <input type="hidden" name="primary_key" value="[% primary_key %]">
                     [% IF TextualCopyPrimaryKey == "1" %]
                         <input type="hidden" name="copy_primary_key" value="">
+                    [% END %]
+                    [% IF AskOnCopy != "1" %]
+                        <input type="hidden" name="copy_field" value="">
                     [% END %]
                     <input type="hidden" name="mode" value="list" id="mode">
                     [% IF UseTabs == 0 %]
@@ -399,6 +412,7 @@
 <span id="masktemplatedataset"
     data-trquote-charactersleft="[% tr.trquote("characters left") %]"
     data-trquote-requiredfield="[% tr.trquote("Required field") %]"
+    data-trquote-cantbeempty="[% tr.trquote("Required field can not be empty") %]"
     data-usetabs="[% UseTabs %]"
     data-primarykey="[% primary_key %]"
     data-autosave="[% autosave %]"
@@ -407,6 +421,7 @@
     data-iframemode="[% iFrameMode %]"
     data-editcolumnlist="[% editcolumnlist %]"
     data-textualcopyprimarykey="[% TextualCopyPrimaryKey %]"
+    data-askoncopy="[% AskOnCopy %]"
     [% FOREACH colorname IN colors.keys %]
         data-colorswatch[% tr.cleancolorname(colorname) %]="[% colors.$colorname %]"
     [% END %]
@@ -422,7 +437,7 @@
     }
 
     function checkcopy() {
-        if(ttvars.textualcopyprimarykey != "1") {
+        if(ttvars.textualcopyprimarykey != "1" && ttvars.askoncopy == "") {
             return checkinput();
         }
         console.log("Checking input");
@@ -433,16 +448,25 @@
             console.log("Input check failed");
             return;
         }
-        console.log("Opening PK dialog");
-        var newpk = $('input[name="primary_key"]').val() + '_copy';
-        primarykeyEntry(newpk);
+
+        if(ttvars.textualcopyprimarykey == "1") {
+            console.log("Opening PK dialog");
+            var newpk = $('input[name="primary_key"]').val() + '_copy';
+            primarykeyEntry(newpk);
+        } else if(ttvars.askoncopy != "") {
+            console.log("Opening new name dialog");
+            var newval = $('input[name="' + ttvars.askoncopy + '"]').val() + '_copy';
+            copyFieldNameChange(newval);
+        } else {
+            console.log("Unhandled settings combination");
+        }
     }
         
 
     function copyCallback(newpk) {
         console.log("Copy callback");
         if(newpk == "") {
-            alert("Field can not be empty");
+            alert(ttvars.trquote.Cantbeempty);
             return;
         }
         
@@ -450,6 +474,17 @@
         $('#MainForm').submit();
     }
 
+
+    function copyFieldNameCallback(newval) {
+        console.log("Copy callback");
+        if(newval == "") {
+            alert(ttvars.trquote.Cantbeempty);
+            return;
+        }
+        
+        $('input[name="copy_field"').val(newval);
+        $('#MainForm').submit();
+    }
 
 
     function checkinput() {
