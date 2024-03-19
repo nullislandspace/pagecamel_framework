@@ -17,10 +17,26 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
+use Module::Load::Conditional qw[check_install];
+my $brotliavailable;
+BEGIN {
+
+    my $modname = 'IO::Compress::Brotli';
+    if(check_install(module => $modname)) {
+        $brotliavailable = 1;
+        my $file = $modname;
+        $file =~ s[::][/]g;
+        $file .= '.pm';
+        require $file;
+        $modname->import();
+    } else {
+        $brotliavailable = 0;
+    }
+};
+
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DateStrings;
 use IO::Compress::Gzip qw(gzip $GzipError);
-use IO::Compress::Brotli;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -33,6 +49,10 @@ sub new($proto, %config) {
     }
 
     if(!defined($self->{brotli})) {
+        $self->{brotli} = 0;
+    }
+
+    if(!$brotliavailable) {
         $self->{brotli} = 0;
     }
 

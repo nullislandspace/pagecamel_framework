@@ -19,6 +19,23 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 
+use Module::Load::Conditional qw[check_install];
+my $brotliavailable;
+BEGIN {
+
+    my $modname = 'IO::Compress::Brotli';
+    if(check_install(module => $modname)) {
+        $brotliavailable = 1;
+        my $file = $modname;
+        $file =~ s[::][/]g;
+        $file .= '.pm';
+        require $file;
+        $modname->import();
+    } else {
+        $brotliavailable = 0;
+    }
+};
+
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::Padding qw(doFPad);
 use PageCamel::Helpers::Strings qw(stripString splitStringWithQuotes);
@@ -31,7 +48,6 @@ use PageCamel::Helpers::Colors qw[colorHexMaxContrast colorHex2RGB colorSwatchHT
 use MIME::Base64;
 use Digest::SHA1  qw(sha1_hex);
 use IO::Compress::Gzip qw(gzip $GzipError);
-use IO::Compress::Brotli;
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 use Storable qw[dclone];
 
@@ -165,7 +181,7 @@ sub new($proto, %config) {
                 }
             }
         }
-        {
+        if($brotliavailable) {
             my $brotli = bro($extrajavascript, 9);;
             if(length($brotli) < length($extrajavascript)) {
                 $self->{extraeditscript_brotli} = $brotli;
@@ -199,7 +215,7 @@ sub new($proto, %config) {
                 }
             }
         }
-        {
+        if($brotliavailable) {
             my $brotli = bro($extrajavascript, 9);;
             if(length($brotli) < length($extrajavascript)) {
                 $self->{extralistscript_brotli} = $brotli;
@@ -1200,7 +1216,7 @@ sub get_pagescript($self, $ua, $mode) {
 
     if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
         my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
-        if(!$compressed && contains('br', $supportedcompress) && defined($self->{$prefix . '_brotli'})) {
+        if($brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{$prefix . '_brotli'})) {
             $retpage{data} = $self->{$prefix . '_brotli'};
             $retpage{"Content-Encoding"} = "br";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");

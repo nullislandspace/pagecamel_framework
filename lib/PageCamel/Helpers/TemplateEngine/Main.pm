@@ -17,10 +17,26 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
+use Module::Load::Conditional qw[check_install];
+my $brotliavailable;
+BEGIN {
+
+    my $modname = 'IO::Compress::Brotli';
+    if(check_install(module => $modname)) {
+        $brotliavailable = 1;
+        my $file = $modname;
+        $file =~ s[::][/]g;
+        $file .= '.pm';
+        require $file;
+        $modname->import();
+    } else {
+        $brotliavailable = 0;
+    }
+};
+
 use Template;
 use HTML::Entities;
 use IO::Compress::Gzip qw(gzip $GzipError);
-use IO::Compress::Brotli;
 use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use Time::HiRes qw(sleep);
@@ -599,7 +615,7 @@ sub do_uninline($self, $data, $kname, $fname) {
                     }
                 }
             }
-            {
+            if($brotliavailable) {
                 my $brotli = bro($jsdata, 9);
                 if(length($brotli) < length($jsdata)) {
                     $filedata{brotlidata} = $brotli
@@ -664,7 +680,7 @@ sub get_uninline_static($self, $ua) {
 
     if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
         my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
-        if(!$compressed && contains('br', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{brotlidata})) {
+        if($brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{brotlidata})) {
             $retpage{data} = $self->{uninlinefiles}->{$fname}->{brotlidata};
             $retpage{"Content-Encoding"} = "br";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");

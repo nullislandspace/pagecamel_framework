@@ -17,11 +17,27 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
+use Module::Load::Conditional qw[check_install];
+my $brotliavailable;
+BEGIN {
+
+    my $modname = 'IO::Compress::Brotli';
+    if(check_install(module => $modname)) {
+        $brotliavailable = 1;
+        my $file = $modname;
+        $file =~ s[::][/]g;
+        $file .= '.pm';
+        require $file;
+        $modname->import();
+    } else {
+        $brotliavailable = 0;
+    }
+};
+
 use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use XML::Simple;
 use IO::Compress::Gzip qw(gzip $GzipError);
-use IO::Compress::Brotli;
 use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use CSS::Minifier::XS;
@@ -31,6 +47,7 @@ use PageCamel::Helpers::DangerSign;
 
 my $cachemodulecount = 0;
 my @knownstaticmodules;
+
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -273,7 +290,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
                 }
             }
 
-            { # Try BROTLI compression
+            if($brotliavailable) { # Try BROTLI compression
                 #print STDERR "Compressing $nfname\n";
                 my $ldata = $data . '';
                 my $brotli = bro($ldata, 9); # Best compression (11) is way too slow, use a slghtly lower level
