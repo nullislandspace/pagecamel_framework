@@ -2923,6 +2923,7 @@ lib/PageCamel/Web/Tools/ContentSecurityPolicyViolation.pm
 lib/PageCamel/Web/Tools/Debuglog.pm
 lib/PageCamel/Web/Tools/DebugWebHangups.pm
 lib/PageCamel/Web/Tools/DSKY.pm
+lib/PageCamel/Web/Tools/ExecuteScript.pm
 lib/PageCamel/Web/Tools/HostnameRedirect.pm
 lib/PageCamel/Web/Tools/Images/blank-blueprint-paper.jpg
 lib/PageCamel/Web/Tools/Images/blueprintpaper.jpg

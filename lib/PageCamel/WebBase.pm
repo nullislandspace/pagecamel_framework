@@ -106,6 +106,7 @@ use PageCamel::Web::Tools::ContentSecurityPolicyViolation;
 use PageCamel::Web::Tools::DSKY;
 use PageCamel::Web::Tools::DebugWebHangups;
 use PageCamel::Web::Tools::Debuglog;
+use PageCamel::Web::Tools::ExecuteScript;
 use PageCamel::Web::Tools::HostnameRedirect;
 use PageCamel::Web::Tools::KaffeeSim;
 use PageCamel::Web::Tools::PIMenu;
