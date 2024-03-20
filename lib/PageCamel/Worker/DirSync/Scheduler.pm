@@ -97,6 +97,15 @@ sub do_schedule_dirsync($self, $arguments) {
         $sync->{starttime} = "$ndate " . $sync->{sync_time};
     }
 
+    foreach my $argname (qw[source_dir destination_dir max_age_days]) {
+        if($sync->{$argname} =~ /^PC\_/ && defined($ENV{$sync->{$argname}})) {
+            $reph->debuglog("Replacing Pagecamel placeholder...");
+            $reph->debuglog("  Before: ", $sync->{$argname});
+            $sync->{$argname} = $ENV{$sync->{$argname}};
+            $reph->debuglog("   After: ", $sync->{$argname});
+        }
+    }
+
     my $command = "DIRSYNC_" . $sync->{sync_server};
     my @args;
     foreach my $argname (qw[sync_name source_dir destination_dir max_age_days]) {
