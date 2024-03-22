@@ -408,6 +408,10 @@
     </table>
     [% END %]
 
+    [% IF BotTrustInitive != '' %]
+        <br/><div align="center">[% BotTrustInitive %]</div>
+    [% END %]
+
                 </div>
     <div id="pagecamelFooterContent" class="elem_display_none" width="100%" align="center" valign="top" border="0">
 
