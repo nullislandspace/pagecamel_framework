@@ -26,6 +26,18 @@
 <audio loop preload="auto" id="alarm1"><source src="/static/alarm1.mp3"></audio>
 <audio loop preload="auto" id="alarm2"><source src="/static/alarm2.mp3"></audio>
 
+<span id="masktemplatedataset"
+    data-trquote-loadingtextures="[% tr.trquote("Loading Textures...") %]"
+    data-trquote-startingwebsocket="[% tr.trquote("Starting WebSocket...") %]"
+    data-trquote-connectionclosed="[% tr.trquote("Connection to websocket closed!") %]"
+    data-trquote-connectionlost="[% tr.trquote("Lost connection to Websocket!") %]"
+    data-trquote-connectionfailed="[% tr.trquote("Connection to websocket failed!") %]"
+    data-websocketurl="[% WSURL %]"
+    data-connectiontimeout="[% Settings.client_connect_timeout %]"
+    data-disconnecttimeout="[% Settings.client_disconnect_timeout %]"
+    data-pingtimeout="[% PingTimeout %]"
+></span>
+
 <script>
     var ws;
     var wsconnected = 0;
@@ -65,7 +77,7 @@
     };
     
     function extraOnLoad() {
-        $('#dataarea').block({ message: '<h1>[% tr.trquote("Loading Textures...") %]</h1>' });
+        $('#dataarea').block({ message: '<h1>' + ttvars.trquote.Loadingtextures + '</h1>' });
         // Load some textures
         //var canvas = document.getElementById('kaffeesimcanvas');
         //var ctx = canvas.getContext('2d');
@@ -101,9 +113,9 @@
     }
     
     function startWebsocketConnection() {
-        $('#dataarea').block({ message: '<h1>[% tr.trquote("Starting WebSocket...") %]</h1>' });
+        $('#dataarea').block({ message: '<h1>' + ttvars.trquote.Startingwebsocket + '</h1>' });
     
-        ws = new WebSocket('[% WSURL %]', 'base64');
+        ws = new WebSocket(ttvars.websocketurl, 'base64');
         ws.onopen = function(ev) {
             console.log("Connected!");
             $('#dataarea').unblock();
@@ -139,10 +151,10 @@
         };
         
         ws.onclose = function(ev) {
-            $('#dataarea').block({ message: '<h1>[% tr.trquote("Connection to websocket closed!") %]</h1>' });
+            $('#dataarea').block({ message: '<h1>' + ttvars.trquote.Connectionclosed + '</h1>' });
         };
                 
-        setTimeout(checkConnectTimeout, [% Settings.client_connect_timeout %] * 1000);
+        setTimeout(checkConnectTimeout, ttvars.connectiontimeout * 1000);
   
     }
     
@@ -686,9 +698,9 @@
     }
     
     function sendPing () {
-        var neededPing = Math.round(Date.now() / 1000) - [% Settings.client_disconnect_timeout %];
+        var neededPing = Math.round(Date.now() / 1000) - ttvars.disconnecttimeout;
         if(lastPing != -1 && neededPing > lastPing) {
-            $('#dataarea').block({ message: '<h1>[% tr.trquote("Lost connection to Websocket!") %]</h1>' });
+            $('#dataarea').block({ message: '<h1>' + ttvars.trquote.Connectionlost + '</h1>' });
             ws.close();
             return;
         }
@@ -698,13 +710,13 @@
         };
         
         ws.send(JSON.stringify(outmsg));
-        setTimeout(sendPing, [% PingTimeout %]);
+        setTimeout(sendPing, ttvars.pingtimeout);
     }
     
     function checkConnectTimeout () {
         if(wsconnected == 0) {
             $('#dataarea').unblock();
-            $('#dataarea').block({ message: '<h1>[% tr.trquote("Connection to websocket failed!") %]</h1>' });
+            $('#dataarea').block({ message: '<h1>' + ttvars.trquote.connectionfailed + '</h1>' });
             ws.close();
         }
     }
