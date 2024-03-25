@@ -66,7 +66,7 @@ sub execute($self, $command, $arguments) {
 }
 
 sub do_backup($self, $arguments) {
-    my $done = 1;
+    my $ok = 1;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -113,17 +113,34 @@ sub do_backup($self, $arguments) {
     # Backticks seem just right in this case, ignore perl::Critic
     my @lines = `$fullcommand`;
 
+    my $retval = ($CHILD_ERROR >> 8);
+    $reph->debuglog("RETVAL: ", $retval);
+
+    if($retval != 0) {
+        $ok = 0;
+    }
+
+    my $inssth = $dbh->prepare("INSERT INTO pgbackup_log (backuptype, is_ok) VALUES ('BACKUP', ?)")
+            or croak($dbh->errstr);
+
+    if(!$inssth->execute($ok)) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+    } else {
+        $dbh->commit;
+    }
+
     # Reenable lifetick
     $memh->refresh_lifetick;
 
-    foreach my $line (@lines) {
-        if($line =~ /error/i) {
-            $done = 0;
-        }
-        $reph->debuglog($line);
-    }
+    #foreach my $line (@lines) {
+    #    if($line =~ /error/i) {
+    #        $ok = 0;
+    #    }
+    #    $reph->debuglog($line);
+    #}
 
-    if(!$done) {
+    if(!$ok) {
         $dbh->rollback;
         return (0, $logtype);
     }
