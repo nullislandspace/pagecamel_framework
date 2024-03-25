@@ -150,7 +150,11 @@
             </div>
         [% END %]
         [% IF header_warning %]
-            <div class="webgui_headerwarning">[% tr.trquote(header_warning) %]</div>
+            <div class="webgui_headerwarning">
+                [% FOREACH hwarning IN header_warning %]
+                    [% tr.trquote(hwarning) %]<br/>
+                [% END %]
+            </div>
         [% END %]
 
 
@@ -406,6 +410,10 @@
             </td>
         </tr>
     </table>
+    [% END %]
+
+    [% IF BotTrustInitive != '' %]
+        <br/><div align="center">[% BotTrustInitive %]</div>
     [% END %]
 
                 </div>
