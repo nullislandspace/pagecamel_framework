@@ -316,11 +316,11 @@ sub get_forcelogout($self, $ua) {
         return (status => 403); # Forbidden
     }
 
-    if(!defined($ua->{postparams}->{sessionid})) {
+    if(!defined($ua->{postdata})) {
         return (status => 400); # Bad request! Sit! Stay!
     }
 
-    my $othersession = $ua->{postparams}->{sessionid};
+    my $othersession = $ua->{postdata};
 
     $self->deleteSession($othersession);
 
