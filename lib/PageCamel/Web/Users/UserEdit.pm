@@ -1,4 +1,4 @@
-package PageCamel::Web::Users::Edit;
+package PageCamel::Web::Users::UserEdit;
 #---AUTOPRAGMASTART---
 use v5.38;
 use strict;
