@@ -456,7 +456,7 @@ sub get_login($self, $ua) {
         my $sth = $dbh->prepare_cached("SELECT username, email_addr,
                                        first_name, last_name, name_initials,
                                        (next_password_change < now() AND password_can_expire = true) as require_password_change,
-                                       company_name, user_id
+                                       organisation, user_id
                                        FROM users
                                 WHERE username = ?")
                     or croak($dbh->errstr);
@@ -471,7 +471,7 @@ sub get_login($self, $ua) {
             $user{first_name} = $line->{first_name};
             $user{last_name} = $line->{last_name};
             $user{name_initials} = $line->{name_initials};
-            $user{company} = $line->{company_name};
+            $user{organisation} = $line->{organisation};
             $user{user_id} = $line->{user_id};
             $user{require_password_change} = $line->{require_password_change};
             $user{keyfob_logout} = 0;
@@ -483,25 +483,19 @@ sub get_login($self, $ua) {
 
 
         my @dbRights;
-        my $rightssth = $dbh->prepare_cached("SELECT * FROM users_permissions
-                                             WHERE username = ?
-                                             AND has_access = true
-                                             ORDER BY permission_name")
-                or croak($dbh->errstr);
-        $rightssth->execute($user{username}) or croak($dbh->errstr);
-        while((my $right = $rightssth->fetchrow_hashref)) { ## no critic (NamingConventions::ProhibitAmbiguousNames)
+        my $rights = $ulh->getPermissionForUser($user{username}) or croak("Failed to read permissions");
+        foreach my $right (@{$rights}) { ## no critic (NamingConventions::ProhibitAmbiguousNames)
             my $restrict = 0;
             foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-                if(defined($ur->{restrict}) && $right->{permission_name} eq $ur->{db}) {
+                if(defined($ur->{restrict}) && $right eq $ur->{db}) {
                     $restrict = 1;
                     last;
                 }
             }
             if(!$restrict) {
-                push @dbRights, $right->{permission_name};
+                push @dbRights, $right;
             }
         }
-        $rightssth->finish;
         foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
             if(defined($ur->{restrict}) && contains($user{username}, $ur->{restrict})) {
                 push @dbRights, $ur->{db};
@@ -765,7 +759,7 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
 
     my $sth = $dbh->prepare_cached("SELECT username, email_addr,
                                    first_name, last_name, name_initials,
-                                   company_name, user_id
+                                   organisation, user_id
                                    FROM users
                             WHERE username = ?")
                 or croak($dbh->errstr);
@@ -780,7 +774,7 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
         $user{first_name} = $line->{first_name};
         $user{last_name} = $line->{last_name};
         $user{name_initials} = $line->{name_initials};
-        $user{company} = $line->{company_name};
+        $user{organisation} = $line->{organisation};
         $user{user_id} = $line->{user_id};
         #$user{require_password_change} = 0; # NEVER force password change
         last;
@@ -796,25 +790,19 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
     $user{keyfob_id} = $keyfobid;
 
     my @dbRights;
-    my $rightssth = $dbh->prepare_cached("SELECT * FROM users_permissions
-                                         WHERE username = ?
-                                         AND has_access = true
-                                         ORDER BY permission_name")
-            or croak($dbh->errstr);
-    $rightssth->execute($user{username}) or croak($dbh->errstr);
-    while((my $right = $rightssth->fetchrow_hashref)) {  ## no critic (NamingConventions::ProhibitAmbiguousNames)
+    my $rights = $ulh->getPermissionForUser($user{username}) or croak("Failed to read permissions");
+    foreach my $right (@{$rights}) {
         my $restrict = 0;
         foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-            if(defined($ur->{restrict}) && $right->{permission_name} eq $ur->{db}) {
+            if(defined($ur->{restrict}) && $right eq $ur->{db}) {
                 $restrict = 1;
                 last;
             }
         }
         if(!$restrict) {
-            push @dbRights, $right->{permission_name};
+            push @dbRights, $right;
         }
     }
-    $rightssth->finish;
     foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
         if(defined($ur->{restrict}) && contains($user{username}, $ur->{restrict})) {
             push @dbRights, $ur->{db};
@@ -925,7 +913,7 @@ sub adminSwitchToUser($self, $username, $ua) {
         last_name => $user->{last_name},
         name_initials => $user->{name_initials},
         email_addr => $user->{email_addr},
-        company => $user->{company},
+        organisation => $user->{organisation},
         user_id => $user->{user_id},
         rights => \@realrights,
     );
@@ -935,7 +923,7 @@ sub adminSwitchToUser($self, $username, $ua) {
 
     my $sth = $dbh->prepare_cached("SELECT username, email_addr,
                                    first_name, last_name, name_initials,
-                                   company_name, user_id
+                                   organisation, user_id
                                    FROM users
                             WHERE username = ?")
                 or croak($dbh->errstr);
@@ -949,7 +937,7 @@ sub adminSwitchToUser($self, $username, $ua) {
         $user->{first_name} = $line->{first_name};
         $user->{last_name} = $line->{last_name};
         $user->{name_initials} = $line->{name_initials};
-        $user->{company} = $line->{company_name};
+        $user->{organisation} = $line->{organisation};
         $user->{user_id} = $line->{user_id};
         $user->{require_password_change} = 0; # NEVER force password change
         last;
@@ -959,25 +947,19 @@ sub adminSwitchToUser($self, $username, $ua) {
     $sth->finish;
 
     my @dbRights;
-    my $rightssth = $dbh->prepare_cached("SELECT * FROM users_permissions
-                                         WHERE username = ?
-                                         AND has_access = true
-                                         ORDER BY permission_name")
-            or croak($dbh->errstr);
-    $rightssth->execute($user->{username}) or croak($dbh->errstr);
-    while((my $right = $rightssth->fetchrow_hashref)) {  ## no critic (NamingConventions::ProhibitAmbiguousNames)
+    my $rights = $ulh->getPermissionForUser($user->{username}) or croak("Failed to read permissions");
+    foreach my $right (@{$rights}) {
         my $restrict = 0;
         foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-            if(defined($ur->{restrict}) && $right->{permission_name} eq $ur->{db}) {
+            if(defined($ur->{restrict}) && $right eq $ur->{db}) {
                 $restrict = 1;
                 last;
             }
         }
         if(!$restrict) {
-            push @dbRights, $right->{permission_name};
+            push @dbRights, $right;
         }
     }
-    $rightssth->finish;
     foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
         if(defined($ur->{restrict}) && contains($user->{username}, $ur->{restrict})) {
             push @dbRights, $ur->{db};
@@ -1034,7 +1016,7 @@ sub adminSwitchFromUser($self, $ua) {
     $user->{last_name} = $user->{realuser}->{last_name};
     $user->{name_initials} = $user->{realuser}->{name_initials};
     $user->{email_addr} = $user->{realuser}->{email_addr};
-    $user->{company} = $user->{realuser}->{company};
+    $user->{organisation} = $user->{realuser}->{organisation};
     $user->{user_id} = $user->{realuser}->{user_id};
     $user->{keyfob_logout} = $user->{realuser}->{keyfob_logout};
     $user->{keyfob_id} = $user->{realuser}->{keyfob_id};
@@ -1173,7 +1155,7 @@ sub prefilter($self, $ua) {
                                first_name    =>    $user->{first_name},
                                last_name    =>    $user->{last_name},
                                name_initials    =>    $user->{name_initials},
-                               company      =>  $user->{company},
+                               organisation      =>  $user->{organisation},
                                user_id      =>  $user->{user_id},
                                html5        => $user->{html5},
                                rights       => $user->{rights},
@@ -1329,22 +1311,15 @@ sub do_basic_auth($self, $ua, $realm) {
         );
     }
 
-    my $selsth = $dbh->prepare_cached("SELECT count(*) FROM users_permissions
-                                       WHERE username = ?
-                                       AND permission_name = ?
-                                       AND has_access = true")
-            or croak($dbh->errstr);
-    if(!$selsth->execute($dynuser, $requiredpermission)) {
+    my $rights = $ulh->getPermissionForUser($dynuser);
+    if(!defined($rights)) {
         $dbh->rollback;
         return (status => 500,
                 statustext => 'Internal Server Error (DB)',
         );
     }
-    my ($count) = $selsth->fetchrow_array;
-    $selsth->finish;
-    $dbh->rollback;
 
-    if($count) {
+    if(contains($requiredpermission, $rights)) {
         $permok = 1;
     }
 

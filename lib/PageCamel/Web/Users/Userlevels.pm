@@ -28,6 +28,18 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    my $ok = 1;
+    foreach my $required (qw[db memcache reporting views]) {
+        if(!defined($self->{$required})) {
+            print STDERR $self->{modname} . " requires config option " . $required . "\n";
+            $ok = 0;
+        }
+    }
+
+    if(!$ok) {
+        croak("Configuration errors in ", $self->{modname});
+    }
+
     return $self;
 }
 
@@ -101,6 +113,106 @@ sub finalcheck($self) {
     return;
 }
 
+sub getPermissionForUser($self, $username) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my @permissions;
+
+    my $selsth = $dbh->prepare_cached("SELECT pe.* FROM pagecamel.permissiongroupentries pe
+                                        INNER JOIN pagecamel.users_permissiongroups up ON pe.groupname = up.groupname
+                                        WHERE up.username = ?
+                                        ORDER BY pe.permission_name")
+            or croak($dbh->errstr);
+    
+    if(!$selsth->execute($username)) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return;
+    }
+
+    my @subpermissions;
+    my @selectives;
+    while((my $line = $selsth->fetchrow_hashref)) {
+        if($line->{permission_name} =~ /\//) {
+            push @subpermissions, $line;
+            next;
+        }
+
+        if($line->{subpermissions} eq 'NONE') {
+            next;
+        }
+
+        if($line->{subpermissions} eq 'SELECTIVE') {
+            push @selectives, $line->{permission_name};
+            next;
+        }
+
+        push @permissions, $line->{permission_name};
+    }
+
+    $selsth->finish;
+    $dbh->commit;
+
+    foreach my $subpermission (@subpermissions) {
+        my ($rootname, $pname) = split/\//, $subpermission->{permission_name}, 2;
+
+        # Permissions where the master is "ALL" ignore their own settings
+        if(contains($rootname, \@permissions)) {
+            push @permissions, $subpermission->{permission_name};
+        }
+
+        # Now handle permissions where the master is "SELECTIVE", these need to check first if they are themselves enabled
+        if($subpermission->{subpermissions} ne 'ALL') {
+            next;
+        }
+
+        if(contains($rootname, \@selectives)) {
+            push @permissions, $subpermission->{permission_name};
+        }
+    }
+
+    return \@permissions;
+
+}
+
+sub getUsersForPermission($self, $permission, $negate = 0) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    $negate = !!$negate;
+
+
+    my @usernames;
+
+    my @users;
+    my $selsth = $dbh->prepare_cached("SELECT username FROM users")
+            or croak($dbh->errstr);
+    if(!$selsth->execute) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return;
+    }
+
+    while((my $line = $selsth->fetchrow_hashref)) {
+        push @users, $line->{username};
+    }
+    $selsth->finish;
+    $dbh->commit;
+
+    foreach my $user (@users) {
+        my $permissions = $self->getPermissionForUser($user);
+        if(!defined($permissions)) {
+            return;
+        }
+        my $has = !!contains($permission, $permissions);
+        if($has != $negate) {
+            push @usernames, $user;
+        }
+    }
+
+    return \@usernames;
+}
 
 1;
 __END__

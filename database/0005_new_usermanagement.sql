@@ -52,13 +52,27 @@ WITH (
   OIDS=FALSE
 );
 
+CREATE TABLE pagecamel.enum_permissions_tristate (
+    enumvalue text NOT NULL,
+    description text NOT NULL DEFAULT '',
+    CONSTRAINT enum_permissions_tristate_pk PRIMARY KEY(enumvalue)
+)
+WITH (
+  OIDS=FALSE
+);
+
+INSERT INTO pagecamel.enum_permissions_tristate(enumvalue, description) VALUES ('NONE', 'Includes no subpermissions');
+INSERT INTO pagecamel.enum_permissions_tristate(enumvalue, description) VALUES ('ALL', 'Includes all subpermissions');
+INSERT INTO pagecamel.enum_permissions_tristate(enumvalue, description) VALUES ('SELECTIVE', 'Includes all subpermissions');
+
 
 CREATE TABLE pagecamel.permissiongroupentries (
     groupname text NOT NULL,
     permission_name text NOT NULL,
-    includes_subpermissions boolean NOT NULL DEFAULT true,
+    subpermissions text NOT NULL,
     CONSTRAINT permissiongroupentries_pk PRIMARY KEY (groupname, permission_name),
-    CONSTRAINT permissiongroupentries_fk1 FOREIGN KEY (groupname) REFERENCES pagecamel.permissiongroups(groupname) ON UPDATE CASCADE ON DELETE CASCADE
+    CONSTRAINT permissiongroupentries_fk1 FOREIGN KEY (groupname) REFERENCES pagecamel.permissiongroups(groupname) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT permissiongroupentries_fk2 FOREIGN KEY (subpermissions) REFERENCES pagecamel.enum_permissions_tristate(enumvalue) ON UPDATE CASCADE ON DELETE RESTRICT
 )
 WITH (
   OIDS=FALSE
@@ -79,8 +93,6 @@ CREATE OR REPLACE FUNCTION pagecamel._migrate_permissions() RETURNS void AS $$
     use strict;
 
     elog(INFO, 'Converting user permissions to permission groups');
-
-    #my $logsth = spi_prepare("SELECT pos.logfinancial(\$1, \$2, \$3, \$4, \$5, \$6)", 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT');
 
     my %userpermissions;
 
@@ -113,7 +125,7 @@ CREATE OR REPLACE FUNCTION pagecamel._migrate_permissions() RETURNS void AS $$
     {
         my $cnt = 1;
         my $namesth = spi_prepare("INSERT INTO pagecamel.permissiongroups(groupname, description) VALUES(\$1, \$2)", 'TEXT', 'TEXT');
-        my $entrysth = spi_prepare("INSERT INTO pagecamel.permissiongroupentries(groupname, permission_name) VALUES (\$1, \$2)", 'TEXT', 'TEXT');
+        my $entrysth = spi_prepare("INSERT INTO pagecamel.permissiongroupentries(groupname, permission_name, subpermissions) VALUES (\$1, \$2, 'ALL')", 'TEXT', 'TEXT');
         my $usersth = spi_prepare("INSERT INTO pagecamel.users_permissiongroups(username, groupname) VALUES (\$1, \$2)", 'TEXT', 'TEXT');
 
         foreach my $grouphash (keys %groups) {
