@@ -43,6 +43,15 @@ sub new($proto, %config) {
     return $self;
 }
 
+sub register_userlevel($self, $userlevel, $display) {
+    my %ul = (
+        display => $display,
+        db => $userlevel,
+        internal => "1",
+    );
+    push @{$self->{userlevels}->{userlevel}}, \%ul;
+}
+
 sub finalcheck($self) {
 
     # Check which webpaths are under restricted paths and print some stats
@@ -74,6 +83,8 @@ sub finalcheck($self) {
         
     }
     $levelcount{UNKNOWN} = 0;
+
+    $self->updateDBPermissions();
 
     #print "** Normal webpaths:\n";
     my $paths = $self->{server}->get_webpaths;
@@ -110,6 +121,83 @@ sub finalcheck($self) {
 
     #print "    ---  path statistics END  ---\n";
 
+    return;
+}
+
+sub updateDBPermissions($self) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my @perms;
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        push @perms, $level->{db};
+    }
+    @perms = sort @perms;
+
+    my $gselsth = $dbh->prepare("SELECT groupname FROM pagecamel.permissiongroups
+                                ORDER BY groupname")
+            or croak($dbh->errstr);
+
+    my $eselsth = $dbh->prepare("SELECT permission_name FROM pagecamel.permissiongroupentries
+                                 WHERE groupname = ?")
+            or croak($dbh->errstr);
+
+    my $inssth = $dbh->prepare("INSERT INTO pagecamel.permissiongroupentries (groupname, permission_name, subpermissions) 
+                                VALUES (?, ?, 'NONE')")
+            or croak($dbh->errstr);
+
+    my $delsth = $dbh->prepare("DELETE FROM pagecamel.permissiongroupentries
+                                WHERE groupname = ? AND permission_name = ?")
+            or croak($dbh->errstr);
+
+    if(!$gselsth->execute) {
+        croak($dbh->errstr);
+    }
+
+    my @groups;
+    while((my $line = $gselsth->fetchrow_hashref)) {
+        push @groups, $line->{groupname};
+    }
+    $gselsth->finish;
+
+    foreach my $group (@groups) {
+        if(!$eselsth->execute($group)) {
+            croak($dbh->errstr);
+        }
+        my @gperms;
+        while((my $line = $eselsth->fetchrow_hashref)) {
+            push @gperms, $line->{permission_name};
+        }
+        $eselsth->finish;
+
+        # Check for missing entries
+        foreach my $perm (@perms) {
+            if(contains($perm, \@gperms)) {
+                next;
+            }
+
+            $reph->debuglog("Adding new permission ", $perm, " for permission group ", $group);
+            if(!$inssth->execute($group, $perm)) {
+                croak($dbh->errstr);
+            }
+        }
+
+        # Check for stale entries that are no longer in the config
+        foreach my $perm (@gperms) {
+            if(contains($perm, \@perms)) {
+                next;
+            }
+
+            $reph->debuglog("Removing stale permission ", $perm, " from permission group ", $group);
+            if(!$delsth->execute($group, $perm)) {
+                croak($dbh->errstr);
+            }
+        }
+    }
+
+    #croak("BLA");
+
+    $dbh->commit;
     return;
 }
 
