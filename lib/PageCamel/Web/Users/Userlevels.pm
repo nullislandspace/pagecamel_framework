@@ -36,6 +36,12 @@ sub new($proto, %config) {
         }
     }
 
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        if(defined($level->{path})) {
+            push @{$level->{webpaths}}, $level->{path};
+        }
+    }
+
     if(!$ok) {
         croak("Configuration errors in ", $self->{modname});
     }
@@ -44,13 +50,75 @@ sub new($proto, %config) {
 }
 
 sub register_userlevel($self, $userlevel, $display) {
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        if($level->{db} eq $userlevel) {
+            croak("Userlevel $userlevel is already registered");
+        }
+    }
+
     my %ul = (
         display => $display,
         db => $userlevel,
         internal => "1",
     );
+
+    # check if the root level of this userlevel has a "restrict" section and copy it to the sublevel
+    if($userlevel =~ /\//) {
+        my ($rootlevel, undef) = split/\//, $userlevel, 2;
+        foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+            if($level->{db} eq $rootlevel && defined($level->{restrict})) {
+                #print STDERR "Copy restrict ", $level->{restrict}, " from $rootlevel to $userlevel\n";
+                $ul{restrict} = $level->{restrict};
+                last;
+            }
+        }
+    }
+
     push @{$self->{userlevels}->{userlevel}}, \%ul;
+
+    return;
 }
+
+sub register_webpath($self, $userlevel, $webpath) {
+    my $ok = 0;
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        if($level->{db} eq $userlevel) {
+            push @{$level->{webpaths}}, $webpath;
+            $ok = 1;
+            last;
+        }
+    }
+
+    if(!$ok) {
+        croak("Tried to register webpath $webpath but userlevel $userlevel is not registered");
+    }
+
+    return;
+}
+
+sub checkAccess($self, $uri, $permissions) {
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        next unless(defined($level->{db}));
+        next unless(defined($level->{webpaths}));
+
+        foreach my $webpath (@{$level->{webpaths}}) {
+            my $subpath = substr $uri, 0, length($webpath);
+            if($subpath eq $webpath) {
+                if(!contains($level->{db}, $permissions)) {
+                    return 0;
+                }
+            }
+        }
+    }
+
+    return 1;
+}
+
+sub checkAccessForUser($self, $uri, $username) {
+    my $permissions = getPermissionForUser($username);
+    return $self->checkAccess($uri, $permissions);
+}
+
 
 sub finalcheck($self) {
 
@@ -205,6 +273,15 @@ sub getPermissionForUser($self, $username) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
+    my @restricted;
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        next unless(defined($level->{restrict}));
+
+        if(!contains($username, $level->{restrict})) {
+            push @restricted, $level->{db};
+        }
+    }
+
     my @permissions;
 
     my $selsth = $dbh->prepare_cached("SELECT pe.* FROM pagecamel.permissiongroupentries pe
@@ -222,6 +299,11 @@ sub getPermissionForUser($self, $username) {
     my @subpermissions;
     my @selectives;
     while((my $line = $selsth->fetchrow_hashref)) {
+        if(contains($line->{permission_name}, \@restricted)) {
+            # Ignore permissions that user has been restricted from, regardless of values in the database
+            next;
+        }
+
         if($line->{permission_name} =~ /\//) {
             push @subpermissions, $line;
             next;
@@ -259,6 +341,10 @@ sub getPermissionForUser($self, $username) {
             push @permissions, $subpermission->{permission_name};
         }
     }
+
+    push @permissions, @selectives;
+
+    #print STDERR Dumper(\@permissions);
 
     return \@permissions;
 

@@ -146,6 +146,9 @@ sub iterateCheckViews($self, $checkview, $dblevel = '') {
             if(!defined($menu->{aliasfor})) {
                 $ulh->register_userlevel($menu->{permission}, $menu->{display});
             }
+            if(defined($menu->{url})) {
+                $ulh->register_webpath($menu->{permission}, $menu->{url});
+            }
         }
 
         if(!$startpageok) {
@@ -201,6 +204,11 @@ sub getstarturl($self, $rights) {
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
 
     foreach my $ul (@{$ulh->{userlevels}->{userlevel}}) {
+        if($ul->{db} =~ /\//) {
+            # Starturls (via "defaultview") can only be defined on root-level permissions
+            next;
+        }
+
         next if(!contains($ul->{db}, $rights));
 
         next if(!defined($ul->{path}) || !defined($ul->{defaultview}));
@@ -251,6 +259,8 @@ sub get_late_defaultwebdata($self, $webdata) {
         my @dropdownmenu;
         my @activeview;
 
+        #print STDERR Dumper($self->{views}->{view}), "\n";
+
         $self->iterateViews($webdata, \@dropdownmenu, \@activeview, \@rights, $activeURL, $self->{views}->{view});
 
         $webdata->{DropDownMenu} = \@dropdownmenu;
@@ -293,6 +303,7 @@ sub iterateViews($self, $webdata, $dropdownmenu, $activeview, $rights, $activeUR
         my $defaultpath = '';
         foreach my $menu (@{$view->{menu}}) {
             next if(defined($menu->{aliasfor}));
+            next if(!contains($menu->{permission}, $rights));
             my %item = (
                 title   => $menu->{display},
                 path    => $menu->{url},
@@ -321,6 +332,7 @@ sub iterateViews($self, $webdata, $dropdownmenu, $activeview, $rights, $activeUR
             # Ok, found active view, generate quicknav bar
             foreach my $menu (@{$view->{menu}}) {
                 next if(defined($menu->{aliasfor}));
+                next if(!contains($menu->{permission}, $rights));
                 my %item = (
                     title   => $menu->{display},
                     path    => $menu->{url},

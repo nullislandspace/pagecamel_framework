@@ -90,7 +90,7 @@ sub register($self) {
     $self->register_webpath($self->{logout}->{webpath}, "get_logout");
     $self->register_webpath($self->{sessionrefresh}->{webpath}, "get_sessionrefresh", 'GET', 'POST');
     $self->register_logstart("preauthcleanup");
-    $self->register_authcheck("prefilter");
+    $self->register_authcheck("authcheck");
     $self->register_postfilter("postfilter");
     $self->register_defaultwebdata("get_defaultwebdata");
 
@@ -482,26 +482,8 @@ sub get_login($self, $ua) {
         $user{html5} = \%html5;
 
 
-        my @dbRights;
         my $rights = $ulh->getPermissionForUser($user{username}) or croak("Failed to read permissions");
-        foreach my $right (@{$rights}) { ## no critic (NamingConventions::ProhibitAmbiguousNames)
-            my $restrict = 0;
-            foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-                if(defined($ur->{restrict}) && $right eq $ur->{db}) {
-                    $restrict = 1;
-                    last;
-                }
-            }
-            if(!$restrict) {
-                push @dbRights, $right;
-            }
-        }
-        foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-            if(defined($ur->{restrict}) && contains($user{username}, $ur->{restrict})) {
-                push @dbRights, $ur->{db};
-            }
-        }
-        $user{rights} = \@dbRights;
+        $user{rights} = $rights;
 
         my $upsth = $dbh->prepare_cached("UPDATE users
                                          SET last_login_time = now(),
@@ -513,11 +495,11 @@ sub get_login($self, $ua) {
         $dbh->commit;
 
         my $hasDeveloper = 0;
-        if(contains('has_developer', \@dbRights)) {
+        if(contains('has_developer', $rights)) {
             $hasDeveloper = 1;
         }
         my $hasAdmin = 0;
-        if(contains('has_admin', \@dbRights)) {
+        if(contains('has_admin', $rights)) {
             $hasAdmin = 1;
         }
 
@@ -540,9 +522,9 @@ sub get_login($self, $ua) {
 
         if($user{require_password_change}) {
             $user{startpage} = $self->{pwchange};
-            $user{realstartpage} = $viewh->getstarturl(\@dbRights);
+            $user{realstartpage} = $viewh->getstarturl($rights);
         } else {
-            $user{startpage} = $viewh->getstarturl(\@dbRights);
+            $user{startpage} = $viewh->getstarturl($rights);
             $user{realstartpage} = $user{startpage};
         }
 
@@ -1050,7 +1032,7 @@ sub preauthcleanup($self, $ua) {
     return;
 }
 
-sub prefilter($self, $ua) {
+sub authcheck($self, $ua) {
 
     my $webpath = $ua->{url};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -1126,18 +1108,15 @@ sub prefilter($self, $ua) {
         if(defined($user)) {
             # Check if the user tries to open something he's not allowed to
             if(!$self->{isPublicUrl}) {
-                foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-                    next if(!defined($ur->{path}));
-                    my $checkpath = "^" .  $ur->{path};
-                    if(($webpath =~ /$checkpath/ && !contains($ur->{db}, $user->{rights}))) {
-                        return (status      => 303,
-                                location    => $self->{login}->{webpath},
-                                type        => "text/html",
-                                data         => "<html><body><h1>Please login.</h1><br>" .
-                                                "If you are not automatically redirected, click " .
-                                                "<a href=\"" . $self->{login}->{webpath} . "\">here</a>.</body></html>",
-                                );
-                    }
+                my $hasAccess = $ulh->checkAccess($webpath, $user->{rights});
+                if(!$hasAccess) {
+                    return (status      => 403,
+                            location    => $self->{login}->{webpath},
+                            type        => "text/html",
+                            data         => "<html><body><h1>Permission denied.</h1><br>" .
+                                            "If you are not automatically redirected, click " .
+                                            "<a href=\"" . $self->{login}->{webpath} . "\">here</a>.</body></html>",
+                            );
                 }
             }
             $self->{cookie} = $self->create_cookie($ua,
@@ -1293,35 +1272,9 @@ sub do_basic_auth($self, $ua, $realm) {
     }
 
     # Now check if the user has permissions for this path
-    my $permok = 0;
     my $webpath = $ua->{url};
-    my $requiredpermission = '';
-    foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-        next if(!defined($ur->{path}));
-        my $checkpath = "^" .  $ur->{path};
-        if($webpath =~ /$checkpath/) {
-            $requiredpermission = $ur->{db};
-            last;
-        }
-    }
-
-    if($requiredpermission eq '') {
-        return (status => 500,
-                statustext => 'Internal Server Error (Permission Snafu)',
-        );
-    }
-
-    my $rights = $ulh->getPermissionForUser($dynuser);
-    if(!defined($rights)) {
-        $dbh->rollback;
-        return (status => 500,
-                statustext => 'Internal Server Error (DB)',
-        );
-    }
-
-    if(contains($requiredpermission, $rights)) {
-        $permok = 1;
-    }
+    
+    my $permok = $ulh->checkAccessForUser($webpath, $dynuser);
 
     if(!$permok) {
         return $self->genBasicAuthRequest($realm);
