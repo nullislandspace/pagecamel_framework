@@ -50,16 +50,16 @@
                     </td>
                 </tr>
                 <tr>
-                    <td align="right">[% tr.trquote(CompanyLabel) %]</td>
+                    <td align="right">[% tr.trquote("Organisation") %]</td>
                     <td align="left">            
-                        <select name="company_name" searchable="1">
-                            [% FOREACH company IN companies %]
-                                <option value="[% company.company_name %]"
-                                [% IF company.company_name == company_name %]
+                        <select name="organisation_name" searchable="1">
+                            [% FOREACH organisation IN organisations %]
+                                <option value="[% organisation.organisation_name %]"
+                                [% IF organisation.organisation_name == organisation_name %]
                                     selected="selected"
                                 [% END %]
                                 >
-                                    [% company.company_name %] : [% company.description %]
+                                    [% organisation.organisation_name %] : [% organisation.description %]
                                 </option>
                             [% END %]
                         </select>
@@ -114,11 +114,11 @@
                         <input type="text" name="email_addr" id="email_addr_id" size="40" maxlength="60" value="[% tr.quote(email_addr) %]" oninput="checkEmailAddress(); return false;">
                     </td>
                 </tr>
-                [% FOREACH UserLevel IN UserLevels %]
+                [% FOREACH Group IN Groups %]
                     <tr>
-                        <td align="right">[% tr.trquote(UserLevel.display) %]</td>
-                        <td><input type="checkbox" name="right_[% UserLevel.db %]"
-                                    [% IF UserLevel.val == "1" %]
+                        <td align="right">[% tr.quote(Group.groupname) %]</td>
+                        <td><input type="checkbox" name="right_[% Group.groupname %]"
+                                    [% IF Group.has_access == "1" %]
                                     checked
                                     [% END %]
                                 ></td>
