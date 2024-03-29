@@ -318,7 +318,9 @@ sub getPermissionForUser($self, $username) {
             next;
         }
 
-        push @permissions, $line->{permission_name};
+        if(!contains($line->{permission_name}, \@permissions)) {
+            push @permissions, $line->{permission_name};
+        }
     }
 
     $selsth->finish;
@@ -337,14 +339,18 @@ sub getPermissionForUser($self, $username) {
             next;
         }
 
-        if(contains($rootname, \@selectives)) {
+        if(contains($rootname, \@selectives) && !contains($subpermission->{permission_name}, \@permissions)) {
             push @permissions, $subpermission->{permission_name};
         }
     }
 
-    push @permissions, @selectives;
+    foreach my $selective (@selectives) {
+        if(!contains($selective, \@permissions)) {
+            push @permissions, $selective;
+        }
+    }
 
-    #print STDERR Dumper(\@permissions);
+    print STDERR Dumper(\@permissions);
 
     return \@permissions;
 
