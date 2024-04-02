@@ -42,15 +42,15 @@ sub register($self) {
     return;
 }
 
-sub reload($self) {
-
+sub crossregister($self) {
 
     $self->iterateCheckViews($self->{views}->{view});
 
     return;
 }
 
-sub iterateCheckViews($self, $checkview) {
+sub iterateCheckViews($self, $checkview, $dblevel = '') {
+    my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
 
     foreach my $view (@{$checkview}) {
         my $ok = 1;
@@ -64,16 +64,25 @@ sub iterateCheckViews($self, $checkview) {
 
         if(defined($view->{type}) && $view->{type} eq 'submenu') {
             # This is a submenu, need to recursively check it
-            $self->iterateCheckViews($view->{view});
+            $self->iterateCheckViews($view->{view}, $view->{level});
             next;
         }
 
-        foreach my $required (qw[startpage level]) {
+        foreach my $required (qw[startpage]) {
             if(!defined($view->{$required})) {
                 print STDERR "View does not define property $required!\n";
                 $ok = 0;
             }
         }
+
+        if($dblevel eq '' && !defined($view->{level})) {
+            print STDERR "Root view ", $view->{display}, " MUST define a level\n";
+            $ok = 0;
+        } elsif($dblevel ne '' && defined($view->{level})) {
+            print STDERR "Sub-Menu ", $view->{display}, " MUST NOT define a level\n";
+            $ok = 0;
+        }
+
         croak("Config errors detected!") unless $ok;
 
         #print "    view ", $view->{display}, "\n";
@@ -119,6 +128,27 @@ sub iterateCheckViews($self, $checkview) {
                 $self->{aliases}->{$menu->{url}} = $menu->{aliasurl};
             }
 
+            my $basepermission;
+            if($dblevel ne '') {
+                $basepermission = $dblevel;
+            } else {
+                $basepermission = $view->{level};
+            }
+            my $path;
+            if(defined($menu->{aliasfor})) {
+                $path = $menu->{aliasfor};
+            } else {
+                $path = $menu->{path};
+            }
+            $path =~ s/\/$//g;
+            $path =~ s/\//_/g;
+            $menu->{permission} = $basepermission . '/' . $path;
+            if(!defined($menu->{aliasfor})) {
+                $ulh->register_userlevel($menu->{permission}, $menu->{display});
+            }
+            if(defined($menu->{url})) {
+                $ulh->register_webpath($menu->{permission}, $menu->{url});
+            }
         }
 
         if(!$startpageok) {
@@ -174,6 +204,11 @@ sub getstarturl($self, $rights) {
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
 
     foreach my $ul (@{$ulh->{userlevels}->{userlevel}}) {
+        if($ul->{db} =~ /\//) {
+            # Starturls (via "defaultview") can only be defined on root-level permissions
+            next;
+        }
+
         next if(!contains($ul->{db}, $rights));
 
         next if(!defined($ul->{path}) || !defined($ul->{defaultview}));
@@ -224,6 +259,8 @@ sub get_late_defaultwebdata($self, $webdata) {
         my @dropdownmenu;
         my @activeview;
 
+        #print STDERR Dumper($self->{views}->{view}), "\n";
+
         $self->iterateViews($webdata, \@dropdownmenu, \@activeview, \@rights, $activeURL, $self->{views}->{view});
 
         $webdata->{DropDownMenu} = \@dropdownmenu;
@@ -266,6 +303,7 @@ sub iterateViews($self, $webdata, $dropdownmenu, $activeview, $rights, $activeUR
         my $defaultpath = '';
         foreach my $menu (@{$view->{menu}}) {
             next if(defined($menu->{aliasfor}));
+            next if(!contains($menu->{permission}, $rights));
             my %item = (
                 title   => $menu->{display},
                 path    => $menu->{url},
@@ -294,6 +332,7 @@ sub iterateViews($self, $webdata, $dropdownmenu, $activeview, $rights, $activeUR
             # Ok, found active view, generate quicknav bar
             foreach my $menu (@{$view->{menu}}) {
                 next if(defined($menu->{aliasfor}));
+                next if(!contains($menu->{permission}, $rights));
                 my %item = (
                     title   => $menu->{display},
                     path    => $menu->{url},
