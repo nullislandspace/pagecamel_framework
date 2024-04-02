@@ -88,6 +88,7 @@ use PageCamel::Worker::SerialCommands;
 use PageCamel::Worker::SystemSettings;
 use PageCamel::Worker::TableStatistics;
 use PageCamel::Worker::TemplateCache;
+use PageCamel::Worker::Userlevels;
 use PageCamel::Worker::Wansview::Stream;
 #=!=END-AUTO-INCLUDES
 

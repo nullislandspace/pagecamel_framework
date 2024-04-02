@@ -75,6 +75,7 @@ lib/PageCamel/Helpers/TestData.pm
 lib/PageCamel/Helpers/Translator.pm
 lib/PageCamel/Helpers/URI.pm
 lib/PageCamel/Helpers/UserAgent.pm
+lib/PageCamel/Helpers/Userlevels.pm
 lib/PageCamel/Helpers/UTF.pm
 lib/PageCamel/Helpers/VoiceClient.pm
 lib/PageCamel/Helpers/WebCommandQueue.pm
@@ -3057,6 +3058,7 @@ lib/PageCamel/Worker/SerialCommands.pm
 lib/PageCamel/Worker/SystemSettings.pm
 lib/PageCamel/Worker/TableStatistics.pm
 lib/PageCamel/Worker/TemplateCache.pm
+lib/PageCamel/Worker/Userlevels.pm
 lib/PageCamel/Worker/Wansview/Stream.pm
 LICENSE
 Makefile.PL
