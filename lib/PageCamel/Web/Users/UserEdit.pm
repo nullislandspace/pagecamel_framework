@@ -1,4 +1,4 @@
-package PageCamel::Web::Users::Edit;
+package PageCamel::Web::Users::UserEdit;
 #---AUTOPRAGMASTART---
 use v5.38;
 use strict;
@@ -28,9 +28,9 @@ sub register($self) {
     
     my $ok = 1;
     # Required settings
-    foreach my $key (qw[systemsettings]) {
+    foreach my $key (qw[systemsettings db reporting]) {
         if(!defined($self->{$key})) {
-            print STDERR "Edit.pm: Setting $key is required but not set!\n";
+            print STDERR "UserEdit.pm: Setting $key is required but not set!\n";
             $ok = 0;
         }
     }
@@ -104,7 +104,6 @@ sub get_edit($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
-    my $ulh = $self->{server}->{modules}->{userlevels};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -131,16 +130,11 @@ sub get_edit($self, $ua) {
         PageTitle   =>  $self->{edit}->{pagetitle},
         webpath     =>  $self->{edit}->{webpath},
         PostLink    =>  $self->{edit}->{webpath},
-        CompanyLabel => "Company",
         showads => $self->{showads},
     );
     
-    if(defined($self->{usegroupsinsteadcompanies}) && $self->{usegroupsinsteadcompanies}) {
-        $webdata{CompanyLabel} = "Group";
-    }
-    
     # Prepare empty user structure
-    foreach my $fieldname (qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials company_name hardware_fob]) {
+    foreach my $fieldname (qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name hardware_fob]) {
         $webdata{$fieldname} = "";
     }
     
@@ -155,20 +149,24 @@ sub get_edit($self, $ua) {
         }
     }
 
-    my @rights;
-    my @rightcols;
-    foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-        if(defined($ur->{restrict})) {
-            next;
-        }
-        my %right; ## no critic (NamingConventions::ProhibitAmbiguousNames)
-        $right{display} = $ur->{display};
-        $right{db} = $ur->{db};
-        $right{val} = 0;
-        push @rightcols, $ur->{db};
-        push @rights, \%right;
+    my $gselsth = $dbh->prepare_cached("SELECT * FROM pagecamel.permissiongroups
+                                        ORDER BY groupname")
+            or croak($dbh->errstr);
+
+    if(!$gselsth->execute) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return (status => 500);
     }
-    $webdata{UserLevels} = \@rights;
+
+    my @groups;
+    while((my $line = $gselsth->fetchrow_hashref)) {
+        $line->{has_access} = 0;
+        push @groups, $line;
+    }
+    $gselsth->finish;
+
+    $webdata{Groups} = \@groups;
 
     # First, try for the special "delete" checkbox when called from List
     my $username = $ua->{postparams}->{'username'} || '';
@@ -233,9 +231,13 @@ sub get_edit($self, $ua) {
             push @auditdata, "New password set";
         }
 
-        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name name_initials company_name password_can_expire hardware_fob]) {
+        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire hardware_fob]) {
+            my $dbfield = $fieldname;
+            if($dbfield eq 'organisation_name') {
+                $dbfield = 'organisation';
+            }
             my $upsth = $dbh->prepare_cached("UPDATE users
-                                             SET $fieldname = ?
+                                             SET $dbfield = ?
                                              WHERE username = ?")
                     or croak($dbh->errstr);
             my $fielddata = $ua->{postparams}->{$fieldname} || '';
@@ -275,31 +277,25 @@ sub get_edit($self, $ua) {
             }
         }
 
-        my $rdelsth = $dbh->prepare_cached("DELETE FROM users_permissions
+        my $rdelsth = $dbh->prepare_cached("DELETE FROM pagecamel.users_permissiongroups
                                            WHERE username = ?")
                 or croak($dbh->errstr);
         $rdelsth->execute($username) or croak($dbh->errstr);
 
-        foreach my $fieldname (@{$ulh->{userlevels}->{userlevel}}) {
-            if(defined($fieldname->{restrict})) {
-                next;
-            }
-            my $insth = $dbh->prepare_cached("INSERT INTO users_permissions (username, permission_name, has_access)
-                                             VALUES (?,?,?)")
+        foreach my $group (@groups) {
+            my $insth = $dbh->prepare_cached("INSERT INTO pagecamel.users_permissiongroups (username, groupname)
+                                             VALUES (?,?)")
                     or croak($dbh->errstr);
-            my $fielddata = $ua->{postparams}->{"right_" . $fieldname->{db}} || '0';
+            my $fielddata = $ua->{postparams}->{"right_" . $group->{groupname}} || '0';
             if($fielddata eq "1" || $fielddata eq "on") {
-                $fielddata = "true";
-            } else {
-                $fielddata = "false";
+                if(!$insth->execute($username, $group->{groupname})) {
+                    $dbh->rollback;
+                    $webdata{statustext} = "Can't update " . $group->{groupname} . "!";
+                    $webdata{statuscolor} = "errortext";
+                    goto reloaddata 
+                }
             }
-            if(!$insth->execute($username, $fieldname->{db}, $fielddata)) {
-                $dbh->rollback;
-                $webdata{statustext} = "Can't update $fieldname!";
-                $webdata{statuscolor} = "errortext";
-                goto reloaddata 
-            }
-            push @auditdata, "Permission " . $fieldname->{db} . ": $fielddata";
+            push @auditdata, "Group " . $group->{groupname};
         }
 
         $dbh->commit;
@@ -314,18 +310,18 @@ sub get_edit($self, $ua) {
         if($self->{forcelowercase}) {
             $username = lc $username;
         }
-        my $company = $ua->{postparams}->{'company_name'} || '';
+        my $organisation = $ua->{postparams}->{'organisation_name'} || '';
 
-        push @auditdata, "Company: $company";
+        push @auditdata, "Organisation: $organisation";
 
         goto reloaddata if($username eq '');
-        my $upnamesth = $dbh->prepare_cached("INSERT INTO users
-                                             (username, company_name)
+        my $innamesth = $dbh->prepare_cached("INSERT INTO users
+                                             (username, organisation)
                                              VALUES(?, ?)")
                 or croak($dbh->errstr);
-        if(!$upnamesth->execute($username, $company)) {
+        if(!$innamesth->execute($username, $organisation)) {
             $dbh->rollback;
-            $webdata{statustext} = "Can't update username!";
+            $webdata{statustext} = "Can't insert username!";
             $webdata{statuscolor} = "errortext";
             goto reloaddata 
         }
@@ -366,26 +362,21 @@ sub get_edit($self, $ua) {
             push @auditdata, "$fieldname: $fielddata";
         }
 
-        foreach my $fieldname (@{$ulh->{userlevels}->{userlevel}}) {
-            if(defined($fieldname->{restrict})) {
-                next;
-            }
-            my $insth = $dbh->prepare_cached("INSERT INTO users_permissions (username, permission_name, has_access)
-                                             VALUES (?,?,?)")
+        foreach my $group (@groups) {
+            my $insth = $dbh->prepare_cached("INSERT INTO pagecamel.users_permissiongroups (username, groupname)
+                                             VALUES (?,?)")
                     or croak($dbh->errstr);
-            my $fielddata = $ua->{postparams}->{"right_" . $fieldname->{db}} || '0';
+            my $fielddata = $ua->{postparams}->{"right_" . $group->{groupname}} || '0';
             if($fielddata eq "1" || $fielddata eq "on") {
                 $fielddata = "true";
-            } else {
-                $fielddata = "false";
+                if(!$insth->execute($username, $group->{groupname})) {
+                    $dbh->rollback;
+                    $webdata{statustext} = "Can't update " . $group->{groupname} . "!";
+                    $webdata{statuscolor} = "errortext";
+                    goto reloaddata 
+                }
             }
-            if(!$insth->execute($username, $fieldname->{db}, $fielddata)) {
-                $dbh->rollback;
-                $webdata{statustext} = "Can't update $fieldname!";
-                $webdata{statuscolor} = "errortext";
-                goto reloaddata 
-            }
-            push @auditdata, "Permission " . $fieldname->{db} . ": $fielddata";
+            push @auditdata, "Permission " . $group->{groupname};
         }
 
         $dbh->commit;
@@ -424,57 +415,51 @@ reloaddata:
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
         while((my $user = $selsth->fetchrow_hashref)) {
-            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name name_initials company_name password_can_expire force_password_change hardware_fob appkey]) {
-                $webdata{$fieldname} = $user->{$fieldname};
+            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire force_password_change hardware_fob appkey]) {
+                my $dbfield = $fieldname;
+                if($dbfield eq 'organisation_name') {
+                    $dbfield = 'organisation';
+                }
+                $webdata{$fieldname} = $user->{$dbfield};
             }
 
-            my $rightssth = $dbh->prepare_cached("SELECT * FROM users_permissions
+            my $rightssth = $dbh->prepare_cached("SELECT * FROM pagecamel.users_permissiongroups
                                                  WHERE username = ?")
                     or croak($dbh->errstr);
             my %dbrights;
             $rightssth->execute($username) or corak($dbh->errstr);
             while((my $rline = $rightssth->fetchrow_hashref)) {
-                $dbrights{$rline->{permission_name}} = $rline->{has_access};
+                foreach my $group (@groups) {
+                    if($group->{groupname} eq $rline->{groupname}) {
+                        $group->{has_access} = 1;
+                        last;
+                    }
+                }
             }
             $rightssth->finish;
 
-            @rights = ();
-            foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
-                if(defined($ur->{restrict})) {
-                    next;
-                }
-                my %right;  ## no critic (NamingConventions::ProhibitAmbiguousNames)
-                $right{display} = $ur->{display};
-                $right{db} = $ur->{db};
-                if(defined($dbrights{$ur->{db}})) {
-                    $right{val} = $dbrights{$ur->{db}};
-                } else {
-                    $right{val} = 0;
-                }
-                push @rightcols, $ur->{db};
-                push @rights, \%right;
-            }
-
-            last;
         }
         $selsth->finish;
         $webdata{oldusername} = $webdata{username};
     }
 
-    $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey});
-    $webdata{appqrcodeserver} = $ua->{headers}->{Host};
-    $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
-
-    my $compsth = $dbh->prepare_cached("SELECT * FROM company
-                                       ORDER BY company_name")
-            or croak($dbh->errstr);
-    my @companies;
-    $compsth->execute or croak($dbh->errstr);
-    while((my $company = $compsth->fetchrow_hashref)) {
-        push @companies,  $company;
+    if($mode eq 'edit') {
+        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey});
+        $webdata{appqrcodeserver} = $ua->{headers}->{Host};
+        $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
     }
-    $compsth->finish;
-    $webdata{companies} = \@companies;
+    $webdata{Groups} = \@groups;
+
+    my $orgasth = $dbh->prepare_cached("SELECT * FROM pagecamel.users_organisation
+                                       ORDER BY organisation_name")
+            or croak($dbh->errstr);
+    my @orgas;
+    $orgasth->execute or croak($dbh->errstr);
+    while((my $orga = $orgasth->fetchrow_hashref)) {
+        push @orgas,  $orga;
+    }
+    $orgasth->finish;
+    $webdata{organisations} = \@orgas;
 
     $dbh->rollback;
 
@@ -482,8 +467,8 @@ reloaddata:
         $mode = "create";
         $webdata{password_can_expire} = 1; # Default to expiring passwords
         $webdata{force_password_change} = 1; # Default to expiring passwords
-        if(defined($self->{default_company})) {
-            $webdata{company_name} = $self->{default_company};
+        if(defined($self->{default_organisation})) {
+            $webdata{organisation_name} = $self->{default_organisation};
         }
     }
     $webdata{mode} = $mode;

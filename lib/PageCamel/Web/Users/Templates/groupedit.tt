@@ -1,0 +1,136 @@
+[% dialog.modechangeform(name => "confirmDeleteGroup",
+                        title => "Delete Group",
+                        text => "Do you really want to delete this group?",
+                        icon => "alert",
+                        confirm => "Delete",
+                        cancel => "Cancel",
+                        mode => "delete") %]
+[% IF statustext %]
+<p align="center">
+    <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
+</p>
+[% END %]
+<p align="center">
+    <form name="addgroup" method="post" action="[% PostLink %]">
+        <table class="data" align="center" id="MainDataTable">
+            <thead>
+                <tr class="tabheader">
+                    <th>[% tr.trquote("Key") %]</th>
+                    <th>[% tr.trquote("Value") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td align="right">[% tr.trquote("Group") %]</td>
+                    <td align="left">
+                        <input type="hidden" name="oldgroupname" value="[% tr.quote(oldgroupname) %]">
+                        <input type="text" name="groupname" value="[% tr.quote(groupname) %]" maxLength="40" size="20">
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">[% tr.trquote("Description") %]</td>
+                    <td align="left">
+                        <input type="text" name="description" size="40" maxlength="60" value="[% tr.quote(description) %]">
+                    </td>
+                </tr>
+                [% FOREACH Entry IN Entries %]
+                    [% IF Entry.standalone == "1" %]
+                        <tr>
+                            <td align="right">[% tr.quote(Entry.display) %]</td>
+                            <td align="left">
+                                <input type="checkbox" name="[% Entry.db %]" realvalue="ALL" realinactivevalue="NONE"
+                                [% IF Entry.level == 'ALL' %]checked="checked"[% END %]
+                                >
+                            </td>
+                        </tr>
+                    [% ELSE %]
+                        <tr>
+                            <td align="right" valign="top">[% tr.quote(Entry.display) %]</td>
+                            <td align="left">
+                                <div id="[% tr.quote(Entry.db) %]__buttongroup" controltarget="[% Entry.db %]" displaytype="tristate">
+                                    <input type="radio" name="[% Entry.db %]" value="ALL" [% IF Entry.level == 'ALL' %]checked="checked"[% END %] id="[% Entry.db %]_ALL_id"><label for="[% Entry.db %]_ALL_id">[% tr.trquote("ALL") %]</label>
+                                    <input type="radio" name="[% Entry.db %]" value="SELECTIVE" [% IF Entry.level == 'SELECTIVE' %]checked="checked"[% END %] id="[% Entry.db %]_SELECTIVE_id"><label for="[% Entry.db %]_SELECTIVE_id">[% tr.trquote("SELECTIVE") %]</label>
+                                    <input type="radio" name="[% Entry.db %]" value="NONE" [% IF Entry.level == 'NONE' %]checked="checked"[% END %] id="[% Entry.db %]_NONE_id"><label for="[% Entry.db %]_NONE_id">[% tr.trquote("NONE") %]</label>
+                                </div>
+                                <div id="div_[% Entry.db %]" displaytype="subtable">
+                                    <table border="0">
+                                        [% FOREACH subpermission IN Entry.subpermissions %]
+                                            <tr>
+                                                <td align="right">[% tr.quote(subpermission.display) %]</td>
+                                                <td align="left">
+                                                    <input type="checkbox" name="[% subpermission.db %]" realvalue="ALL" realinactivevalue="NONE"
+                                                    [% IF subpermission.level == 'ALL' %]checked="checked"[% END %]
+                                                    >
+                                                </td>
+                                            </tr>
+                                        [% END %]
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                    [% END %]
+                [% END %]
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" align="center">
+                        <input type="submit" value="[% IF mode == "create" %][% tr.trquote("Create") %][% ELSE %][% tr.trquote("Update") %][% END %]">
+                        [% IF mode == "edit" %]
+                            <input type="button" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteGroup('addgroup', 'groupeditmode');">
+                        [% END %]
+                    </td>
+                </tr>
+
+            </tfoot>
+        </table>
+        <input type="hidden" name="mode" id="groupeditmode" value="[% mode %]">
+    </form>
+</p>
+
+<span id="masktemplatedataset"
+    data-accountlocked="[% account_locked %]"
+    data-trquote-encryptingpassword="[% tr.trquote("Encrypting password...") %]"
+    data-trquote-loading="[% tr.trquote("Loading...") %]"
+    data-forcelowercase="[% forcelowercase %]"
+    data-foblogin="[% FobLogin %]"
+></span>
+
+<script>
+    
+
+    function extraOnLoad() {
+        // TODO
+        $('div[displaytype="subtable"]').each(function() {
+            $(this).addClass("subtable");
+        });
+
+        $('input[type="radio"]').on('change', function() {
+            updateVisibility();
+        });
+
+        $('div[displaytype="tristate"]').each(function(index) {
+            $(this).buttonset();
+        });
+
+        updateVisibility();
+
+    }
+
+    function updateVisibility() {
+        $('div[displaytype="tristate"]').each(function() {
+            var target = $(this).attr('controltarget');
+            var mode = $('input[name="' + target + '"]:checked').val();
+            var divtarget = '#div_' + target;
+
+            if(mode == 'SELECTIVE') {
+                $(divtarget).show();
+            } else {
+                $(divtarget).hide();
+            }
+        });
+
+
+    }
+
+    
+</script>
