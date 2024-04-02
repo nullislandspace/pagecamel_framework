@@ -897,6 +897,8 @@ sub adminSwitchToUser($self, $username, $ua) {
         email_addr => $user->{email_addr},
         organisation => $user->{organisation},
         user_id => $user->{user_id},
+        keyfob_id => $user->{keyfob_id},
+        keyfob_logout => $user->{keyfob_logout},
         rights => \@realrights,
     );
 
