@@ -28,9 +28,9 @@ sub register($self) {
     
     my $ok = 1;
     # Required settings
-    foreach my $key (qw[systemsettings]) {
+    foreach my $key (qw[systemsettings db reporting]) {
         if(!defined($self->{$key})) {
-            print STDERR "Edit.pm: Setting $key is required but not set!\n";
+            print STDERR "UserEdit.pm: Setting $key is required but not set!\n";
             $ok = 0;
         }
     }
@@ -130,13 +130,8 @@ sub get_edit($self, $ua) {
         PageTitle   =>  $self->{edit}->{pagetitle},
         webpath     =>  $self->{edit}->{webpath},
         PostLink    =>  $self->{edit}->{webpath},
-        CompanyLabel => "Company",
         showads => $self->{showads},
     );
-    
-    if(defined($self->{usegroupsinsteadcompanies}) && $self->{usegroupsinsteadcompanies}) {
-        $webdata{CompanyLabel} = "Group";
-    }
     
     # Prepare empty user structure
     foreach my $fieldname (qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name hardware_fob]) {
@@ -317,7 +312,7 @@ sub get_edit($self, $ua) {
         }
         my $organisation = $ua->{postparams}->{'organisation_name'} || '';
 
-        push @auditdata, "Organisation $organisation";
+        push @auditdata, "Organisation: $organisation";
 
         goto reloaddata if($username eq '');
         my $innamesth = $dbh->prepare_cached("INSERT INTO users

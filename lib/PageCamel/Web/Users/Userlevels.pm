@@ -350,7 +350,7 @@ sub getPermissionForUser($self, $username) {
         }
     }
 
-    print STDERR Dumper(\@permissions);
+    #print STDERR Dumper(\@permissions);
 
     return \@permissions;
 
@@ -393,6 +393,47 @@ sub getUsersForPermission($self, $permission, $negate = 0) {
 
     return \@usernames;
 }
+
+sub getPermissionTree($self) {
+    my @tree;
+    my @subpermissions;
+
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        if($level->{db} =~ /\//) {
+            push @subpermissions, $level;
+            next;
+        }
+
+        my %perm = (
+            db => $level->{db},
+            display => $level->{display},
+            standalone => 1,
+        );
+        push @tree, \%perm;
+    }
+
+    foreach my $level (@subpermissions) {
+        my $ok = 1;
+
+        my %perm = (
+            db => $level->{db},
+            display => $level->{display},
+        );
+
+        my ($root, undef) = split/\//, $level->{db}, 2;
+
+        foreach my $branch (@tree) {
+            if($branch->{db} eq $root) {
+                $branch->{standalone} = 0;
+                push @{$branch->{subpermissions}}, \%perm;
+            }
+        }
+    }
+
+    return \@tree;
+}
+
+
 
 1;
 __END__

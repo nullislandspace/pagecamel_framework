@@ -1,0 +1,42 @@
+<p align="center">
+    <form name="errors" method="post" action="[% PostLink %]" id="MainFilterForm" >
+        <table class="data" align="center" id="MainFilterTable">
+            <thead>
+                <tr class="tabheader">
+                    <th></th>
+                    <th>[% tr.trquote("Group") %]</th>
+                    <th>[% tr.trquote("Description") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH group IN Groups %]
+                    <tr>
+                        <td>
+                            <input type="radio" name="groupname" value="[% tr.quote(group.groupname) %]">
+                        </td>
+                        <td>
+                            [% tr.quote(group.groupname) %]
+                        </td>
+                        <td>
+                            [% tr.quote(group.description) %]
+                        </td>
+                    </tr>
+                [% END %]
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>
+                        <input type="radio" name="groupname" value="NEW">
+                    </td>
+                    <td colspan="2">
+                        [% tr.trquote('New') %]
+                    </td>
+                </tr>
+            </tfoot>
+        </table><br/>
+        <div align="center">
+            <input type="hidden" name="mode" value="select">
+            <input type="submit" value="[% tr.trquote("Select") %]">            
+        </div>
+    </form>
+</p>

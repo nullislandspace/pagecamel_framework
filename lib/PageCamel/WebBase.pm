@@ -119,6 +119,7 @@ use PageCamel::Web::Tools::Sitemap;
 use PageCamel::Web::Tools::WebDrive;
 use PageCamel::Web::Tools::WorkerControl;
 use PageCamel::Web::Translate;
+use PageCamel::Web::Users::GroupEdit;
 use PageCamel::Web::Users::Login;
 use PageCamel::Web::Users::PWChange;
 use PageCamel::Web::Users::PWReset;
