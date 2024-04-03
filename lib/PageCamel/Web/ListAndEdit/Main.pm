@@ -2008,6 +2008,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     foreach my $pkitem (@{$self->{primarykey}->{item}}) {
         push @pkcols, $pkitem->{column};
     }
+    $webdata{PrimaryKeyColumns} = join('§§PK§§', @pkcols);
+    $webdata{PrimaryKeySanitize} = 0;
+    if(!$self->{useserial}) {
+        $webdata{PrimaryKeySanitize} = 1;
+    }
 
     if(defined($self->{restrict})) {
         # Force "restrict" columns in primary key
@@ -2583,7 +2588,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     $webdata{UseTabs} = $self->{usetabs};
     $webdata{SelectedTab} = $selectedTab;
     $webdata{UsePrevNext} = $self->{useprevnext};
-    
+
+
     if($self->{useprevnext}) {
         my ($prevkey, $nextkey) = $self->get_prevnext($ua, $primarykey);
         $webdata{prevprimarykey} = $prevkey;

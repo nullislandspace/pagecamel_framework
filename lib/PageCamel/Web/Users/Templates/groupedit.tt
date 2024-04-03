@@ -24,7 +24,7 @@
                     <td align="right">[% tr.trquote("Group") %]</td>
                     <td align="left">
                         <input type="hidden" name="oldgroupname" value="[% tr.quote(oldgroupname) %]">
-                        <input type="text" name="groupname" value="[% tr.quote(groupname) %]" maxLength="40" size="20">
+                        <input type="text" name="groupname" value="[% tr.quote(groupname) %]" maxLength="40" size="20" id="groupname_id">
                     </td>
                 </tr>
                 <tr>
@@ -112,6 +112,25 @@
             $(this).buttonset();
         });
 
+        $('#groupname_id').on('input', function() {
+            var field = $('#groupname_id');
+            var orig = field.val();
+            var cursorpos = field[0].selectionStart;
+            var changed = false;
+
+            var sanitized = orig.replace(/[^\w\s\_]/gi, '');
+            if(orig != sanitized) {
+                console.log("Removing illegal characters in groupname");
+                changed = true;
+                cursorpos--;
+            }
+
+            if(changed) {
+                field.val(sanitized);
+                field[0].setSelectionRange(cursorpos, cursorpos);
+            }
+        });
+                
         updateVisibility();
 
     }

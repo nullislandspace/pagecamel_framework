@@ -28,7 +28,7 @@
                     <td align="right">[% tr.trquote("Username") %]</td>
                     <td align="left">
                         <input type="hidden" name="oldusername" value="[% tr.quote(oldusername) %]">
-                        <input type="text" name="username" value="[% tr.quote(username) %]" oninput="checkUsername(); return false;" maxLength="40" size="20">
+                        <input type="text" name="username" value="[% tr.quote(username) %]" id="username_id" maxLength="40" size="20">
                     </td>
                 </tr>
                 <tr>
@@ -111,7 +111,7 @@
                 <tr>
                     <td align="right">[% tr.trquote("Email") %]</td>
                     <td align="left">
-                        <input type="text" name="email_addr" id="email_addr_id" size="40" maxlength="60" value="[% tr.quote(email_addr) %]" oninput="checkEmailAddress(); return false;">
+                        <input type="text" name="email_addr" id="email_addr_id" size="40" maxlength="60" value="[% tr.quote(email_addr) %]">
                     </td>
                 </tr>
                 [% FOREACH Group IN Groups %]
@@ -171,6 +171,55 @@
         if(ttvars.foblogin != '') {
             initFobReader();
         }
+
+        $('#username_id').on('input', function() {
+            var field = $('#username_id');
+            var orig = field.val();
+            var cursorpos = field[0].selectionStart;
+            var changed = false;
+
+            var sanitized = orig.replace(/[^\w\s\_]/gi, '');
+            if(orig != sanitized) {
+                console.log("Removing illegal characters in username");
+                changed = true;
+                cursorpos--;
+            }
+            if(ttvars.forcelowercase == "1" && sanitized != sanitized.toLowerCase()) {
+                console.log("Auto-Lowercasing the username!");
+                sanitized = sanitized.toLowerCase();
+                changed = true;
+            }
+
+            if(changed) {
+                field.val(sanitized);
+                field[0].setSelectionRange(cursorpos, cursorpos);
+            }
+        });
+
+        $('#email_addr_id').on('input', function() {
+            var field = $('#email_addr_id');
+            var orig = field.val();
+            var cursorpos = field[0].selectionStart;
+            var changed = false;
+
+            var sanitized = orig.replace(/[^\w\s\.\-\@]/gi, '');
+            if(orig != sanitized) {
+                console.log("Removing illegal characters in email address");
+                changed = true;
+                cursorpos--;
+            }
+
+            if(sanitized != sanitized.toLowerCase()) {
+                console.log("Auto-Lowercasing the email address!");
+                sanitized = sanitized.toLowerCase();
+                changed = true;
+            }
+
+            if(changed) {
+                field.val(sanitized);
+                field[0].setSelectionRange(cursorpos, cursorpos);
+            }
+        });
     }
 
     fobreader = new XMLHttpRequest();
@@ -229,16 +278,6 @@
         });
     });
     
-    function checkUsername() {
-        var uname= $('input[name="username"]').val();
-        if(ttvars.forcelowercase == "1" && uname != uname.toLowerCase()) {
-            console.log("Auto-Lowercasing the username!");
-            uname = uname.toLowerCase();
-            $('input[name="username"]').val(uname);
-        }
-        
-        return;
-    }
     
     function checkEmailAddress() {
         var addr = $('#email_addr_id').val();
