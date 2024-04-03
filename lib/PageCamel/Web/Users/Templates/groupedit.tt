@@ -36,7 +36,7 @@
                 [% FOREACH Entry IN Entries %]
                     [% IF Entry.standalone == "1" %]
                         <tr>
-                            <td align="right">[% tr.quote(Entry.display) %]</td>
+                            <td align="right">[% tr.trquote(Entry.display) %]</td>
                             <td align="left">
                                 <input type="checkbox" name="[% Entry.db %]" realvalue="ALL" realinactivevalue="NONE"
                                 [% IF Entry.level == 'ALL' %]checked="checked"[% END %]
@@ -45,7 +45,7 @@
                         </tr>
                     [% ELSE %]
                         <tr>
-                            <td align="right" valign="top">[% tr.quote(Entry.display) %]</td>
+                            <td align="right" valign="top">[% tr.trquote(Entry.display) %]</td>
                             <td align="left">
                                 <div id="[% tr.quote(Entry.db) %]__buttongroup" controltarget="[% Entry.db %]" displaytype="tristate">
                                     <input type="radio" name="[% Entry.db %]" value="ALL" [% IF Entry.level == 'ALL' %]checked="checked"[% END %] id="[% Entry.db %]_ALL_id"><label for="[% Entry.db %]_ALL_id">[% tr.trquote("ALL") %]</label>
@@ -56,7 +56,7 @@
                                     <table border="0">
                                         [% FOREACH subpermission IN Entry.subpermissions %]
                                             <tr>
-                                                <td align="right">[% tr.quote(subpermission.display) %]</td>
+                                                <td align="right">[% tr.trquote(subpermission.display) %]</td>
                                                 <td align="left">
                                                     <input type="checkbox" name="[% subpermission.db %]" realvalue="ALL" realinactivevalue="NONE"
                                                     [% IF subpermission.level == 'ALL' %]checked="checked"[% END %]

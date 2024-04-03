@@ -96,6 +96,14 @@ sub get_edit($self, $ua) {
     }
 
     my $entries = $ulh->getPermissionTree();
+    foreach my $entry (@{$entries}) {
+        $entry->{level} = 'NONE';
+        if(!$entry->{standalone}) {
+            foreach my $subperm (@{$entry->{subpermissions}}) {
+                $subperm->{level} = 'NONE';
+            }
+        }
+    }
 
     $webdata{Entries} = $entries;
 
