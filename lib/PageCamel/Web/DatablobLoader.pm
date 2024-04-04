@@ -23,6 +23,7 @@ use base qw(PageCamel::Web::BaseModule);
 use PageCamel::Helpers::DataBlobs;
 
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile writeBinFile);
+use PageCamel::Helpers::Strings qw(windowsStringsQuote);
 use File::Temp;
 use PDF::Report;
 
@@ -57,7 +58,16 @@ sub get_blob($self, $ua) {
     my $id = $ua->{url};
     $id =~ s/^.*\///g;
 
+    my $downloadfilename = $id;
+
+    my $extracolumns = '';
+
+    if(defined($self->{source}->{filename})) {
+        $extracolumns = ",sourcetable." . $self->{source}->{filename} . " AS downloadfilename";
+    }
+
     my $selstmt = "SELECT desttable." . $self->{dest}->{pkcolumn} . " AS blobidcolumn
+                    $extracolumns
                    FROM " . $self->{source}->{table} . " sourcetable
                    INNER JOIN " . $self->{dest}->{table} . " desttable
                    ON sourcetable." . $self->{source}->{blobcolumn} . " = desttable." . $self->{dest}->{pkcolumn} . "
@@ -75,6 +85,10 @@ sub get_blob($self, $ua) {
     my $datablobid;
     while((my $line = $selsth->fetchrow_hashref)) {
         $datablobid = $line->{blobidcolumn};
+        if(defined($line->{downloadfilename})) {
+            $downloadfilename = windowsStringsQuote(lc $line->{downloadfilename});
+            $downloadfilename =~ s/\ /_/g;
+        }
     }
     $selsth->finish;
 
@@ -137,10 +151,17 @@ sub get_blob($self, $ua) {
 
     }
 
+    if($self->{filetype} eq 'image/png') {
+        $downloadfilename .= '.png';
+    } elsif($self->{filetype} eq 'application/pdf') {
+        $downloadfilename .= '.pdf';
+    }
+
 
     return (status  =>  200,
             type    => $self->{filetype},
             data    => $blobdata,
+            "Content-Disposition" =>  'attachment; filename="' . $downloadfilename . '"',
             disable_compression => $self->{disable_compression},
     );
 
