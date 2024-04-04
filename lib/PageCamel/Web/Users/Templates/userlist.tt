@@ -9,7 +9,7 @@
                     <th>[% tr.trquote("Name") %]</th>
                     <th>[% tr.trquote("Initials") %]</th>
                     <th>[% tr.trquote("Email") %]</th>
-                    <th>[% tr.trquote("Company") %]</th>
+                    <th>[% tr.trquote("Organisation") %]</th>
                     <th>[% tr.trquote("Locked") %]</th>
                     <th></th>
                 </tr>
@@ -36,7 +36,7 @@
                             [% tr.quote(user.email_addr) %]
                         </td>
                         <td>
-                            [% tr.quote(user.company_name) %]
+                            [% tr.quote(user.organisation) %]
                         </td>
 
                         [% IF user.account_locked == 1 %]

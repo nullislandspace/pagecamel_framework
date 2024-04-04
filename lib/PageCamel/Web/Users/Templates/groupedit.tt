@@ -99,7 +99,6 @@
     
 
     function extraOnLoad() {
-        // TODO
         $('div[displaytype="subtable"]').each(function() {
             $(this).addClass("subtable");
         });
