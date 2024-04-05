@@ -129,9 +129,13 @@ sub printKickCashdrawer($self, $kick = 1) {
     return;
 }
 
-sub _generateEscPos($self) {
+sub _generateEscPos($self, $img = undef) {
     my $reph = $self->{reph};
     $reph->debuglog("Converting image to ESC/POS");
+
+    if(defined($img)) {
+        $self->{img} = $img;
+    }
 
     if(!defined($self->{imgwhite})) {
         $self->{imgwhite} = 0;
