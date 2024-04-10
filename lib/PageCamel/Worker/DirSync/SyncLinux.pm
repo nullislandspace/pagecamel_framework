@@ -188,6 +188,20 @@ sub do_dirsync($self, $arguments) {
 
 finished:
 
+    my $inssth = $dbh->prepare("INSERT INTO pgbackup_log (backuptype, is_ok) VALUES ('DIRSYNC', ?)")
+            or croak($dbh->errstr);
+    my $ok = 1;
+    if($errortext ne '') {
+        $ok = 0;
+    }
+
+    if(!$inssth->execute($ok)) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+    } else {
+        $dbh->commit;
+    }
+
     $memh->refresh_lifetick;
     my $state = "OK";
     if($errortext ne '') {

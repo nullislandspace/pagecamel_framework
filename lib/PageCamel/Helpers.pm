@@ -55,6 +55,7 @@ use PageCamel::Helpers::Translator;
 use PageCamel::Helpers::URI;
 use PageCamel::Helpers::UTF;
 use PageCamel::Helpers::UserAgent;
+use PageCamel::Helpers::Userlevels;
 use PageCamel::Helpers::VoiceClient;
 use PageCamel::Helpers::WSockFrame;
 use PageCamel::Helpers::WebCommandQueue;

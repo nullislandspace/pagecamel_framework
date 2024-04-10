@@ -1,5 +1,4 @@
-import { InitSqlJsStatic } from "sql.js";
-declare const initSqlJs: InitSqlJsStatic;
+/// <reference types="sql.js" />
 export declare class PCSqlite {
     private _db;
     private _autocommit;
@@ -40,5 +39,4 @@ export declare class PCSqlite {
     reset(): boolean;
     isAllSaved(): boolean;
 }
-export {};
 //# sourceMappingURL=sqlite.d.ts.map

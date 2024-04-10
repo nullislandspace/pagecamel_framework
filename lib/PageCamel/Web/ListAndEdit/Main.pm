@@ -766,6 +766,14 @@ sub validateEditItem($self, $item, $multiarraymode) {
         }
     }
 
+    if(!defined($item->{default})) {
+        my $default = $dbh->getDefaultValue($self->{table}, $item->{column});
+        if(defined($default)) {
+            #print "    EDIT: Attribute \"default\" not set, using database default: $default\n";
+            $item->{default} = $default;
+        }
+    }
+
     if(!defined($item->{linebreak}) || $item->{linebreak} != 0) {
         $item->{linebreak} = 1;
     }
@@ -2000,6 +2008,11 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     foreach my $pkitem (@{$self->{primarykey}->{item}}) {
         push @pkcols, $pkitem->{column};
     }
+    $webdata{PrimaryKeyColumns} = join('§§PK§§', @pkcols);
+    $webdata{PrimaryKeySanitize} = 0;
+    if(!$self->{useserial}) {
+        $webdata{PrimaryKeySanitize} = 1;
+    }
 
     if(defined($self->{restrict})) {
         # Force "restrict" columns in primary key
@@ -2575,7 +2588,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
     $webdata{UseTabs} = $self->{usetabs};
     $webdata{SelectedTab} = $selectedTab;
     $webdata{UsePrevNext} = $self->{useprevnext};
-    
+
+
     if($self->{useprevnext}) {
         my ($prevkey, $nextkey) = $self->get_prevnext($ua, $primarykey);
         $webdata{prevprimarykey} = $prevkey;

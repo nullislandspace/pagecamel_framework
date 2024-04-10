@@ -28,7 +28,7 @@
                     <td align="right">[% tr.trquote("Username") %]</td>
                     <td align="left">
                         <input type="hidden" name="oldusername" value="[% tr.quote(oldusername) %]">
-                        <input type="text" name="username" value="[% tr.quote(username) %]" oninput="checkUsername(); return false;" maxLength="40" size="20">
+                        <input type="text" name="username" value="[% tr.quote(username) %]" id="username_id" maxLength="40" size="20">
                     </td>
                 </tr>
                 <tr>
@@ -50,16 +50,16 @@
                     </td>
                 </tr>
                 <tr>
-                    <td align="right">[% tr.trquote(CompanyLabel) %]</td>
+                    <td align="right">[% tr.trquote("Organisation") %]</td>
                     <td align="left">            
-                        <select name="company_name" searchable="1">
-                            [% FOREACH company IN companies %]
-                                <option value="[% company.company_name %]"
-                                [% IF company.company_name == company_name %]
+                        <select name="organisation_name" searchable="1">
+                            [% FOREACH organisation IN organisations %]
+                                <option value="[% organisation.organisation_name %]"
+                                [% IF organisation.organisation_name == organisation_name %]
                                     selected="selected"
                                 [% END %]
                                 >
-                                    [% company.company_name %] : [% company.description %]
+                                    [% organisation.organisation_name %] : [% organisation.description %]
                                 </option>
                             [% END %]
                         </select>
@@ -78,7 +78,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td align="right">[% tr.trquote("New Password") %]</td>
+                    <td align="right" valign="top">[% tr.trquote("New Password") %]</td>
                     <td align="left">
                         <input type="checkbox" name="change_password" id="change_password" callback="enable_password" realvalue="1">
                         <input type="text" name="password" value="[% tr.quote(password) %]" id="password"><br>
@@ -90,10 +90,10 @@
                 </tr>
                 [% IF FobLogin != "" %]
                     <tr>
-                        <td align="right">[% tr.trquote("Hardware fob") %]</td>
+                        <td align="right" valign="top">[% tr.trquote("Hardware fob") %]</td>
                         <td align="left">
                             <div id="fobdiv">
-                                <input type="text" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob"><br>
+                                <input type="text" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob">
                                 <input type="Button" value="[% tr.trquote("Read Fob") %]" id="readfobbutton">
                             </div>
                         </td>
@@ -102,7 +102,7 @@
                     <input type="hidden" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob"><br>
                 [% END %]
                 <tr>
-                    <td align="right">[% tr.trquote("Options") %]</td>
+                    <td align="right" valign="top">[% tr.trquote("Options") %]</td>
                     <td align="left">
                         <input type="checkbox" name="password_can_expire" realvalue="1" [% IF password_can_expire == '1' %]checked="checked"[% END %]> [% tr.trquote("Normal password expiry") %]<br>
                         <input type="checkbox" name="force_password_change" realvalue="1" [% IF force_password_change == '1' %]checked="checked"[% END %]> [% tr.trquote("Must change password on next login") %]
@@ -111,28 +111,43 @@
                 <tr>
                     <td align="right">[% tr.trquote("Email") %]</td>
                     <td align="left">
-                        <input type="text" name="email_addr" id="email_addr_id" size="40" maxlength="60" value="[% tr.quote(email_addr) %]" oninput="checkEmailAddress(); return false;">
+                        <input type="text" name="email_addr" id="email_addr_id" size="40" maxlength="60" value="[% tr.quote(email_addr) %]">
                     </td>
                 </tr>
-                [% FOREACH UserLevel IN UserLevels %]
-                    <tr>
-                        <td align="right">[% tr.trquote(UserLevel.display) %]</td>
-                        <td><input type="checkbox" name="right_[% UserLevel.db %]"
-                                    [% IF UserLevel.val == "1" %]
-                                    checked
-                                    [% END %]
-                                ></td>
-                    </tr>
-                [% END %]
+                <tr>
+                    <td align="right" valign="top">[% tr.trquote("Permissions") %]</td>
+                    <td colspan="2">
+                        <div id="div_[% Entry.db %]" displaytype="subtable">
+                            <table border="0">
+                                <tr>
+                                    <th colspan="2">[% tr.trquote("Group") %]</th>
+                                    <th>[% tr.trquote("Description") %]</th>
+                                </th>
+                                [% FOREACH Group IN Groups %]
+                                    <tr>
+                                        <td align="right">[% tr.quote(Group.groupname) %]</td>
+                                        <td><input type="checkbox" name="right_[% Group.groupname %]"
+                                                    [% IF Group.has_access == "1" %]
+                                                    checked
+                                                    [% END %]
+                                                >
+                                        </td>
+                                        <td>[% tr.quote(Group.description) %]</td>
+                                    </tr>
+                                [% END %]
+                            </table>
+                        </div>
+                    </td>
+                </tr>
                 [% IF appqrcode != "" %]
                 <tr>
-                    <td align="right">[% tr.trquote("APP Configuration") %]</td>
+                    <td align="right" valign="top">[% tr.trquote("APP Configuration") %]</td>
                     <td align="left">
                         <img src="[% appqrcode %]">
                     </td>
                 </tr>
                 <tr>
-                    <td align="right">[% tr.trquote("APP Key") %]</td>
+                    <td align="right" valign="top">[% tr.trquote("APP Key") %]</td>
                     <td align="left">
                         [% tr.trquote("Server") %]: [% tr.quote(appqrcodeserver) %]<br/>
                         [% tr.trquote("APP Key") %]: [% tr.quote(appqrcodekey) %]
@@ -171,6 +186,59 @@
         if(ttvars.foblogin != '') {
             initFobReader();
         }
+
+        $('div[displaytype="subtable"]').each(function() {
+            $(this).addClass("subtable");
+        });
+
+        $('#username_id').on('input', function() {
+            var field = $('#username_id');
+            var orig = field.val();
+            var cursorpos = field[0].selectionStart;
+            var changed = false;
+
+            var sanitized = orig.replace(/[^\w\s\_]/gi, '');
+            if(orig != sanitized) {
+                console.log("Removing illegal characters in username");
+                changed = true;
+                cursorpos--;
+            }
+            if(ttvars.forcelowercase == "1" && sanitized != sanitized.toLowerCase()) {
+                console.log("Auto-Lowercasing the username!");
+                sanitized = sanitized.toLowerCase();
+                changed = true;
+            }
+
+            if(changed) {
+                field.val(sanitized);
+                field[0].setSelectionRange(cursorpos, cursorpos);
+            }
+        });
+
+        $('#email_addr_id').on('input', function() {
+            var field = $('#email_addr_id');
+            var orig = field.val();
+            var cursorpos = field[0].selectionStart;
+            var changed = false;
+
+            var sanitized = orig.replace(/[^\w\s\.\-\@]/gi, '');
+            if(orig != sanitized) {
+                console.log("Removing illegal characters in email address");
+                changed = true;
+                cursorpos--;
+            }
+
+            if(sanitized != sanitized.toLowerCase()) {
+                console.log("Auto-Lowercasing the email address!");
+                sanitized = sanitized.toLowerCase();
+                changed = true;
+            }
+
+            if(changed) {
+                field.val(sanitized);
+                field[0].setSelectionRange(cursorpos, cursorpos);
+            }
+        });
     }
 
     fobreader = new XMLHttpRequest();
@@ -229,16 +297,6 @@
         });
     });
     
-    function checkUsername() {
-        var uname= $('input[name="username"]').val();
-        if(ttvars.forcelowercase == "1" && uname != uname.toLowerCase()) {
-            console.log("Auto-Lowercasing the username!");
-            uname = uname.toLowerCase();
-            $('input[name="username"]').val(uname);
-        }
-        
-        return;
-    }
     
     function checkEmailAddress() {
         var addr = $('#email_addr_id').val();

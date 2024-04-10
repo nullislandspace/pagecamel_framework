@@ -28,7 +28,7 @@ onmessage = function (e: MessageEvent): void {
         clearInterval(intervalhandler);
     } else if (command == "SQLTOSTRING") {
         if(hasnextSave) {
-            console.log("Dropping intermediate conversion request");
+            //console.log("Dropping intermediate conversion request");
         }
         nextSave = e.data[1];
         nextSaveID = e.data[2];
@@ -57,10 +57,10 @@ function dataConverter() {
     }
 
     var result = strings.join("");
-    console.log("DB SAVE IS " + result.length + " bytes long");
+    //console.log("DB SAVE IS " + result.length + " bytes long");
     var compressed = LZString.compress(result);
-    console.log("Compressed DB SAVE IS " + compressed.length + " bytes long");
-    console.log("Compressed to " + ((compressed.length / result.length) * 100) + "% of original size");
+    //console.log("Compressed DB SAVE IS " + compressed.length + " bytes long");
+    //console.log("Compressed to " + ((compressed.length / result.length) * 100) + "% of original size");
     postMessage(["SAVEDB", compressed, saveID]);
 
     return;

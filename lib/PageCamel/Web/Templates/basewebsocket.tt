@@ -41,7 +41,7 @@
             websocketmaskOnload();
         }
                 
-        console.log("Opening websocket.");
+        //console.log("Opening websocket.");
         openWebsocket();
             
     }
@@ -52,7 +52,7 @@
         } else {
             stayoffline = 0;
         }
-        console.log("Stay offline set to " + stayoffline);
+        //console.log("Stay offline set to " + stayoffline);
     }
 
     function openWebsocket() {
@@ -61,7 +61,7 @@
         }
 
         if(stayoffline == 1) {
-            console.log("Staying offline, trying again in " + ttvars.client_connect_timeout + " seconds");
+            //console.log("Staying offline, trying again in " + ttvars.client_connect_timeout + " seconds");
             setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
             return;
         }
@@ -81,7 +81,7 @@
             wsfailed = 0;
             lastPing = -1;
             sendPing();
-            console.log("Websocket connected");
+            //console.log("Websocket connected");
             
             if(window.websocketmaskOnSocketOpen) {
                 websocketmaskOnSocketOpen();
@@ -91,7 +91,7 @@
         ws.onmessage = handleServerRequests;
         
         ws.onclose = function(ev) {
-            console.log("Websocket disconnected");
+            //console.log("Websocket disconnected");
             if(ttvars.blockui == "1") {
                 if(ttvars.reconnect == "1") {
                     $('#dataarea').block({ message: ttvars.trquote.Wsreconnecting });
@@ -105,7 +105,7 @@
                 websocketmaskOnSocketClose();
             }
             if(ttvars.reconnect == "1") {
-                console.log("Trying to reconnect in " + ttvars.client_connect_timeout + " seconds");
+                //console.log("Trying to reconnect in " + ttvars.client_connect_timeout + " seconds");
                 setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
             }
         }
@@ -129,7 +129,7 @@
                 var endtime = Date.now();
                 var timeused = endtime - starttime;
                 if(timeused > 2000) {
-                    console.log("PERFORMANCE: handleBinaryMessage() took too long: " + timeused + "ms!");
+                    //console.log("PERFORMANCE: handleBinaryMessage() took too long: " + timeused + "ms!");
                 }
                 binaryhandled = 1;
             }
@@ -139,7 +139,7 @@
                 var endtime = Date.now();
                 var timeused = endtime - starttime;
                 if(timeused > 2000) {
-                    console.log("PERFORMANCE: window.pcws.spoolbinaryincoming() took too long: " + timeused + "ms!");
+                    //console.log("PERFORMANCE: window.pcws.spoolbinaryincoming() took too long: " + timeused + "ms!");
                 }
                 binaryhandled = 1;
             }
@@ -209,7 +209,7 @@
                 var endtime = Date.now();
                 var timeused = endtime - starttime;
                 if(timeused > 2000) {
-                    console.log("PERFORMANCE: handleMessage() for " + msg.type + " took too long: " + timeused + "ms!");
+                    //console.log("PERFORMANCE: handleMessage() for " + msg.type + " took too long: " + timeused + "ms!");
                 }
             }
             if(window.pcws.spoolincoming) {
@@ -220,7 +220,7 @@
                 var endtime = Date.now();
                 var timeused = endtime - starttime;
                 if(timeused > 2000) {
-                    console.log("PERFORMANCE: window.pcws.spoolincoming() for " + msg.type + " took too long: " + timeused + "ms!");
+                    //console.log("PERFORMANCE: window.pcws.spoolincoming() for " + msg.type + " took too long: " + timeused + "ms!");
                 }
             }
         }
@@ -282,7 +282,7 @@
         if(wsconnected == 1) {
             var neededPing = Math.round(Date.now() / 1000) - ttvars.client_disconnect_timeout;
             if(lastPing != -1 && neededPing > lastPing) {
-                console.log("PING ERROR");
+                //console.log("PING ERROR");
                 if(ttvars.blockui == "1") {
                     $('#dataarea').block({ message: ttvars.trquote.Wslost });
                 }
