@@ -474,7 +474,7 @@ export class PCWebsocket {
                 ) {
                     let row = this._db.executeSQL(this._getrowsql);
                     if (row && row.length == 1) {
-                        console.log(row);
+                        //console.log(row);
                         //this._sendmsg(<string>row[0]["msg"],<string>row[0]["data"],<string>row[0]["rowid"]);
                         this._sendmsg(
                             <string>row[0]["msg"],
