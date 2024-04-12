@@ -178,6 +178,57 @@ sub getColumnType($self, $xtable, $xcolumn) {
     return $type;
 }
 
+sub getDefaultValue($self, $xtable, $xcolumn) {
+
+    my $table = '' . $xtable;
+    my $column = '' . $xcolumn;
+
+    $self->checkDBH();
+
+    my $sth = $self->{mdbh}->prepare_cached("SELECT column_name, column_default
+                                                FROM information_schema.columns
+                                                WHERE table_schema = ?
+                                                AND table_name = ?
+                                                AND column_name = ?")
+            or croak($self->{mdbh}->errstr);
+    
+    my $schema = 'pagecamel';
+    if($table =~ /\./) {
+        ($schema, $table) = split/\./, $table;
+    }
+
+    if(!$sth->execute($schema, $table, $column)) {
+        croak($self->{mdbh}->errstr);
+    }
+
+    my $line = $sth->fetchrow_hashref;
+    $sth->finish;
+    $self->{mdbh}->commit;
+
+    if(!defined($line) || !defined($line->{column_default}) || $line->{column_default} eq '') {
+        return;
+    }
+
+    if($line->{column_default} =~ /^nextval/ || $line->{column_default} eq 'now()') {
+        return;
+    }
+
+    $line->{column_default} =~ s/\:\:.*//;
+    $line->{column_default} =~ s/^\'//;
+    $line->{column_default} =~ s/\'$//;
+    if($line->{column_default} eq 'true') {
+        $line->{column_default} = 1;
+    } elsif($line->{column_default} eq 'false') {
+        $line->{column_default} = 0;
+    } 
+
+    if($line->{column_default} eq '') {
+        return;
+    }
+
+    return $line->{column_default};
+}
+
 sub reload($self) {
     # Nothing to do..
     return;

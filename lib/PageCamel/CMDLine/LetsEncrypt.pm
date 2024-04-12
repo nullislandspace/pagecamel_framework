@@ -114,6 +114,7 @@ sub run {
                     # Cert itself is missing, disable "renew". The crt is the only thing not under
                     # source code control since it "constantly" changes
                     $newcert = 1;
+                    $needrestart = 1;
                 }
                 my @domainlist;
                 foreach my $prefix (@{$domain->{prefix}}) {
@@ -745,10 +746,10 @@ sub process_challenge_dns {
     $extension =~ s/\.$//;
 
     if($self->{usedb}) {
-        my $delsth = $self->{dbh}->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? and hostname = ?")
+        my $delsth = $self->{dbh}->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? AND hostname = ? AND record_type = 'TXT' AND is_letsencrypt = true")
                 or croak($self->{dbh}->errstr);
-        my $inssth = $self->{dbh}->prepare_cached("INSERT INTO nameserver_domain_entry (domain_fqdn, hostname, record_type, textrecord, delete_after)
-                                           VALUES (?, ?, 'TXT', ?, now() + interval '2 hours')")
+        my $inssth = $self->{dbh}->prepare_cached("INSERT INTO nameserver_domain_entry (domain_fqdn, hostname, record_type, textrecord, delete_after, is_letsencrypt)
+                                           VALUES (?, ?, 'TXT', ?, now() + interval '2 hours', true)")
                 or croak($self->{dbh}->errstr);
         print STDERR "DNS RECORD FOR $extension . $basedomain with value $value\n";
         if(!$delsth->execute($basedomain, $extension) ||
@@ -786,7 +787,7 @@ sub process_verification_dns {
     $extension =~ s/\.$//;
 
     if($self->{usedb}) {
-        my $delsth = $self->{dbh}->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? and hostname = ?")
+        my $delsth = $self->{dbh}->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? AND hostname = ? AND record_type = 'TXT' AND is_letsencrypt = true")
                 or croak($self->{dbh}->errstr);
         print STDERR "DELETING DNS RECORD FOR $extension . $basedomain\n";
         if(!$delsth->execute($basedomain, $extension)) {
@@ -795,7 +796,7 @@ sub process_verification_dns {
             $self->{dbh}->commit;
         }
     } else {
-        my $data = $self->remoteCall('add', (basedomain => $basedomain, extension => $extension));
+        my $data = $self->remoteCall('remove', (basedomain => $basedomain, extension => $extension));
         if($data->{error}) {
             $self->debuglog("FAILED TO REMOVE REMOTE DNS!!!!");
         }

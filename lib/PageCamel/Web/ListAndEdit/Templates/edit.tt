@@ -345,7 +345,7 @@
                                             <input type="button" value="[% tr.tr("Create") %]" onclick="setMode('create'); checkinput();">
                                         [% ELSE %]
                                             [% IF UsePrevNext == "1" && prevprimarykey != "" %]
-                                                <input type="submit" value=" &#8656;" onclick="return setMode('select_[% prevprimarykey %]');">
+                                                <input type="submit" value=" &#8656;" id="prevbutton");">
                                             [% END %]
                                             <input type="button" value="[% tr.tr("Change") %]" onclick="setMode('edit'); checkinput();">
                                             [% IF cansaveandclose == "1" %]
@@ -359,7 +359,7 @@
                                                 <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
                                             [% END %]
                                             [% IF UsePrevNext == "1" && nextprimarykey != "" %]
-                                                <input type="submit" value=" &#8658;" onclick="return setMode('select_[% nextprimarykey %]');">
+                                                <input type="submit" value=" &#8658;" id="nextbutton">
                                             [% END %]
                                         [% END %]
                                     </td>
@@ -379,7 +379,7 @@
                                 <input type="button" value="[% tr.tr("Create") %]" onclick="setMode('create'); checkinput();">
                             [% ELSE %]
                                 [% IF UsePrevNext == "1" && prevprimarykey != "" %]
-                                    <input type="submit" value=" &#8656;" onclick="return setMode('select_[% prevprimarykey %]');">
+                                    <input type="submit" value=" &#8656;" id="prevbutton");">
                                 [% END %]
                                 <input type="button" id="changebutton" value="[% tr.tr("Change") %]" onclick="setMode('edit'); checkinput();">
                                 [% IF cansaveandclose == "1" %]
@@ -393,7 +393,7 @@
                                     <input type="submit" value="[% tr.tr("Delete") %]" onClick="return confirmDeleteEntry('listandedit', 'mode');">
                                 [% END %]
                                 [% IF UsePrevNext == "1" && nextprimarykey != "" %]
-                                    <input type="submit" value=" &#8658;" onclick="return setMode('select_[% nextprimarykey %]');">
+                                    <input type="submit" value=" &#8658;" id="nextbutton">
                                 [% END %]
                             [% END %]
                         </p>
@@ -422,6 +422,10 @@
     data-editcolumnlist="[% editcolumnlist %]"
     data-textualcopyprimarykey="[% TextualCopyPrimaryKey %]"
     data-askoncopy="[% AskOnCopy %]"
+    data-prevprimarykey="[% prevprimarykey %]"
+    data-nextprimarykey="[% nextprimarykey %]"
+    data-primarykeysanitize="[% PrimaryKeySanitize %]"
+    data-primarykeycolumns="[% PrimaryKeyColumns %]"
     [% FOREACH colorname IN colors.keys %]
         data-colorswatch[% tr.cleancolorname(colorname) %]="[% colors.$colorname %]"
     [% END %]
@@ -430,6 +434,8 @@
 
 
 <script>
+
+
     var specialcopymode = false;
     function setMode(newmode) {
         $('#mode').val(newmode);
@@ -627,6 +633,18 @@
             $('#selectedTab').val(tabname);
         });
 
+        if(ttvars.prevprimarykey != "") {
+            $('#prevbutton').on('click', function() {
+                return setMode('select_' + ttvars.prevprimarykey);
+            });
+        }
+
+        if(ttvars.nextprimarykey != "") {
+            $('#nextbutton').on('click', function() {
+                return setMode('select_' + ttvars.nextprimarykey);
+            });
+        }
+
         if(ttvars.editmode != 'edit') {
             setFooterStatus('Autosave not available', 'white');
         } else {
@@ -804,6 +822,37 @@
                     'iframestate': 'cancel'
                 }, "*");
             });
+        }
+
+        if(ttvars.primarykeysanitize == "1") {
+            var colnames = ttvars.primarykeycolumns.split('§§PK§§');
+            
+            if(ttvars.textualcopyprimarykey == "1") {
+                colnames.push('input_primarykeyEntry');
+            }
+            for (var i = 0; i < colnames.length; i++) {
+                var selector = 'input[name="' + colnames[i] + '"]';
+                $(selector).on('input', function() {
+                    var field = $(this);
+                    var orig = field.val();
+                    var cursorpos = field[0].selectionStart;
+                    var changed = false;
+
+                    var sanitized = orig.replace(/[^\w\s\.\-\_]/gi, '');
+                    if(orig != sanitized) {
+                        console.log("Removing illegal characters in primary key");
+                        changed = true;
+                        cursorpos--;
+                    }
+
+                    if(changed) {
+                        field.val(sanitized);
+                        field[0].setSelectionRange(cursorpos, cursorpos);
+                    }
+
+                });
+
+            }
         }
 
 

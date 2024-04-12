@@ -42,7 +42,12 @@ sub new($proto, %config) {
         my %status = (
             maxage    => $dir->{maxage},
             status    => "UNKNOWN",
+            dblog     => 0,
         );
+        if(defined($dir->{dblog}) && $dir->{dblog}) {
+            $status{dblog} = 1;
+        }
+
         $dirstatus{$dir->{path}} = \%status;
     }
     $memh->set("dircleanstatus", \%dirstatus);
@@ -85,6 +90,7 @@ sub clean($self, $dir) {
 
     my @todelete;
     my $deletes = 0;
+    my $ok = 1;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -99,7 +105,9 @@ sub clean($self, $dir) {
             $dbh->commit;
         }
         $reph->debuglog("Can't open $dir");
-        return $deletes;
+        $ok = 0;
+        goto finish;
+
     }
 
     my $fcount = 0;
@@ -128,7 +136,6 @@ sub clean($self, $dir) {
     }
     closedir($dfh);
 
-    my $ok = 1;
     if($fcount) {
         $reph->debuglog("Cleaning $fcount file(s) in $dir");
         foreach my $fname (@todelete) {
@@ -142,12 +149,25 @@ sub clean($self, $dir) {
         $reph->debuglog("Deleted $deletes file(s).");
     }
 
+finish:
     if($ok) {
         $self->{dirstatus}->{$dir}->{status} = "OK";
     } else {
         if($self->{dirstatus}->{$dir}->{status} !~ /^(?:WARNING|ERROR)$/o) {
             $self->{dirstatus}->{$dir}->{status} = "WARNING";
             $reph->dblog("DIR_CLEANER", "Failed to delete file(s) in '$dir'");
+            $dbh->commit;
+        }
+    }
+
+    if($self->{dirstatus}->{$dir}->{dblog}) {
+        $reph->debuglog("Logging dirclean status to pgbackup_log");
+        my $inssth = $dbh->prepare("INSERT INTO pgbackup_log(backuptype, is_ok) VALUES ('DIRCLEANER', ?)")
+                or croak($dbh->errstr);
+        if(!$inssth->execute($ok)) {
+            $reph->debuglog($dbh->errstr);
+            $dbh->rollback;
+        } else {
             $dbh->commit;
         }
     }

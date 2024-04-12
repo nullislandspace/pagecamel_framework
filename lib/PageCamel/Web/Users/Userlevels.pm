@@ -17,7 +17,7 @@ no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
-use base qw(PageCamel::Web::BaseModule);
+use base qw(PageCamel::Web::BaseModule PageCamel::Helpers::Userlevels);
 
 use PageCamel::Helpers::Padding qw[doSpacePad];
 use PageCamel::Helpers::Strings qw[stripString];
@@ -28,8 +28,97 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    my $ok = 1;
+    foreach my $required (qw[db memcache reporting views]) {
+        if(!defined($self->{$required})) {
+            print STDERR $self->{modname} . " requires config option " . $required . "\n";
+            $ok = 0;
+        }
+    }
+
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        if(defined($level->{path})) {
+            push @{$level->{webpaths}}, $level->{path};
+        }
+    }
+
+    if(!$ok) {
+        croak("Configuration errors in ", $self->{modname});
+    }
+
     return $self;
 }
+
+sub register_userlevel($self, $userlevel, $display) {
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        if($level->{db} eq $userlevel) {
+            croak("Userlevel $userlevel is already registered");
+        }
+    }
+
+    my %ul = (
+        display => $display,
+        db => $userlevel,
+        internal => "1",
+    );
+
+    # check if the root level of this userlevel has a "restrict" section and copy it to the sublevel
+    if($userlevel =~ /\//) {
+        my ($rootlevel, undef) = split/\//, $userlevel, 2;
+        foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+            if($level->{db} eq $rootlevel && defined($level->{restrict})) {
+                #print STDERR "Copy restrict ", $level->{restrict}, " from $rootlevel to $userlevel\n";
+                $ul{restrict} = $level->{restrict};
+                last;
+            }
+        }
+    }
+
+    push @{$self->{userlevels}->{userlevel}}, \%ul;
+
+    return;
+}
+
+sub register_webpath($self, $userlevel, $webpath) {
+    my $ok = 0;
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        if($level->{db} eq $userlevel) {
+            push @{$level->{webpaths}}, $webpath;
+            $ok = 1;
+            last;
+        }
+    }
+
+    if(!$ok) {
+        croak("Tried to register webpath $webpath but userlevel $userlevel is not registered");
+    }
+
+    return;
+}
+
+sub checkAccess($self, $uri, $permissions) {
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        next unless(defined($level->{db}));
+        next unless(defined($level->{webpaths}));
+
+        foreach my $webpath (@{$level->{webpaths}}) {
+            my $subpath = substr $uri, 0, length($webpath);
+            if($subpath eq $webpath) {
+                if(!contains($level->{db}, $permissions)) {
+                    return 0;
+                }
+            }
+        }
+    }
+
+    return 1;
+}
+
+sub checkAccessForUser($self, $uri, $username) {
+    my $permissions = $self->getPermissionForUser($username);
+    return $self->checkAccess($uri, $permissions);
+}
+
 
 sub finalcheck($self) {
 
@@ -62,6 +151,8 @@ sub finalcheck($self) {
         
     }
     $levelcount{UNKNOWN} = 0;
+
+    $self->updateDBPermissions();
 
     #print "** Normal webpaths:\n";
     my $paths = $self->{server}->get_webpaths;
@@ -100,6 +191,123 @@ sub finalcheck($self) {
 
     return;
 }
+
+sub updateDBPermissions($self) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my @perms;
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        push @perms, $level->{db};
+    }
+    @perms = sort @perms;
+
+    my $gselsth = $dbh->prepare("SELECT groupname FROM pagecamel.permissiongroups
+                                ORDER BY groupname")
+            or croak($dbh->errstr);
+
+    my $eselsth = $dbh->prepare("SELECT permission_name FROM pagecamel.permissiongroupentries
+                                 WHERE groupname = ?")
+            or croak($dbh->errstr);
+
+    my $inssth = $dbh->prepare("INSERT INTO pagecamel.permissiongroupentries (groupname, permission_name, subpermissions) 
+                                VALUES (?, ?, 'NONE')")
+            or croak($dbh->errstr);
+
+    my $delsth = $dbh->prepare("DELETE FROM pagecamel.permissiongroupentries
+                                WHERE groupname = ? AND permission_name = ?")
+            or croak($dbh->errstr);
+
+    if(!$gselsth->execute) {
+        croak($dbh->errstr);
+    }
+
+    my @groups;
+    while((my $line = $gselsth->fetchrow_hashref)) {
+        push @groups, $line->{groupname};
+    }
+    $gselsth->finish;
+
+    foreach my $group (@groups) {
+        if(!$eselsth->execute($group)) {
+            croak($dbh->errstr);
+        }
+        my @gperms;
+        while((my $line = $eselsth->fetchrow_hashref)) {
+            push @gperms, $line->{permission_name};
+        }
+        $eselsth->finish;
+
+        # Check for missing entries
+        foreach my $perm (@perms) {
+            if(contains($perm, \@gperms)) {
+                next;
+            }
+
+            $reph->debuglog("Adding new permission ", $perm, " for permission group ", $group);
+            if(!$inssth->execute($group, $perm)) {
+                croak($dbh->errstr);
+            }
+        }
+
+        # Check for stale entries that are no longer in the config
+        foreach my $perm (@gperms) {
+            if(contains($perm, \@perms)) {
+                next;
+            }
+
+            $reph->debuglog("Removing stale permission ", $perm, " from permission group ", $group);
+            if(!$delsth->execute($group, $perm)) {
+                croak($dbh->errstr);
+            }
+        }
+    }
+
+    #croak("BLA");
+
+    $dbh->commit;
+    return;
+}
+
+sub getPermissionTree($self) {
+    my @tree;
+    my @subpermissions;
+
+    foreach my $level (@{$self->{userlevels}->{userlevel}}) {
+        if($level->{db} =~ /\//) {
+            push @subpermissions, $level;
+            next;
+        }
+
+        my %perm = (
+            db => $level->{db},
+            display => $level->{display},
+            standalone => 1,
+        );
+        push @tree, \%perm;
+    }
+
+    foreach my $level (@subpermissions) {
+        my $ok = 1;
+
+        my %perm = (
+            db => $level->{db},
+            display => $level->{display},
+        );
+
+        my ($root, undef) = split/\//, $level->{db}, 2;
+
+        foreach my $branch (@tree) {
+            if($branch->{db} eq $root) {
+                $branch->{standalone} = 0;
+                push @{$branch->{subpermissions}}, \%perm;
+            }
+        }
+    }
+
+    return \@tree;
+}
+
 
 
 1;

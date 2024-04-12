@@ -459,6 +459,7 @@ sub do_uninline($self, $data, $kname, $fname) {
                 
                 if($command =~ /\[\%/) {
                     $dynamicmode = 1;
+                    push @{$self->{reloadwarnings}}, "Uninline onfoo callback $command in $fname line $linecount forces dynamicmode";
                 }
                 
                 my $evname = $self->gen_eventhandlername();
@@ -506,6 +507,7 @@ sub do_uninline($self, $data, $kname, $fname) {
         if($jsmode) {
             if($line =~ /\[\%/) {
                 $dynamicmode = 1;
+                push @{$self->{reloadwarnings}}, "TT tag in JS element in file $fname forces dynamicmode: $line";
             }
             push @jslines, $line;
         } else {
