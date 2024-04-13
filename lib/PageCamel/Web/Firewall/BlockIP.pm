@@ -18,7 +18,6 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
-use PageCamel::Helpers::UserAgent qw[simplifyUA];
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;

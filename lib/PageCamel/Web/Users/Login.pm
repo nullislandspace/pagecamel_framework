@@ -1395,7 +1395,7 @@ sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin
 
     $session .= sha256_hex($host_addr);
     my $userAgent = $ua->{headers}->{'User-Agent'} || '--unknown--';
-    my ($simpleUA, $batbot) = simplifyUA($userAgent);
+    my ($simpleUA, undef) = simplifyUA($userAgent);
 
     my $sth = $dbh->prepare_cached("INSERT INTO sessions
                                     (sid, username, client_ip, useragent, useragent_simplified, logintime, has_developer, has_admin, valid_until, valid_interval)

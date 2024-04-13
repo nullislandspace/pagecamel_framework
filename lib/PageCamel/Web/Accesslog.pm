@@ -66,7 +66,7 @@ sub logstart($self, $ua) {
     my $range = $ua->{headers}->{'HTTP_RANGE'} || '';
     my $httpversion = $ua->{httpversion} || '';
 
-    my ($simpleUserAgent, $badBot) = simplifyUA($userAgent);
+    my ($simpleUserAgent, undef) = simplifyUA($userAgent);
 
     my @headers;
     my @hnames = sort keys %{$ua->{headers}};
