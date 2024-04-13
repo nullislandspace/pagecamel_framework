@@ -99,12 +99,12 @@ sub prefilter($self, $ua) {
         parameters  => $paramlist,
         remotehost    => $host,
         useragent   => $userAgent,
-        simpleagent => $simpleUserAgent,
+        #simpleagent => $simpleUserAgent,
         referer => $referer,
         protocol => $protocol,
         headers => $headerlist,
         range   => $range,
-        badBot  => $badBot,
+        #badBot  => $badBot,
 
     );
 
