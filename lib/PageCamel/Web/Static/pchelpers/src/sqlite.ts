@@ -62,8 +62,8 @@ export class PCSqlite {
         this._saveToExternalStorage = saveToExternalStorage;
         this._loadFromExternalStorage = loadFromExternalStorage;
 
-        console.log("loadFromExternalStorage", this._loadFromExternalStorage);
-        console.log("saveToExternalStorage", this._saveToExternalStorage);
+        //console.log("loadFromExternalStorage", this._loadFromExternalStorage);
+        //console.log("saveToExternalStorage", this._saveToExternalStorage);
 
         this._dbloaded = false;
         this._isdebug = debug;
@@ -84,9 +84,9 @@ export class PCSqlite {
                     console.debug("*** save database to " + this._dbname);
                 this._seenSaveID = e.data[2] as number;
                 if(this._seenSaveID == this._currentSaveID) {
-                    console.log("Saving latest database version " + this._seenSaveID);
+                    //console.log("Saving latest database version " + this._seenSaveID);
                 } else {
-                    console.log("Saving intermediate database version " + this._seenSaveID);
+                    //console.log("Saving intermediate database version " + this._seenSaveID);
                 }
                 this._saveToIndexedDB(data);
             }

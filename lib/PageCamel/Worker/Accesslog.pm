@@ -141,7 +141,7 @@ sub work($self) {
         }
         $processed{$line->{useragent}} = 1;
 
-        my ($simpleUserAgent, $badBot) = simplifyUA($line->{useragent});
+        my ($simpleUserAgent, undef) = simplifyUA($line->{useragent});
         if($simpleUserAgent eq 'REALLY_UNKNOWN') {
             $reph->debuglog("'Unknown UA: " . $line->{useragent});
         }

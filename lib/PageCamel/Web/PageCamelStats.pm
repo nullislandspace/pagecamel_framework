@@ -18,7 +18,7 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
-use PageCamel::Helpers::UserAgent qw[simplifyUA];
+#use PageCamel::Helpers::UserAgent qw[simplifyUA];
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -83,7 +83,7 @@ sub prefilter($self, $ua) {
     }
     my $range = $ua->{headers}->{'HTTP_RANGE'} || '';
 
-    my ($simpleUserAgent, $badBot) = simplifyUA($userAgent);
+    #my ($simpleUserAgent, $badBot) = simplifyUA($userAgent);
 
     my @headers;
     my @hnames = sort keys %{$ua->{headers}};
@@ -99,12 +99,12 @@ sub prefilter($self, $ua) {
         parameters  => $paramlist,
         remotehost    => $host,
         useragent   => $userAgent,
-        simpleagent => $simpleUserAgent,
+        #simpleagent => $simpleUserAgent,
         referer => $referer,
         protocol => $protocol,
         headers => $headerlist,
         range   => $range,
-        badBot  => $badBot,
+        #badBot  => $badBot,
 
     );
 

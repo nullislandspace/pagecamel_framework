@@ -72,23 +72,32 @@ sub handle_rpc($self, $ua) {
 
     my $data;
     my $haserrors = 0;
+    my $wrongmethod = 0;
+    my $denied = 0;
     if(!eval {
         $data = $xmlrpc->receive($xml, sub {
                 my ($methodname, @params) = @_;
 
                 if(!defined($apifunctions{$methodname})) {
-                    $haserrors = 1;
+                    $wrongmethod = 1;
                     return;
                 }
 
-                return $apifunctions{$methodname}($self, $ua, @params);
+                my $retval = $apifunctions{$methodname}($self, $ua, @params);
+                if(defined($retval->{status}) && $retval->{status} == -1) {
+                    $denied = 1;
+                }
+                return $retval;
+
         });
     }) {
         $haserrors = 1;
     }
 
-    return (status  => 403) if($haserrors);
-    return (status  =>  403) unless defined($data); # Forbidden because something in the request wasn't ok
+    return (status  => 500) if($haserrors);
+    return (status => 422) if($wrongmethod); # "Unprocessable Entity"
+    return (status => 402) if($denied); # "Payment required"
+    return (status  =>  403) unless defined($data); # Forbidden because something else in the request wasn't ok
 
     return (status  => 200,
         #"__do_not_log_to_accesslog" => 1,
@@ -102,11 +111,36 @@ sub api_add {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
-    my $delsth = $dbh->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? and hostname = ?")
+    my $checksth = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry 
+                                            WHERE domain_fqdn = ?
+                                            AND hostname = ?
+                                            AND record_type = 'A'")
             or croak($dbh->errstr);
-    my $inssth = $dbh->prepare_cached("INSERT INTO nameserver_domain_entry (domain_fqdn, hostname, record_type, textrecord, delete_after)
-                                       VALUES (?, ?, 'TXT', ?, now() + interval '2 hours')")
+
+    my $delsth = $dbh->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? and hostname = ? AND record_type = 'TXT' AND is_letsencrypt = true")
             or croak($dbh->errstr);
+    my $inssth = $dbh->prepare_cached("INSERT INTO nameserver_domain_entry (domain_fqdn, hostname, record_type, textrecord, delete_after, is_letsencrypt)
+                                       VALUES (?, ?, 'TXT', ?, now() + interval '2 hours', true)")
+            or croak($dbh->errstr);
+
+    if(!$checksth->execute($options{basedomain}, $options{extension})) {
+        print STDERR $dbh->errstr, "\n";
+        $dbh->rollback;
+        return {
+                status   => -1,
+        };
+    }
+    my $line = $checksth->fetchrow_hashref;
+    $checksth->finish;
+
+    if(!defined($line) || !defined($line->{hostname})) {
+        #print STDERR "No A entry for domain_fqdn ", $options{basedomain}, " and hostname ", $options{extension}, "\n";
+        $dbh->rollback;
+        return {
+                status   => -1,
+        };
+    }
+
     if(!$delsth->execute($options{basedomain}, $options{extension}) ||
             !$inssth->execute($options{basedomain}, $options{extension}, $options{value})) {
         $dbh->rollback;
@@ -127,8 +161,32 @@ sub api_remove {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
-        my $delsth = $dbh->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? and hostname = ?")
-                or croak($dbh->errstr);
+    my $checksth = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry 
+                                            WHERE domain_fqdn = ?
+                                            AND hostname = ?
+                                            AND record_type = 'A'")
+            or croak($dbh->errstr);
+    my $delsth = $dbh->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? AND hostname = ? AND record_type = 'TXT' AND is_letsencrypt = true")
+            or croak($dbh->errstr);
+
+    if(!$checksth->execute($options{basedomain}, $options{extension})) {
+        print STDERR $dbh->errstr, "\n";
+        $dbh->rollback;
+        return {
+                status   => -1,
+        };
+    }
+    my $line = $checksth->fetchrow_hashref;
+    $checksth->finish;
+
+    if(!defined($line) || !defined($line->{hostname})) {
+        #print STDERR "No A entry for domain_fqdn ", $options{basedomain}, " and hostname ", $options{extension}, "\n";
+        $dbh->rollback;
+        return {
+                status   => -1,
+        };
+    }
+
     if(!$delsth->execute($options{basedomain}, $options{extension})) {
         $dbh->rollback;
         return {

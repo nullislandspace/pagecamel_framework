@@ -20,7 +20,7 @@ CREATE TABLE pagecamel.computers_vncorganisation (
     computer_name text NOT NULL,
     organisation_name text NOT NULL,
     is_enabled boolean NOT NULL DEFAULT false,
-    CONSTRAINT computers_vncorganisation_pk PRIMARY KEY (organisation_name),
+    CONSTRAINT computers_vncorganisation_pk PRIMARY KEY (computer_name, organisation_name),
     CONSTRAINT computers_vncorganisation_fk1 FOREIGN KEY (computer_name) REFERENCES computers(computer_name) ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT computers_vncorganisation_fk2 FOREIGN KEY (organisation_name) REFERENCES users_organisation(organisation_name) ON UPDATE CASCADE ON DELETE CASCADE
 )
@@ -31,6 +31,7 @@ WITH (
 INSERT INTO pagecamel.computers_vncorganisation(computer_name, organisation_name, is_enabled)
     SELECT computer_name, company_name, is_enabled FROM pagecamel.computers_vnccompany;
 
+DROP VIEW pagecamel.computers_vnclog_view;
 ALTER TABLE pagecamel.computers DROP COLUMN servicepack;
 ALTER TABLE pagecamel.computers DROP COLUMN is_64bit;
 ALTER TABLE pagecamel.computers DROP COLUMN line_id;

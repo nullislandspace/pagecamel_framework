@@ -35,6 +35,8 @@ sub encode_uri($orig) {
 
 sub encode_uri_part($orig) {
 
+    $orig = encode_utf8($orig);
+
     my $encoded = '';
 
     my @parts = split//, $orig;

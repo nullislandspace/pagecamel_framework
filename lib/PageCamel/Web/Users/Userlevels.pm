@@ -115,7 +115,7 @@ sub checkAccess($self, $uri, $permissions) {
 }
 
 sub checkAccessForUser($self, $uri, $username) {
-    my $permissions = getPermissionForUser($username);
+    my $permissions = $self->getPermissionForUser($username);
     return $self->checkAccess($uri, $permissions);
 }
 

@@ -18,7 +18,6 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use base qw(PageCamel::Web::BaseModule);
-use PageCamel::Helpers::UserAgent qw[simplifyUA];
 use PageCamel::Helpers::DangerSign;
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use XML::Simple;
