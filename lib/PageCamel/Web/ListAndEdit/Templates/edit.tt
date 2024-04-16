@@ -505,14 +505,6 @@
                 }
             }
             if($(this).val() == '') {
-                /*
-                var switchtotab = $(this).attr('activetab');
-                if(switchtotab != '') {
-                    //console.log('#tabs a[href="#' + switchtotab + ']');
-                    $('a[href="#' + switchtotab + ']').tab('show');
-                    //$('a[href="#' + switchtotab + ']').click();
-                }
-                */
                 $(this).focus();
                 alert(ttvars.trquote.Requiredfield + ' ' + $(this).attr('displayname'));
                 inputok = 0;
@@ -838,7 +830,7 @@
                     var cursorpos = field[0].selectionStart;
                     var changed = false;
 
-                    var sanitized = orig.replace(/[^\w\s\.\-\_]/gi, '');
+                    var sanitized = orig.replace(/[^\w\s\.\-\_äöüÄÖÜß]/gi, '');
                     if(orig != sanitized) {
                         console.log("Removing illegal characters in primary key");
                         changed = true;

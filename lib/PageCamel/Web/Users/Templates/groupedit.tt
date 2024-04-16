@@ -117,7 +117,7 @@
             var cursorpos = field[0].selectionStart;
             var changed = false;
 
-            var sanitized = orig.replace(/[^\w\s\_]/gi, '');
+            var sanitized = orig.replace(/[^\w\s\_äöüÄÖÜß]/gi, '');
             if(orig != sanitized) {
                 console.log("Removing illegal characters in groupname");
                 changed = true;
