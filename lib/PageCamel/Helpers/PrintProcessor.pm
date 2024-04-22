@@ -665,8 +665,12 @@ sub printSetColorRed($self, $val) {
     }
 }
 
-sub _getPrintColor($self) {
-    return $self->{$self->{printcolor}};
+sub _getPrintColor($self, $isfont = 0) {
+    if($isfont && $self->{$self->{printcolor}} > 0) {
+        # return the NEGATIVE number of the print color, this disables Font Aliasing
+        return -1 * $self->{$self->{printcolor}};
+    }
+    return  $self->{$self->{printcolor}};
 }
 
 sub printAddTextLine($self, $line, $y = undef) {
@@ -676,11 +680,11 @@ sub printAddTextLine($self, $line, $y = undef) {
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
-        $self->{img}->stringFT($self->_getPrintColor(), $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 24;
     } else {
-        $self->{img}->stringFT($self->_getPrintColor(), $self->{font}, 20, 0, 10, $y + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{font}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
     
@@ -694,11 +698,11 @@ sub printAddBoldTextLine($self, $line, $y = undef) {
     $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
-        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 24;
     } else {
-        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $y + 10, $line);
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
     
@@ -710,9 +714,9 @@ sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
-        $self->{img}->stringFT($self->_getPrintColor(), $self->{smallfont}, 15, 0, $x, $y + 8, $line);
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 15, 0, $x, $y + 8, $line);
     } else {
-        $self->{img}->stringFT($self->_getPrintColor(), $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 19;
     }
     
@@ -724,9 +728,9 @@ sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
-        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 15, 0, $x, $y + 8, $line);
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 15, 0, $x, $y + 8, $line);
     } else {
-        $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 19;
     }
     
@@ -737,7 +741,7 @@ sub printAddBigTextLine($self, $line) {
     
     chomp $line;
     
-    $self->{img}->stringFT($self->_getPrintColor(), $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
+    $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
     
     $self->{imgoffs} += 58;
     
@@ -748,7 +752,7 @@ sub printAddMediumBigTextLine($self, $line) {
     
     chomp $line;
     
-    $self->{img}->stringFT($self->_getPrintColor(), $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
+    $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
     
     $self->{imgoffs} += 38;
     
@@ -1080,7 +1084,7 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
 
 sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
     
-    $self->{img}->stringFT($self->_getPrintColor(), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
+    $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
     $self->{imagedata} = $self->{img}->png;
 
     return;
