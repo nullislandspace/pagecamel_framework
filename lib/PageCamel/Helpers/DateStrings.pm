@@ -23,13 +23,14 @@ use Date::Manip;
 use HTTP::Date;
 use Readonly;
 use Lingua::EN::Numbers::Ordinate;
+use Data::Dumper;
 
 use base qw(Exporter);
 our @EXPORT = qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime
                  getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute 
                  getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime
                  getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash 
-                 timeToSeconds eternalseptemberize secondsToInterval); ## no critic (Modules::ProhibitAutomaticExportation)
+                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
 Readonly my $YEARBASEOFFSET => 1900;
@@ -554,6 +555,69 @@ sub secondsToInterval($seconds) {
     return $interval;
 }
 
+sub calcDateAgeUTC($olddate) {
+    my $curdate = getUTCISODate();
+    #print "Cur: $curdate\n";
+    #print "Old $olddate\n";
+
+    my $oldmangler = Date::Manip::Date->new();
+    my $curmangler = Date::Manip::Date->new();
+
+    my ($oldparseerr) = $oldmangler->parse($olddate);
+
+    if(defined($oldparseerr) && $oldparseerr) {
+        return '';
+    }
+
+    my ($curparseerr) = $curmangler->parse($curdate);
+
+    if(defined($curparseerr) && $curparseerr) {
+        return '';
+    }
+
+    my $delta = $oldmangler->calc($curmangler, 0);
+    my @deltafields = $delta->value();
+    #print Dumper(\@deltafields);
+
+    if($deltafields[4] == 0) {
+        if($deltafields[5] == 1) {
+            return $deltafields[5] . ' minute';
+        }
+        return $deltafields[5] . ' minutes';
+    }
+
+    my $val = $deltafields[4];
+
+    if($val < 24) {
+        if($val == 1) {
+            return $val . ' hour';
+        }
+        return $val . ' hours';
+    }
+    $val = int($val / 24);
+
+    if($val < 7) {
+        if($val == 1) {
+            return $val . ' day';
+        }
+        return $val . ' days';
+    }
+
+    $val = int($val / 7);
+    if($val < 52) {
+        if($val == 1) {
+            return $val . ' week';
+        }
+        return $val . ' weeks';
+    }
+
+    $val = int($val / 52);
+
+    if($val == 1) {
+        return $val . ' year';
+    }
+    return $val . ' years';
+}
     
 
 1;

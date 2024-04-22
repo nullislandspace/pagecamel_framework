@@ -678,8 +678,8 @@ sub run_script($self, $command) {
     print "Running command '$command':\n";
     my @lines = `$command`;
     foreach my $line (@lines) {
-    chomp $line;
-    print ":: $line\n";
+        chomp $line;
+        print ":: $line\n";
     }
 
     return 1;

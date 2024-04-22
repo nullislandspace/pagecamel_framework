@@ -426,7 +426,8 @@ sub _escpos_sgt116($self) {
 
     # Kick drawer
     if($self->{kickCashdrawer}) {
-        $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+        #$raw .= chr(0x1b) . chr(0x70) . chr(0x00);
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
     }
 
     my ($w, $h) = $img->getBounds();
@@ -489,7 +490,7 @@ sub _escpos_jws360($self) {
     $raw .= "\n";
 
     # Kick drawer
-    if(1 && $self->{kickCashdrawer}) {
+    if($self->{kickCashdrawer}) {
         $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
     }
     $raw .= "\n";
