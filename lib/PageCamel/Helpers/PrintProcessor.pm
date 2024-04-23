@@ -682,7 +682,7 @@ sub printAddTextLine($self, $line, $y = undef) {
     if(!defined($y)) {
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
-        $self->{imgoffs} += 24;
+        $self->{imgoffs} += 27;
     } else {
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{font}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
