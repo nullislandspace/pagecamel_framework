@@ -53,6 +53,10 @@ sub new($proto, %config) {
         $self->{socket_only} = 0;
     }
 
+    if(!defined($self->{usemastertemplate})) {
+        $self->{usemastertemplate} = 1;
+    }
+
     return $self;
 }
 
@@ -265,12 +269,17 @@ sub get($self, $ua) {
         showads => $self->{showads},
     );
 
+    if(!$self->{isDebugging}) {
+        # Allow overriding default
+        $webdata{isDebugging} = 0; 
+    }
+
     push @{$webdata{HeadExtraModuleScriptsNoPostfix}}, '/static/pchelpers/import_pcwebsocket.js';
     
     my $substatus = $self->wsmaskget($ua, \%settings, \%webdata);
     if($substatus == 999) {
         # Display mask with error message instead
-        my $errortemplate = $th->get("basewebsocket_error", 1, %webdata);
+        my $errortemplate = $th->get("basewebsocket_error", $self->{usemastertemplate}, %webdata);
         return (status  =>  404) unless $errortemplate;
         return (status  =>  200,
                 type    => "text/html",
@@ -288,7 +297,7 @@ sub get($self, $ua) {
     }
     $webdata{WEBSOCKETMASK} = $subtemplate;
 
-    my $template = $th->get("basewebsocket", 1, %webdata);
+    my $template = $th->get("basewebsocket", $self->{usemastertemplate}, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "text/html",

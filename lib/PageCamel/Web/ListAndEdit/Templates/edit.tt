@@ -320,6 +320,10 @@
                                                     [% emptycount = emptycount - 1 %]
                                                 [% END %]
                                                 <input type="hidden" name="[% tr.quote(column.columnname) %]_count" value="[% arraycount %]">
+                                            [% ELSIF column.displaytype == "iframe" %]
+                                                <input type="hidden" name="[% tr.quote(column.columnname) %]" id="[% tr.quote(column.columnname) %]_id" value="[% tr.quote(column.columnvalue) %]">
+                                                <iframe sandbox="allow-same-origin allow-scripts" id="[% tr.quote(column.columnname) %]_iframe" width="[% column.width %]" height="[% column.height %]" src="[% column.url %]"></iframe>
+                                                    
                                             [% ELSE %]
                                                 UNSUPPORTED DISPLAYTYPE [% column.fieldtype %] / [% column.displaytype %] FOR COLUMN [% column.columnname %]
                                             [% END %]
@@ -434,7 +438,6 @@
 
 
 <script>
-
 
     var specialcopymode = false;
     function setMode(newmode) {

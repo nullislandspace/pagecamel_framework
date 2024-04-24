@@ -577,7 +577,7 @@ sub reload($self) {
 
     $self->{tabstablenames} = [qw[MainDataTable HelperTable1 HelperTable2 HelperTable3 HelperTable4 HelperTable5 HelperTable6 HelperTable7]];
 
-    $self->{editallowedtypes} = [qw[text textarray textarea textarea-readonly editor scripteditor number boolean array enum subenum enumarray switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay]];
+    $self->{editallowedtypes} = [qw[text textarray textarea textarea-readonly editor scripteditor number boolean array enum subenum enumarray switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay iframe]];
     $self->{readonlytypes} = [qw[textarea-readonly led display codedisplay imagedisplay]];
 
 
@@ -847,7 +847,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
     my %testtypes = (
         array   => [qw[array]],
         boolean => [qw[led switch checkbox]],
-        text => [qw[text textarray textarea textarea-readonly editor scripteditor codedisplay number enum subenum enumarray display hidden colorpicker image imagedisplay]],
+        text => [qw[text textarray textarea textarea-readonly editor scripteditor codedisplay number enum subenum enumarray display hidden colorpicker image imagedisplay iframe]],
         integer => [qw[number enum subenum enumarray display slider]],
         bigint => [qw[number enum subenum enumarray display slider]],
         real => [qw[number enum subenum enumarray display]],
@@ -1016,6 +1016,19 @@ sub validateEditItem($self, $item, $multiarraymode) {
         if(!defined($item->{charcount})) {
             #print '    EDIT: Column ', $item->{column}, " has no 'charcount' setting, disabling limit\n";
             $item->{charcount} = 0;
+        }
+    }
+
+    if($item->{type} eq 'iframe') {
+        my $ok = 1;
+        foreach my $required(qw[url width height]) {
+            if(!defined($item->{$required})) {
+                print "    EDIT: type $item->{type} does not define '$required'\n";
+                $ok = 0;
+            }
+        }
+        if(!$ok) {
+            return 0;
         }
     }
 
@@ -2880,6 +2893,12 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};
         } else {
             $column{imagedata} = '';
+        }
+    }
+
+    if($column{displaytype} eq 'iframe') {
+        foreach my $key (qw[url width height]) {
+            $column{$key} = $item->{$key};
         }
     }
 
