@@ -1416,6 +1416,7 @@ sub get_list($self, $ua, $usemasterlayout = true) {
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/list", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
+
     if($self->{support_mobile}) {
         return (status  =>  200,
             type    => "text/html",
@@ -1459,7 +1460,7 @@ sub get_lines($self, $ua) {
 
     my %webdata =
     (
-        $self->{server}->get_defaultwebdata(),
+        #$self->{server}->get_defaultwebdata(),
     );
 
     my $userlang = $webdata{UserLanguage} || "eng";
@@ -1645,23 +1646,23 @@ sub get_lines($self, $ua) {
     $sesh->set($self->{sessionname} . '::lastOrderBy', $orderby);
 
 
-    my $tcountsth;
-    if($self->{guess_stats}) {
-        # Aproximate total number of lines in the table by accessing the statistics (much faster than actual counting)
-        #$tcountsth = $dbh->prepare_cached("SELECT reltuples::integer FROM pg_class WHERE relname = '" . $self->{table} . "'")
-        #        or croak($dbh->errstr);
-        $tcountsth = $dbh->prepare_cached("SELECT row_count FROM table_statistics WHERE tablename = '" . $self->{table} . "'")
-                or croak($dbh->errstr);
-    } else {
-        $tcountsth = $dbh->prepare_cached("SELECT count(*) FROM " . $self->{table})
-                or croak($dbh->errstr);
-    }
-    $tcountsth->execute or croak($dbh->errstr);
-    my ($tcount) = $tcountsth->fetchrow_array;
-    $tcountsth->finish;
-    if(!defined($tcount)) {
-        $tcount = 0;
-    }
+#    my $tcountsth;
+#    if($self->{guess_stats}) {
+#        # Aproximate total number of lines in the table by accessing the statistics (much faster than actual counting)
+#        #$tcountsth = $dbh->prepare_cached("SELECT reltuples::integer FROM pg_class WHERE relname = '" . $self->{table} . "'")
+#        #        or croak($dbh->errstr);
+#        $tcountsth = $dbh->prepare_cached("SELECT row_count FROM table_statistics WHERE tablename = '" . $self->{table} . "'")
+#                or croak($dbh->errstr);
+#    } else {
+#        $tcountsth = $dbh->prepare_cached("SELECT count(*) FROM " . $self->{table})
+#                or croak($dbh->errstr);
+#    }
+#    $tcountsth->execute or croak($dbh->errstr);
+#    my ($tcount) = $tcountsth->fetchrow_array;
+#    $tcountsth->finish;
+#    if(!defined($tcount)) {
+#        $tcount = 0;
+#    }
 
     {
         my @columns;
@@ -1690,7 +1691,6 @@ sub get_lines($self, $ua) {
                     " $where " .
                     " ORDER BY $orderby" .
                     " LIMIT $limit OFFSET $offset ";
-
 
     my $selsth = $dbh->prepare($selstmt) or croak($dbh->errstr);
 
@@ -1817,11 +1817,12 @@ sub get_lines($self, $ua) {
     $dbh->rollback;
     $webdata{aaData} = \@lines;
 
-    if($tcount < $fcount) {
-        $tcount = $fcount;
-    }
+#    if($tcount < $fcount) {
+#        $tcount = $fcount;
+#    }
 
-    $webdata{recordsTotal} = $tcount;
+    #$webdata{recordsTotal} = $tcount;
+    $webdata{recordsTotal} = $fcount; # STRANGE!!!! FIXME ??? If i show the correct number, columns mess up in datatables
     $webdata{recordsFiltered} = $fcount;
     $webdata{draw} = 0 + $draworder;
 
