@@ -214,6 +214,7 @@
             }
             if(window.pcws.spoolincoming) {
                 var starttime = Date.now();
+                console.log(msg);
                 //console.log("** MESSAGE TYPE " + msg.type);
                 //console.log(msg.data);
                 window.pcws.spoolincoming(msg.type, msg.data);
@@ -250,6 +251,13 @@
             data: mdata,
             dbid: mdbid
         };
+
+        if(window.wstransmitcallback) {
+            if(window.wstransmitcallback(outmsg)) {
+                // Handled by callback function, don't send over websocket
+                return true;
+            }
+        }
         
         ws.send(JSON.stringify(outmsg));
         return true;
