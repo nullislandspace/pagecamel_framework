@@ -577,7 +577,7 @@ sub reload($self) {
 
     $self->{tabstablenames} = [qw[MainDataTable HelperTable1 HelperTable2 HelperTable3 HelperTable4 HelperTable5 HelperTable6 HelperTable7]];
 
-    $self->{editallowedtypes} = [qw[text textarray textarea textarea-readonly editor scripteditor number boolean array enum subenum enumarray switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay]];
+    $self->{editallowedtypes} = [qw[text textarray textarea textarea-readonly editor scripteditor number boolean array enum subenum enumarray switch led display codedisplay slider checkbox date dateonly timeonly hidden colorpicker image imagedisplay iframe]];
     $self->{readonlytypes} = [qw[textarea-readonly led display codedisplay imagedisplay]];
 
 
@@ -847,7 +847,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
     my %testtypes = (
         array   => [qw[array]],
         boolean => [qw[led switch checkbox]],
-        text => [qw[text textarray textarea textarea-readonly editor scripteditor codedisplay number enum subenum enumarray display hidden colorpicker image imagedisplay]],
+        text => [qw[text textarray textarea textarea-readonly editor scripteditor codedisplay number enum subenum enumarray display hidden colorpicker image imagedisplay iframe]],
         integer => [qw[number enum subenum enumarray display slider]],
         bigint => [qw[number enum subenum enumarray display slider]],
         real => [qw[number enum subenum enumarray display]],
@@ -1016,6 +1016,19 @@ sub validateEditItem($self, $item, $multiarraymode) {
         if(!defined($item->{charcount})) {
             #print '    EDIT: Column ', $item->{column}, " has no 'charcount' setting, disabling limit\n";
             $item->{charcount} = 0;
+        }
+    }
+
+    if($item->{type} eq 'iframe') {
+        my $ok = 1;
+        foreach my $required(qw[url width height]) {
+            if(!defined($item->{$required})) {
+                print "    EDIT: type $item->{type} does not define '$required'\n";
+                $ok = 0;
+            }
+        }
+        if(!$ok) {
+            return 0;
         }
     }
 
@@ -1403,6 +1416,7 @@ sub get_list($self, $ua, $usemasterlayout = true) {
 
     my $template = $self->{server}->{modules}->{templates}->get("listandedit/list", $usemasterlayout, %webdata);
     return (status  =>  404) unless $template;
+
     if($self->{support_mobile}) {
         return (status  =>  200,
             type    => "text/html",
@@ -1446,7 +1460,7 @@ sub get_lines($self, $ua) {
 
     my %webdata =
     (
-        $self->{server}->get_defaultwebdata(),
+        #$self->{server}->get_defaultwebdata(),
     );
 
     my $userlang = $webdata{UserLanguage} || "eng";
@@ -1632,23 +1646,23 @@ sub get_lines($self, $ua) {
     $sesh->set($self->{sessionname} . '::lastOrderBy', $orderby);
 
 
-    my $tcountsth;
-    if($self->{guess_stats}) {
-        # Aproximate total number of lines in the table by accessing the statistics (much faster than actual counting)
-        #$tcountsth = $dbh->prepare_cached("SELECT reltuples::integer FROM pg_class WHERE relname = '" . $self->{table} . "'")
-        #        or croak($dbh->errstr);
-        $tcountsth = $dbh->prepare_cached("SELECT row_count FROM table_statistics WHERE tablename = '" . $self->{table} . "'")
-                or croak($dbh->errstr);
-    } else {
-        $tcountsth = $dbh->prepare_cached("SELECT count(*) FROM " . $self->{table})
-                or croak($dbh->errstr);
-    }
-    $tcountsth->execute or croak($dbh->errstr);
-    my ($tcount) = $tcountsth->fetchrow_array;
-    $tcountsth->finish;
-    if(!defined($tcount)) {
-        $tcount = 0;
-    }
+#    my $tcountsth;
+#    if($self->{guess_stats}) {
+#        # Aproximate total number of lines in the table by accessing the statistics (much faster than actual counting)
+#        #$tcountsth = $dbh->prepare_cached("SELECT reltuples::integer FROM pg_class WHERE relname = '" . $self->{table} . "'")
+#        #        or croak($dbh->errstr);
+#        $tcountsth = $dbh->prepare_cached("SELECT row_count FROM table_statistics WHERE tablename = '" . $self->{table} . "'")
+#                or croak($dbh->errstr);
+#    } else {
+#        $tcountsth = $dbh->prepare_cached("SELECT count(*) FROM " . $self->{table})
+#                or croak($dbh->errstr);
+#    }
+#    $tcountsth->execute or croak($dbh->errstr);
+#    my ($tcount) = $tcountsth->fetchrow_array;
+#    $tcountsth->finish;
+#    if(!defined($tcount)) {
+#        $tcount = 0;
+#    }
 
     {
         my @columns;
@@ -1677,7 +1691,6 @@ sub get_lines($self, $ua) {
                     " $where " .
                     " ORDER BY $orderby" .
                     " LIMIT $limit OFFSET $offset ";
-
 
     my $selsth = $dbh->prepare($selstmt) or croak($dbh->errstr);
 
@@ -1804,11 +1817,12 @@ sub get_lines($self, $ua) {
     $dbh->rollback;
     $webdata{aaData} = \@lines;
 
-    if($tcount < $fcount) {
-        $tcount = $fcount;
-    }
+#    if($tcount < $fcount) {
+#        $tcount = $fcount;
+#    }
 
-    $webdata{recordsTotal} = $tcount;
+    #$webdata{recordsTotal} = $tcount;
+    $webdata{recordsTotal} = $fcount; # STRANGE!!!! FIXME ??? If i show the correct number, columns mess up in datatables
     $webdata{recordsFiltered} = $fcount;
     $webdata{draw} = 0 + $draworder;
 
@@ -2880,6 +2894,12 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             $column{imagedata} = 'data:image/png;base64,' . $column{columnvalue};
         } else {
             $column{imagedata} = '';
+        }
+    }
+
+    if($column{displaytype} eq 'iframe') {
+        foreach my $key (qw[url width height]) {
+            $column{$key} = $item->{$key};
         }
     }
 
