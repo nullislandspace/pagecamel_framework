@@ -214,7 +214,7 @@
             }
             if(window.pcws.spoolincoming) {
                 var starttime = Date.now();
-                console.log(msg);
+                //console.log(msg);
                 //console.log("** MESSAGE TYPE " + msg.type);
                 //console.log(msg.data);
                 window.pcws.spoolincoming(msg.type, msg.data);
