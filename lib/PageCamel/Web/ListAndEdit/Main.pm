@@ -1460,7 +1460,7 @@ sub get_lines($self, $ua) {
 
     my %webdata =
     (
-        #$self->{server}->get_defaultwebdata(),
+        $self->{server}->get_defaultwebdata(),
     );
 
     my $userlang = $webdata{UserLanguage} || "eng";
