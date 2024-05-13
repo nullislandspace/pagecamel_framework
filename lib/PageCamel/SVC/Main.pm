@@ -593,8 +593,12 @@ sub start_app($self, $app) {
     } else {
         # Child
         print "Running command ", $app->{app}, " ", $app->{conf}, "\n";
-        open STDOUT, ">",  "/dev/null" or croak("$PROGRAM_NAME: open: $ERRNO");
-        open STDERR, ">&", \*STDOUT    or exit 1;
+        if(defined($ENV{PC_SVC_VERBOSE}) && $ENV{PC_SVC_VERBOSE} eq '1') {
+            # Don't reroute STDOUT / STDERR
+        } else {
+            open STDOUT, ">",  "/dev/null" or croak("$PROGRAM_NAME: open: $ERRNO");
+            open STDERR, ">&", \*STDOUT    or exit 1;
+        }
         eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             exec($app->{app} . " " . $app->{conf});
         };

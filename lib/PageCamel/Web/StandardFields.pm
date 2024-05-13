@@ -151,7 +151,13 @@ sub get_defaultwebdata($self, $webdata) {
 
     my $needUpdate = 0;
     {
-        my $data = 0 + $memh->get("SystemSettings::lastUpdate");
+        my $data = $memh->get("SystemSettings::lastUpdate");
+        if(!defined($data)) {
+            $data = 0;
+        } else {
+            $data = $data + 0;
+        }
+
         if($data != $self->{lastUpdate}) {
           $needUpdate = 1;
           $self->{lastUpdate} = $data;
