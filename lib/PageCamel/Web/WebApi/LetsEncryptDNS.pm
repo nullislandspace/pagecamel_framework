@@ -123,7 +123,10 @@ sub api_add {
                                        VALUES (?, ?, 'TXT', ?, now() + interval '2 hours', true)")
             or croak($dbh->errstr);
 
-    if(!$checksth->execute($options{basedomain}, $options{extension})) {
+    my $basehostname = '' . $options{extension};
+    $basehostname =~ s/^\_acme\-challenge\.//;
+
+    if(!$checksth->execute($options{basedomain}, $basehostname)) {
         print STDERR $dbh->errstr, "\n";
         $dbh->rollback;
         return {
@@ -134,7 +137,7 @@ sub api_add {
     $checksth->finish;
 
     if(!defined($line) || !defined($line->{hostname})) {
-        #print STDERR "No A entry for domain_fqdn ", $options{basedomain}, " and hostname ", $options{extension}, "\n";
+        print STDERR "No A entry for domain_fqdn ", $options{basedomain}, " and hostname ", $options{extension}, "\n";
         $dbh->rollback;
         return {
                 status   => -1,
@@ -169,7 +172,10 @@ sub api_remove {
     my $delsth = $dbh->prepare_cached("DELETE FROM nameserver_domain_entry WHERE domain_fqdn = ? AND hostname = ? AND record_type = 'TXT' AND is_letsencrypt = true")
             or croak($dbh->errstr);
 
-    if(!$checksth->execute($options{basedomain}, $options{extension})) {
+    my $basehostname = '' . $options{extension};
+    $basehostname =~ s/^\_acme\-challenge\.//;
+
+    if(!$checksth->execute($options{basedomain}, $basehostname)) {
         print STDERR $dbh->errstr, "\n";
         $dbh->rollback;
         return {
@@ -180,7 +186,7 @@ sub api_remove {
     $checksth->finish;
 
     if(!defined($line) || !defined($line->{hostname})) {
-        #print STDERR "No A entry for domain_fqdn ", $options{basedomain}, " and hostname ", $options{extension}, "\n";
+        print STDERR "No A entry for domain_fqdn ", $options{basedomain}, " and hostname ", $options{extension}, "\n";
         $dbh->rollback;
         return {
                 status   => -1,
