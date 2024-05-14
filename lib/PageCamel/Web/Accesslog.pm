@@ -168,7 +168,11 @@ sub logend($self, $ua, $header, $result) {
         $requestdata{pagecamel_debug_info} = $result->{pagecamel_debug_info};
     }
 
-    $requestdata{url_host} = $ua->{headers}->{Host};
+    if(defined($ua->{headers}->{Host})) {
+        $requestdata{url_host} = $ua->{headers}->{Host};
+    } else {
+        $requestdata{url_host} = '';
+    }
 
     my $stmt = "INSERT INTO accesslog (url, url_host, processid, method, parameters, remotehost, username, returncode, doctype, useragent,
                                         compression, referer, useragent_simplified, protocol, headers, rangeheader, httpversion,
