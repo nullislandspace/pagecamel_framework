@@ -488,7 +488,7 @@ sub handleClient($self, $client) {
             $self->endprogram();
         }
 
-        sleep(0.01);
+        #sleep(0.01);
         if($sigpipeseen) {
             print STDERR "SIGPIPE ON FIRST WRITE TO BACKEND - Bailing out\n";
             $self->endprogram();
@@ -523,7 +523,7 @@ sub handleClient($self, $client) {
             # something in out output buffers
             my $waittime = 0.1;
             if(length($toclientbuffer) || length($tobackendbuffer)) {
-                $waittime = 0.05;
+                $waittime = 0.01;
             }
             
             my @connections = $select->can_read($waittime);
