@@ -170,7 +170,7 @@ WriteMakefile(
         'vars' => 0,
         'WWW::Mechanize' => 0,
         'WWW::Mechanize::GZip' => 0,
-        'XML::RPC' => 1.1,
+        'XML::RPC' => 2.1,
         'XML::Simple' => 0,
         'YAML::Syck' => 0,
     },
