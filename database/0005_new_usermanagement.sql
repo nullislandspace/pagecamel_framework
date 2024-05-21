@@ -31,7 +31,7 @@ WITH (
 INSERT INTO pagecamel.computers_vncorganisation(computer_name, organisation_name, is_enabled)
     SELECT computer_name, company_name, is_enabled FROM pagecamel.computers_vnccompany;
 
-DROP VIEW pagecamel.computers_vnclog_view;
+--DROP VIEW pagecamel.computers_vnclog_view;
 ALTER TABLE pagecamel.computers DROP COLUMN servicepack;
 ALTER TABLE pagecamel.computers DROP COLUMN is_64bit;
 ALTER TABLE pagecamel.computers DROP COLUMN line_id;
