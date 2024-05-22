@@ -187,7 +187,7 @@ sub get($self, $ua) {
         }
         delete $retpage{'Transfer-Encoding'};
     } elsif(defined($retpage{'Content-Length'})) {
-        print STDERR "### MERCURIAL PLAIN ENCODING, ", $retpage{'Content-Length'}, " bytes\n";
+        #print STDERR "### MERCURIAL PLAIN ENCODING, ", $retpage{'Content-Length'}, " bytes\n";
         $content = $self->readPlain($socket, $retpage{'Content-Length'}, 120);
         if(!defined($content)) {
             print STDERR "###########   Can't read plain content (timeout?)\n";
