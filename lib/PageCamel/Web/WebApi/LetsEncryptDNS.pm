@@ -27,6 +27,7 @@ use JSON::XS;
 my %apifunctions = (
     add        => \&api_add,
     remove     => \&api_remove,
+    test     => \&api_test,
 );
 
 sub new($proto, %config) {
@@ -204,6 +205,20 @@ sub api_remove {
 
     return {
             status   => 1,
+    };
+}
+
+sub api_test {
+    my($self, $ua, %options) =@_;
+
+    print Dumper(\%options);
+    my $returncode = 0;
+    if(defined($options{returnCode})) {
+        $returncode = 0 + $options{returnCode};
+    }
+
+    return {
+        status   => $returncode,
     };
 }
 

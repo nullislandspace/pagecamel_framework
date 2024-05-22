@@ -23,7 +23,7 @@ onmessage = function (e: MessageEvent): void {
     //var data = e.data[1] as Uint8Array;
 
     if (command == "START") {
-        intervalhandler = setInterval(dataConverter, 500);
+        intervalhandler = setInterval(dataConverter, 20);
     } else if (command == "STOP") {
         clearInterval(intervalhandler);
     } else if (command == "SQLTOSTRING") {
@@ -41,6 +41,9 @@ function dataConverter() {
         return;
     }
 
+    //console.log("Saving");
+
+    //var starttime = Date.now();
     var uarr: Uint8Array = new Uint8Array(nextSave);
     var saveID = nextSaveID;
     hasnextSave = false;
@@ -57,10 +60,19 @@ function dataConverter() {
     }
 
     var result = strings.join("");
+    //var midtime = Date.now();
+    
     //console.log("DB SAVE IS " + result.length + " bytes long");
     var compressed = LZString.compress(result);
-    //console.log("Compressed DB SAVE IS " + compressed.length + " bytes long");
-    //console.log("Compressed to " + ((compressed.length / result.length) * 100) + "% of original size");
+
+    /*
+    var endtime = Date.now();
+    console.log("conversion took " + ((midtime - starttime) / 1000) + " seconds");
+    console.log("compression took " + ((endtime - midtime) / 1000) + " seconds");
+    console.log("Uncompressed DB SAVE IS " + result.length + " bytes long");
+    console.log("Compressed DB SAVE IS " + compressed.length + " bytes long");
+    console.log("Compressed to " + ((compressed.length / result.length) * 100) + "% of original size");
+    */
     postMessage(["SAVEDB", compressed, saveID]);
 
     return;
