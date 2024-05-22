@@ -474,10 +474,10 @@ sub handleUDP($self, $peerhost) {
         # Only "authoritive" if it's from our own database
         $header->aa(1) if($self->{config}->{authoritive} && !$remotelookup);
 
-        my $max_len = $inpacket->edns->size;
-        if(!defined($max_len)) {
+        my $max_len = $inpacket->edns->UDPsize();
+        if(!defined($max_len) || !$max_len) {
             $max_len = 512;
-            $self->debuglog("Undefined max UDP length, setting to $max_len just in case");
+            #$self->debuglog("Undefined max UDP length, setting to $max_len just in case");
         }
         my $outdata = $reply->data();
         if(length($outdata) > $max_len) {
