@@ -499,8 +499,8 @@ sub file_get($self, $ua) {
         return (
             data => '',
             done => 1,
-        )
-    };
+        );
+    }
 
     my $needMoreLoops = 0;
 
