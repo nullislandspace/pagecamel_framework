@@ -71,7 +71,7 @@ sub webPrint($ofh, @parts) {
         #print STDERR "Sent $written bytes (", length($full) - $written, "remaining)\n";
         if($!{EWOULDBLOCK} || $!{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
             if(!$shownlimitmessage) {
-                print STDERR "Rate limiting output\n";
+                #print STDERR "Rate limiting output\n";
                 $shownlimitmessage = 1;
             }
             $timeout = time + $timeoutthres;
@@ -97,7 +97,7 @@ sub webPrint($ofh, @parts) {
             return 0;
         }
         
-        sleep(0.01);
+        #sleep(0.01);
         $needprintdone = 1;
     }
     if($needprintdone) {
