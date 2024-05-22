@@ -1334,31 +1334,7 @@ nextrequest:
         }
     }
 
-    # Check to see if we are allowed to generate a Content-Length header field (a "should" in RFC 2616)
-    if(defined($result{data})) {
-        if(!defined($header{"-Transfer-Encoding"})) {
-            if(is_utf8($result{data})) {
-                # Need to turn high bytes into utf-8 BEFORE calculating the content length, otherwise we might
-                # output more bytes than we said in Content-Length. Darn Unicode strikes again....!
-                $header{"-Content-Length"} = length(encode_utf8($result{data}));
-            } else {
-                $header{"-Content-Length"} = length($result{data});
-            }
-        }
-    } elsif(defined($result{content_length})) {
-        $header{"-Content-Length"} = $result{content_length};
-    } elsif(!defined($header{"-Content-Length"}) && !defined($header{"-Transfer-Encoding"}) && !defined($result{data})) {
-        $header{"-Content-Length"} = 0;
-    }
-
-    # Check deprecated result keys
-    foreach my $hname ('lastmod',
-                       ) {
-        if(defined($result{$hname}) || defined($result{lc $hname})) {
-            print STDERR "!!!!! Deprecated result key $hname detected. HTTP stream may be invalid!\n";
-        }
-    }
-
+    # Unify certain header names
     foreach my $hname ("Content-Disposition",
                        "Content-Encoding",
                        "Content-Range",
@@ -1374,6 +1350,7 @@ nextrequest:
                        "Sec-WebSocket-Accept",
                        "Sec-WebSocket-Protocol",
                        "WWW-Authenticate",
+                       "Transfer-Encoding",
 
                        # XSS Security Policy
                        # See http://www.heise.de/security/artikel/XSS-Bremse-Content-Security-Policy-1888522.html
@@ -1393,6 +1370,33 @@ nextrequest:
             $header{"-" . $hname} = $result{'-' . lc $hname};
         }
     }
+
+    # Check to see if we are allowed to generate a Content-Length header field (a "should" in RFC 2616)
+    if(defined($result{data})) {
+        if(!defined($header{"-Transfer-Encoding"})) {
+            if(is_utf8($result{data})) {
+                # Need to turn high bytes into utf-8 BEFORE calculating the content length, otherwise we might
+                # output more bytes than we said in Content-Length. Darn Unicode strikes again....!
+                $header{"-Content-Length"} = length(encode_utf8($result{data}));
+            } else {
+                $header{"-Content-Length"} = length($result{data});
+            }
+        }
+    } elsif(defined($result{content_length})) {
+        $header{"-Content-Length"} = $result{content_length};
+    } elsif(!defined($header{"-Content-Length"}) && !defined($header{"-Transfer-Encoding"}) && !defined($result{data})) {
+        #print STDERR "Forcing content length to 0\n";
+        $header{"-Content-Length"} = 0;
+    }
+
+    # Check deprecated result keys
+    foreach my $hname ('lastmod',
+                       ) {
+        if(defined($result{$hname}) || defined($result{lc $hname})) {
+            print STDERR "!!!!! Deprecated result key $hname detected. HTTP stream may be invalid!\n";
+        }
+    }
+
 
     # Handle cookie headers
     if(defined($header{'-cookie'})) {
