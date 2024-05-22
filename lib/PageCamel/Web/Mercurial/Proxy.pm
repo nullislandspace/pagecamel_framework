@@ -65,7 +65,7 @@ sub postfilter($self, $ua, $header, $result) {
         # Assume client wants keep alive set (mostly for older mercurial versions)
         # This isn't very nice, since it results in some "REQUEST LINE TIMEOUT" errors but can't be helped. Should still speed up
         # processing a bit
-        print STDERR "Forcing keep-alive for mercurial/proto-1.0\n";
+        #print STDERR "Forcing keep-alive for mercurial/proto-1.0\n";
         $ua->{keepalive} = 1;
     }
 
@@ -92,7 +92,7 @@ sub get($self, $ua) {
         $mercurialpath = '/' . $mercurialpath;
     }
 
-    print STDERR "###########   PATH: $mercurialpath\n";
+    #print STDERR "###########   PATH: $mercurialpath\n";
 
     $mercurialpath = encode_uri_path($mercurialpath);
     my @uriparamkey = keys %{$ua->{uriparams}};
@@ -152,6 +152,8 @@ sub get($self, $ua) {
         }
         last if($headerline eq '');
         my ($hname, $hvalue) = split/\:/, $headerline, 3;
+        $hvalue =~ s/^\ +//g;
+        $hvalue =~ s/\ +$//g;
         if($hname eq 'Content-Type') {
             $retpage{type} = $hvalue;
         } else {
@@ -161,13 +163,31 @@ sub get($self, $ua) {
 
     my $content;
     if(defined($retpage{'Transfer-Encoding'}) && $retpage{'Transfer-Encoding'} =~ /chunked/) {
+        #print STDERR "### MERCURIAL CHUNKED ENCODING\n";
+        #print STDERR Dumper(\%retpage);
+
+        if($retpage{type} =~ /application\/mercurial/) {
+            #print STDERR "Using DATA GENERATOR STREAMING\n";
+            # Potentially quite a large amount of data. Do this in a data generator, so we can "livestream" instead of buffering in RAM first
+            my %dataGenerator = (
+                module      => $self,
+                funcname    => "streamChunked",
+            );
+            $retpage{dataGenerator} = \%dataGenerator;
+            $self->{socket} = $socket;
+
+            return %retpage;
+        }
+
         $content = $self->readChunked($socket);
+
         if(!defined($content)) {
-            print STDERR "###########   Can't read chunked content (timeout?)\n";
+            #print STDERR "###########   Can't read chunked content (timeout?)\n";
             return(status => 500);
         }
         delete $retpage{'Transfer-Encoding'};
     } elsif(defined($retpage{'Content-Length'})) {
+        print STDERR "### MERCURIAL PLAIN ENCODING, ", $retpage{'Content-Length'}, " bytes\n";
         $content = $self->readPlain($socket, $retpage{'Content-Length'}, 120);
         if(!defined($content)) {
             print STDERR "###########   Can't read plain content (timeout?)\n";
@@ -219,6 +239,46 @@ sub readsocketline($self, $socket, $timeout = 30) {
     return $line;
 }
 
+sub streamChunked($self, $ua) {
+
+    my $content = '';
+
+    my $chunklen = $self->readsocketline($self->{socket}, 600);
+    if(!defined($chunklen)) {
+        # Timeout
+        delete $self->{socket};
+        print STDERR "Streaming failed\n";
+        return (
+            data => '',
+            done => 1,
+        );
+    }
+    $content .= $chunklen . "\r\n";
+    $chunklen = hex($chunklen);
+    #print STDERR "Chunk length: ", $chunklen, " bytes\n";
+
+    if(!$chunklen) {
+        delete $self->{socket};
+        #print STDERR "Streaming done\n";
+        return (
+            data => $content . "\r\n",
+            done => 1,
+        );
+    }
+    my $partial = $self->readPlain($self->{socket}, $chunklen, 600);
+    $content .= $partial;
+    $content .= "\r\n";
+    my $dummycrlf = $self->readsocketline($self->{socket}, 60);
+
+    #print STDERR "Streaming ", length($content), " bytes\n";
+
+    return (
+        data => $content,
+        done => 0,
+    );
+
+}
+
 sub readChunked($self, $socket) {
 
     my $content = '';
@@ -228,6 +288,7 @@ sub readChunked($self, $socket) {
             return;
         }
         $chunklen = hex($chunklen);
+        #print STDERR "Chunk length: ", $chunklen, " bytes\n";
         last unless $chunklen;
         my $partial = $self->readPlain($socket, $chunklen, 120);
         $content .= $partial;
@@ -252,7 +313,7 @@ sub readPlain($self, $socket, $clength, $timeout = 30) {
             return;
         }
         my $partial;
-        my $readlen = 1000;
+        my $readlen = 100000;
         my $remainlen = $clength - $reallength;
         if($readlen > $remainlen) {
             $readlen = $remainlen;
