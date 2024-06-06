@@ -88,6 +88,58 @@ sub generateReport($self, $data) {
         $self->addTable($data, $table);
     }
 
+    if(defined($data->{footergraphic})) {
+        my $logo = GD::Image->newFromPngData($data->{footergraphic});
+        my ($w, $h) = $logo->getBounds();
+        if($self->{y} < (100 + $h)) {
+            $self->newPage($data);
+        }
+        my $xoffs = int((560 - $w) / 2);
+        my $fullheight = $h;
+
+        if(defined($data->{footergraphictext})) {
+            my @parts = @{$data->{footergraphictext}};
+
+            # Calculate width of Text so we can center the whole thing
+            my $twidth = 0;
+            $self->{pdf}->setSize(5);
+            $self->{pdf}->setExternalFont($self->{monospacedFont});
+            for(my $i = 0; $i < scalar @parts; $i++) {
+                my $tempwidth = $self->{pdf}->getStringWidth($parts[$i]);
+                if($tempwidth > $twidth) {
+                    $twidth = $tempwidth;
+                }
+            }
+            # New $xoffs
+            $xoffs = int((560 - $w - 10 - $twidth) / 2);
+
+            # Finally, add the text
+            for(my $i = 0; $i < scalar @parts; $i++) {
+                $self->addText('monospacedFont', $xoffs + $w + 10, $self->{y} - ($i * 7) - 10, 5, 'black', $parts[$i]);
+            }
+
+            if((scalar @parts) * 7 > $fullheight) {
+                $fullheight = (scalar @parts) * 7;
+            }
+        }
+
+        # Add the image
+        $self->{pdf}->addGDImage($logo, $xoffs, $self->{y} - $h);
+        $self->{y} -= $fullheight + 20;
+    }
+
+    if(defined($data->{footerlines})) {
+        my $height = scalar @{$data->{footerlines}} * 12;
+        if($self->{y} < (100 + $height)) {
+            $self->newPage($data);
+        }
+
+        foreach my $footerline (@{$data->{footerlines}}) {
+            $self->addText('regularFont', 20, $self->{y}, 10, 'black', $footerline);
+            $self->{y} -= 12;
+        }
+    }
+
     my $now = getISODate();
     for(my $i = 0; $i < $self->{pagecount}; $i++) {
         $self->{pdf}->openpage($i + 1);
@@ -125,14 +177,12 @@ sub newPage($self, $data) {
         my $sheight = 0;
         if(defined($data->{stationary}->{logo})) {
             $sheight = $data->{stationary}->{logoheight};
-            #$self->{pdf}->addGDImage($data->{stationary}->{logogd}, 560 - $data->{stationary}->{logowidth}, $self->{y} - (10 + $data->{stationary}->{logoheight}));
             $self->{pdf}->addGDImage($data->{stationary}->{logogd}, 560 - $data->{stationary}->{logowidth}, $self->{y} - $data->{stationary}->{logoheight});
-            #$self->{pdf}->addGDImage($data->{stationary}->{logogd}, 560 - $data->{stationary}->{logowidth}, $self->{y});
         }
 
         if(defined($data->{stationary}->{address})) {
             for(my $i = 0; $i < scalar @{$data->{stationary}->{address}}; $i++) {
-                $self->addText('regularFont', 20, $self->{y} - ($i * 15), 10, 'black', $data->{stationary}->{address}->[$i]);
+                $self->addText('regularFont', 40, $self->{y} - ($i * 15), 10, 'black', $data->{stationary}->{address}->[$i]);
             }
             my $theight = scalar @{$data->{stationary}->{address}} * 15;
             if($theight > $sheight) {
@@ -144,8 +194,17 @@ sub newPage($self, $data) {
         $self->{y} -= 20;
     }
 
+    if($self->{pagecount} == 1 && defined($data->{address})) {
+        foreach my $headerline (@{$data->{address}}) {
+            $self->addText('regularFont', 20, $self->{y}, 10, 'black', $headerline);
+            $self->{y} -= 12;
+        }
+        $self->{y} -= 30;
+    }
+
     $self->addText('boldFont', 20, $self->{y}, 20, 'black', $data->{title});
     $self->{y} -= 30;
+
 
     foreach my $headerline (@{$data->{headerlines}}) {
         $self->addText('regularFont', 20, $self->{y}, 10, 'black', $headerline);
@@ -158,6 +217,11 @@ sub newPage($self, $data) {
 }
 
 sub addTable($self, $data, $table) {
+    # Ignore table if it has no data
+    if(!defined($table->{data}) || ref $table->{data} ne 'ARRAY' || !scalar @{$table->{data}}) {
+        return;
+    }
+
     # Calculate the column offsets
     {
         $self->{pdf}->setSize(10);
@@ -176,8 +240,11 @@ sub addTable($self, $data, $table) {
     if($self->{y} < 140) {
         $self->newPage($data);
     }
-    $self->addText('boldFont', 20, $self->{y}, 20, 'black', $table->{title});
-    $self->{y} -= 30;
+
+    if(defined($table->{title}) && $table->{title} ne '') {
+        $self->addText('boldFont', 20, $self->{y}, 20, 'black', $table->{title});
+        $self->{y} -= 30;
+    }
 
     my $needheader = 1;
     my $evenodd = 1;
@@ -203,6 +270,12 @@ sub addTable($self, $data, $table) {
             }
             $self->{y} -= 15;
             $needheader = 0;
+        }
+
+        my $linefont = 'monospacedFont';
+        if($line->[0] =~ /^\$/) {
+            $linefont = 'boldmonospacedFont';
+            $line->[0] =~ s/^\$//;
         }
 
         # Wrap text and find out how many lines this will take
@@ -243,7 +316,7 @@ sub addTable($self, $data, $table) {
             my $coldata = $formatted[$i];
             my $offset = $table->{columns}->[$i]->{offset};
             for(my $j = 0; $j < scalar @{$coldata}; $j++) {
-                $self->addText('monospacedFont', $table->{columns}->[$i]->{offset}, $self->{y} - ($j * 15), 10, 'black', $coldata->[$j]);
+                $self->addText($linefont, $table->{columns}->[$i]->{offset}, $self->{y} - ($j * 15), 10, 'black', $coldata->[$j]);
             }
             if(defined($table->{columns}->[$i + 1])) {
                 my $xline = $table->{columns}->[$i + 1]->{offset} - 10;
