@@ -65,6 +65,7 @@ lib/PageCamel/Helpers/Mod43Checksum.pm
 lib/PageCamel/Helpers/NeatLittleHelpers.pm
 lib/PageCamel/Helpers/Padding.pm
 lib/PageCamel/Helpers/Passwords.pm
+lib/PageCamel/Helpers/PDFReport.pm
 lib/PageCamel/Helpers/PostgresDB.pm
 lib/PageCamel/Helpers/PrintProcessor.pm
 lib/PageCamel/Helpers/Strings.pm

@@ -42,6 +42,7 @@ use PageCamel::Helpers::Logging::Graphs;
 use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::Mod43Checksum;
 use PageCamel::Helpers::NeatLittleHelpers;
+use PageCamel::Helpers::PDFReport;
 use PageCamel::Helpers::Padding;
 use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::PostgresDB;

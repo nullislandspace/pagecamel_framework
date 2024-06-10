@@ -594,7 +594,12 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
 sub _printFile($self, $raw, $cupsprinters = []) {
     my $reph = $self->{reph};
 
-    my $ofname = $self->makeFName();
+    my $ispdf = 0;
+    if(substr($raw, 0, 4) eq '%PDF') {
+        $ispdf = 1;
+    }
+
+    my $ofname = $self->makeFName($ispdf);
     writeBinFile($ofname, $raw);
 
     if(ref $cupsprinters ne 'ARRAY') {
@@ -1451,14 +1456,17 @@ sub printTestMessage($self, $tests) {
     return;
 }
 
-sub makeFName($self) {
+sub makeFName($self, $ispdf = 0) {
     my $fname = '';
     while($fname eq '') {
         $fname = '/tmp/posprint_' . $PID . '_';
         for(1..10) {
             $fname .= '' . int(rand(10)) . '';
         }
-        if($self->{generateEscPos}) {
+
+        if($ispdf) {
+            $fname .= '.pdf';
+        } elsif($self->{generateEscPos}) {
             $fname .= '.bin';
         } else {
             $fname .= '.png';

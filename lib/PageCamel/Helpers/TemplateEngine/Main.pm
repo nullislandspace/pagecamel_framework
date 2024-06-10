@@ -176,7 +176,7 @@ sub reloadFiles($self, $reph) {
     }
     
     if(@{$self->{reloadwarnings}}) {
-        sleep(0.5);
+        #sleep(0.5);
     }
 
     $self->{cache} = \%files;
@@ -396,6 +396,8 @@ sub do_uninline($self, $data, $kname, $fname) {
     
     my $isautodialogmode = 0;
     my $autodialoglines = 0;
+
+    my $allowwarnings = 1;
             
     foreach my $line (@oldlines) {
         chomp $line;
@@ -403,22 +405,23 @@ sub do_uninline($self, $data, $kname, $fname) {
         
         my $temp = trim($line);
         next if($temp eq '');
-        if($temp ne '') {
-            $isemptyline = 0;
-        } else {
-            if($isemptyline) {
-                # remove redundant empty lines
-                next;
-            }
-            $isemptyline = 1;
+
+        if($temp eq '!DISABLEUNINLINEWARNINGS') {
+            # Directive to disable uninline warnings for this file, just remember flag, but ignore the line in output
+            $allowwarnings = 0;
+            next;
         }
+        
+
         $line = $temp;
         
         if($line =~ /\[\%\ +dialog\./ && $line !~ /\[\%\ +dialog\.getFormsHTML/) {
             $isautodialogmode = 1;
             $autodialoglines = 1;
             $dynamicmode = 1; # Need dynamic mode
-            push @{$self->{reloadwarnings}}, "Autoform in $fname line $linecount forces dynamicmode";
+            if($allowwarnings) {
+                push @{$self->{reloadwarnings}}, "Autoform in $fname line $linecount forces dynamicmode";
+            }
         }
         
         if($autodialoglines) {
@@ -459,7 +462,9 @@ sub do_uninline($self, $data, $kname, $fname) {
                 
                 if($command =~ /\[\%/) {
                     $dynamicmode = 1;
-                    push @{$self->{reloadwarnings}}, "Uninline onfoo callback $command in $fname line $linecount forces dynamicmode";
+                    if($allowwarnings) {
+                        push @{$self->{reloadwarnings}}, "Uninline onfoo callback $command in $fname line $linecount forces dynamicmode";
+                    }
                 }
                 
                 my $evname = $self->gen_eventhandlername();
@@ -498,7 +503,9 @@ sub do_uninline($self, $data, $kname, $fname) {
             $jsmode = 0;
             
             if(!@jslines) {
-                push @{$self->{reloadwarnings}}, "Empty script tag $1 in $fname line $linecount";
+                if($allowwarnings) {
+                    push @{$self->{reloadwarnings}}, "Empty script tag $1 in $fname line $linecount";
+                }
             }
             
             next;
@@ -507,7 +514,9 @@ sub do_uninline($self, $data, $kname, $fname) {
         if($jsmode) {
             if($line =~ /\[\%/) {
                 $dynamicmode = 1;
-                push @{$self->{reloadwarnings}}, "TT tag in JS element in file $fname forces dynamicmode: $line";
+                if($allowwarnings) {
+                    push @{$self->{reloadwarnings}}, "TT tag in JS element in file $fname forces dynamicmode: $line";
+                }
             }
             push @jslines, $line;
         } else {
@@ -632,7 +641,9 @@ sub do_uninline($self, $data, $kname, $fname) {
     }
 
     if($dynamicmode) {
-        push @{$self->{reloadwarnings}}, "TT Dynamic mode in $fname";
+        if($allowwarnings) {
+            push @{$self->{reloadwarnings}}, "TT Dynamic mode in $fname";
+        }
     }
     
     my $newdata = join("\n", @newlines);

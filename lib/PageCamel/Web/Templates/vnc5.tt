@@ -44,16 +44,23 @@
         <canvas id="noVNC_canvas" width="640px" height="200px">Canvas not supported.</canvas>
     </div>
 </div>
+<span id="websocketmasktemplatedataset"
+    data-fwhost="[% ProxyHost %]"
+    data-fwport="[% ProxyPort %]"
+    data-fwpath="[% WSPath %]"
+    data-fwpassword="[% VNCPass %]"
+    data-wsencryption = "[% ClientSettings.websocket_encryption %]"
+></span>
 
 <script type="text/javascript">
     /*jslint white: false */
     /*global window, $, Util, RFB, */
     //"use strict";
     
-    var fw_host = '[% ProxyHost %]';
-    var fw_port = '[% ProxyPort %]';
-    var fw_path = '[% WSPath %]';
-    var fw_password = '[% VNCPass %]';
+    var fw_host = ttvars.fwhost;
+    var fw_port = ttvars.fwport;
+    var fw_path = ttvars.fwpath;
+    var fw_password = ttvars.fwpassword;
     var INCLUDE_URI = '/static/vnc_html5/';
     
     $('#noVNC_wrapper').width(window.innerWidth-(window.innerWidth/20));
@@ -317,14 +324,15 @@
 
         
         try {
+            //
+            var encmode = WebUtil.getQueryVar('encrypt', (window.location.protocol === "https:")), // Mode "auto";
+            if(ttvars.wsencryption == 'off') {
+                encmode = false;
+            } else if(ttvars.wsencryption == 'on') {
+                encmode = true;
+            }
             rfb = new RFB({'target':       $D('noVNC_canvas'),
-                            [% IF ClientSettings.websocket_encryption == 'off' %]
-                            'encrypt':      false, // <<- This fixes problems with a number of browsers when using https
-                            [% ELSIF ClientSettings.websocket_encryption == 'on' %]
-                            'encrypt':      true,
-                            [% ELSE %]
-                            'encrypt':      WebUtil.getQueryVar('encrypt', (window.location.protocol === "https:")), // Mode "auto"
-                            [% END %]
+                            'encrypt':      encmode,
                            'repeaterID':   '', //WebUtil.getQueryVar('repeaterID', ''),
                            'true_color': true, //WebUtil.getQueryVar('true_color', true),
                            'local_cursor': true, //WebUtil.getQueryVar('cursor', true),
