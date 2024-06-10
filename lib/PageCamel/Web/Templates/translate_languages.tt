@@ -31,7 +31,7 @@
                             <input type="submit" value="[% tr.trquote("Change") %]">
                         </td>
                         <td>
-                            <input type="submit" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteLanguage('lang_[% tr.quote(Language.lang) %]', 'mode_[% tr.quote(Language.lang) %]');">
+                            <input type="submit" value="[% tr.trquote("Delete") %]" selector="delete" data="[% tr.quote(Language.lang) %]">
                         </td>
                     </form>
                 </tr>
@@ -60,6 +60,12 @@
 
 <script type="text/javascript">
     function extraOnLoad() {
-        // DON'T DELETE: auto-uninline onfoo html tags to JS file
+        $('input[selector="delete"]').each(function() {
+            var lang = $(this).attr('data');
+            console.log("Making onclick for language " + lang);
+            $(this).on('click', function() {
+                return confirmDeleteLanguage('lang_' + lang, 'mode_' + lang);
+            });
+        });
     }
 </script>
