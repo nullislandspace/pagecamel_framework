@@ -151,7 +151,7 @@ sub generateReport($self, $data) {
 
     delete $self->{pdf};
 
-    writeBinFile('/home/cavac/src/temp/report.pdf', $report);
+    #writeBinFile('/home/cavac/src/temp/report.pdf', $report);
     return $report;
 }
 
