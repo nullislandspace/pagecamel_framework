@@ -551,9 +551,9 @@ sub printSendToPrinter($self, $cupsprinters = []) {
         $self->_generateEscPos();
         #writeBinFile($ofname, $self->{escposimagedata});
         #writeBinFile('/home/cavac/lastprint.dat', $self->{escposimagedata});
-        return $self->_printFile($self->{escposimagedata}, $cupsprinters);
+        return $self->_printFile($self->{escposimagedata}, '0.0.0.0', $cupsprinters);
     } else {
-        return $self->_printFile($self->{imagedata}, $cupsprinters);
+        return $self->_printFile($self->{imagedata}, '0.0.0.0', $cupsprinters);
     }
 }
 
@@ -591,7 +591,7 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     return $raw;
 }
 
-sub _printFile($self, $raw, $cupsprinters = []) {
+sub _printFile($self, $raw, $cupsip, $cupsprinters = []) {
     my $reph = $self->{reph};
 
     my $ispdf = 0;
@@ -618,10 +618,16 @@ sub _printFile($self, $raw, $cupsprinters = []) {
         $cupsprinters = \@tmp;
     }
 
-    my $cupsip = '127.0.0.1';
-    if(defined($ENV{PC_CUPS_SERVER}) && $ENV{PC_CUPS_SERVER} ne '') {
-        $cupsip = $ENV{PC_CUPS_SERVER};
+    if($cupsip eq '0.0.0.0') {
+        if(defined($ENV{PC_CUPS_SERVER}) && $ENV{PC_CUPS_SERVER} ne '') {
+            $cupsip = $ENV{PC_CUPS_SERVER};
+        } else {
+            $cupsip = '127.0.0.1';
+        }
     }
+
+    $reph->debuglog("Selecting CUPS IP ", $cupsip);
+
 
     my $cups = Net::CUPS->new();
     $cups->setServer($cupsip);
