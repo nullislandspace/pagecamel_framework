@@ -32,6 +32,8 @@ use base qw(Template::Plugin);
 use Template::Plugin;
 use Template::Exception;
 
+our $TESTMODE = 0;
+
 sub load($class, $context) {
     my $self = bless {
     }, $class;
@@ -44,6 +46,10 @@ sub new($self, $context) {
 }
 
 sub tr($self, $data) {
+    if($TESTMODE) {
+        # We don't need multilanguage support to be initialized during internal testing of TemplateCache startup
+        return $data;
+    }
 
     return $data if($data eq '');
 

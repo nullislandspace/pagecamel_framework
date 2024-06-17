@@ -52,15 +52,7 @@ my $templatemodulecount = 0;
 my @knowntemplatemodules;
 
 sub init($self) {
-    $self->{processor} = Template->new({
-        PLUGINS => {
-            tr => 'PageCamel::Helpers::TemplateEngine::Translate',
-        },
-    });
-    if(!defined($self->{processor})) {
-        croak("Failed to load template toolkit engine");
-    }
-    
+    $self->_initTT();
     foreach my $key (qw[uninlineJavascript preventCSS prerenderCallback db reporting]) {
         if(!defined($self->{$key})) {
             croak("Missing config $key in " . $self->{modname});
@@ -160,6 +152,22 @@ sub reloadFiles($self, $reph) {
             }
         }
     }
+
+    $self->{cache} = \%files;
+
+    $reph->debuglog("Running final render test on loaded templates");
+    $reph->debuglog("Template: ");
+    $PageCamel::Helpers::TemplateEngine::Translate::TESTMODE = 1; # Don't actually translate
+    foreach my $tname (sort keys %{$self->{cache}}) {
+        $reph->debuglog_overwrite("Template: ", $tname);
+        my %tmpwebdata;
+        my $tmptemplate = $self->get($tname, 0, %tmpwebdata);
+        if(!defined($tmptemplate)) {
+            push @{$self->{reloaderrors}}, "Template $tname failed to render";
+        }
+    }
+    $PageCamel::Helpers::TemplateEngine::Translate::TESTMODE = 0;
+
     
     if(@{$self->{reloadwarnings}} || @{$self->{reloaderrors}}) {
         sleep(0.5);
@@ -179,7 +187,6 @@ sub reloadFiles($self, $reph) {
         #sleep(0.5);
     }
 
-    $self->{cache} = \%files;
 
     $reph->debuglog(""); # make sure we end with a proper newline
 
@@ -262,6 +269,11 @@ sub get($self, $name, $uselayout, %webdata) {
         return;
     } else {
         #$reph->debuglog("Rendering template $name");
+    }
+
+    if(defined($self->{processor}->{_ERROR}) && $self->{processor}->{_ERROR}) {
+        # We have a previous error still stored. There seems to be no quick-and-easy way to reset the error, so just recreate the object
+        $self->_initTT();
     }
 
     if($self->{prerenderCallback}) {
@@ -938,6 +950,23 @@ sub parseAutoDialogs($self, $fname, $data) {
     }
     
     return join("\n", @newlines);
+}
+
+sub _initTT($self) {
+    if(defined($self->{processor})) {
+        delete $self->{processor};
+    }
+
+    $self->{processor} = Template->new({
+        PLUGINS => {
+            tr => 'PageCamel::Helpers::TemplateEngine::Translate',
+        },
+    });
+    if(!defined($self->{processor})) {
+        croak("Failed to load template toolkit engine");
+    }
+
+    return;
 }
 
 1;
