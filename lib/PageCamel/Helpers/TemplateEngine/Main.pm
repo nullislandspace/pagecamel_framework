@@ -434,7 +434,7 @@ sub do_uninline($self, $data, $kname, $fname) {
             next;
         }
         
-        if($line =~ /eval.*?\((.*?)\)/i) {
+        if($line !~ /realinactivevalue/ && $line =~ /eval.*?\((.*?)\)/i) {
             my ($args) = ($1, $2);
             if($args =~ /\'/ || $args =~ /\"/) {
                 push @{$self->{reloaderrors}}, "unsafe string eval in $fname line $linecount";
