@@ -24,7 +24,6 @@ use MIME::Base64 qw(encode_base64 decode_base64);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 use PageCamel::Helpers::DateStrings;
 use GD;
-
 use PDF::Report;
 BEGIN {
     # The original setFont function in PDF::Report uses the deprecated "corefont" function from PDF::API2, which does NOT allow
@@ -44,10 +43,16 @@ BEGIN {
 
     # We also want to add a passthrough function to PDF::API2 that allows us to use GD::Image objects directly
     *PDF::Report::addGDImage = sub {
-        my ($self, $image, $x, $y) = @_;
+        my ($self, $image, $x, $y, $scale) = @_;
+
+        my ($w, $h) = $image->getBounds();
+        if(defined($scale) && $scale != 1) {
+            $w = int($w * $scale);
+            $h = int($h * $scale);
+        }
 
         my $handle = $self->{pdf}->image($image);
-        $self->{page}->object($handle, $x, $y);
+        $self->{page}->object($handle, $x, $y, $w, $h);
     };
 
 };
@@ -77,8 +82,8 @@ sub generateReport($self, $data) {
     if(defined($data->{stationary}->{logo})) {
         my $logo = GD::Image->newFromPngData($data->{stationary}->{logo});
         my ($w, $h) = $logo->getBounds();
-        $data->{stationary}->{logowidth} = $w;
-        $data->{stationary}->{logoheight} = $h;
+        $data->{stationary}->{logowidth} = int($w / 2); # Will print at 50% scale
+        $data->{stationary}->{logoheight} = int($h / 2);
         $data->{stationary}->{logogd} = $logo;
     }
 
@@ -91,6 +96,8 @@ sub generateReport($self, $data) {
     if(defined($data->{footergraphic})) {
         my $logo = GD::Image->newFromPngData($data->{footergraphic});
         my ($w, $h) = $logo->getBounds();
+        $w = int($w / 2); # Print it at 50% scale
+        $h = int($h / 2);
         if($self->{y} < (100 + $h)) {
             $self->newPage($data);
         }
@@ -124,20 +131,54 @@ sub generateReport($self, $data) {
         }
 
         # Add the image
-        $self->{pdf}->addGDImage($logo, $xoffs, $self->{y} - $h);
+        $self->{pdf}->addGDImage($logo, $xoffs, $self->{y} - $h, 0.5);
         $self->{y} -= $fullheight + 20;
     }
 
+    my $footerlogoheight = 0;
+    my $footerlogo;
+    if(defined($data->{footerlogo})) {
+        $footerlogo = GD::Image->newFromPngData($data->{footerlogo});
+        my ($w, $h) = $footerlogo->getBounds();
+        $footerlogoheight = int($h / 2); # We add it at 50% scale so it looks more to scale like the one printed in thermal printer rolls. Also makes it look slightly higher res
+    }
+
+    my $footerlogodone = 0;
+    if(!$footerlogoheight) {
+        $footerlogodone = 1;
+    }
     if(defined($data->{footerlines})) {
-        my $height = scalar @{$data->{footerlines}} * 12;
+        my $height = scalar @{$data->{footerlines}} * 12 + $footerlogoheight;
         if($self->{y} < (100 + $height)) {
             $self->newPage($data);
         }
 
         foreach my $footerline (@{$data->{footerlines}}) {
-            $self->addText('regularFont', 20, $self->{y}, 10, 'black', $footerline);
+            if($footerline =~ /XXXLOGOXXX/) {
+                if(!$footerlogodone) {
+                    $self->{pdf}->addGDImage($footerlogo, 50, $self->{y} - $footerlogoheight, 0.5);
+                    $self->{y} -= $footerlogoheight + 20;
+                }
+                $footerlogodone = 1;
+                next;
+            }
+
+            my $fontname = 'regularFont';
+            if($footerline =~ /^\$/) {
+                $footerline =~ s/^\$//;
+                $fontname = 'boldFont';
+            }
+            $self->addText($fontname, 20, $self->{y}, 10, 'black', $footerline);
             $self->{y} -= 12;
         }
+    }
+
+    if(!$footerlogodone) {
+        if($self->{y} < (100 + $footerlogoheight)) {
+            $self->newPage($data);
+        }
+        $self->{pdf}->addGDImage($footerlogo, 20, $self->{y} - $footerlogoheight, 0.5);
+        $self->{y} -= $footerlogoheight + 20;
     }
 
     my $now = getISODate();
@@ -151,7 +192,7 @@ sub generateReport($self, $data) {
 
     delete $self->{pdf};
 
-    #writeBinFile('/home/cavac/src/temp/report.pdf', $report);
+    writeBinFile('/home/cavac/src/temp/report.pdf', $report);
     return $report;
 }
 
@@ -177,7 +218,7 @@ sub newPage($self, $data) {
         my $sheight = 0;
         if(defined($data->{stationary}->{logo})) {
             $sheight = $data->{stationary}->{logoheight};
-            $self->{pdf}->addGDImage($data->{stationary}->{logogd}, 560 - $data->{stationary}->{logowidth}, $self->{y} - $data->{stationary}->{logoheight});
+            $self->{pdf}->addGDImage($data->{stationary}->{logogd}, 560 - $data->{stationary}->{logowidth}, $self->{y} - $data->{stationary}->{logoheight}, 0.5);
         }
 
         if(defined($data->{stationary}->{address})) {
