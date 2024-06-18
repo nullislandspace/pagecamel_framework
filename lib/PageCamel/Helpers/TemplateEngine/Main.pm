@@ -1,19 +1,17 @@
 package PageCamel::Helpers::TemplateEngine::Main;
 #---AUTOPRAGMASTART---
-use v5.38;
+use v5.40;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.3;
+our $VERSION = 4.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
@@ -40,7 +38,7 @@ use IO::Compress::Gzip qw(gzip $GzipError);
 use Digest::SHA1  qw(sha1_hex);
 use PageCamel::Helpers::DateStrings;
 use Time::HiRes qw(sleep);
-use PageCamel::Helpers::Padding qw(trim);
+use PageCamel::Helpers::Padding qw(trimLine);
 
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use PageCamel::Helpers::Strings qw(stripString);
@@ -415,7 +413,7 @@ sub do_uninline($self, $data, $kname, $fname) {
         chomp $line;
         $linecount++;
         
-        my $temp = trim($line);
+        my $temp = trimLine($line);
         next if($temp eq '');
 
         if($temp eq '!DISABLEUNINLINEWARNINGS') {
