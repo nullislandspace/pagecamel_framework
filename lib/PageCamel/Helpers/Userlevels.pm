@@ -42,8 +42,7 @@ sub getPermissionForUser($self, $username) {
     
     if(!$selsth->execute($username)) {
         $reph->debuglog($dbh->errstr);
-        $dbh->rollback;
-        return;
+        croak("Failed to read user permissions");
     }
 
     my @subpermissions;
@@ -74,7 +73,6 @@ sub getPermissionForUser($self, $username) {
     }
 
     $selsth->finish;
-    $dbh->commit;
 
     foreach my $subpermission (@subpermissions) {
         my ($rootname, $pname) = split/\//, $subpermission->{permission_name}, 2;
@@ -112,7 +110,6 @@ sub getUsersForPermission($self, $permission, $negate = 0) {
 
     $negate = !!$negate;
 
-
     my @usernames;
 
     my @users;
@@ -120,15 +117,13 @@ sub getUsersForPermission($self, $permission, $negate = 0) {
             or croak($dbh->errstr);
     if(!$selsth->execute) {
         $reph->debuglog($dbh->errstr);
-        $dbh->rollback;
-        return;
+        croak("Failed to read users");
     }
 
     while((my $line = $selsth->fetchrow_hashref)) {
         push @users, $line->{username};
     }
     $selsth->finish;
-    $dbh->commit;
 
     foreach my $user (@users) {
         my $permissions = $self->getPermissionForUser($user);

@@ -328,6 +328,7 @@ sub get_forcelogout($self, $ua) {
 }
 
 sub get_login($self, $ua) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
@@ -483,6 +484,7 @@ sub get_login($self, $ua) {
 
 
         my $rights = $ulh->getPermissionForUser($user{username}) or croak("Failed to read permissions");
+        $dbh->commit;
         $user{rights} = $rights;
 
         my $upsth = $dbh->prepare_cached("UPDATE users
@@ -702,6 +704,7 @@ sub get_keyfoblogin($self, $ua) {
 }
 
 sub getAutologin($self, $ua, $username, $keyfobid = '') {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -773,6 +776,7 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
 
     my @dbRights;
     my $rights = $ulh->getPermissionForUser($user{username}) or croak("Failed to read permissions");
+    $dbh->commit;
     foreach my $right (@{$rights}) {
         my $restrict = 0;
         foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
@@ -872,6 +876,7 @@ sub get_switchfromuser($self, $ua) {
 
 
 sub adminSwitchToUser($self, $username, $ua) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -932,6 +937,7 @@ sub adminSwitchToUser($self, $username, $ua) {
 
     my @dbRights;
     my $rights = $ulh->getPermissionForUser($user->{username}) or croak("Failed to read permissions");
+    $dbh->commit;
     foreach my $right (@{$rights}) {
         my $restrict = 0;
         foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {

@@ -115,7 +115,9 @@ sub checkAccess($self, $uri, $permissions) {
 }
 
 sub checkAccessForUser($self, $uri, $username) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $permissions = $self->getPermissionForUser($username);
+    $dbh->commit;
     return $self->checkAccess($uri, $permissions);
 }
 
