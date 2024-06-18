@@ -640,6 +640,11 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
     my $dbh = $self->{dbh};
 
+    if($qname eq 'sl') {
+        # This is some kind of weird scan, just don't reply
+        return;
+    }
+
     my $remotelookup = 0;
     if($peerhost ne $RECURSIVELOOKUP) {
         $self->debuglog("Requested: $qtype OF $qname by $peerhost");
@@ -650,7 +655,7 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
         # localhost doesn't have limitations
         if(!$self->{ipfloodinssth}->execute($peerhost)) {
             $self->debuglog("Can't log $qname from $peerhost");
-            #$dbh->rollback;
+            $dbh->rollback;
             return;
         } else {
             $dbh->commit;
