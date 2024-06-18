@@ -1,19 +1,17 @@
 #!/usr/bin/env perl
 #---AUTOPRAGMASTART---
-use v5.38;
+use v5.40;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.3;
+our $VERSION = 4.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
@@ -23,7 +21,6 @@ use PageCamel::Helpers::UTF;
 
 print "Searching files...\n";
 my @files = (find_pm('lib'), find_pm('devscripts'));
-#my @files = find_pm('server');
 
 print "Changing files:\n";
 foreach my $file (@files) {
@@ -71,7 +68,7 @@ foreach my $file (@files) {
             next;
         }
         # Handle the new "builtin" stuff
-        if($line =~ /^no\ warnings\ .*experimental\:\:builtin/) {
+        if($line =~ /^no\ warnings\ .*experimental\:\:builtin/ || $line =~ /^use\ builtin/) {
             next;
         }
 
@@ -87,20 +84,18 @@ foreach my $file (@files) {
         }
         if($line =~ /^package\ / || $line =~ /^\#\!/) {
             print $ofh "#---AUTOPRAGMASTART---\n";
-            print $ofh "use v5.38;\n";
+            print $ofh "use v5.40;\n";
             print $ofh "use strict;\n";
             print $ofh "use diagnostics;\n";
             print $ofh "use mro 'c3';\n";
             print $ofh "use English;\n";
             print $ofh "use Carp qw[carp croak confess cluck longmess shortmess];\n";
-            print $ofh "our \$VERSION = 4.3;\n";
+            print $ofh "our \$VERSION = 4.4;\n";
             print $ofh "use autodie qw( close );\n";
             print $ofh "use Array::Contains;\n";
             print $ofh "use utf8;\n";
             print $ofh "use Data::Dumper;\n";
             print $ofh "use Data::Printer;\n";
-            print $ofh "use builtin qw[true false is_bool];\n";
-            print $ofh "no warnings qw(experimental::builtin);\n";
             if($file !~ /Helpers\/UTF\.pm$/) {
                 print $ofh "use PageCamel::Helpers::UTF;\n";
             }

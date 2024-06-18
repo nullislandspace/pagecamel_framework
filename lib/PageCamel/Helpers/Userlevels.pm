@@ -1,19 +1,17 @@
 package PageCamel::Helpers::Userlevels;
 #---AUTOPRAGMASTART---
-use v5.38;
+use v5.40;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.3;
+our $VERSION = 4.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
@@ -42,8 +40,7 @@ sub getPermissionForUser($self, $username) {
     
     if(!$selsth->execute($username)) {
         $reph->debuglog($dbh->errstr);
-        $dbh->rollback;
-        return;
+        croak("Failed to read user permissions");
     }
 
     my @subpermissions;
@@ -74,7 +71,6 @@ sub getPermissionForUser($self, $username) {
     }
 
     $selsth->finish;
-    $dbh->commit;
 
     foreach my $subpermission (@subpermissions) {
         my ($rootname, $pname) = split/\//, $subpermission->{permission_name}, 2;
@@ -112,7 +108,6 @@ sub getUsersForPermission($self, $permission, $negate = 0) {
 
     $negate = !!$negate;
 
-
     my @usernames;
 
     my @users;
@@ -120,15 +115,13 @@ sub getUsersForPermission($self, $permission, $negate = 0) {
             or croak($dbh->errstr);
     if(!$selsth->execute) {
         $reph->debuglog($dbh->errstr);
-        $dbh->rollback;
-        return;
+        croak("Failed to read users");
     }
 
     while((my $line = $selsth->fetchrow_hashref)) {
         push @users, $line->{username};
     }
     $selsth->finish;
-    $dbh->commit;
 
     foreach my $user (@users) {
         my $permissions = $self->getPermissionForUser($user);

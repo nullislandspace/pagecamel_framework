@@ -1,19 +1,17 @@
 package PageCamel::Web::Users::Login;
 #---AUTOPRAGMASTART---
-use v5.38;
+use v5.40;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.3;
+our $VERSION = 4.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
@@ -328,7 +326,6 @@ sub get_forcelogout($self, $ua) {
 }
 
 sub get_login($self, $ua) {
-
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{login}->{pagetitle},
@@ -483,6 +480,7 @@ sub get_login($self, $ua) {
 
 
         my $rights = $ulh->getPermissionForUser($user{username}) or croak("Failed to read permissions");
+        $dbh->commit;
         $user{rights} = $rights;
 
         my $upsth = $dbh->prepare_cached("UPDATE users
@@ -702,7 +700,6 @@ sub get_keyfoblogin($self, $ua) {
 }
 
 sub getAutologin($self, $ua, $username, $keyfobid = '') {
-
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -773,6 +770,7 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
 
     my @dbRights;
     my $rights = $ulh->getPermissionForUser($user{username}) or croak("Failed to read permissions");
+    $dbh->commit;
     foreach my $right (@{$rights}) {
         my $restrict = 0;
         foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {
@@ -872,7 +870,6 @@ sub get_switchfromuser($self, $ua) {
 
 
 sub adminSwitchToUser($self, $username, $ua) {
-
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -932,6 +929,7 @@ sub adminSwitchToUser($self, $username, $ua) {
 
     my @dbRights;
     my $rights = $ulh->getPermissionForUser($user->{username}) or croak("Failed to read permissions");
+    $dbh->commit;
     foreach my $right (@{$rights}) {
         my $restrict = 0;
         foreach my $ur (@{$ulh->{userlevels}->{userlevel}}) {

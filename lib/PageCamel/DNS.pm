@@ -1,19 +1,17 @@
 package PageCamel::DNS;
 #---AUTOPRAGMASTART---
-use v5.38;
+use v5.40;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.3;
+our $VERSION = 4.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
@@ -642,6 +640,11 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
     my $dbh = $self->{dbh};
 
+    if($qname eq 'sl') {
+        # This is some kind of weird scan, just don't reply
+        return;
+    }
+
     my $remotelookup = 0;
     if($peerhost ne $RECURSIVELOOKUP) {
         $self->debuglog("Requested: $qtype OF $qname by $peerhost");
@@ -652,7 +655,7 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
         # localhost doesn't have limitations
         if(!$self->{ipfloodinssth}->execute($peerhost)) {
             $self->debuglog("Can't log $qname from $peerhost");
-            #$dbh->rollback;
+            $dbh->rollback;
             return;
         } else {
             $dbh->commit;
