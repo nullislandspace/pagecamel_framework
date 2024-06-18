@@ -328,8 +328,6 @@ sub get_forcelogout($self, $ua) {
 }
 
 sub get_login($self, $ua) {
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{login}->{pagetitle},
@@ -704,8 +702,6 @@ sub get_keyfoblogin($self, $ua) {
 }
 
 sub getAutologin($self, $ua, $username, $keyfobid = '') {
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -876,8 +872,6 @@ sub get_switchfromuser($self, $ua) {
 
 
 sub adminSwitchToUser($self, $username, $ua) {
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
