@@ -1,25 +1,23 @@
 package PageCamel::Helpers::Padding;
 #---AUTOPRAGMASTART---
-use v5.38;
+use v5.40;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.3;
+our $VERSION = 4.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(doFPad doSpacePad trim doLeftSpacePad forceByteLength doCenterPad);
+our @EXPORT_OK = qw(doFPad doSpacePad trimLine doLeftSpacePad forceByteLength doCenterPad);
 
 
 sub doFPad($val, $len) {
@@ -59,7 +57,7 @@ sub doCenterPad($val, $len) {
     return $val;
 }
 
-sub trim($string) {
+sub trimLine($string) {
     $string =~ s/^\s+//;
     $string =~ s/\s+$//;
     return $string;
@@ -106,7 +104,7 @@ Pad a string with trailing spaces to a specified length.
 
 Pad a string with leading spaced to a specified length
 
-=head2 trim
+=head2 trimLine
 
 Trim leading and trailing whitespace off a string.
 

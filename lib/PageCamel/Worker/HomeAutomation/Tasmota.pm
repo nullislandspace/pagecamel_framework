@@ -1,19 +1,17 @@
 package PageCamel::Worker::HomeAutomation::Tasmota;
 #---AUTOPRAGMASTART---
-use v5.38;
+use v5.40;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.3;
+our $VERSION = 4.4;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
-use builtin qw[true false is_bool];
-no warnings qw(experimental::builtin);
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
