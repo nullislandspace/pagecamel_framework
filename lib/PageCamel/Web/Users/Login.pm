@@ -25,6 +25,7 @@ use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 use PageCamel::Helpers::URI qw[decode_uri_path];
 use MIME::Base64;
+use Storable qw(dclone);
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -1336,13 +1337,17 @@ sub postfilter($self, $ua, $header, $result) {
 sub get_defaultwebdata($self, $webdata) {
 
     if(defined($self->{currentData})) {
-        $webdata->{userData} = $self->{currentData};
+        my $clone = dclone $self->{currentData}; # Make sure we clone first
+        foreach my $key (qw[first_name last_name]) {
+            $clone->{$key} = decode_utf8($clone->{$key}); # Fix UTF8 double encoding
+        }
+        $webdata->{userData} = $clone;
         $webdata->{ConfigObject}->{permissions} = $webdata->{userData}->{rights};
 
-        $webdata->{ConfigObject}->{user}->{username} = $self->{currentData}->{user};
-        $webdata->{ConfigObject}->{user}->{first_name} = $self->{currentData}->{first_name};
-        $webdata->{ConfigObject}->{user}->{last_name} = $self->{currentData}->{last_name};
-        $webdata->{ConfigObject}->{user}->{initials} = $self->{currentData}->{name_initials};
+        $webdata->{ConfigObject}->{user}->{username} = $clone->{user};
+        $webdata->{ConfigObject}->{user}->{first_name} = $clone->{first_name};
+        $webdata->{ConfigObject}->{user}->{last_name} = $clone->{last_name};
+        $webdata->{ConfigObject}->{user}->{initials} = $clone->{name_initials};
 
         #print STDERR p($webdata->{ConfigObject}->{user}), "\n";
     }
