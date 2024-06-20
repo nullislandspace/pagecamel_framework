@@ -552,10 +552,10 @@ sub secondsToInterval($seconds) {
     return $interval;
 }
 
-sub calcDateAgeUTC($olddate) {
+sub calcDateAgeUTC($olddate, $hoursoffset = 0) {
     my $curdate = getUTCISODate();
-    #print "Cur: $curdate\n";
-    #print "Old $olddate\n";
+    #print STDERR "Cur: $curdate\n";
+    #print STDERR "Old $olddate\n";
 
     my $oldmangler = Date::Manip::Date->new();
     my $curmangler = Date::Manip::Date->new();
@@ -584,9 +584,12 @@ sub calcDateAgeUTC($olddate) {
     }
 
     my $val = $deltafields[4];
+    $val += $hoursoffset;
 
     if($val < 24) {
-        if($val == 1) {
+        if($val == 0) {
+            return 'now';
+        } elsif($val == 1) {
             return $val . ' hour';
         }
         return $val . ' hours';
