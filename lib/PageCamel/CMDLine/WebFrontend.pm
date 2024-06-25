@@ -442,6 +442,7 @@ sub handleClient($self, $client) {
         my $backend = IO::Socket::UNIX->new(
                 Peer => $selectedbackend,
                 Type => SOCK_STREAM,
+                Timeout => 3,
             );
                 
         # Try to send error message to client that we couldn't reach the backend webserver
@@ -449,7 +450,7 @@ sub handleClient($self, $client) {
             my $error = $ERRNO;
             my $reply = $self->get590();
 
-            my $timeout = time + 10;
+            my $timeout = time + 5;
             while(length($reply) && time < $timeout) {
                 my $written = 0;
                 eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -463,7 +464,7 @@ sub handleClient($self, $client) {
                     $reply = substr($reply, $written);
                 }
             }
-            sleep(3);
+            sleep(2);
             close $client;
             print STDERR "Failed to connect to backend $selectedbackend: $error\n";
             $self->endprogram();
