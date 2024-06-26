@@ -79,6 +79,12 @@ sub new($proto, %config) {
         $self->{forcelowercase} = 1;
     }
 
+    if(defined($self->{foblogin})) {
+        if(!defined($self->{foblogin}->{mode}) || $self->{foblogin}->{mode} ne 'websocket') {
+            $self->{foblogin}->{mode} = 'ajax';
+        }
+    }
+
     return $self;
 }
 
@@ -105,7 +111,7 @@ sub register($self) {
     }
 
     if(defined($self->{foblogin}->{webpath})) {
-        $self->register_webpath($self->{foblogin}->{webpath}, "get_keyfoblogin", 'POST');
+        $self->register_webpath($self->{foblogin}->{webpath} . '/form', "get_keyfoblogin", 'POST');
     }
 
     return;
@@ -1364,8 +1370,10 @@ sub get_defaultwebdata($self, $webdata) {
     my $settings = $self->getSettings();
     if($settings->{enable_fob_login}) {
         $webdata->{FobLogin} = $self->{foblogin}->{webpath};
+        $webdata->{FobMode} = $self->{foblogin}->{mode};
     } else {
         $webdata->{FobLogin} = '';
+        $webdata->{FobMode} = '';
     }
     return;
 }
