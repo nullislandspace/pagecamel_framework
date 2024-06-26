@@ -144,10 +144,15 @@
     [% END %]
 </form>
 
+
 [% IF FobLogin != "" %]
-    <form name="fobloginform" method="post" action="[% FobLogin %]" id="fobloginform">
+    <form name="fobloginform" method="post" action="[% FobLogin %]/form" id="fobloginform">
         <input type="hidden" name="fobid" id="fobid" value="">
     </form>
+    [% IF FobMode == "websocket" %]
+        <iframe src="[% FobLogin %]/socket" width="20px" height="20px" hidden="hidden">
+        </iframe>
+    [% END %]
 [% END %]
 
 <span id="masktemplatedataset"
@@ -157,6 +162,7 @@
     data-trquote-keyfoblogin="[% tr.trquote("Key fob login...") %]"
     data-disablemousechecks="[% DisableMousechecks %]"
     data-foblogin="[% FobLogin %]"
+    data-fobmode="[% FobMode %]"
 ></span>
 
 <script>
@@ -227,7 +233,6 @@
                     return;
                 }
                 var newfob = fobreader.responseText;
-                //console.log(newfob + ' # ');
                 if(newfob != '' && newfob != '00 00 00 00 00 00') {
                     console.log("Starting FOB login...");
                     fobloginrunning = 1;
@@ -241,12 +246,24 @@
         fobreader.send(null);
     }
 
+    function iFrameFobCallback(newfob) {
+        if(newfob != '' && newfob != '00 00 00 00 00 00') {
+            fobloginrunning = 1;
+            $('#fobid').val(newfob);
+            $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+            $('#fobloginform').submit();
+        }
+    }
+
     function extraOnLoad() {
         if(ttvars.statustext === "" || ttvars.statuscolor != "oktext") {
             maskExtraOnLoad();
         }
         if(ttvars.foblogin != '') {
-            setInterval(runFobReader, 100);
+            if(ttvars.fobmode == 'ajax') {
+                // Only when using classic polling
+                setInterval(runFobReader, 100);
+            }
         }
     }
 

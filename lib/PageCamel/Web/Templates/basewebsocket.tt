@@ -1,7 +1,7 @@
 [% WEBSOCKETMASK %]
 
 
-[% IF isDebugging == '1' %]
+[% IF isDebugging == '1' && allowCloseSocket == '1' %]
     <p>
         <input type="button" value="Close Socket" onclick="closeSocket(); return false;"><br/>
         <input type="checkbox" id="networkerrorsimulation" realvalue="1" realinactivevalue="0" callback="setoffline"/>Simulate reconnect failure (stay offline)
