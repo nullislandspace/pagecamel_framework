@@ -69,6 +69,9 @@ sub register($self) {
 }
 
 sub crossregister($self) {
+    if(defined($self->{public}) && $self->{public}) {
+        $self->register_public_url($self->{webpath});
+    }
     
     $self->wscrossregister();
     return;
@@ -217,14 +220,16 @@ sub get($self, $ua) {
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
-    if($self->{socket_only}) {
-        return (status => 404);
-    }
-    
     my $upgrade = $ua->{headers}->{"Upgrade"};
     if(defined($upgrade)) {
         # Handle Websocket connection
         return $self->socketstart($ua);
+    }
+
+    if($self->{socket_only}) {
+        return (status => 426, # "Upgrade required
+            Upgrade     => "websocket",
+        );
     }
 
     my %settings;
@@ -294,6 +299,11 @@ sub get($self, $ua) {
         return (status  =>  404);
     }
     $webdata{WEBSOCKETMASK} = $subtemplate;
+
+    $webdata{allowCloseSocket} = '1';
+    if(!$self->{usemastertemplate}) {
+        $webdata{allowCloseSocket} = '0';
+    }
 
     my $template = $th->get("basewebsocket", $self->{usemastertemplate}, %webdata);
     return (status  =>  404) unless $template;
