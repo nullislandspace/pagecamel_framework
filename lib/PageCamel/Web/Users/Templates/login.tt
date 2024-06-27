@@ -238,7 +238,7 @@
                     fobloginrunning = 1;
                     $('#fobid').val(newfob);
                     $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
-                    $('#fobloginform').submit();
+                    $('#fobloginform').trigger("submit");
                 }
             }
         }
@@ -251,7 +251,7 @@
             fobloginrunning = 1;
             $('#fobid').val(newfob);
             $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
-            $('#fobloginform').submit();
+            $('#fobloginform').trigger("submit");
         }
     }
 
