@@ -6,7 +6,7 @@
 
 
 <p align="center">
-    <form name="report_selector" method="post" action="[% webpath %]">
+    <form name="report_selector" id="report_selector_form" method="post" action="[% webpath %]">
         <table class="data" id="HelperTable1">
             <tr class="tabheader">
                 <th>[% tr.trquote("Report") %]</th>
@@ -53,7 +53,7 @@
                         </select>                        
                     </td>
                     <td>
-                        <input type="text" displaytype="dateandtime" name="starttime" value="[% Starttime %]" size="19" maxlength="50" onChange="document.report_selector.submit();">
+                        <input type="text" displaytype="dateandtime" name="starttime" value="[% Starttime %]" size="19" maxlength="50" onChange="submitForm();">
                         <input type="hidden" name="mode" value="timeupdate">
                     </td>
                 [% END %]
@@ -74,9 +74,14 @@
 </form>
 
 <script language="javascript">
+    function submitForm() {
+        $("#report_selector_form").trigger("submit");
+        return true;
+    }
+
     function extraOnLoad() {
         $('select').on("selectmenuchange", function(e, ui){
-            document.report_selector.submit();
+            submitForm();
         });
     }
     

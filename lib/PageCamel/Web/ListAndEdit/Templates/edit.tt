@@ -480,7 +480,7 @@
         }
         
         $('input[name="copy_primary_key"').val(newpk);
-        $('#MainForm').submit();
+        $('#MainForm').trigger("submit");
     }
 
 
@@ -492,7 +492,7 @@
         }
         
         $('input[name="copy_field"').val(newval);
-        $('#MainForm').submit();
+        $('#MainForm').trigger("submit");
     }
 
 
@@ -523,7 +523,7 @@
         }
 
         if(inputok == 1) {
-            $('#MainForm').submit();
+            $('#MainForm').trigger("submit");
         }
         return;
     }
