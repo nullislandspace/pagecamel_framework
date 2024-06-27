@@ -279,7 +279,7 @@
         }
         $('input[name="primary_key"]').val(primkey);
         if(ttvars.listonlycustomselect != 1) {
-            $('#ListAndEditForm').submit();
+            $('#ListAndEditForm').trigger("submit");
         } else {
             if(window.quickSelectCallback) {
                 quickSelectCallback(primkey);

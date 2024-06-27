@@ -1,5 +1,5 @@
 <p align="center">
-    <form name="setlang" method="post" action="[% PostLink %]">
+    <form name="setlang" id="setlangform" method="post" action="[% PostLink %]">
         <input type="hidden" name="mode" value="setlanguage">
         [% tr.trquote("Language") %]: <select name="language" id="languageselector">
                     [% FOREACH Language IN AvailLanguages %]
@@ -50,7 +50,7 @@
 <script type="text/javascript">
     function extraOnLoad() {
         $('#languageselector').on('selectmenuchange', function(e, ui) {
-           document.setlang.submit(); 
+           $("#setlangform").trigger("submit"); 
         });
     }
 </script>
