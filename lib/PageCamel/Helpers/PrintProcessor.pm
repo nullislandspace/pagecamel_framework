@@ -173,10 +173,10 @@ sub _escpos_tmt88($self) {
 
     if($self->{kickCashdrawer}) {
         # Kick drawer 1
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
         
         # Kick drawer 2
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0xFE) . chr(0xFE); # . "\n";
     }
 
 
@@ -342,10 +342,10 @@ sub _escpos_cts801($self) {
 
     if($self->{kickCashdrawer}) {
         # Kick drawer 1
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
         
         # Kick drawer 2
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0xFE) . chr(0xFE); # . "\n";
     }
 
 
@@ -425,7 +425,7 @@ sub _escpos_sgt116($self) {
     # Kick drawer
     if($self->{kickCashdrawer}) {
         #$raw .= chr(0x1b) . chr(0x70) . chr(0x00);
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
     }
 
     my ($w, $h) = $img->getBounds();
@@ -489,7 +489,7 @@ sub _escpos_jws360($self) {
 
     # Kick drawer
     if($self->{kickCashdrawer}) {
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
     }
     $raw .= "\n";
 
@@ -566,22 +566,23 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     my $raw = '';
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
+
         # Kick drawer 1
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
         # Kick drawer 2
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0xFE) . chr(0xFE); # . "\n";
     } elsif($self->{printerType} eq 'CTS801') {
         $reph->debuglog("    Type: CTS801");
         # Kick drawer 1
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
         # Kick drawer 2
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x01) . chr(0xFE) . chr(0xFE); # . "\n";
     } elsif($self->{printerType} eq 'SGT116') {
         $reph->debuglog("    Type: SGT116");
         $raw .= chr(0x1b) . chr(0x70) . chr(0x00);
     } elsif($self->{printerType} eq 'JWS360') {
         $reph->debuglog("    Type: JWS360");
-        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0x60) . chr(0x60); # . "\n";
+        $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
     } else {
         # Cash drawer not supported on this printer
         return;
