@@ -490,14 +490,14 @@ sub get_login($self, $ua) {
         $dbh->commit;
         $user{rights} = $rights;
 
-        my $upsth = $dbh->prepare_cached("UPDATE users
-                                         SET last_login_time = now(),
-                                         last_login_ip = ?
-                                         WHERE username = ?")
-                or croak($dbh->errstr);
-        $upsth->execute($host_addr, $user{username}) or croak($dbh->errstr);
-        $upsth->finish;
-        $dbh->commit;
+        #        my $upsth = $dbh->prepare_cached("UPDATE users
+        #                                         SET last_login_time = now(),
+        #                                         last_login_ip = ?
+        #                                         WHERE username = ?")
+        #                or croak($dbh->errstr);
+        #        $upsth->execute($host_addr, $user{username}) or croak($dbh->errstr);
+        #        $upsth->finish;
+        #        $dbh->commit;
 
         my $hasDeveloper = 0;
         if(contains('has_developer', $rights)) {
@@ -797,13 +797,13 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
     }
     $user{rights} = \@dbRights;
 
-    my $upsth = $dbh->prepare_cached("UPDATE users
-                                     SET last_login_time = now(),
-                                     last_login_ip = ?
-                                     WHERE username = ?")
-            or croak($dbh->errstr);
-    $upsth->execute($host_addr, $user{username}) or croak($dbh->errstr);
-    $upsth->finish;
+    #    my $upsth = $dbh->prepare_cached("UPDATE users
+    #                                     SET last_login_time = now(),
+    #                                     last_login_ip = ?
+    #                                     WHERE username = ?")
+    #            or croak($dbh->errstr);
+    #    $upsth->execute($host_addr, $user{username}) or croak($dbh->errstr);
+    #    $upsth->finish;
     $dbh->commit;
 
     my $hasDeveloper = 0;
@@ -956,13 +956,13 @@ sub adminSwitchToUser($self, $username, $ua) {
     }
     $user->{rights} = \@dbRights;
 
-    my $upsth = $dbh->prepare_cached("UPDATE users
-                                     SET last_login_time = now(),
-                                     last_login_ip = ?
-                                     WHERE username = ?")
-            or croak($dbh->errstr);
-    $upsth->execute($host_addr, $user->{username}) or croak($dbh->errstr);
-    $upsth->finish;
+    #    my $upsth = $dbh->prepare_cached("UPDATE users
+    #                                     SET last_login_time = now(),
+    #                                     last_login_ip = ?
+    #                                     WHERE username = ?")
+    #            or croak($dbh->errstr);
+    #    $upsth->execute($host_addr, $user->{username}) or croak($dbh->errstr);
+    #    $upsth->finish;
     $dbh->commit;
 
     $user->{startpage} = $viewh->getstarturl(\@dbRights);

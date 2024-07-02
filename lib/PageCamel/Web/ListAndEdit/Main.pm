@@ -267,6 +267,18 @@ sub reload($self) {
         goto finishreload;
     }
 
+
+    if(defined($self->{restrict}) && $self->{restrict} ne '' && !$self->{listonly}) {
+        foreach my $clauseitem (@{$self->{restrict}->{item}}) {
+            if(defined($clauseitem->{override_permission})) {
+                print "   RESTRICT override_permission is currently only supported in listonly mode!\n";
+                $ok = 0;
+                goto finishreload;
+            }
+        }
+    }
+
+
     # ------------- LIST -------------
     if($self->{editonly}) {
         # Check if we are in listonly mode
@@ -1294,6 +1306,9 @@ sub get_list($self, $ua, $usemasterlayout = true) {
     if(!$usemasterlayout) {
         $listlength = 300;
     }
+    if(defined($self->{listlength})) {
+        $listlength = 0 + $self->{listlength};
+    }
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
@@ -1472,6 +1487,10 @@ sub get_lines($self, $ua) {
 
     if(defined($self->{restrict}) && $self->{restrict} ne '') {
         foreach my $clauseitem (@{$self->{restrict}->{item}}) {
+            if(defined($clauseitem->{override_permission}) && contains($clauseitem->{override_permission}, $webdata{userData}->{rights})) {
+                #print STDERR "Ignoring restrict item for column ", $clauseitem->{column}, "\n";
+                next;
+            }
             my $vtmp = $clauseitem->{value};
             if($vtmp =~ /USER/) {
                 $vtmp =~ s/USER/$webdata{userData}->{user}/g;
