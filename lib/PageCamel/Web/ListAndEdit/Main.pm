@@ -1306,6 +1306,9 @@ sub get_list($self, $ua, $usemasterlayout = true) {
     if(!$usemasterlayout) {
         $listlength = 300;
     }
+    if(defined($self->{listlength})) {
+        $listlength = 0 + $self->{listlength};
+    }
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
