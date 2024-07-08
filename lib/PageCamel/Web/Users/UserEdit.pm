@@ -130,9 +130,40 @@ sub get_edit($self, $ua) {
         PostLink    =>  $self->{edit}->{webpath},
         showads => $self->{showads},
     );
+
+    my @textpermissions;
+    foreach my $item (@{$self->{textpermissions}->{item}}) {
+        push @textpermissions, 'textpermission_' . $item->{column};
+
+        my $enumsth = $dbh->prepare("SELECT permission_name, permission_text FROM " . $item->{table} . " ORDER BY permission_name")
+                or croak($dbh->errstr);
+        if(!$enumsth->execute) {
+            $reph->debuglog($dbh->errstr);
+            $dbh->rollback;
+            return (status => 500);
+        }
+        my @enumvals;
+        my %blankline = (
+            permission_name => ''
+        );
+        push @enumvals, \%blankline;
+        while((my $line = $enumsth->fetchrow_hashref)) {
+            push @enumvals, $line;
+        }
+        $enumsth->finish;
+        my %txtpermission = (
+            column => 'textpermission_' . $item->{column},
+            displaytext => $item->{displaytext}, 
+            data => \@enumvals,
+        );
+        push @{$webdata{textpermissions}}, \%txtpermission;
+    }
+
     
     # Prepare empty user structure
-    foreach my $fieldname (qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name hardware_fob]) {
+    my @fieldnames = qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name hardware_fob];
+    push @fieldnames, @textpermissions;
+    foreach my $fieldname (@fieldnames) {
         $webdata{$fieldname} = "";
     }
     
@@ -229,7 +260,9 @@ sub get_edit($self, $ua) {
             push @auditdata, "New password set";
         }
 
-        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire hardware_fob]) {
+        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire hardware_fob];
+        push @upfieldnames, @textpermissions;
+        foreach my $fieldname (@upfieldnames) {
             my $dbfield = $fieldname;
             if($dbfield eq 'organisation_name') {
                 $dbfield = 'organisation';
@@ -246,6 +279,11 @@ sub get_edit($self, $ua) {
                     $fielddata = 'false';
                 }
             }
+
+            if($fieldname =~ /^textpermission_/ && $fielddata eq '') {
+                $fielddata = undef;
+            }
+
             if($fieldname eq 'email_addr') {
                 $fielddata = lc $fielddata;
             }
@@ -335,7 +373,9 @@ sub get_edit($self, $ua) {
             }
         }
 
-        foreach my $fieldname (qw[email_addr account_locked account_lock_reason first_name last_name name_initials password_can_expire hardware_fob]) {
+        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials password_can_expire hardware_fob];
+        push @createfieldnames, @textpermissions;
+        foreach my $fieldname (@createfieldnames) {
             my $upsth = $dbh->prepare_cached("UPDATE users
                                              SET $fieldname = ?
                                              WHERE username = ?")
@@ -348,6 +388,11 @@ sub get_edit($self, $ua) {
                     $fielddata = 'false';
                 }
             }
+
+            if($fieldname =~ /^textpermission_/ && $fielddata eq '') {
+                $fielddata = undef;
+            }
+
             if($fieldname eq 'email_addr') {
                 $fielddata = lc $fielddata;
             }
@@ -412,8 +457,10 @@ reloaddata:
                                           WHERE username = ?")
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
+        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire force_password_change hardware_fob appkey];
+        push @selectfieldnames, @textpermissions;
         while((my $user = $selsth->fetchrow_hashref)) {
-            foreach my $fieldname (qw[username email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire force_password_change hardware_fob appkey]) {
+            foreach my $fieldname (@selectfieldnames) {
                 my $dbfield = $fieldname;
                 if($dbfield eq 'organisation_name') {
                     $dbfield = 'organisation';
