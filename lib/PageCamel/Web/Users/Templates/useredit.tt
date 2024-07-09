@@ -139,6 +139,22 @@
                         </div>
                     </td>
                 </tr>
+                [% FOREACH textpermission IN textpermissions %]
+                    <tr>
+                        <td>[% tr.quote(textpermission.displaytext) %]</td>
+                        <td>
+                            <select name="[% tr.quote(textpermission.column) %]">
+                                [% FOREACH permline IN textpermission.data %]
+                                    <option value="[% tr.quote(permline.permission_name) %]" 
+                                        [% IF permline.permission_name == ${textpermission.column} %]
+                                            selected="selected"
+                                        [% END %]
+                                    >[% tr.quote(permline.permission_name) %]</option>
+                                [% END %]
+                            </select>
+                        </td>
+                    </tr>
+                [% END %]
                 [% IF appqrcode != "" %]
                 <tr>
                     <td align="right" valign="top">[% tr.trquote("APP Configuration") %]</td>
