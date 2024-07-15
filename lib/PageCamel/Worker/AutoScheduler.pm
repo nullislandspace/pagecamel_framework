@@ -80,22 +80,22 @@ sub work_shift($self) {
     }
 
 
-    my $csth = $dbh->prepare_cached("INSERT INTO commandqueue
-                                    (command, arguments)
-                                    VALUES (?,?)")
-            or croak($dbh->errstr);
-    my @args = ();
-
-    $reph->debuglog("Scheduling backup");
-    if($csth->execute('BACKUP', \@args)) {
-        $workCount++;
-        $dbh->commit;
-    } else {
-        $dbh->rollback;
-        $reph->debuglog("Scheduling backup FAILED!");
-    }
-
-    $dbh->commit;
+#    my $csth = $dbh->prepare_cached("INSERT INTO commandqueue
+#                                    (command, arguments)
+#                                    VALUES (?,?)")
+#            or croak($dbh->errstr);
+#    my @args = ();
+#
+#    $reph->debuglog("Scheduling backup");
+#    if($csth->execute('BACKUP', \@args)) {
+#        $workCount++;
+#        $dbh->commit;
+#    } else {
+#        $dbh->rollback;
+#        $reph->debuglog("Scheduling backup FAILED!");
+#    }
+#
+#    $dbh->commit;
     return $workCount;
 }
 
@@ -227,6 +227,38 @@ sub work_day($self) {
             } else {
                 $dbh->rollback;
                 $reph->debuglog("Scheduling daily DIRSYNC FAILED!");
+            }
+        }
+    }
+
+    { # Schedule Backups
+        my $selsth = $dbh->prepare_cached("SELECT * FROM backup_schedule
+                                           WHERE is_enabled = true
+                                           ORDER BY backup_name")
+                or croak("$dbh->errsttr");
+        my @backups;
+        if($selsth->execute) {
+            while((my $line = $selsth->fetchrow_hashref)) {
+                push @backups, $line;
+            }
+            $selsth->finish;
+        } else {
+            $dbh->rollback;
+            $reph->debuglog("Reading BACKUP lines for scheduling FAILED!");
+        }
+
+        my ($ndate, $ntime) = getDateAndTime();
+
+        foreach my $backup (@backups) {
+            $reph->debuglog("Scheduling daily BACKUP for " . $backup->{backup_name});
+            my $starttime = $ndate . ' ' . $backup->{backup_time};
+            my @args = ($backup->{backup_name});
+            if($csth->execute('BACKUP', \@args, $starttime)) {
+                $workCount++;
+                $dbh->commit;
+            } else {
+                $dbh->rollback;
+                $reph->debuglog("Scheduling daily BACKUP FAILED!");
             }
         }
     }

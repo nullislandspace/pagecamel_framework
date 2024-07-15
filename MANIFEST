@@ -5,6 +5,7 @@ database/0002_database_tuning.sql
 database/0003_users_app_userkey.sql
 database/0004_postgresql_backup_logs.sql
 database/0005_new_usermanagement.sql
+database/0006_integrated_backup_commands.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
