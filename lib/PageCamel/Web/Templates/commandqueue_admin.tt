@@ -102,6 +102,14 @@
                         [% END %]
                     </select>
                 </td>
+            [% ELSIF command.type == 'backup' %]
+                <td>
+                    <select name="backup_name">
+                        [% FOREACH Backup IN Backups %]
+                            <option value="[% tr.quote(Backup.backup_name) %]">[% tr.quote(Backup.backup_name) %] ([% tr.quote(Backup.backup_time) %] / [% tr.quote(Backup.backup_directory) %])</option>
+                        [% END %]
+                    </select>
+                </td>
             [% ELSE %]
                 <td>[% tr.tr("Error: command not implemented") %]: [% tr.quote(command.type) %]</td>
             [% END %]
