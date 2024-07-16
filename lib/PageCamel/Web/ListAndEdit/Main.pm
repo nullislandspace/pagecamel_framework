@@ -1800,7 +1800,13 @@ sub get_lines($self, $ua) {
                 $value = colorSwatchHTML($value);
             } elsif($type eq 'image') {
                 if($value ne '') {
-                    $value = '<img src="data:image/png;base64,' . $value . '">';
+                    my $extraoptions = ' ';
+                    foreach my $key (qw[width height]) {
+                        if(defined($item->{$key})) {
+                            $extraoptions .= $key . '="' . $item->{$key} . '" ';
+                        }
+                    }
+                    $value = '<img src="data:image/png;base64,' . $value . '" ' . $extraoptions . '>';
                 }
             } else {
                 $value = encode_entities($value, "'<>&\"");

@@ -3049,6 +3049,7 @@ lib/PageCamel/Worker/Minecraft/PlayerCoords.pm
 lib/PageCamel/Worker/Minecraft/RCON.pm
 lib/PageCamel/Worker/MYCPAN/AutoScheduler.pm
 lib/PageCamel/Worker/MYCPAN/LocalCommands.pm
+lib/PageCamel/Worker/PageViewStats.pm
 lib/PageCamel/Worker/PingCheck.pm
 lib/PageCamel/Worker/PluginConfig.pm
 lib/PageCamel/Worker/PostfixCommands.pm
