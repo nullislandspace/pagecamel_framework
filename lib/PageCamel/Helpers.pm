@@ -52,6 +52,7 @@ use PageCamel::Helpers::TemplateEngine::Translate;
 use PageCamel::Helpers::TestData;
 use PageCamel::Helpers::Translator;
 use PageCamel::Helpers::URI;
+use PageCamel::Helpers::UTF;
 use PageCamel::Helpers::UserAgent;
 use PageCamel::Helpers::Userlevels;
 use PageCamel::Helpers::VoiceClient;

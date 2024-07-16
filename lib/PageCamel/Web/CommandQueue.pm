@@ -63,50 +63,36 @@ sub get_admin($self, $ua) {
         VACUUM_ANALYZE_TABLE=> 'table',
         REINDEX_ALL_TABLES    => 'simple',
         REINDEX_TABLE        => 'table',
-        BACKUP                => 'simple',
+        BACKUP                => 'backup',
         CALCULATE_STATS        => 'simple',
         NOP_OK                => 'simple',
         NOP_FAIL            => 'simple',
-        BACKUP              => 'simple',
         SCHEDULE_DIRSYNC    => 'dirsync',
         SVC_RESET_ALL_SERVICES => 'simple',
     );
     my @commandorder = qw[
                         ANALYZE_TABLE VACUUM_ANALYZE_TABLE VACUUM_ANALYZE VACUUM_FULL
                         REINDEX_TABLE REINDEX_ALL_TABLES
-                        BACKUP
+                        BACKUP SCHEDULE_DIRSYNC
                         NOP_OK NOP_FAIL
                         SVC_RESET_ALL_SERVICES
                         ];
 
-    my $rbstablessth = $dbh->prepare_cached("SELECT schemaname || '.' || tablename " .
+    my $pagecameltablessth = $dbh->prepare_cached("SELECT schemaname || '.' || tablename " .
                                             "FROM pg_tables " .
                                             "WHERE tableowner = current_user " .
                                             "ORDER BY schemaname, tablename")
                     or croak($dbh->errstr);
-    my @rbstables;
-    $rbstablessth->execute or croak($dbh->errstr);
-    while((my @tabline = $rbstablessth->fetchrow_array)) {
-        push @rbstables, @tabline;
+    my @pagecameltables;
+    $pagecameltablessth->execute or croak($dbh->errstr);
+    while((my @tabline = $pagecameltablessth->fetchrow_array)) {
+        push @pagecameltables, @tabline;
     }
-    $rbstablessth->finish;
-    $webdata{Tables} = \@rbstables;
-
-    my $rbssimpletablessth = $dbh->prepare_cached("SELECT tablename " .
-                                            "FROM pg_tables " .
-                                            "WHERE tableowner = current_user " .
-                                            "ORDER BY tablename")
-                    or croak($dbh->errstr);
-    my @rbssimpletables;
-    $rbssimpletablessth->execute or croak($dbh->errstr);
-    while((my @tabline = $rbssimpletablessth->fetchrow_array)) {
-        push @rbssimpletables, @tabline;
-    }
-    $rbssimpletablessth->finish;
-
+    $pagecameltablessth->finish;
+    $webdata{Tables} = \@pagecameltables;
 
     my @syncs;
-    if(contains('dirsync', \@rbssimpletables) && contains('enum_dirsyncserver', \@rbssimpletables)) {
+    if(contains('pagecamel.dirsync', \@pagecameltables) && contains('pagecamel.enum_dirsyncserver', \@pagecameltables)) {
         # Not all projects have these
         my $syncsth = $dbh->prepare_cached("SELECT ds.*, date_trunc('second', last_sync) as last_sync_trunc,
                                                 ss.description AS sync_server_longname
@@ -123,8 +109,26 @@ sub get_admin($self, $ua) {
     }
     $webdata{Syncs} = \@syncs;
 
+    my @backups;
+    if(contains('pagecamel.backup_schedule', \@pagecameltables)) {
+        # Not all projects have these
+        my $backupsth = $dbh->prepare_cached("SELECT * FROM backup_schedule 
+                                              WHERE is_enabled = true
+                                              ORDER BY backup_name")
+                        or croak($dbh->errstr);
+
+        $backupsth->execute or croak($dbh->errstr);
+        while((my $backup = $backupsth->fetchrow_hashref)) {
+            push @backups, $backup;
+        }
+        $backupsth->finish;
+    }
+    $webdata{Backups} = \@backups;
+    print STDERR Dumper(\@pagecameltables);
+    print STDERR Dumper($webdata{Backups});
+
     my @computers;
-    if(contains('computers', \@rbssimpletables)) {
+    if(contains('pagecamel.computers', \@pagecameltables)) {
         # Not all projects have these
         my $computersth = $dbh->prepare_cached("SELECT *
                                                 FROM computers
@@ -147,7 +151,8 @@ sub get_admin($self, $ua) {
 
             if($mode eq "schedulecommand") {
                 my $isodate = $ua->{postparams}->{'starttime'} || '';
-                if($isodate eq '-- ::') {
+                print "Fucking datestring: ->", $isodate, "<-\n";
+                if($isodate eq '-- ::' || $isodate eq '____-__-__ __:__:__') {
                     # Compensate for datetimepicker mask when field is empty
                     $isodate = '';
                 }
@@ -176,7 +181,8 @@ sub get_admin($self, $ua) {
                     # command
                     push @arglist, $isodate;
                     $isodate = getISODate();
-
+                } elsif($allcommands{$command} eq "backup") {
+                    push @arglist, ($ua->{postparams}->{'backup_name'} || '');
                 }
 
                 if(!$sth->execute($command, $isodate, \@arglist)) {

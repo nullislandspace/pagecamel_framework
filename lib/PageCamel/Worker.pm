@@ -75,6 +75,7 @@ use PageCamel::Worker::MYCPAN::LocalCommands;
 use PageCamel::Worker::Minecraft::Mapcrafter;
 use PageCamel::Worker::Minecraft::PlayerCoords;
 use PageCamel::Worker::Minecraft::RCON;
+use PageCamel::Worker::PageViewStats;
 use PageCamel::Worker::PingCheck;
 use PageCamel::Worker::PluginConfig;
 use PageCamel::Worker::PostfixCommands;
