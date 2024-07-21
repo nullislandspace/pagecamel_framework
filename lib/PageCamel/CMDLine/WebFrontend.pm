@@ -686,8 +686,9 @@ sub get590($self) {
     my $html = "<html><head><title>590 Connection to backend server failed</title></head><body>";
 
     my $b64 = $self->_Image590();
-    $html .= '<p align="center"><img src="data:image/png;base64, ' . $b64 . '"></p>';
+    $html .= '<p align="center"><img src="data:image/png;base64, ' . $b64 . '" onclick="window.location.reload();" title="Net cat"></p>';
     $html .= '<p align="center">Connection to the backend server failed.<br/>&nbsp;<br/>The server is most likely undergoing maintenance,<br/>please <strike>check your cat</strike> check back in a few minutes.</p>';
+    $html .= '<p align="center">Click on the cat to reload the page.</p>';
 
     $html .= "</body></html>";
 
