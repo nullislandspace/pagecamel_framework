@@ -48,6 +48,7 @@ use Digest::SHA1  qw(sha1_hex);
 use IO::Compress::Gzip qw(gzip $GzipError);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 use Storable qw[dclone];
+use GD;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -773,6 +774,44 @@ sub validateEditItem($self, $item, $multiarraymode) {
         if(!defined($item->{$required})) {
             print "    EDIT: Attribute \"$required\" not set!\n";
             return 0;
+        }
+    }
+
+    if($item->{type} eq 'image') {
+        if(defined($item->{thumbnail_column})) {
+            if(!defined($item->{thumbnail_size})) {
+                print "    EDIT: Attribute thumbnail_size not set!\n";
+                return 0;
+            }
+            $item->{thumbnail_size} = 0 + $item->{thumbnail_size};
+            if(!$item->{thumbnail_size}) {
+                print "    EDIT: Attribute thumbnail_size is not a valid number!\n";
+                return 0;
+            }
+
+            # An item with that column must also exist!
+            my $othercolumnfound = 0;
+            my $declaredafterimage = 0;
+            foreach my $otheritem (@{$self->{edit}->{item}}) {
+                if($otheritem->{column} eq $item->{column}) {
+                    $declaredafterimage = 1;
+                    next;
+                }
+                if($otheritem->{column} eq $item->{thumbnail_column}) {
+                    $othercolumnfound = 1;
+                    last;
+                }
+            }
+
+            if(!$othercolumnfound) {
+                print "    EDIT: Attribute thumbnail_column does not point to another item with a matching column!\n";
+                return 0;
+            }
+
+            if(!$declaredafterimage) {
+                print "    EDIT: Item mentioned in thumbnail_column must be declared AFTER the image item!\n";
+                return 0;
+            }
         }
     }
 
@@ -2202,11 +2241,28 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     $tmp = $ua->{postparams}->{$column} || '';
                     my $newfname = $ua->{postparams}->{$column . '___new'} || '';
                     if($newfname ne '' && defined($ua->{files}->{$newfname})) {
-                        $tmp = encode_base64($ua->{files}->{$newfname}->{data});
+                        $tmp = encode_base64($ua->{files}->{$newfname}->{data}, '');
                     }
                     my $tmpremove = $ua->{postparams}->{$column . '__remove'} || '';
                     if($tmpremove eq "1") {
                         $tmp = '';
+                    }
+                    
+                    # Generate new thumbnail if required
+                    my $thisitem;
+                    my $otheritem;
+                    foreach my $searchitem (@{$self->{edit}->{item}}) {
+                        if($searchitem->{column} eq $column) {
+                            $thisitem = $searchitem;
+                            last;
+                        }
+                    }
+                    if(!defined($thisitem)) {
+                        croak("IMAGE: THISITEM not found");
+                    }
+                    if(defined($thisitem->{thumbnail_column})) {
+                        my $newtmp = $self->_makeThumbnail($tmp, $thisitem->{thumbnail_size});
+                        $ua->{postparams}->{$thisitem->{thumbnail_column}} = $newtmp;
                     }
                 }
 
@@ -2378,6 +2434,23 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     my $newfname = $ua->{postparams}->{$column . '___new'} || '';
                     if($newfname ne '' && defined($ua->{files}->{$newfname})) {
                         $tmp = encode_base64($ua->{files}->{$newfname}->{data});
+                    }
+                    
+                    # Generate new thumbnail if required
+                    my $thisitem;
+                    my $otheritem;
+                    foreach my $searchitem (@{$self->{edit}->{item}}) {
+                        if($searchitem->{column} eq $column) {
+                            $thisitem = $searchitem;
+                            last;
+                        }
+                    }
+                    if(!defined($thisitem)) {
+                        croak("IMAGE: THISITEM not found");
+                    }
+                    if(defined($thisitem->{thumbnail_column})) {
+                        my $newtmp = $self->_makeThumbnail($tmp, $thisitem->{thumbnail_size});
+                        $ua->{postparams}->{$thisitem->{thumbnail_column}} = $newtmp;
                     }
                 }
                 if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
@@ -3325,6 +3398,37 @@ sub get_defaultwebdata($self, $webdata) {
     }
 
     return;
+}
+
+sub _makeThumbnail($self, $rawimg, $size) {
+    if($rawimg eq '') {
+        return '';
+    }
+
+    my $img = GD::Image->new(decode_base64($rawimg));
+    my ($w, $h) = $img->getBounds();
+    my $scalefactor = 1.0;
+    my $wscalefactor = $size / $w;
+    my $hscalefactor = $size / $h;
+    if($wscalefactor < $scalefactor) {
+        $scalefactor = $wscalefactor;
+    }
+    if($hscalefactor < $scalefactor) {
+        $scalefactor = $hscalefactor;
+    }
+    my $neww = int($w * $scalefactor);
+    my $newh = int($h * $scalefactor);
+    my $thumb = GD::Image->new($neww, $newh, 1);
+    $thumb->copyResampled($img,
+            0, 0, # destx, desty
+            0, 0, # srcx, srcy,
+            $neww, $newh,
+            $w, $h);
+
+    my $newtmp = $thumb->png();
+    $newtmp = encode_base64($newtmp, '');
+
+    return $newtmp;
 }
 
 1;
