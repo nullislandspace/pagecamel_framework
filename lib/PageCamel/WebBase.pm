@@ -129,6 +129,7 @@ use PageCamel::Web::Users::Views;
 use PageCamel::Web::VNC5;
 use PageCamel::Web::WebApi::LetsEncryptDNS;
 use PageCamel::Web::WebApps;
+use PageCamel::Web::Webcam;
 use PageCamel::Web::Wiki::Articles;
 use PageCamel::Web::Wiki::Viewer;
 #=!=END-AUTO-INCLUDES
