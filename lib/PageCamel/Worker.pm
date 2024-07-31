@@ -51,7 +51,6 @@ use PageCamel::Worker::Firewall::Postfix;
 use PageCamel::Worker::Firewall::SSH;
 use PageCamel::Worker::Firewall::SyslogForwarder;
 use PageCamel::Worker::ForceVacuumAnalyze;
-use PageCamel::Worker::Foscam::Stream;
 use PageCamel::Worker::HomeAutomation::Allnet4076;
 use PageCamel::Worker::HomeAutomation::FritzBox;
 use PageCamel::Worker::HomeAutomation::HWGSTE;
@@ -88,7 +87,6 @@ use PageCamel::Worker::SystemSettings;
 use PageCamel::Worker::TableStatistics;
 use PageCamel::Worker::TemplateCache;
 use PageCamel::Worker::Userlevels;
-use PageCamel::Worker::Wansview::Stream;
 #=!=END-AUTO-INCLUDES
 
 
