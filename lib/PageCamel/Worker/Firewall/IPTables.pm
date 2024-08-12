@@ -434,11 +434,13 @@ sub updateIPTables($self) {
     push @six, "#    Web/IP";
     foreach my $ip (@webips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
-            push @four, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            #push @four, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            #push @four, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            push @four, "-A INPUT -s $ip -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
-            push @six, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            #push @six, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            #push @six, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            push @six, "-A INPUT -s $ip -j REJECT";
         }
     }
 
@@ -446,11 +448,13 @@ sub updateIPTables($self) {
     push @six, "#    Web/CIDR";
     foreach my $cidr (@webcidrs) {
         if($cidr =~ /\./) {
-            push @four, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
-            push @four, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            #push @four, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
+            #push @four, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            push @four, "-A INPUT -s $cidr -j REJECT";
         } else {
-            push @six, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
-            push @six, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            #push @six, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
+            #push @six, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            push @six, "-A INPUT -s $cidr -j REJECT";
         }
     }
 
