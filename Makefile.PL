@@ -1,56 +1,6 @@
 use v5.38;
 use ExtUtils::MakeMaker;
 
-######### PRECOMPILE TYPESCRIPT FILES ##########
-use POSIX;
-use Data::Dumper;
-
-if(0) {
-    sub getTypescriptDirs {
-        my ($startdir) = @_;
-        my @dirs;
-        my @recursedirs;
-        my $dirfh;
-        opendir($dirfh, $startdir) or die($!);
-        while((my $entry = readdir($dirfh))) {
-            next if ($entry =~ /^\./);
-            if($entry eq 'tsconfig.json') {
-                push @dirs, $startdir;
-                next;
-            }
-            my $recursename = $startdir . '/' . $entry;
-            if(1 && -d $recursename) {
-                push @recursedirs, $recursename;
-            }
-        }
-        closedir $dirfh;
-        foreach my $recursename (@recursedirs) {
-            push @dirs, getTypescriptDirs($recursename);
-        }
-        return @dirs;
-    }
-    my $currentdir = getcwd();
-    my @typescriptdirs = getTypescriptDirs($currentdir);
-    foreach my $scriptdir (@typescriptdirs) {
-        print "PRECOMPILING TYPESCRIPT IN $scriptdir\n";
-        if(-l $scriptdir) {
-            print "   Softlink to another repository, assuming it's already precompiled\n";
-            next;
-        }
-        chdir $scriptdir;
-        my @lines = `tsc -p tsconfig.json 2>&1`;
-        chdir $currentdir;
-        if(scalar @lines) {
-            print "    Typescript compilation failed:\n";
-            foreach my $line (@lines) {
-                chomp $line;
-                print "####    ", $line, "\n";
-            }
-            exit(1);
-        }
-    }
-}
-
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 WriteMakefile(
@@ -102,7 +52,7 @@ WriteMakefile(
         'HTML::TableExtract' => 0,
         'HTTP::BrowserDetect' => 0,
         'HTTP::Date' => 0,
-        'Image::Imlib2' => 0,
+        'Image::Imlib2' => 2.04,
         'Image::PNG::QRCode' => 0,
         #'IO::Compress::Brotli' => 0,
         'IO::Compress::Gzip' => 0,
@@ -128,7 +78,7 @@ WriteMakefile(
         'Module::Load' => 0,
         'Module::Load::Conditional' => 0,
         'Net::Clacks::Client' => 29,
-        'Net::CUPS' => 0,
+        'Net::CUPS2' => 0,
         'Net::DNS' => 0,
         'Net::DNS::Packet' => 0,
         'Net::DNS::Resolver' => 0,

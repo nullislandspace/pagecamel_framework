@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.4;
+our $VERSION = 4.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -23,7 +23,7 @@ use PageCamel::Helpers::DataBlobs;
 use PageCamel::Helpers::TestData;
 use Crypt::Digest::SHA256 qw[sha256_hex];
 use MIME::Base64 qw(encode_base64 decode_base64);
-use Net::CUPS;
+use Net::CUPS2;
 
 my %globalimagecache;
 
@@ -628,7 +628,7 @@ sub _printFile($self, $raw, $cupsip, $cupsprinters = []) {
     $reph->debuglog("Selecting CUPS IP ", $cupsip);
 
 
-    my $cups = Net::CUPS->new();
+    my $cups = Net::CUPS2->new();
     $cups->setServer($cupsip);
 
     foreach my $printername (@{$cupsprinters}) {

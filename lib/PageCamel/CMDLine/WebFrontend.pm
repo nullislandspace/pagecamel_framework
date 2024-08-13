@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.4;
+our $VERSION = 4.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -683,11 +683,14 @@ sub endprogram($self) {
 }
 
 sub get590($self) {
-    my $html = "<html><head><title>590 Connection to backend server failed</title></head><body>";
+    my $html = '<html><head><title>590 Connection to backend server failed</title></head><body onload="starttimer();">';
+
+    $html .= '<script>function starttimer() { setTimeout(() => {doreload();}, 15000); };function doreload() {window.location.reload();};</script>';
 
     my $b64 = $self->_Image590();
-    $html .= '<p align="center"><img src="data:image/png;base64, ' . $b64 . '"></p>';
+    $html .= '<p align="center"><img src="data:image/png;base64, ' . $b64 . '" onclick="doreload();" title="Net cat"></p>';
     $html .= '<p align="center">Connection to the backend server failed.<br/>&nbsp;<br/>The server is most likely undergoing maintenance,<br/>please <strike>check your cat</strike> check back in a few minutes.</p>';
+    $html .= '<p align="center">Click on the cat to reload the page.</p>';
 
     $html .= "</body></html>";
 

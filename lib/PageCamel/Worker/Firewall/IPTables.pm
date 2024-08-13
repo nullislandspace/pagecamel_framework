@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.4;
+our $VERSION = 4.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -363,12 +363,12 @@ sub updateIPTables($self) {
         }
     }
     
-    # IPv4 only for DNS Hostnames for the moment.
-    push @four, "#    DNS Hostname";
-    foreach my $host (@dnshosts) {
-        next if(!defined($host) || $host eq '');
-        push @four, '-A INPUT -p udp --dport 53 -m string --hex-string "' . $host . '" --algo bm -j REJECT';
-    }
+    # IPv4 only for DNS Hostnames for the moment. *** DISABLED - INTERFERENCE WITH WHITELIST LOGIC IN DNS SERVER
+    #push @four, "#    DNS Hostname";
+    #foreach my $host (@dnshosts) {
+    #    next if(!defined($host) || $host eq '');
+    #    push @four, '-A INPUT -p udp --dport 53 -m string --hex-string "' . $host . '" --algo bm -j REJECT';
+    #}
 
     push @four, "#    DNS IP";
     push @six, "#    DNS IP";
@@ -434,11 +434,13 @@ sub updateIPTables($self) {
     push @six, "#    Web/IP";
     foreach my $ip (@webips) {
         if($ip =~ /\./) {
-            push @four, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
-            push @four, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            #push @four, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            #push @four, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            push @four, "-A INPUT -s $ip -j REJECT";
         } else {
-            push @six, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
-            push @six, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            #push @six, "-A INPUT -s $ip -p tcp --dport 80 -j REJECT";
+            #push @six, "-A INPUT -s $ip -p tcp --dport 443 -j REJECT";
+            push @six, "-A INPUT -s $ip -j REJECT";
         }
     }
 
@@ -446,11 +448,13 @@ sub updateIPTables($self) {
     push @six, "#    Web/CIDR";
     foreach my $cidr (@webcidrs) {
         if($cidr =~ /\./) {
-            push @four, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
-            push @four, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            #push @four, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
+            #push @four, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            push @four, "-A INPUT -s $cidr -j REJECT";
         } else {
-            push @six, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
-            push @six, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            #push @six, "-A INPUT -s $cidr -p tcp --dport 80 -j REJECT";
+            #push @six, "-A INPUT -s $cidr -p tcp --dport 443 -j REJECT";
+            push @six, "-A INPUT -s $cidr -j REJECT";
         }
     }
 
