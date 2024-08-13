@@ -363,12 +363,12 @@ sub updateIPTables($self) {
         }
     }
     
-    # IPv4 only for DNS Hostnames for the moment.
-    push @four, "#    DNS Hostname";
-    foreach my $host (@dnshosts) {
-        next if(!defined($host) || $host eq '');
-        push @four, '-A INPUT -p udp --dport 53 -m string --hex-string "' . $host . '" --algo bm -j REJECT';
-    }
+    # IPv4 only for DNS Hostnames for the moment. *** DISABLED - INTERFERENCE WITH WHITELIST LOGIC IN DNS SERVER
+    #push @four, "#    DNS Hostname";
+    #foreach my $host (@dnshosts) {
+    #    next if(!defined($host) || $host eq '');
+    #    push @four, '-A INPUT -p udp --dport 53 -m string --hex-string "' . $host . '" --algo bm -j REJECT';
+    #}
 
     push @four, "#    DNS IP";
     push @six, "#    DNS IP";
