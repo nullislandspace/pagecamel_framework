@@ -15,9 +15,9 @@
     "removeComments": false,
     "preserveConstEnums": true,
     "strictNullChecks": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "noImplicitAny": true,
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
+    "declarationMap": false,
   }
 }
