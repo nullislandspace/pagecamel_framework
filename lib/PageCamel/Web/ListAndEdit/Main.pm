@@ -2940,8 +2940,13 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         }
     }
 
+    if(!defined($item->{hint})) {
+        $item->{hint} = '';
+    }
+
     my %column = (
         displayname  => $item->{header},
+        hint         => $item->{hint},
         displaytype  => $item->{type},
         columnname   => $colname,
         columnvalue  => $realvalue,

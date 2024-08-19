@@ -117,7 +117,7 @@
                                     [% IF LinebreakActive == "1" %]
                                     <tr id="row_[% tr.quote(column.columnname) %]_id">
                                         [% IF column.displayname != "" %]
-                                            <td valign="center">[% tr.trquote(column.displayname) %]</td>
+                                            <td valign="center">[% tr.trquote(column.displayname) %][% IF column.hint != "" %]<br/><i>[% tr.trquote(column.hint) %]</i>[% END %]</td>
                                         [% END %]
                                         <td valign="center">
                                     [% END %]
