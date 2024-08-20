@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.4;
+our $VERSION = 4.5;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -2940,8 +2940,13 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         }
     }
 
+    if(!defined($item->{hint})) {
+        $item->{hint} = '';
+    }
+
     my %column = (
         displayname  => $item->{header},
+        hint         => $item->{hint},
         displaytype  => $item->{type},
         columnname   => $colname,
         columnvalue  => $realvalue,
