@@ -141,7 +141,7 @@
                 </tr>
                 [% FOREACH textpermission IN textpermissions %]
                     <tr>
-                        <td>[% tr.quote(textpermission.displaytext) %]</td>
+                        <td>[% tr.trquote(textpermission.displaytext) %]</td>
                         <td>
                             <select name="[% tr.quote(textpermission.column) %]">
                                 [% FOREACH permline IN textpermission.data %]
