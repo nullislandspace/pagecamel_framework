@@ -647,7 +647,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
     my $remotelookup = 0;
     if($peerhost ne $RECURSIVELOOKUP) {
-        $self->debuglog("Requested: $qtype OF $qname by $peerhost");
+        if($self->{isDebugging}) {
+            $self->debuglog("Requested: $qtype OF $qname by $peerhost");
+        }
     }
 
     # IP floodcheck (DNS DDOS to IP target), don't check for recursive lookups and whenever the client is localhost
@@ -669,7 +671,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
             $self->{ipblockchecksth}->finish;
             $dbh->commit;
             if(defined($isblocked) && $isblocked) {
-                $self->debuglog("Blocking request from $peerhost (IP)BLOCK");
+                if($self->{isDebugging}) {
+                    $self->debuglog("Blocking request from $peerhost (IP)BLOCK");
+                }
                 return;
             }
         }
@@ -693,7 +697,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
             $self->{hostblockchecksth}->finish;
             $dbh->commit;
             if(defined($isblocked) && $isblocked > 0) {
-                $self->debuglog("Blocking request from $peerhost (HOSTBLOCK)");
+                if($self->{isDebugging}) {
+                    $self->debuglog("Blocking request from $peerhost (HOSTBLOCK)");
+                }
                 return;
             }
         }
