@@ -356,8 +356,8 @@ sub get_execute($self, $ua, $registerkey) {
                                               WHERE registerkey = ?")
                     or croak($dbh->errstr);
 
-            my $createsth = $dbh->prepare_cached("INSERT INTO users (username, email_addr, first_name, last_name, company_name, next_password_change)
-                                                 VALUES (?, ?, ?, ?, ?, now() + interval '3 months')")
+            my $createsth = $dbh->prepare_cached("INSERT INTO users (username, email_addr, first_name, last_name, company_name)
+                                                 VALUES (?, ?, ?, ?, ?)")
                     or croak($dbh->errstr);
 
             if($createsth->execute($user, $email, $firstname, $lastname, $self->{company}) &&

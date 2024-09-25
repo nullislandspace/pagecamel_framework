@@ -90,7 +90,7 @@ sub update_password($self, $username, $password) {
                               password_bcrypt_hash = ?,
                               password_bcrypt_salt = ?,
                               password_bcrypt_cost = ?,
-                              next_password_change = now() + interval '12 weeks'
+                              force_password_change = false
                               WHERE username = ?")
         or croak($self->{dbh}->errstr);
     if(!$upsth->execute($presalt, $postsalt, $pwsalted, $bsalt_b64, $cost, $username)) {
