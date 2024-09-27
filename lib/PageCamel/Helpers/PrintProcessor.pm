@@ -139,21 +139,25 @@ sub _generateEscPos($self, $img = undef) {
         $self->{imgwhite} = 0;
     }
 
+    if(!defined($self->{printerExtraFeed})) {
+        $self->{printerExtraFeed} = 0;
+    }
+
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
-        return $self->_escpos_tmt88();
+        return $self->_escpos_tmt88($self->{printerExtraFeed});
     } elsif($self->{printerType} eq 'TMP20') {
         $reph->debuglog("    Type: TMP20");
-        return $self->_escpos_tmp20();
+        return $self->_escpos_tmp20($self->{printerExtraFeed});
     } elsif($self->{printerType} eq 'CTS801') {
         $reph->debuglog("    Type: CTS801");
-        return $self->_escpos_cts801();
+        return $self->_escpos_cts801($self->{printerExtraFeed});
     } elsif($self->{printerType} eq 'SGT116') {
         $reph->debuglog("    Type: SGT116");
-        return $self->_escpos_sgt116();
+        return $self->_escpos_sgt116($self->{printerExtraFeed});
     } elsif($self->{printerType} eq 'JWS360') {
         $reph->debuglog("    Type: JWS360");
-        return $self->_escpos_jws360();
+        return $self->_escpos_jws360($self->{printerExtraFeed});
     }
 
     $reph->debuglog("   UNSUPPORTED PRINTER TYPE, TRYING TMT88 compatible");
@@ -161,7 +165,7 @@ sub _generateEscPos($self, $img = undef) {
 }
     
 
-sub _escpos_tmt88($self) {
+sub _escpos_tmt88($self, $extrafeed) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -231,12 +235,19 @@ sub _escpos_tmt88($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
 }
 
-sub _escpos_tmp20($self) {
+sub _escpos_tmp20($self, $extrafeed) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -320,13 +331,20 @@ sub _escpos_tmp20($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
 }
 
 
-sub _escpos_cts801($self) {
+sub _escpos_cts801($self, $extrafeed) {
     my $reph = $self->{reph};
 
     # Citizen CTS801 is *mostly* compatible with Epson TM-T88V but has a wider print head that print right to (and sometimes over) the edge of the paper.
@@ -404,12 +422,19 @@ sub _escpos_cts801($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
 }
 
-sub _escpos_sgt116($self) {
+sub _escpos_sgt116($self, $extrafeed) {
 
     my $raw = '';
     my $img = $self->{img};
@@ -469,12 +494,19 @@ sub _escpos_sgt116($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
 }
 
-sub _escpos_jws360($self) {
+sub _escpos_jws360($self, $extrafeed) {
     my $raw = '';
     my $img = $self->{img};
 
@@ -534,6 +566,13 @@ sub _escpos_jws360($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
     #$raw .= "\n";
+
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
 
     $self->{escposimagedata} = $raw;
 
