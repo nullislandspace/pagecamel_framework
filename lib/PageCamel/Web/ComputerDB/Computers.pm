@@ -100,35 +100,15 @@ sub get_edit($self, $ua) {
     }
     $nsth->finish;
 
-    my @prodlines;
-    my $psth = $dbh->prepare_cached("SELECT * FROM global_prodlines
-                                    ORDER BY line_id")
-            or croak($dbh->errstr);
-    $psth->execute or croak($dbh->errstr);
-    while((my $prodline = $psth->fetchrow_hashref)) {
-        push @prodlines, $prodline;
-    }
-    $psth->finish;
-
-    my @companies;
-    my $csth = $dbh->prepare_cached("SELECT * FROM company
-                                    ORDER BY company_name")
+    my @organisations;
+    my $csth = $dbh->prepare_cached("SELECT * FROM users_organisation
+                                    ORDER BY organisation_name")
             or croak($dbh->errstr);
     $csth->execute or croak($dbh->errstr);
-    while((my $company = $csth->fetchrow_hashref)) {
-        push @companies, $company->{company_name};
+    while((my $organisation = $csth->fetchrow_hashref)) {
+        push @organisations, $organisation->{organisation_name};
     }
-    $psth->finish;
-
-    my @databases;
-    my $dbsth = $dbh->prepare_cached("SELECT * FROM computers_databases
-                                    ORDER BY database_name, description")
-            or croak($dbh->errstr);
-    $dbsth->execute or croak($dbh->errstr);
-    while((my $database = $dbsth->fetchrow_hashref)) {
-        push @databases, $database;
-    }
-    $dbsth->finish;
+    $csth->finish;
 
     my @locations;
     my $locsth = $dbh->prepare_cached("SELECT * FROM enum_computerlocations
@@ -148,8 +128,6 @@ sub get_edit($self, $ua) {
         webpath            =>  $self->{computeredit}->{webpath},
         ComputerSelect    =>    $self->{computerselect}->{webpath},
         networktypes    => \@networktypes,
-        AvailProdLines  => \@prodlines,
-        databases       => \@databases,
         locations       => \@locations,
         HasDeveloperRights => 0,
         showads => $self->{showads},
@@ -277,32 +255,32 @@ sub get_edit($self, $ua) {
             $sth->finish;
         }
 
-        my @vcompany;
-        my @vcompanies;
-        if(ref $ua->{postparams}->{'vnccompany'} eq 'ARRAY') {
-            @vcompanies = @{$ua->{postparams}->{'vnccompany'}};
+        my @vorganisation;
+        my @vorganisations;
+        if(ref $ua->{postparams}->{'vncorganisation'} eq 'ARRAY') {
+            @vorganisations = @{$ua->{postparams}->{'vncorganisation'}};
         } else {
-            push @vcompanies, $ua->{postparams}->{'vnccompany'};
+            push @vorganisations, $ua->{postparams}->{'vncorganisation'};
         }
-        foreach my $company (@companies) {
+        foreach my $organisation (@organisations) {
             my $enabled = 0;
-            if(contains($company, \@vcompanies)) {
+            if(contains($organisation, \@vorganisations)) {
                 $enabled = 1;
             }
 
             my %tmp = (
-                name        => $company,
+                name        => $organisation,
                 is_active    => $enabled,
             );
-            push @vcompany, \%tmp;
+            push @vorganisation, \%tmp;
         }
 
         if($ok) {
-            my $vsth = $dbh->prepare_cached("INSERT INTO computers_vnccompany
-                                            (computer_name, company_name, is_enabled)
+            my $vsth = $dbh->prepare_cached("INSERT INTO computers_vncorganisation
+                                            (computer_name, organisation_name, is_enabled)
                                             VALUES (?,?,?)")
                     or croak($dbh->errstr);
-            foreach my $vcomp (@vcompany) {
+            foreach my $vcomp (@vorganisation) {
                 push @auditdata, 'VNC ' . $vcomp->{name} . ': ' . $vcomp->{is_active};
                 if(!$vsth->execute($computer{computer_name}, $vcomp->{name}, $vcomp->{is_active})) {
                     $ok = 0;
@@ -326,7 +304,7 @@ sub get_edit($self, $ua) {
         } else {
             $webdata{statustext} = "Creation failed: " . $dbh->errstr;
             $webdata{statuscolor} = "errortext";
-            $webdata{vnccompanies} = \@vcompany;
+            $webdata{vncorganisations} = \@vorganisation;
             $mode = "create";
             $dbh->rollback;
         }
@@ -372,7 +350,7 @@ sub get_edit($self, $ua) {
         }
 
         if($ok) {
-            my $vdelsth = $dbh->prepare_cached("DELETE FROM computers_vnccompany
+            my $vdelsth = $dbh->prepare_cached("DELETE FROM computers_vncorganisation
                                                WHERE computer_name = ?")
                     or croak($dbh->errstr);
             if(!$vdelsth->execute($computer{computer_name})) {
@@ -382,34 +360,34 @@ sub get_edit($self, $ua) {
             }
         }
 
-        my @vcompany;
-        my @vcompanies;
-        if(ref $ua->{postparams}->{'vnccompany'} eq 'ARRAY') {
-            @vcompanies = @{$ua->{postparams}->{'vnccompany'}};
+        my @vorganisation;
+        my @vorganisations;
+        if(ref $ua->{postparams}->{'vncorganisation'} eq 'ARRAY') {
+            @vorganisations = @{$ua->{postparams}->{'vncorganisation'}};
         } else {
-            push @vcompanies, $ua->{postparams}->{'vnccompany'};
+            push @vorganisations, $ua->{postparams}->{'vncorganisation'};
         }
                
-        foreach my $company (@companies) {
+        foreach my $organisation (@organisations) {
             my $enabled = 0;
-            if(contains($company, \@vcompanies)) {
+            if(contains($organisation, \@vorganisations)) {
                 $enabled = 1;
             }
 
             my %tmp = (
-                name        => $company,
+                name        => $organisation,
                 is_active    => $enabled,
             );
-            push @vcompany, \%tmp;
+            push @vorganisation, \%tmp;
         }
 
         if($ok) {
-            my $vsth = $dbh->prepare_cached("INSERT INTO computers_vnccompany
-                                            (computer_name, company_name, is_enabled)
+            my $vsth = $dbh->prepare_cached("INSERT INTO computers_vncorganisation
+                                            (computer_name, organisation_name, is_enabled)
                                             VALUES (?,?,?)")
                     or croak($dbh->errstr);
 
-            foreach my $vcomp (@vcompany) {
+            foreach my $vcomp (@vorganisation) {
                 push @auditdata, 'VNC ' . $vcomp->{name} . ': ' . $vcomp->{is_active};
                 if(!$vsth->execute($computer{computer_name}, $vcomp->{name}, $vcomp->{is_active})) {
                     $ok = 0;
@@ -433,7 +411,7 @@ sub get_edit($self, $ua) {
             $webdata{statustext} = "Update failed: " . $dbh->errstr;
             $webdata{statuscolor} = "errortext";
             $mode = "edit";
-            $webdata{vnccompanies} = \@vcompany;
+            $webdata{vncorganisations} = \@vorganisation;
             $dbh->rollback;
         }
     }
@@ -462,28 +440,28 @@ sub get_edit($self, $ua) {
                     }
                 }
 
-                my $vsth = $dbh->prepare_cached("SELECT company_name, is_enabled
-                                                FROM computers_vnccompany
+                my $vsth = $dbh->prepare_cached("SELECT organisation_name, is_enabled
+                                                FROM computers_vncorganisation
                                                 WHERE computer_name = ?")
                         or croak($dbh->errstr);
                 my %vcomp;
                 $vsth->execute($computer{old_computer_name});
                 while((my $vline = $vsth->fetchrow_hashref)) {
-                    $vcomp{$vline->{company_name}} = $vline->{is_enabled};
+                    $vcomp{$vline->{organisation_name}} = $vline->{is_enabled};
                 }
                 $vsth->finish;
-                my @vnccompanies;
-                foreach my $vnccompany (@companies) {
+                my @vncorganisations;
+                foreach my $vncorganisation (@organisations) {
                     my %tmp = (
-                        name        =>    $vnccompany,
+                        name        =>    $vncorganisation,
                         is_active    =>    0,
                     );
-                    if(defined($vcomp{$vnccompany})) {
-                        $tmp{is_active}    = $vcomp{$vnccompany};
+                    if(defined($vcomp{$vncorganisation})) {
+                        $tmp{is_active}    = $vcomp{$vncorganisation};
                     }
-                    push @vnccompanies, \%tmp;
+                    push @vncorganisations, \%tmp;
                 }
-                $webdata{vnccompanies} = \@vnccompanies;
+                $webdata{vncorganisations} = \@vncorganisations;
 
                 $mode = "edit";
             } else {
@@ -511,15 +489,15 @@ sub get_edit($self, $ua) {
 
         $webdata{computer} = \%defaultcomputer;
 
-        my @vnccompanies;
-        foreach my $vnccompany (@companies) {
+        my @vncorganisations;
+        foreach my $vncorganisation (@organisations) {
             my %tmp = (
-                name        =>    $vnccompany,
+                name        =>    $vncorganisation,
                 is_active    =>    0,
             );
-            push @vnccompanies, \%tmp;
+            push @vncorganisations, \%tmp;
         }
-        $webdata{vnccompanies} = \@vnccompanies;
+        $webdata{vncorganisations} = \@vncorganisations;
 
         $mode = "create";
     } else {
@@ -538,16 +516,6 @@ sub get_edit($self, $ua) {
     }
     $webdata{operating_systems} = \@oss;
 
-    my $custh = $dbh->prepare_cached("SELECT * FROM global_costunits
-                                 ORDER BY costunit")
-        or croak($dbh->errstr);
-    $custh->execute() or croak($dbh->errstr);
-    my @costunits;
-    while((my $line = $custh->fetchrow_hashref)) {
-        push @costunits, $line;
-    }
-    $webdata{costunits} = \@costunits;
-    
     my $typesth = $dbh->prepare_cached("SELECT * FROM computers_type
                                  ORDER BY device_type")
         or croak($dbh->errstr);
@@ -675,15 +643,15 @@ sub get_vncedit($self, $ua) {
     my $csth = $dbh->prepare_cached("SELECT * FROM computers
                                     ORDER BY line_id, computer_name")
             or croak($dbh->errstr);
-    my $rsth = $dbh->prepare_cached("SELECT * FROM company
-                                    ORDER BY company_name")
+    my $rsth = $dbh->prepare_cached("SELECT * FROM organisation
+                                    ORDER BY organisation_name")
             or croak($dbh->errstr);
-    my $vsth = $dbh->prepare_cached("SELECT * FROM computers_vnccompany
+    my $vsth = $dbh->prepare_cached("SELECT * FROM computers_vncorganisation
                                     WHERE computer_name = ?
-                                    AND company_name = ?")
+                                    AND organisation_name = ?")
             or croak($dbh->errstr);
 
-    # Search available computers and companies
+    # Search available computers and organisations
     my @AvailComputers;
     if(!$csth->execute) {
         $dbh->rollback;
@@ -694,26 +662,26 @@ sub get_vncedit($self, $ua) {
         $csth->finish;
     }
 
-    my @AvailCompanies;
+    my @AvailOrganisations;
     if(!$rsth->execute) {
         $dbh->rollback;
     } else {
         while((my $line = $rsth->fetchrow_hashref)) {
-            push @AvailCompanies, $line;
+            push @AvailOrganisations, $line;
         }
         $rsth->finish;
     }
 
-    my $selectedcompany = $ua->{postparams}->{'selectedcompany'} ||  $AvailCompanies[0]->{company_name};
+    my $selectedorganisation = $ua->{postparams}->{'selectedorganisation'} ||  $AvailOrganisations[0]->{organisation_name};
 
     # Update rights if needed
     if($mode eq "save") {
-        my $upsth = $dbh->prepare_cached("SELECT merge_vnccompany(?,?,?)")
+        my $upsth = $dbh->prepare_cached("SELECT merge_vncorganisation(?,?,?)")
                 or croak($dbh->errstr);
         foreach my $computer (@AvailComputers) {
-            my $enabled = $ua->{postparams}->{'vnc_' . $computer->{computer_name} . '_' . $selectedcompany} || '0';
+            my $enabled = $ua->{postparams}->{'vnc_' . $computer->{computer_name} . '_' . $selectedorganisation} || '0';
             if($upsth->execute($computer->{computer_name},
-                               $selectedcompany,
+                               $selectedorganisation,
                                $enabled)) {
                 $upsth->finish;
                 $dbh->commit;
@@ -729,7 +697,7 @@ sub get_vncedit($self, $ua) {
         my @rights;
 
             my $enabled = 0;
-            if($vsth->execute($computer->{computer_name}, $selectedcompany)) {
+            if($vsth->execute($computer->{computer_name}, $selectedorganisation)) {
                 my $line = $vsth->fetchrow_hashref;
                 if(defined($line)) {
                     if($line->{is_enabled} == 1) {
@@ -741,7 +709,7 @@ sub get_vncedit($self, $ua) {
                 $dbh->rollback;
             }
             my %vright = (
-                company    => $selectedcompany,
+                organisation    => $selectedorganisation,
                 val        => $enabled,
             );
             push @rights, \%vright;
@@ -755,8 +723,8 @@ sub get_vncedit($self, $ua) {
         PageTitle       =>  $self->{computervnc}->{pagetitle},
         webpath            =>  $self->{computervnc}->{webpath},
         AvailComputers  => \@AvailComputers,
-        AvailCompanies  => \@AvailCompanies,
-        SelectedCompany => $selectedcompany,
+        AvailOrganisations  => \@AvailOrganisations,
+        SelectedCompany => $selectedorganisation,
     );
 
     my $template = $self->{server}->{modules}->{templates}->get("computerdb/computers_vncedit", 1, %webdata);

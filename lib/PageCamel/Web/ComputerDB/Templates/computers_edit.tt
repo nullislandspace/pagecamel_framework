@@ -66,22 +66,6 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>[% tr.trquote("Cost Unit") %]</td>
-                            <td>
-                                <select name="costunit">
-                                    <option value=""></option>
-                                    [% FOREACH costunit IN costunits %]
-                                    <option value="[% tr.quote(costunit.costunit) %]"
-                                        [% IF costunit.costunit == computer.costunit %]
-                                            selected="selected"
-                                        [% END %]
-                                        >[% tr.quote(costunit.costunit) %] : [% tr.quote(costunit.description) %] 
-                                    </option>
-                                    [% END %]
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
                             <td>[% tr.trquote("Line") %]</td>
                             <td>
                                 <select name="line_id">
@@ -471,12 +455,12 @@
                             </tr>
                         [% END %]
                                 
-                        [% FOREACH vnccompany IN vnccompanies %]
+                        [% FOREACH vncorganisation IN vncorganisations %]
                             <tr>
-                                <td>[% tr.quote(vnccompany.name) %]</td>
+                                <td>[% tr.quote(vncorganisation.name) %]</td>
                                 <td>
-                                    <input type="checkbox" name="vnccompany" realvalue="[% tr.quote(vnccompany.name) %]"
-                                        [% IF vnccompany.is_active == "1" %]
+                                    <input type="checkbox" name="vncorganisation" realvalue="[% tr.quote(vncorganisation.name) %]"
+                                        [% IF vncorganisation.is_active == "1" %]
                                            checked="checked"
                                         [% END %]
                                     >
