@@ -6,6 +6,8 @@ database/0003_users_app_userkey.sql
 database/0004_postgresql_backup_logs.sql
 database/0005_new_usermanagement.sql
 database/0006_integrated_backup_commands.sql
+database/0007_remove_password_expiry.sql
+database/0008_drop_adminpack_extension.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
@@ -152,6 +154,7 @@ lib/PageCamel/Web/Images/blog_rant.bmp
 lib/PageCamel/Web/Images/blueprint.bmp
 lib/PageCamel/Web/Images/blueprint2.bmp
 lib/PageCamel/Web/Images/calendar.gif
+lib/PageCamel/Web/Images/calendar_large.gif
 lib/PageCamel/Web/Images/checkbox_classic_DELETE.png
 lib/PageCamel/Web/Images/checkbox_classic_OFF.png
 lib/PageCamel/Web/Images/checkbox_classic_ON.png
@@ -3018,6 +3021,7 @@ lib/PageCamel/Worker/SerialCommands.pm
 lib/PageCamel/Worker/SystemSettings.pm
 lib/PageCamel/Worker/TableStatistics.pm
 lib/PageCamel/Worker/TemplateCache.pm
+lib/PageCamel/Worker/Tests/Forking.pm
 lib/PageCamel/Worker/Userlevels.pm
 lib/PageCamel/Worker/Wansview/Stream.pm
 LICENSE

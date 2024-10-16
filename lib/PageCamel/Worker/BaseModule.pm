@@ -62,6 +62,12 @@ sub register_cleanup($self, $funcname) {
     return;
 }
 
+sub register_sigchld($self, $funcname) {
+
+    $self->{server}->add_sigchld($self, $funcname);
+    return;
+}
+
 sub finalcheck($self) {
     # finalcheck is purely optional
     return;
@@ -84,6 +90,16 @@ sub newClacksFromConfig($self, $clconf) {
 
     return $clacks;
 }
+
+# Kill the process without running any of the DESTROY callbacks
+# This is rather useful for forked childs
+sub suicide($self) {
+    while(1) {
+        kill 9, $PID;
+        sleep(1);
+    }
+}
+
 
 1;
 __END__

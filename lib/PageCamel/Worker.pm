@@ -87,10 +87,22 @@ use PageCamel::Worker::SerialCommands;
 use PageCamel::Worker::SystemSettings;
 use PageCamel::Worker::TableStatistics;
 use PageCamel::Worker::TemplateCache;
+use PageCamel::Worker::Tests::Forking;
 use PageCamel::Worker::Userlevels;
 use PageCamel::Worker::Wansview::Stream;
 #=!=END-AUTO-INCLUDES
 
+# === GLOBAL SIGCHLD HANDLING ===
+use POSIX ":sys_wait_h";
+my @deadchildren;
+
+$SIG{CHLD} = sub {
+    while((my $child = waitpid( -1, &WNOHANG )) > 0) {
+        #print "SIGNAL CHLD $child\n";
+        push @deadchildren, $child;
+    }
+};
+# ===============================
 
 sub new($class) {
     my $self = bless {}, $class;
@@ -106,6 +118,9 @@ sub startconfig($self, $isDebug = false) {
 
     my @cleanup;
     $self->{cleanup} = \@cleanup;
+
+    my @sigchld;
+    $self->{sigchld} = \@sigchld;
 
     my %tmpModules;
     $self->{modules} = \%tmpModules;
@@ -220,6 +235,17 @@ sub run($self) {
         $module->$funcname();
     }
 
+    # Notify all registered workers about dead children
+    while((my $child = shift @deadchildren)) {
+        foreach my $worker (@{$self->{sigchld}}) {
+            my $module = $worker->{Module};
+            my $funcname = $worker->{Function} ;
+
+            $workCount++;
+            $module->$funcname($child);
+        }
+    }
+
     # Run all worker functions
     foreach my $worker (@{$self->{workers}}) {
         my $module = $worker->{Module};
@@ -262,6 +288,16 @@ sub add_cleanup($self, $module, $funcname) {
     return;
 }
 
+sub add_sigchld($self, $module, $funcname) {
+
+    my %conf = (
+        Module  => $module,
+        Function=> $funcname
+    );
+
+    push @{$self->{sigchld}}, \%conf;
+    return;
+}
 1;
 __END__
 
