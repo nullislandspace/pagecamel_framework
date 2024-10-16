@@ -3021,6 +3021,7 @@ lib/PageCamel/Worker/SerialCommands.pm
 lib/PageCamel/Worker/SystemSettings.pm
 lib/PageCamel/Worker/TableStatistics.pm
 lib/PageCamel/Worker/TemplateCache.pm
+lib/PageCamel/Worker/Tests/Forking.pm
 lib/PageCamel/Worker/Userlevels.pm
 lib/PageCamel/Worker/Wansview/Stream.pm
 LICENSE
