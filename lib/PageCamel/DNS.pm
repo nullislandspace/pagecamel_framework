@@ -38,7 +38,7 @@ our @ISA; ## no critic (ClassHierarchies::ProhibitExplicitISA)
 sub setThreadingMode {
     my($isDebugging) = @_;
 
-    if($isDebugging) {
+    if(0 && $isDebugging) {
         print "************ SINGLE THREAD MODE ********\n";
         push @ISA, 'Net::Server::Single'; ## no critic (ClassHierarchies::ProhibitExplicitISA)
     } else {
@@ -409,9 +409,6 @@ sub handleUDP($self, $peerhost) {
         my $inpacket = Net::DNS::Packet->new(\$indata, 0);
         my ($question) = $inpacket->question;
 
-        # Count request
-        $self->countRequest();
-
         if($self->ignorerequest($question->qname)) {
             return;
         }
@@ -486,6 +483,10 @@ sub handleUDP($self, $peerhost) {
         #$self->debuglog("Max len: $max_len, packet len: ", length($outdata));
 
         $prop->{client}->send($outdata);
+        
+        # Count request
+        $self->countRequest();
+
     };
 
     return;
@@ -551,9 +552,6 @@ sub handleTCP($self, $peerhost, $realsocket) {
 
             my $inpacket = Net::DNS::Packet->new(\$indata, 0);
             my ($question) = $inpacket->question;
-
-            # Count request
-            $self->countRequest();
 
             if($self->ignorerequest($question->qname)) {
                 return;
@@ -625,6 +623,9 @@ sub handleTCP($self, $peerhost, $realsocket) {
                 }
                 return;
             }
+            
+            # Count request
+            $self->countRequest();
 
             # Loop/keep-alive
             # Reset Idle timeout
@@ -647,7 +648,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
     my $remotelookup = 0;
     if($peerhost ne $RECURSIVELOOKUP) {
-        $self->debuglog("Requested: $qtype OF $qname by $peerhost");
+        if($self->{isDebugging}) {
+            $self->debuglog("Requested: $qtype OF $qname by $peerhost");
+        }
     }
 
     # IP floodcheck (DNS DDOS to IP target), don't check for recursive lookups and whenever the client is localhost
@@ -669,7 +672,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
             $self->{ipblockchecksth}->finish;
             $dbh->commit;
             if(defined($isblocked) && $isblocked) {
-                $self->debuglog("Blocking request from $peerhost (IP)BLOCK");
+                if($self->{isDebugging}) {
+                    $self->debuglog("Blocking request from $peerhost (IP)BLOCK");
+                }
                 return;
             }
         }
@@ -693,7 +698,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
             $self->{hostblockchecksth}->finish;
             $dbh->commit;
             if(defined($isblocked) && $isblocked > 0) {
-                $self->debuglog("Blocking request from $peerhost (HOSTBLOCK)");
+                if($self->{isDebugging}) {
+                    $self->debuglog("Blocking request from $peerhost (HOSTBLOCK)");
+                }
                 return;
             }
         }

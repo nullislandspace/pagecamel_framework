@@ -1552,7 +1552,7 @@ nextrequest:
                 next unless $upgradetofound;
                 print STDERR getISODate() . " Upgrading connection to $upgradeTo in PID $PID\n";
                 my $evalok = 0;
-                my $conok;
+                my $conok = 0;
                 eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                     $conok = $module->$funcname($ua);
                     $evalok = 1;

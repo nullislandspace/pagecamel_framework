@@ -260,7 +260,7 @@ sub get_edit($self, $ua) {
             push @auditdata, "New password set";
         }
 
-        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire hardware_fob];
+        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name force_password_change hardware_fob];
         push @upfieldnames, @textpermissions;
         foreach my $fieldname (@upfieldnames) {
             my $dbfield = $fieldname;
@@ -272,7 +272,7 @@ sub get_edit($self, $ua) {
                                              WHERE username = ?")
                     or croak($dbh->errstr);
             my $fielddata = $ua->{postparams}->{$fieldname} || '';
-            if($fieldname eq 'account_locked' || $fieldname eq 'password_can_expire') {
+            if($fieldname eq 'account_locked' || $fieldname eq 'force_password_change') {
                 if($fielddata =~ /(on|1)/i) {
                     $fielddata = 'true';
                 } else {
@@ -294,23 +294,6 @@ sub get_edit($self, $ua) {
                 goto reloaddata 
             }
             push @auditdata, "$fieldname: $fielddata";
-        }
-
-        {
-            my $fielddata = $ua->{postparams}->{force_password_change} || '';
-            if($fielddata =~ /(on|1)/i) {
-                my $upsth = $dbh->prepare_cached("UPDATE users
-                                             SET next_password_change = now(),
-                                             password_can_expire = true
-                                             WHERE username = ?")
-                        or croak($dbh->errstr);
-                if(!$upsth->execute($username)) {
-                    $dbh->rollback;
-                    $webdata{statustext} = "Can't set user to forced password change!";
-                    $webdata{statuscolor} = "errortext";
-                    goto reloaddata 
-                }
-            }
         }
 
         my $rdelsth = $dbh->prepare_cached("DELETE FROM pagecamel.users_permissiongroups
@@ -373,7 +356,7 @@ sub get_edit($self, $ua) {
             }
         }
 
-        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials password_can_expire hardware_fob];
+        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials force_password_change hardware_fob];
         push @createfieldnames, @textpermissions;
         foreach my $fieldname (@createfieldnames) {
             my $upsth = $dbh->prepare_cached("UPDATE users
@@ -381,7 +364,7 @@ sub get_edit($self, $ua) {
                                              WHERE username = ?")
                     or croak($dbh->errstr);
             my $fielddata = $ua->{postparams}->{$fieldname} || '';
-            if($fieldname eq 'account_locked' || $fieldname eq 'password_can_expire') {
+            if($fieldname eq 'account_locked' || $fieldname eq 'force_password_change') {
                 if($fielddata =~ /(on|1)/i) {
                     $fielddata = 'true';
                 } else {
@@ -453,11 +436,11 @@ reloaddata:
 
     # When in edit mode, reload data from database
     if($mode eq "edit") {
-        my $selsth = $dbh->prepare_cached("SELECT *, (next_password_change <= now() AND password_can_expire = true) AS force_password_change FROM users
+        my $selsth = $dbh->prepare_cached("SELECT * FROM users
                                           WHERE username = ?")
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
-        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire force_password_change hardware_fob appkey];
+        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name force_password_change hardware_fob appkey];
         push @selectfieldnames, @textpermissions;
         while((my $user = $selsth->fetchrow_hashref)) {
             foreach my $fieldname (@selectfieldnames) {
@@ -486,9 +469,7 @@ reloaddata:
         }
         $selsth->finish;
         $webdata{oldusername} = $webdata{username};
-    }
 
-    if($mode eq 'edit') {
         $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey});
         $webdata{appqrcodeserver} = $ua->{headers}->{Host};
         $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
@@ -510,8 +491,7 @@ reloaddata:
 
     if($mode eq "view") {
         $mode = "create";
-        $webdata{password_can_expire} = 1; # Default to expiring passwords
-        $webdata{force_password_change} = 1; # Default to expiring passwords
+        $webdata{force_password_change} = 0; # Default to NOT expiring passwords
         if(defined($self->{default_organisation})) {
             $webdata{organisation_name} = $self->{default_organisation};
         }

@@ -1531,8 +1531,9 @@ sub get_lines($self, $ua) {
                 next;
             }
             my $vtmp = $clauseitem->{value};
+            my $username = $self->_getUsername(\%webdata);
             if($vtmp =~ /USER/) {
-                $vtmp =~ s/USER/$webdata{userData}->{user}/g;
+                $vtmp =~ s/USER/$username/g;
             }
             if($self->{use_urlid} && $vtmp =~ /URLID/) {
                 $vtmp =~ s/URLID/$urlid/g;
@@ -2055,6 +2056,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         TextualCopyPrimaryKey => 0,
         AskOnCopy => '',
     );
+    my $username = $self->_getUsername(\%webdata);
 
     if($self->{cancopy} && !$self->{useserial}) {
         $webdata{TextualCopyPrimaryKey} = 1;
@@ -2097,7 +2099,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                 next if($clauseitem->{column} ne $pkcols[$i]);
                 $pkparts[$i] = $clauseitem->{value};
                 if($pkparts[$i] =~ /USER/) {
-                    $pkparts[$i] =~ s/USER/$webdata{userData}->{user}/g;
+                    $pkparts[$i] =~ s/USER/$username/g;
                 }
             }
         }
@@ -2107,7 +2109,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             foreach my $clauseitem (@{$self->{restrict}->{item}}) {
                 $forceFields->{$clauseitem->{column}} = $clauseitem->{value};
                 if($forceFields->{$clauseitem->{column}} =~ /USER/) {
-                    $forceFields->{$clauseitem->{column}} =~ s/USER/$webdata{userData}->{user}/g;
+                    $forceFields->{$clauseitem->{column}} =~ s/USER/$username/g;
                 }
             }
         }
@@ -2178,7 +2180,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                         next if($clauseitem->{column} ne $column);
                         $tmp = $clauseitem->{value};
                         if($tmp =~ /USER/) {
-                            $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                            $tmp =~ s/USER/$username/g;
                         }
                     }
                 }
@@ -2376,7 +2378,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                         next if($clauseitem->{column} ne $column);
                         $tmp = $clauseitem->{value};
                         if($tmp =~ /USER/) {
-                            $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                            $tmp =~ s/USER/$username/g;
                         }
                     }
                 }
@@ -2559,7 +2561,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                         next if($clauseitem->{column} ne $pkcol);
                         $tmp = $clauseitem->{value};
                         if($tmp =~ /USER/) {
-                            $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                            $tmp =~ s/USER/$username/g;
                         }
                     }
                 }
@@ -2633,7 +2635,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     next if($clauseitem->{column} ne $column);
                     $tmp = $clauseitem->{value};
                     if($tmp =~ /USER/) {
-                        $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                        $tmp =~ s/USER/$username/g;
                     }
                 }
             }
@@ -2662,7 +2664,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     next if($clauseitem->{column} ne $column);
                     $tmp = $clauseitem->{value};
                     if($tmp =~ /USER/) {
-                        $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                        $tmp =~ s/USER/$username/g;
                     }
                 }
             }
@@ -3434,6 +3436,21 @@ sub _makeThumbnail($self, $rawimg, $size) {
     $newtmp = encode_base64($newtmp, '');
 
     return $newtmp;
+}
+
+sub _getUsername($self, $webdata) {
+    my $username = '';
+
+    if(defined($webdata->{userData}) && defined($webdata->{userData}->{user}) && $webdata->{userData}->{user} ne '') {
+        $username = $webdata->{userData}->{user};
+    }
+
+    if(defined($webdata->{userData}) && defined($webdata->{userData}->{secondaryuser}) && $webdata->{userData}->{secondaryuser} ne '') {
+        $username = $webdata->{userData}->{secondaryuser};
+        #print STDERR "\nSecondary user $username selected for USER filtering\n";
+    }
+
+    return $username;
 }
 
 1;

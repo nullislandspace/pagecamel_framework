@@ -459,7 +459,7 @@ sub get_login($self, $ua) {
 
         my $sth = $dbh->prepare_cached("SELECT username, email_addr,
                                        first_name, last_name, name_initials,
-                                       (next_password_change < now() AND password_can_expire = true) as require_password_change,
+                                       force_password_change,
                                        organisation, user_id
                                        FROM users
                                 WHERE username = ?")
@@ -477,7 +477,7 @@ sub get_login($self, $ua) {
             $user{name_initials} = $line->{name_initials};
             $user{organisation} = $line->{organisation};
             $user{user_id} = $line->{user_id};
-            $user{require_password_change} = $line->{require_password_change};
+            $user{require_password_change} = $line->{force_password_change};
             $user{keyfob_logout} = 0;
             $user{keyfob_id} = '';
             last;

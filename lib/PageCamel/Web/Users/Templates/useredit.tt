@@ -104,7 +104,6 @@
                 <tr>
                     <td align="right" valign="top">[% tr.trquote("Options") %]</td>
                     <td align="left">
-                        <input type="checkbox" name="password_can_expire" realvalue="1" [% IF password_can_expire == '1' %]checked="checked"[% END %]> [% tr.trquote("Normal password expiry") %]<br>
                         <input type="checkbox" name="force_password_change" realvalue="1" [% IF force_password_change == '1' %]checked="checked"[% END %]> [% tr.trquote("Must change password on next login") %]
                     </td>
                 </tr>
@@ -141,7 +140,7 @@
                 </tr>
                 [% FOREACH textpermission IN textpermissions %]
                     <tr>
-                        <td>[% tr.quote(textpermission.displaytext) %]</td>
+                        <td>[% tr.trquote(textpermission.displaytext) %]</td>
                         <td>
                             <select name="[% tr.quote(textpermission.column) %]">
                                 [% FOREACH permline IN textpermission.data %]

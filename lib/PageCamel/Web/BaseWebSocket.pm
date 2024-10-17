@@ -96,7 +96,7 @@ sub reload($self) {
 
     $sysh->createNumber(modulename => $self->{modname},
                     settingname => 'client_disconnect_timeout',
-                    settingvalue => 25,
+                    settingvalue => 10,
                     description => 'Client disconnect timeout (seconds)',
                     value_min => 5.0,
                     value_max => 120.0,
