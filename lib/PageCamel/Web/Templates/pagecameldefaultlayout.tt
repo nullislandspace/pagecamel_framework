@@ -443,8 +443,10 @@
                     [% END %]
                 </td>
                 <td colspan="1" align="left">
-                    <a href="#" onclick="return showWhoami();">[% tr.trquote("Session information") %]</a><br/>
-                    <a href="#" onclick="return showVersionInfoDialog();">[% tr.trquote("Version information") %]</a>
+                    [% IF DisableFooterDialogs != "1" %]
+                        <a href="#" onclick="return showWhoami();return false;">[% tr.trquote("Session information") %]</a><br/>
+                        <a href="#" onclick="return showVersionInfoDialog();return false;">[% tr.trquote("Version information") %]</a>
+                    [% END %]
                 </td>
             </tr>
             [% IF EnablePIMenu == 1 && webpath != PIMenuPublicUrl %]
