@@ -443,7 +443,8 @@
                     [% END %]
                 </td>
                 <td colspan="1" align="left">
-                    <a href="#" onclick="return showWhoami();">[% tr.trquote("Session information") %]</a>
+                    <a href="#" onclick="return showWhoami();">[% tr.trquote("Session information") %]</a><br/>
+                    <a href="#" onclick="return showVersionInfoDialog();">[% tr.trquote("Version information") %]</a>
                 </td>
             </tr>
             [% IF EnablePIMenu == 1 && webpath != PIMenuPublicUrl %]
@@ -481,6 +482,16 @@
                         [% tr.trquote("First name") %]: [% tr.quote(userData.first_name) %]<br/>
                         [% tr.trquote("Last name") %]: [% tr.quote(userData.last_name) %]<br/>
                         [% tr.trquote("Email") %]: [% tr.quote(userData.email_addr) %]
+                    [% END %]
+                </span>
+            </p>
+        </div>
+
+        <div id="dialog-versioninfo" title="[% tr.trquote("Version information") %]">
+            <p>
+                <span>
+                    [% FOREACH VersionInfo IN VersionInfos %]
+                        [% tr.quote(VersionInfo) %]<br/>
                     [% END %]
                 </span>
             </p>
