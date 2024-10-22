@@ -2903,6 +2903,7 @@ lib/PageCamel/Web/Tools/RemoteLog.pm
 lib/PageCamel/Web/Tools/ScriptDownload.pm
 lib/PageCamel/Web/Tools/ShortURL.pm
 lib/PageCamel/Web/Tools/Sitemap.pm
+lib/PageCamel/Web/Tools/SleepTest.pm
 lib/PageCamel/Web/Tools/SQLJS.pm
 lib/PageCamel/Web/Tools/Templates/clacksconsole.tt
 lib/PageCamel/Web/Tools/Templates/debuglog.tt

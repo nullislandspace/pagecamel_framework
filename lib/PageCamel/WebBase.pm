@@ -114,6 +114,7 @@ use PageCamel::Web::Tools::SQLJS;
 use PageCamel::Web::Tools::ScriptDownload;
 use PageCamel::Web::Tools::ShortURL;
 use PageCamel::Web::Tools::Sitemap;
+use PageCamel::Web::Tools::SleepTest;
 use PageCamel::Web::Tools::WebDrive;
 use PageCamel::Web::Tools::WorkerControl;
 use PageCamel::Web::Translate;
