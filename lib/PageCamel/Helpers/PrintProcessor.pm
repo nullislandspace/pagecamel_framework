@@ -786,6 +786,35 @@ sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
     return;
 }
 
+
+sub printAddSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
+    
+    chomp $line;
+    
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 18, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 18, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 22;
+    }
+    
+    return;
+}
+
+sub printAddBoldSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
+    
+    chomp $line;
+    
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 18, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 18, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 22;
+    }
+    
+    return;
+}
+
 sub printAddBigTextLine($self, $line) {
     
     chomp $line;
