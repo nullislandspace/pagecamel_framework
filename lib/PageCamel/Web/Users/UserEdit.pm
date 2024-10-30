@@ -69,6 +69,7 @@ sub get_list($self, $ua) {
         PostLink    =>  $self->{edit}->{webpath},
         showads => $self->{showads},
     );
+    $webdata{userData}->{keyfob_softlogout} = '1'; # Do NOT logout if keyfob is removed, since we may need to "program" new keyfobs here
     
     my $extrawhere = '';
     if($webdata{userData}->{user} ne 'admin') {
@@ -130,6 +131,7 @@ sub get_edit($self, $ua) {
         PostLink    =>  $self->{edit}->{webpath},
         showads => $self->{showads},
     );
+    $webdata{userData}->{keyfob_softlogout} = '1'; # Do NOT logout if keyfob is removed, since we may need to "program" new keyfobs here
 
     my @textpermissions;
     foreach my $item (@{$self->{textpermissions}->{item}}) {
