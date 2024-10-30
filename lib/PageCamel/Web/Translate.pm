@@ -411,9 +411,11 @@ sub postfilter($self, $ua, $header, $result) {
 
     ### FIXME: This should come from the translation database
     if($self->{lastuserlanguage} eq "eng") {
-        $result->{"Content-Language"} = "en";
+        $header->{"-Content-Language"} = "en";
     } elsif($self->{lastuserlanguage} eq "ger") {
-        $result->{"Content-Language"} = "de";
+        $header->{"-Content-Language"} = "de";
+    } else {
+        $header->{"-Content-Language"} = $self->{lastuserlanguage};
     }
 
     return;

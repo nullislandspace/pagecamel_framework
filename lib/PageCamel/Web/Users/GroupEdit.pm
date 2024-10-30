@@ -53,6 +53,7 @@ sub get_list($self, $ua) {
         PostLink    =>  $self->{edit}->{webpath},
         showads => $self->{showads},
     );
+    $webdata{userData}->{keyfob_softlogout} = '1'; # Do NOT logout if keyfob is removed, since we may need to "program" new keyfobs here
     
     my $selsth = $dbh->prepare_cached("SELECT * FROM pagecamel.permissiongroups ORDER BY groupname")
             or croak($dbh->errstr);
@@ -87,6 +88,7 @@ sub get_edit($self, $ua) {
         PostLink    =>  $self->{edit}->{webpath},
         showads => $self->{showads},
     );
+    $webdata{userData}->{keyfob_softlogout} = '1'; # Do NOT logout if keyfob is removed, since we may need to "program" new keyfobs here
     
     # Prepare empty user structure
     foreach my $fieldname (qw[groupname oldgroupname description]) {
