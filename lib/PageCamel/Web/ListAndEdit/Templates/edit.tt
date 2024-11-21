@@ -96,7 +96,7 @@
 
                                 [% ELSIF column.displaytype == "startsubtable" %]
                                     [% LinebreakActive = "1" %]
-                                    <tr><td colspan="2"><div class="subtable">
+                                    <tr><td colspan="2"><div class="subtable" [% IF column.tableid != '' %]id='[% column.tableid %]'[% END %]>
                                     <table class="data" statictable="1">
                                         <thead>
                                             <tr class="tabheader">
