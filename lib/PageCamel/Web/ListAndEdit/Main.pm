@@ -2821,6 +2821,9 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             displaytype  => $item->{type},
             header  => $item->{header},
         );
+        if(defined($item->{id})) {
+            $column{tableid} = $item->{id};
+        }
         return \%column;
     }
     if($item->{type} eq 'endsubtable') {
@@ -2869,6 +2872,9 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
                 displaytype  => 'startsubtable',
                 header  => $item->{header},
             );
+            if(defined($item->{id})) {
+                $column{tableid} = $item->{id};
+            }
 
             push @edititems, \%column;
         }
