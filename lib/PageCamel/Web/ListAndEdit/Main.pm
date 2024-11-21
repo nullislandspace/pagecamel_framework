@@ -2389,7 +2389,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     } else {
                         $tmp = 0;
                     }
-                } elsif ($self->{editcolumntypes}->{$column} eq 'date') {
+                } elsif($self->{editcolumntypes}->{$column} eq 'date' || $self->{editcolumntypes}->{$column} eq 'dateonly') {
                     if($tmp eq '-- ::' || $tmp !~ /\d+/) {
                         # Compensate for datetimepicker empty template or when field is empty
                         $tmp = 'now';
@@ -2414,7 +2414,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
                         $tmp =~ s/\ .*//;
                     }
-                } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
+                } elsif($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
                     if($tmp eq '') {
