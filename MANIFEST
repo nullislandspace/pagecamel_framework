@@ -8,6 +8,7 @@ database/0005_new_usermanagement.sql
 database/0006_integrated_backup_commands.sql
 database/0007_remove_password_expiry.sql
 database/0008_drop_adminpack_extension.sql
+database/0009_hide_developer_users.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
