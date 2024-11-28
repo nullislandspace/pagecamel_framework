@@ -102,16 +102,21 @@ sub getPermissionForUser($self, $username) {
 
 }
 
-sub getUsersForPermission($self, $permission, $negate = 0) {
+sub getUsersForPermission($self, $permission, $negate = 0, $allowdevusers = 0) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     $negate = !!$negate;
 
+    my $extrawhere = '';
+    if(!$allowdevusers) {
+        $extrawhere = 'WHERE is_internal = false';
+    }
+
     my @usernames;
 
     my @users;
-    my $selsth = $dbh->prepare_cached("SELECT username FROM users")
+    my $selsth = $dbh->prepare_cached("SELECT username FROM users $extrawhere")
             or croak($dbh->errstr);
     if(!$selsth->execute) {
         $reph->debuglog($dbh->errstr);
