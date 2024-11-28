@@ -214,6 +214,11 @@ input.autoNumeric {
 }
 
 @font-face {
+	font-family: "gontserrat";
+	src: url("/static/fonts/Gontserrat-Regular.ttf");
+}
+
+@font-face {
 	font-family: "herrvonmuellerhoff";
 	src: url("/static/fonts/HerrVonMuellerhoff-Regular.otf");
 }
