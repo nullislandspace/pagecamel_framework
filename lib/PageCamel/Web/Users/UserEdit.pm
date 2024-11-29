@@ -173,7 +173,7 @@ sub get_edit($self, $ua) {
 
     
     # Prepare empty user structure
-    my @fieldnames = qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name hardware_fob];
+    my @fieldnames = qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name hardware_fob];
     push @fieldnames, @textpermissions;
     foreach my $fieldname (@fieldnames) {
         $webdata{$fieldname} = "";
@@ -272,7 +272,7 @@ sub get_edit($self, $ua) {
             push @auditdata, "New password set";
         }
 
-        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name force_password_change hardware_fob];
+        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name force_password_change hardware_fob];
         push @upfieldnames, @textpermissions;
         foreach my $fieldname (@upfieldnames) {
             my $dbfield = $fieldname;
@@ -368,7 +368,7 @@ sub get_edit($self, $ua) {
             }
         }
 
-        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials force_password_change hardware_fob];
+        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode force_password_change hardware_fob];
         push @createfieldnames, @textpermissions;
         foreach my $fieldname (@createfieldnames) {
             my $upsth = $dbh->prepare_cached("UPDATE users
@@ -452,7 +452,7 @@ reloaddata:
                                           WHERE username = ?")
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
-        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name force_password_change hardware_fob appkey];
+        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name force_password_change hardware_fob appkey];
         push @selectfieldnames, @textpermissions;
         while((my $user = $selsth->fetchrow_hashref)) {
             foreach my $fieldname (@selectfieldnames) {

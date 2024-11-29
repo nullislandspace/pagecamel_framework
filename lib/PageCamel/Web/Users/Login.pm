@@ -525,12 +525,25 @@ sub get_login($self, $ua) {
         }
 
 
-        if($user{require_password_change}) {
+        if($user{username} eq 'applogin' && defined($self->{applogin}->{webpath})) {
+            $user{startpage} = $self->{applogin}->{webpath};
+            $user{realstartpage} = $user{startpage};
+        } elsif($user{require_password_change}) {
             $user{startpage} = $self->{pwchange};
             $user{realstartpage} = $viewh->getstarturl($rights);
         } else {
             $user{startpage} = $viewh->getstarturl($rights);
             $user{realstartpage} = $user{startpage};
+        }
+
+        $user{appuserlogin} = 0;
+        if($user{username} eq 'applogin' && defined($self->{applogin}->{webpath})) {
+            $user{appuserlogin} = 1;
+        }
+
+        $user{appkeylogin} = 0;
+        if(length($appkey)) {
+            $user{appkeylogin} = 1;
         }
 
         $self->{server}->{modules}->{$self->{memcache}}->set($session, \%user);
@@ -718,6 +731,20 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
         $isGuestUser = 1;
     }
 
+    my %oldwebdata = (
+        $self->{server}->get_defaultwebdata(),
+    );
+
+    my $appuserlogin = 0;
+    if(defined($oldwebdata{userData}->{appuserlogin}) && $oldwebdata{userData}->{appuserlogin}) {
+        $appuserlogin = 1;
+    }
+
+    my $appkeylogin = 0;
+    if(defined($oldwebdata{userData}->{appkeylogin}) && $oldwebdata{userData}->{appkeylogin}) {
+        $appkeylogin = 1;
+    }
+
     # Delete the old session if any
     {
         my $oldsession = $ua->{cookies}->{"pagecamel-session"};
@@ -767,6 +794,9 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
     }
     $sth->finish;
     $user{html5} = \%html5;
+
+    $user{appuserlogin} = $appuserlogin;
+    $user{appkeylogin} = $appkeylogin;
 
     if($isGuestUser) {
         $user{keyfob_logout} = 0;
@@ -1024,7 +1054,6 @@ sub adminSwitchFromUser($self, $ua) {
     return $user->{startpage};
 }
 
-
 sub preauthcleanup($self, $ua) {
 
     delete $self->{cookie};
@@ -1135,6 +1164,13 @@ sub authcheck($self, $ua) {
                                                    "location" => '/',
                                                    "samesite" => 'strict',
                                                 );
+            if(!defined($user->{appuserlogin})) {
+                $user->{appuserlogin} = 0;
+            }
+            if(!defined($user->{appkeylogin})) {
+                $user->{appkeylogin} = 0;
+            }
+
             my %currentData = (sessionid    =>  $session,
                                user         =>  $user->{username},
                                email_addr    =>    $user->{email_addr},
@@ -1150,6 +1186,8 @@ sub authcheck($self, $ua) {
                                expires      => $user->{expires},
                                keyfob_logout => $user->{keyfob_logout},
                                keyfob_id => $user->{keyfob_id},
+                               appuserlogin => $user->{appuserlogin},
+                               appkeylogin => $user->{appkeylogin},
                               );
 
             if(defined($user->{realuser})) {

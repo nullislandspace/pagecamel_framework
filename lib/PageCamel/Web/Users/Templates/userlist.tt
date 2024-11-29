@@ -8,6 +8,7 @@
                     <th>[% tr.trquote("Username") %]</th>
                     <th>[% tr.trquote("Name") %]</th>
                     <th>[% tr.trquote("Initials") %]</th>
+                    <th>[% tr.trquote("App Code") %]</th>
                     <th>[% tr.trquote("Email") %]</th>
                     <th>[% tr.trquote("Organisation") %]</th>
                     <th>[% tr.trquote("Locked") %]</th>
@@ -31,6 +32,9 @@
                         </td>
                         <td>
                             [% tr.quote(user.name_initials) %]
+                        </td>
+                        <td>
+                            [% tr.quote(user.applogin_usercode) %]
                         </td>
                         <td>
                             [% tr.quote(user.email_addr) %]

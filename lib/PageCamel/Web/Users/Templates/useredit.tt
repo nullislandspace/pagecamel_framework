@@ -50,6 +50,12 @@
                     </td>
                 </tr>
                 <tr>
+                    <td align="right">[% tr.trquote("Applogin user code") %]</td>
+                    <td align="left">
+                        <input type="text" name="applogin_usercode" size="3" maxlength="3" value="[% tr.quote(applogin_usercode) %]">
+                    </td>
+                </tr>
+                <tr>
                     <td align="right">[% tr.trquote("Organisation") %]</td>
                     <td align="left">            
                         <select name="organisation_name" searchable="1">
