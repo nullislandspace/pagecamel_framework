@@ -83,7 +83,7 @@ sub get_list($self, $ua) {
         } else {
             $extrawhere .= ' AND ';
         }
-        $extrawhere .= 'is_internal = false';
+        $extrawhere .= "(is_internal = false OR username = 'applogin') ";
     }
 
     my $selsth = $dbh->prepare_cached("SELECT * FROM users $extrawhere ORDER BY username")
@@ -119,6 +119,10 @@ sub get_edit($self, $ua) {
     my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
+
+    if($mode eq 'close') {
+        return $self->get_list($ua);
+    }
 
     # Handle calls from external module (select username to edit by url)
     my $forceUsername;
