@@ -61,7 +61,7 @@
                     <td>
                         <input type="radio" name="username" value="NEW">
                     </td>
-                    <td colspan="8">
+                    <td colspan="9">
                         [% tr.trquote('New') %]
                     </td>
                 </tr>
