@@ -151,8 +151,9 @@ sub child_init_hook($self) {
             or croak($dbh->errstr);
 
     $self->{domainexistssth} = $dbh->prepare_cached("SELECT true FROM nameserver_domain_entry
-                                      WHERE host_fqdn = ?
-                                      OR domain_fqdn = ?
+                                      WHERE (host_fqdn = ?
+                                      OR domain_fqdn = ?)
+                                      AND is_disabled = false
                                       LIMIT 1")
             or croak($dbh->errstr);
 

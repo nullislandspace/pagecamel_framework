@@ -1,0 +1,62 @@
+<form id="apploginform" method="POST" action="[% PostLink %]">
+    <p><input type="text" value="" id="useridfield" name="userid" size="3" maxlength="3" class="[% ButtonSize %]"></p>
+    <p>
+        <table>
+            <tr>
+                <td><input type="button" value="7" onclick="return typeNumber('7');" class="[% ButtonSize %]"></td>
+                <td><input type="button" value="8" onclick="return typeNumber('8');" class="[% ButtonSize %]"></td>
+                <td><input type="button" value="9" onclick="return typeNumber('9');" class="[% ButtonSize %]"></td>
+            </tr>
+            <tr>
+                <td><input type="button" value="4" onclick="return typeNumber('4');" class="[% ButtonSize %]"></td>
+                <td><input type="button" value="5" onclick="return typeNumber('5');" class="[% ButtonSize %]"></td>
+                <td><input type="button" value="6" onclick="return typeNumber('6');" class="[% ButtonSize %]"></td>
+            </tr>
+            <tr>
+                <td><input type="button" value="1" onclick="return typeNumber('1');" class="[% ButtonSize %]"></td>
+                <td><input type="button" value="2" onclick="return typeNumber('2');" class="[% ButtonSize %]"></td>
+                <td><input type="button" value="3" onclick="return typeNumber('3');" class="[% ButtonSize %]"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><input type="button" value="0" onclick="return typeNumber('0');" class="[% ButtonSize %]"></td>
+                <td><input type="button" value="⌫" id="clearbutton" onclick="cleartext(); return false;" class="[% ButtonSize %]"></td>
+            </tr>
+
+            <tr>
+                <td colspan="3">&nbsp;</td>
+            </tr>
+
+            <tr>
+                <td colspan="3" align="center"><input type="submit" value="[% tr.trquote("Login") %]" class="[% ButtonSize %]"></td>
+            </tr>
+            
+        </table>
+    </p>
+</form>
+
+<script>
+    function extraOnLoad() {
+        XX_ON_EVENT_HANDLERS_XX
+        $('#useridfield').focus();
+    }
+
+    function typeNumber(digit) {
+        var newval = $('#useridfield').val();
+        if(newval.length == 3) {
+            return false;
+        }
+        newval = newval + digit;
+        console.log("New val: " + newval);
+        $('#useridfield').val(newval);
+        return false;
+    };
+
+    function cleartext() {
+        $('#useridfield').val('');
+        $('#useridfield').focus();
+        console.log($(this));
+        return false;
+    }
+</script>
+

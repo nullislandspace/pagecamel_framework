@@ -28,6 +28,7 @@ my %fontfamilies = (
 #   ArialBlack => '\'Arial Black\', Gadget, sans-serif',
     Charis => 'charis',
     CharisBold => 'charisbold',
+    Gontserrat => 'gontserrat',
 #   ComicSans => '\'Comic Sans MS\', cursive, sans-serif',
 #   Impact => 'Impact, Charcoal, sans-serif',
 #   Trebuchet => '\'Trebuchet MS\', Helvetica, sans-serif',
