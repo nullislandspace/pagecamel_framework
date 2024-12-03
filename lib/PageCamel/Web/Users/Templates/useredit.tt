@@ -10,181 +10,238 @@
     <div class="[% statuscolor %]">[% tr.trquote(statustext) %]</div>
 </p>
 [% END %]
-<p align="center">
-    <form name="adduser" method="post" action="[% PostLink %]" onsubmit="return submitMe();">
-        <table class="data" align="center" id="MainDataTable">
-            <thead>
-                <tr class="tabheader">
-                    <th>[% tr.trquote("Key") %]</th>
-                    <th>[% tr.trquote("Value") %]</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td align="right">[% tr.trquote("ID") %]</td>
-                    <td align="left">[% tr.trquote(user_id) %]</td>
-                </tr>
-                <tr>
-                    <td align="right">[% tr.trquote("Username") %]</td>
-                    <td align="left">
-                        <input type="hidden" name="oldusername" value="[% tr.quote(oldusername) %]">
-                        <input type="text" name="username" value="[% tr.quote(username) %]" id="username_id" maxLength="40" size="20">
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">[% tr.trquote("First Name") %]</td>
-                    <td align="left">
-                        <input type="text" name="first_name" size="40" maxlength="60" value="[% tr.quote(first_name) %]">
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">[% tr.trquote("Last Name") %]</td>
-                    <td align="left">
-                        <input type="text" name="last_name" size="40" maxlength="60" value="[% tr.quote(last_name) %]">
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">[% tr.trquote("Initials") %]</td>
-                    <td align="left">
-                        <input type="text" name="name_initials" size="2" maxlength="2" value="[% tr.quote(name_initials) %]">
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">[% tr.trquote("Organisation") %]</td>
-                    <td align="left">            
-                        <select name="organisation_name" searchable="1">
-                            [% FOREACH organisation IN organisations %]
-                                <option value="[% organisation.organisation_name %]"
-                                [% IF organisation.organisation_name == organisation_name %]
-                                    selected="selected"
-                                [% END %]
-                                >
-                                    [% organisation.organisation_name %] : [% organisation.description %]
-                                </option>
-                            [% END %]
-                        </select>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <td align="right">[% tr.trquote("Account locked") %]</td>
-                    <td align="left">
-                        <input type="checkbox" name="account_locked" id="account_locked" callback="enable_locked" realvalue="1" class="delete"
-                        [% IF account_locked == "1" %]
-                            checked="checked"
-                        [% END %]
-                        >
-                        <input type="text" name="account_lock_reason" id="account_lock_reason" size="40" maxlength="60" value="[% tr.quote(account_lock_reason) %]">
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">[% tr.trquote("New Password") %]</td>
-                    <td align="left">
-                        <input type="checkbox" name="change_password" id="change_password" callback="enable_password" realvalue="1">
-                        <input type="text" name="password" value="[% tr.quote(password) %]" id="password"><br>
-                        <div>
-                            <div id="progressbar" align="left"><div id="progress"></div></div>
-                            <div id="complexity">0%</div>
-                        </div>
-                    </td>
-                </tr>
-                [% IF FobLogin != "" %]
+[% IF username != "applogin" %]
+    <p align="center">
+        <form name="adduser" method="post" action="[% PostLink %]" onsubmit="return submitMe();">
+            <table class="data" align="center" id="MainDataTable">
+                <thead>
+                    <tr class="tabheader">
+                        <th>[% tr.trquote("Key") %]</th>
+                        <th>[% tr.trquote("Value") %]</th>
+                    </tr>
+                </thead>
+                <tbody>
                     <tr>
-                        <td align="right" valign="top">[% tr.trquote("Hardware fob") %]</td>
+                        <td align="right">[% tr.trquote("ID") %]</td>
+                        <td align="left">[% tr.trquote(user_id) %]</td>
+                    </tr>
+                    <tr>
+                        <td align="right">[% tr.trquote("Username") %]</td>
                         <td align="left">
-                            <div id="fobdiv">
-                                <input type="text" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob">
-                                <input type="Button" value="[% tr.trquote("Read Fob") %]" id="readfobbutton">
-                            </div>
+                            <input type="hidden" name="oldusername" value="[% tr.quote(oldusername) %]">
+                            <input type="text" name="username" value="[% tr.quote(username) %]" id="username_id" maxLength="40" size="20">
                         </td>
                     </tr>
-                [% ELSE %]
-                    <input type="hidden" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob"><br>
-                [% END %]
-                <tr>
-                    <td align="right" valign="top">[% tr.trquote("Options") %]</td>
-                    <td align="left">
-                        <input type="checkbox" name="force_password_change" realvalue="1" [% IF force_password_change == '1' %]checked="checked"[% END %]> [% tr.trquote("Must change password on next login") %]
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">[% tr.trquote("Email") %]</td>
-                    <td align="left">
-                        <input type="text" name="email_addr" id="email_addr_id" size="40" maxlength="60" value="[% tr.quote(email_addr) %]">
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">[% tr.trquote("Permissions") %]</td>
-                    <td colspan="2">
-                        <div id="div_[% Entry.db %]" displaytype="subtable">
-                            <table border="0">
-                                <tr>
-                                    <th colspan="2">[% tr.trquote("Group") %]</th>
-                                    <th>[% tr.trquote("Description") %]</th>
-                                </th>
-                                [% FOREACH Group IN Groups %]
-                                    <tr>
-                                        <td align="right">[% tr.quote(Group.groupname) %]</td>
-                                        <td><input type="checkbox" name="right_[% Group.groupname %]"
-                                                    [% IF Group.has_access == "1" %]
-                                                    checked
-                                                    [% END %]
-                                                >
-                                        </td>
-                                        <td>[% tr.quote(Group.description) %]</td>
-                                    </tr>
-                                [% END %]
-                            </table>
-                        </div>
-                    </td>
-                </tr>
-                [% FOREACH textpermission IN textpermissions %]
                     <tr>
-                        <td>[% tr.trquote(textpermission.displaytext) %]</td>
-                        <td>
-                            <select name="[% tr.quote(textpermission.column) %]">
-                                [% FOREACH permline IN textpermission.data %]
-                                    <option value="[% tr.quote(permline.permission_name) %]" 
-                                        [% IF permline.permission_name == ${textpermission.column} %]
-                                            selected="selected"
-                                        [% END %]
-                                    >[% tr.quote(permline.permission_name) %]</option>
+                        <td align="right">[% tr.trquote("First Name") %]</td>
+                        <td align="left">
+                            <input type="text" name="first_name" size="40" maxlength="60" value="[% tr.quote(first_name) %]">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">[% tr.trquote("Last Name") %]</td>
+                        <td align="left">
+                            <input type="text" name="last_name" size="40" maxlength="60" value="[% tr.quote(last_name) %]">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">[% tr.trquote("Initials") %]</td>
+                        <td align="left">
+                            <input type="text" name="name_initials" size="2" maxlength="2" value="[% tr.quote(name_initials) %]">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">[% tr.trquote("Applogin user code") %]</td>
+                        <td align="left">
+                            <input type="text" name="applogin_usercode" size="3" maxlength="3" value="[% tr.quote(applogin_usercode) %]">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">[% tr.trquote("Organisation") %]</td>
+                        <td align="left">            
+                            <select name="organisation_name" searchable="1">
+                                [% FOREACH organisation IN organisations %]
+                                    <option value="[% organisation.organisation_name %]"
+                                    [% IF organisation.organisation_name == organisation_name %]
+                                        selected="selected"
+                                    [% END %]
+                                    >
+                                        [% organisation.organisation_name %] : [% organisation.description %]
+                                    </option>
                                 [% END %]
                             </select>
                         </td>
                     </tr>
-                [% END %]
-                [% IF appqrcode != "" %]
-                <tr>
-                    <td align="right" valign="top">[% tr.trquote("APP Configuration") %]</td>
-                    <td align="left">
-                        <img src="[% appqrcode %]">
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right" valign="top">[% tr.trquote("APP Key") %]</td>
-                    <td align="left">
-                        [% tr.trquote("Server") %]: [% tr.quote(appqrcodeserver) %]<br/>
-                        [% tr.trquote("APP Key") %]: [% tr.quote(appqrcodekey) %]
-                    </td>
-                </tr>
-                [% END %]
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="2" align="center">
-                        <input type="submit" value="[% IF mode == "create" %][% tr.trquote("Create") %][% ELSE %][% tr.trquote("Update") %][% END %]">
-                        [% IF mode == "edit" %]
-                            <input type="button" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteUser('adduser', 'usereditmode');">
-                        [% END %]
-                    </td>
-                </tr>
+                    
+                    <tr>
+                        <td align="right">[% tr.trquote("Account locked") %]</td>
+                        <td align="left">
+                            <input type="checkbox" name="account_locked" id="account_locked" callback="enable_locked" realvalue="1" class="delete"
+                            [% IF account_locked == "1" %]
+                                checked="checked"
+                            [% END %]
+                            >
+                            <input type="text" name="account_lock_reason" id="account_lock_reason" size="40" maxlength="60" value="[% tr.quote(account_lock_reason) %]">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right" valign="top">[% tr.trquote("New Password") %]</td>
+                        <td align="left">
+                            <input type="checkbox" name="change_password" id="change_password" callback="enable_password" realvalue="1">
+                            <input type="text" name="password" value="[% tr.quote(password) %]" id="password"><br>
+                            <div>
+                                <div id="progressbar" align="left"><div id="progress"></div></div>
+                                <div id="complexity">0%</div>
+                            </div>
+                        </td>
+                    </tr>
+                    [% IF FobLogin != "" %]
+                        <tr>
+                            <td align="right" valign="top">[% tr.trquote("Hardware fob") %]</td>
+                            <td align="left">
+                                <div id="fobdiv">
+                                    <input type="text" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob">
+                                    <input type="Button" value="[% tr.trquote("Read Fob") %]" id="readfobbutton">
+                                </div>
+                            </td>
+                        </tr>
+                    [% ELSE %]
+                        <input type="hidden" name="hardware_fob" value="[% tr.quote(hardware_fob) %]" id="hardware_fob"><br>
+                    [% END %]
+                    <tr>
+                        <td align="right" valign="top">[% tr.trquote("Options") %]</td>
+                        <td align="left">
+                            <input type="checkbox" name="force_password_change" realvalue="1" [% IF force_password_change == '1' %]checked="checked"[% END %]> [% tr.trquote("Must change password on next login") %]
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">[% tr.trquote("Email") %]</td>
+                        <td align="left">
+                            <input type="text" name="email_addr" id="email_addr_id" size="40" maxlength="60" value="[% tr.quote(email_addr) %]">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right" valign="top">[% tr.trquote("Permissions") %]</td>
+                        <td colspan="2">
+                            <div id="div_[% Entry.db %]" displaytype="subtable">
+                                <table border="0">
+                                    <tr>
+                                        <th colspan="2">[% tr.trquote("Group") %]</th>
+                                        <th>[% tr.trquote("Description") %]</th>
+                                    </th>
+                                    [% FOREACH Group IN Groups %]
+                                        <tr>
+                                            <td align="right">[% tr.quote(Group.groupname) %]</td>
+                                            <td><input type="checkbox" name="right_[% Group.groupname %]"
+                                                        [% IF Group.has_access == "1" %]
+                                                        checked
+                                                        [% END %]
+                                                    >
+                                            </td>
+                                            <td>[% tr.quote(Group.description) %]</td>
+                                        </tr>
+                                    [% END %]
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    [% FOREACH textpermission IN textpermissions %]
+                        <tr>
+                            <td>[% tr.trquote(textpermission.displaytext) %]</td>
+                            <td>
+                                <select name="[% tr.quote(textpermission.column) %]">
+                                    [% FOREACH permline IN textpermission.data %]
+                                        <option value="[% tr.quote(permline.permission_name) %]" 
+                                            [% IF permline.permission_name == ${textpermission.column} %]
+                                                selected="selected"
+                                            [% END %]
+                                        >[% tr.quote(permline.permission_name) %]</option>
+                                    [% END %]
+                                </select>
+                            </td>
+                        </tr>
+                    [% END %]
+                    [% IF appqrcode != "" %]
+                    <tr>
+                        <td align="right" valign="top">[% tr.trquote("APP Configuration") %]</td>
+                        <td align="left">
+                            <img src="[% appqrcode %]">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right" valign="top">[% tr.trquote("APP Key") %]</td>
+                        <td align="left">
+                            [% tr.trquote("Server") %]: [% tr.quote(appqrcodeserver) %]<br/>
+                            [% tr.trquote("APP Key") %]: [% tr.quote(appqrcodekey) %]
+                        </td>
+                    </tr>
+                    [% END %]
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" align="center">
+                            <input type="submit" value="[% IF mode == "create" %][% tr.trquote("Create") %][% ELSE %][% tr.trquote("Update") %][% END %]">
+                            [% IF mode == "edit" %]
+                                <input type="button" value="[% tr.trquote("Delete") %]" onClick="return confirmDeleteUser('adduser', 'usereditmode');">
+                            [% END %]
+                        </td>
+                    </tr>
 
-            </tfoot>
-        </table>
-        <input type="hidden" name="mode" id="usereditmode" value="[% mode %]">
-    </form>
-</p>
+                </tfoot>
+            </table>
+            <input type="hidden" name="mode" id="usereditmode" value="[% mode %]">
+        </form>
+    </p>
+[% ELSE %]
+        <form name="adduser" method="post" action="[% PostLink %]" onsubmit="return submitMe();">
+            <table class="data" align="center" id="MainDataTable">
+                <thead>
+                    <tr class="tabheader">
+                        <th>[% tr.trquote("Key") %]</th>
+                        <th>[% tr.trquote("Value") %]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td align="right">[% tr.trquote("ID") %]</td>
+                        <td align="left">[% tr.trquote(user_id) %]</td>
+                    </tr>
+                    <tr>
+                        <td align="right">[% tr.trquote("Username") %]</td>
+                        <td align="left">
+                            [% tr.quote(username) %]
+                        </td>
+                    </tr>
+                    [% IF appqrcode != "" %]
+                    <tr>
+                        <td align="right" valign="top">[% tr.trquote("APP Configuration") %]</td>
+                        <td align="left">
+                            <img src="[% appqrcode %]">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right" valign="top">[% tr.trquote("APP Key") %]</td>
+                        <td align="left">
+                            [% tr.trquote("Server") %]: [% tr.quote(appqrcodeserver) %]<br/>
+                            [% tr.trquote("APP Key") %]: [% tr.quote(appqrcodekey) %]
+                        </td>
+                    </tr>
+                    [% END %]
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" align="center">
+                            <input type="submit" value="[% tr.trquote("Close") %]">
+                        </td>
+                    </tr>
+
+                </tfoot>
+            </table>
+            <input type="hidden" name="mode" id="usereditmode" value="close">
+        </form>
+    </p>
+
+[% END %]
 
 <span id="masktemplatedataset"
     data-accountlocked="[% account_locked %]"

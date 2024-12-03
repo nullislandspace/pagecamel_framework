@@ -44,6 +44,7 @@ sub reload($self) {
 
 sub get_list($self, $ua) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $th = $self->{server}->{modules}->{templates};
 
     my %webdata = (
@@ -54,8 +55,18 @@ sub get_list($self, $ua) {
         showads => $self->{showads},
     );
     $webdata{userData}->{keyfob_softlogout} = '1'; # Do NOT logout if keyfob is removed, since we may need to "program" new keyfobs here
+
+    my $extrawhere = '';
+    if(!contains('has_developer', $webdata{userData}->{rights})) {
+        if($extrawhere eq '') {
+            $extrawhere = ' WHERE ';
+        } else {
+            $extrawhere .= ' AND ';
+        }
+        $extrawhere .= 'is_internal = false';
+    }
     
-    my $selsth = $dbh->prepare_cached("SELECT * FROM pagecamel.permissiongroups ORDER BY groupname")
+    my $selsth = $dbh->prepare_cached("SELECT * FROM pagecamel.permissiongroups $extrawhere ORDER BY groupname")
             or croak($dbh->errstr);
     $selsth->execute or croak($dbh->errstr);
     my @groups;

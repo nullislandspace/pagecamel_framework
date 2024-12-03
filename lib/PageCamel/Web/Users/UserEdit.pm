@@ -60,6 +60,7 @@ sub reload($self) {
 sub get_list($self, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $th = $self->{server}->{modules}->{templates};
 
     my %webdata = (
@@ -74,6 +75,15 @@ sub get_list($self, $ua) {
     my $extrawhere = '';
     if($webdata{userData}->{user} ne 'admin') {
         $extrawhere = " WHERE username != 'admin'";
+    }
+
+    if(!contains('has_developer', $webdata{userData}->{rights})) {
+        if($extrawhere eq '') {
+            $extrawhere = ' WHERE ';
+        } else {
+            $extrawhere .= ' AND ';
+        }
+        $extrawhere .= "(is_internal = false OR username = 'applogin') ";
     }
 
     my $selsth = $dbh->prepare_cached("SELECT * FROM users $extrawhere ORDER BY username")
@@ -109,6 +119,10 @@ sub get_edit($self, $ua) {
     my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
+
+    if($mode eq 'close') {
+        return $self->get_list($ua);
+    }
 
     # Handle calls from external module (select username to edit by url)
     my $forceUsername;
@@ -163,7 +177,7 @@ sub get_edit($self, $ua) {
 
     
     # Prepare empty user structure
-    my @fieldnames = qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name hardware_fob];
+    my @fieldnames = qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name hardware_fob];
     push @fieldnames, @textpermissions;
     foreach my $fieldname (@fieldnames) {
         $webdata{$fieldname} = "";
@@ -262,7 +276,7 @@ sub get_edit($self, $ua) {
             push @auditdata, "New password set";
         }
 
-        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name force_password_change hardware_fob];
+        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name force_password_change hardware_fob];
         push @upfieldnames, @textpermissions;
         foreach my $fieldname (@upfieldnames) {
             my $dbfield = $fieldname;
@@ -358,7 +372,7 @@ sub get_edit($self, $ua) {
             }
         }
 
-        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials force_password_change hardware_fob];
+        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode force_password_change hardware_fob];
         push @createfieldnames, @textpermissions;
         foreach my $fieldname (@createfieldnames) {
             my $upsth = $dbh->prepare_cached("UPDATE users
@@ -442,7 +456,7 @@ reloaddata:
                                           WHERE username = ?")
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
-        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name force_password_change hardware_fob appkey];
+        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name force_password_change hardware_fob appkey];
         push @selectfieldnames, @textpermissions;
         while((my $user = $selsth->fetchrow_hashref)) {
             foreach my $fieldname (@selectfieldnames) {
