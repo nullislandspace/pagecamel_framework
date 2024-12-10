@@ -1402,12 +1402,14 @@ lib/PageCamel/Web/Static/fonts/CharisSIL-Regular.ttf
 lib/PageCamel/Web/Static/fonts/CharisSILCalyx-Bold.ttf
 lib/PageCamel/Web/Static/fonts/CharisSILCalyx-Regular.ttf
 lib/PageCamel/Web/Static/fonts/DymaxionScript.ttf
+lib/PageCamel/Web/Static/fonts/Gontserrat-Regular.ttf
 lib/PageCamel/Web/Static/fonts/HerrVonMuellerhoff-Regular.otf
 lib/PageCamel/Web/Static/fonts/LeagueScript.otf
 lib/PageCamel/Web/Static/fonts/OpenDyslexic-Regular.otf
 lib/PageCamel/Web/Static/fonts/orig/1942-report.zip
 lib/PageCamel/Web/Static/fonts/orig/CarbonType.zip
 lib/PageCamel/Web/Static/fonts/orig/DymaxionScript.zip
+lib/PageCamel/Web/Static/fonts/orig/gontserrat.zip
 lib/PageCamel/Web/Static/fonts/orig/herr-von-muellerhoff.zip
 lib/PageCamel/Web/Static/fonts/orig/league-script-1.zip
 lib/PageCamel/Web/Static/fonts/orig/Portcullion.zip
@@ -2928,6 +2930,7 @@ lib/PageCamel/Web/Users/PWChange.pm
 lib/PageCamel/Web/Users/PWReset.pm
 lib/PageCamel/Web/Users/Register.pm
 lib/PageCamel/Web/Users/Settings.pm
+lib/PageCamel/Web/Users/Templates/appuserlogin.tt
 lib/PageCamel/Web/Users/Templates/groupedit.tt
 lib/PageCamel/Web/Users/Templates/grouplist.tt
 lib/PageCamel/Web/Users/Templates/login.tt
