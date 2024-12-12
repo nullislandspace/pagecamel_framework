@@ -1460,7 +1460,7 @@ sub get_list($self, $ua, $usemasterlayout = true) {
         push @headextrascripts, $self->{webpath} . '/pagelistscript.js';
     }
     
-    $webdata{HeadExtraScripts} = \@headextrascripts;
+    push @{$webdata{HeadExtraScripts}}, @headextrascripts;
 
     if($self->{mastertemplate} ne '') {
         $usemasterlayout = $self->{mastertemplate};
@@ -2749,8 +2749,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         push @headextrascripts, $self->{webpath} . '/pageeditscript.js';
     }
 
-    $webdata{HeadExtraScripts} = \@headextrascripts;
-    $webdata{HeadExtraCSS} = \@headextracss;
+    push @{$webdata{HeadExtraScripts}}, @headextrascripts;
+    push @{$webdata{HeadExtraCSS}}, @headextracss;
 
     my $usemasterlayout = 1;
     if($self->{mastertemplate} ne '') {
