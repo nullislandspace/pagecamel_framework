@@ -123,6 +123,8 @@ WriteMakefile(
         'XML::RPC' => 2.1,
         'XML::Simple' => 0,
         'YAML::Syck' => 0,
+
+        "forks" => 0,
     },
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/PageCamel/Framework.pm', # retrieve abstract from module
