@@ -61,6 +61,7 @@ ajaxhelpers.js
 formhelpers.js
 unicodehelpers.js
 pageviewstats.js
+consolehelpers.js
 codehighlight/highlight.pack.js
 lz-string.js
 jquery/js/jquery-3.6.0.js
