@@ -334,7 +334,7 @@ sub process_special_directives($self, $basedir) {
     }
 
     my $dynamic = 0;
-    if($self->{isDebugging} && defined($directives->{dynamic}) && $directives->{dynamic}) {
+    if(defined($directives->{dynamic}) && $directives->{dynamic}) {
         $dynamic = 1;
     }
 
