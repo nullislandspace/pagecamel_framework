@@ -747,6 +747,7 @@ lib/PageCamel/Web/Static/codemirror/theme/xq-light.css
 lib/PageCamel/Web/Static/codemirror/theme/yeti.css
 lib/PageCamel/Web/Static/codemirror/theme/zenburn.css
 lib/PageCamel/Web/Static/codemirror/version.txt
+lib/PageCamel/Web/Static/consolehelpers.js
 lib/PageCamel/Web/Static/cvceditor/adapters/jquery.js
 lib/PageCamel/Web/Static/cvceditor/CHANGES.md
 lib/PageCamel/Web/Static/cvceditor/config.js
