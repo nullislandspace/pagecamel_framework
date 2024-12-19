@@ -6,6 +6,7 @@
         <!--<item>tsc -p tsconfig_debug.json</item>-->
     </debugcommands>
     <dynamic>1</dynamic>
+    <relinkjs>1</relinkjs>
     <ignore>
         <!--<item>src</item>-->
         <item>docs</item>
