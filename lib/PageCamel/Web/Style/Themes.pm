@@ -197,9 +197,9 @@ sub redirect_themed_images($self, $ua) {
         }
 
         my $newfname = "/static/jquery/css/themes/$userTheme/images/$oldfname";
-        if($self->{isDebugging}) {
-            print STDERR "THEME SUPPORT: Redirecting " . $ua->{url} . " to $newfname\n";
-        }
+        #if($self->{isDebugging}) {
+        #    print STDERR "THEME SUPPORT: Redirecting " . $ua->{url} . " to $newfname\n";
+        #}
         $ua->{url} = $newfname;
     }
 
