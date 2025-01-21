@@ -486,7 +486,13 @@ reloaddata:
         $selsth->finish;
         $webdata{oldusername} = $webdata{username};
 
-        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey});
+        my $projectname = 'Demo';
+        my ($ok, $sysval) = $sysh->get('defaultwebdata', 'GenussPlatzl');
+        if($ok && $sysval->{settingvalue} ne '') {
+            $projectname = $sysval->{settingvalue};
+        }
+
+        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
         $webdata{appqrcodeserver} = $ua->{headers}->{Host};
         $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
     }
