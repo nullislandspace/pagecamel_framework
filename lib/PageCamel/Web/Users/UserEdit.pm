@@ -487,9 +487,11 @@ reloaddata:
         $webdata{oldusername} = $webdata{username};
 
         my $projectname = 'Demo';
-        my ($ok, $sysval) = $sysh->get('defaultwebdata', 'GenussPlatzl');
+        my ($ok, $sysval) = $sysh->get('defaultwebdata', 'ProjectName');
         if($ok && $sysval->{settingvalue} ne '') {
             $projectname = $sysval->{settingvalue};
+        } else {
+            $reph->debuglog("### ", $ok, " / ", Dumper($sysval));
         }
 
         $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
