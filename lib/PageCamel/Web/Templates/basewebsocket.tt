@@ -177,6 +177,14 @@
                 debuglog("Printing locally via document.onPrintStart");
                 retval = document.onPrintStart(printdoc);
                 debuglog("retval: " + retval);
+            } else if(window.Android && window.Android.onPrintStart) {
+                debuglog("Printing locally via window.Android.onPrintStart");
+                var printok = window.Android.onPrintStart(printdoc);
+                if(printok) {
+                    retval = 'printed';
+                } else {
+                    retval = 'window.Android.onPrintStart returned false';
+                }
             } else if(window.flutter_inappwebview) {
                 debuglog("Printing via flutter app");
                 lastprintid = msg.printid;
