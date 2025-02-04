@@ -397,6 +397,7 @@ sub prerender($self, $webdata) {
     }
 
     $webdata->{UserLanguage} = $lang;
+    $webdata->{ConfigObject}->{defaults}->{language} = $lang;
     PageCamel::Helpers::TemplateEngine::Translate->setLang($lang);
 
     # Remember for postfilter

@@ -8,6 +8,7 @@ database/0005_new_usermanagement.sql
 database/0006_integrated_backup_commands.sql
 database/0007_remove_password_expiry.sql
 database/0008_drop_adminpack_extension.sql
+database/0009_hide_developer_users.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
@@ -746,6 +747,7 @@ lib/PageCamel/Web/Static/codemirror/theme/xq-light.css
 lib/PageCamel/Web/Static/codemirror/theme/yeti.css
 lib/PageCamel/Web/Static/codemirror/theme/zenburn.css
 lib/PageCamel/Web/Static/codemirror/version.txt
+lib/PageCamel/Web/Static/consolehelpers.js
 lib/PageCamel/Web/Static/cvceditor/adapters/jquery.js
 lib/PageCamel/Web/Static/cvceditor/CHANGES.md
 lib/PageCamel/Web/Static/cvceditor/config.js
@@ -1401,12 +1403,14 @@ lib/PageCamel/Web/Static/fonts/CharisSIL-Regular.ttf
 lib/PageCamel/Web/Static/fonts/CharisSILCalyx-Bold.ttf
 lib/PageCamel/Web/Static/fonts/CharisSILCalyx-Regular.ttf
 lib/PageCamel/Web/Static/fonts/DymaxionScript.ttf
+lib/PageCamel/Web/Static/fonts/Gontserrat-Regular.ttf
 lib/PageCamel/Web/Static/fonts/HerrVonMuellerhoff-Regular.otf
 lib/PageCamel/Web/Static/fonts/LeagueScript.otf
 lib/PageCamel/Web/Static/fonts/OpenDyslexic-Regular.otf
 lib/PageCamel/Web/Static/fonts/orig/1942-report.zip
 lib/PageCamel/Web/Static/fonts/orig/CarbonType.zip
 lib/PageCamel/Web/Static/fonts/orig/DymaxionScript.zip
+lib/PageCamel/Web/Static/fonts/orig/gontserrat.zip
 lib/PageCamel/Web/Static/fonts/orig/herr-von-muellerhoff.zip
 lib/PageCamel/Web/Static/fonts/orig/league-script-1.zip
 lib/PageCamel/Web/Static/fonts/orig/Portcullion.zip
@@ -2927,6 +2931,7 @@ lib/PageCamel/Web/Users/PWChange.pm
 lib/PageCamel/Web/Users/PWReset.pm
 lib/PageCamel/Web/Users/Register.pm
 lib/PageCamel/Web/Users/Settings.pm
+lib/PageCamel/Web/Users/Templates/appuserlogin.tt
 lib/PageCamel/Web/Users/Templates/groupedit.tt
 lib/PageCamel/Web/Users/Templates/grouplist.tt
 lib/PageCamel/Web/Users/Templates/login.tt

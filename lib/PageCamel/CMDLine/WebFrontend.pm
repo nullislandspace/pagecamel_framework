@@ -712,13 +712,19 @@ sub _getLocalIPs($self) {
     my @ips;
 
     my $ignorenext = 0;
+    my $backupip;
+    my $isbackupip = 0;
     foreach my $line (@lines) {
         chomp $line;
-        if($line =~ /^docker\d\:/ || $line =~ /^lo\:/ || $line =~ /^wlo\d\:/) {
+        if($line =~ /^docker\d\:/ || $line =~ /^lo\:/) {
             $ignorenext = 1;
+        }
+        if($line =~ /^wlo\d\:/) {
+            $isbackupip = 1;
         }
         if($ignorenext && $line eq '') {
             $ignorenext = 0;
+            $isbackupip = 0;
         }
         if($ignorenext) {
             #print "Ignoring $line\n";
@@ -729,9 +735,17 @@ sub _getLocalIPs($self) {
             $ip =~ s/^\ +//g;
             $ip =~ s/\ +$//g;
             if($ip !~ /127\./) {
-                push @ips, $ip;
+                if(!$isbackupip) {
+                    push @ips, $ip;
+                } else {
+                    $backupip = $ip;
+                }
             }
         }
+    }
+
+    if(!scalar @ips && defined($backupip)) {
+        push @ips, $backupip;
     }
 
     my $allips = join(',', sort @ips);

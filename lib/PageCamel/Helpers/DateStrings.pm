@@ -21,13 +21,14 @@ use Date::Manip;
 use HTTP::Date;
 use Readonly;
 use Lingua::EN::Numbers::Ordinate;
+use Time::Local qw(timelocal_modern);
 
 use base qw(Exporter);
 our @EXPORT = qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime
                  getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute 
                  getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime
                  getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash 
-                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC); ## no critic (Modules::ProhibitAutomaticExportation)
+                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC dateToTimestamp timestampToDate); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
 Readonly my $YEARBASEOFFSET => 1900;
@@ -507,6 +508,24 @@ sub timeToSeconds($timestring) {
     my $seconds = ($hours * 60) + $minutes;
 
     return $seconds;
+}
+
+sub dateToTimestamp($date) {
+    my ($year, $mon, $day) = split/\-/, $date;
+
+    return timelocal_modern(12, 0, 0, $day, $mon-1, $year);
+}
+
+sub timestampToDate($timestamp) {
+    my ($sec,$min, $hour, $mday,$mon, $year, $wday,$yday, $isdst) = localtime $timestamp;
+
+    $year += $YEARBASEOFFSET;
+    $mon += 1;
+
+    $mon = doFPad($mon, 2);
+    $mday = doFPad($mday, 2);
+
+    return join('-', $year, $mon, $mday);
 }
 
 sub eternalseptemberize {

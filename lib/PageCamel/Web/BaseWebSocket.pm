@@ -182,7 +182,7 @@ sub wshandlemessage($self, $message) {
     return 1;
 }
 
-sub wscyclic($self) {
+sub wscyclic($self, $ua) {
     
     return 1;
 }
