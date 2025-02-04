@@ -66,22 +66,6 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>[% tr.trquote("Line") %]</td>
-                            <td>
-                                <select name="line_id">
-                                    <option value=""></option>
-                                    [% FOREACH Prodline IN AvailProdLines %]
-                                    <option value="[% tr.quote(Prodline.line_id) %]"
-                                        [% IF Prodline.line_id == computer.line_id %]
-                                            selected="selected"
-                                        [% END %]
-                                        >[% tr.quote(Prodline.line_id) %] : [% tr.quote(Prodline.description) %]
-                                    </option>
-                                    [% END %]
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
                             <td>[% tr.trquote("Location") %]</td>
                             <td>
                                 <select name="computerlocation">
