@@ -31,6 +31,8 @@ sub new($proto, %config) {
 
     $self->{firstrun} = 1;
 
+    $self->{starttime} = time;
+
     return $self;
 }
 
@@ -91,6 +93,13 @@ sub work($self) {
     do {
         $did_some_work = 0;
 
+        my $extrawhere = '';
+        if(time < $self->{starttime} + 600) {
+            # Don't start backups right after worker start, wait at least 10 minutes
+            $extrawhere .= "AND command != 'BACKUP' ";
+            $reph->debuglog("Ignoring BACKUP commands until 10 after worker start");
+        }
+
         # We LOCK the command we're working on and update it with the name of
         # our worker
         my $sth = $dbh->prepare_cached("SELECT id, command, arguments " .
@@ -98,6 +107,7 @@ sub work($self) {
                                     "WHERE starttime <= now() " .
                                     "AND command IN (" . $self->{commandlist} . ") " .
                                     "AND current_worker IS NULL " .
+                                    $extrawhere .
                                     "ORDER BY starttime, id " .
                                     "LIMIT 1 ".
                                     "FOR UPDATE NOWAIT")
