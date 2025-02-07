@@ -70,6 +70,7 @@
     }
     
     function checkboxclick() {
+        return;
         $("#submitbutton").button("option", "disabled", false);
         $("#cancelbutton").button("option", "disabled", false);
         $("#selectedcompanyid").selectmenu("option", "disabled", true);
