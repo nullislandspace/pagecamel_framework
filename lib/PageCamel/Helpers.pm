@@ -45,6 +45,7 @@ use PageCamel::Helpers::Padding;
 use PageCamel::Helpers::Passwords;
 use PageCamel::Helpers::PostgresDB;
 use PageCamel::Helpers::PrintProcessor;
+use PageCamel::Helpers::SVCHelper;
 use PageCamel::Helpers::Strings;
 use PageCamel::Helpers::SystemSettings;
 use PageCamel::Helpers::TemplateEngine::Main;
