@@ -252,7 +252,6 @@ sub _resize_for_tmp20($self, $inputimg) {
 
     $reph->debuglog("Resizing image for TMP20");
 
-    my $srcimg;
     my $inputtype = ref $inputimg;
     my $srcimg;
     if($inputtype eq '') {
