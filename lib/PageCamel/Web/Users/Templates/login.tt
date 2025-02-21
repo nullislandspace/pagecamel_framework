@@ -283,7 +283,8 @@
                 var mandant = $(this).val();
                 console.log("Mandant: " + mandant);
                 document.cookie = 'Mandant=' + mandant + '; path=/';
-                window.location = ttvars.mandantpath;
+                //window.location = ttvars.mandantpath;
+                window.location.reload();
             });
         });
     }
