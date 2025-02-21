@@ -1,4 +1,15 @@
 [% IF ExtraLoginHTML != "" %][% ExtraLoginHTML %][% END %]
+
+[% IF MandantPath != "" %]
+    <table border="1"><tr>
+        [% FOREACH Mandant IN Mandants %]
+            <td>
+                <input type="button" value="[% Mandant %]" buttontype="mandant">
+            </td>
+        [% END %]
+    </table>
+[% END %]
+
 <form name="login" method="post" action="[% PostLink %]" onsubmit="return submitMe();">
     <p>
         <table class="data" align="center" id="MainDataTable">
@@ -163,6 +174,7 @@
     data-disablemousechecks="[% DisableMousechecks %]"
     data-foblogin="[% FobLogin %]"
     data-fobmode="[% FobMode %]"
+    data-mandantpath="[% MandantPath %]"
 ></span>
 
 <script>
@@ -265,6 +277,15 @@
                 setInterval(runFobReader, 100);
             }
         }
+
+        $("input[buttontype=mandant]").each(function() {
+            $(this).on('click', function() {
+                var mandant = $(this).val();
+                console.log("Mandant: " + mandant);
+                document.cookie = 'Mandant=' + mandant;
+                window.location = ttvars.mandantpath;
+            });
+        });
     }
 
     function maskExtraOnLoad() {

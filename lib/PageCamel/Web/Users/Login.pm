@@ -22,6 +22,7 @@ use Crypt::Digest::SHA256 qw[sha256_hex];
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::Passwords;
+use PageCamel::Helpers::Mandant;
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 use PageCamel::Helpers::URI qw[decode_uri_path];
 use MIME::Base64;
@@ -35,6 +36,8 @@ sub new($proto, %config) {
 
     #$self->{password_prefix} = "CARNIVORE::";
     #$self->{password_postfix} = "# or 1984";
+
+    $self->{mandanth} = PageCamel::Helpers::Mandant->new();
 
 
     my %paths;
@@ -118,6 +121,11 @@ sub register($self) {
         $self->register_webpath($self->{applogin}->{webpath}, "get_appuserlogin", 'GET', 'POST');
     }
 
+    if(defined($self->{switchmandant}->{webpath}) && $self->{mandanth}->isActive()) {
+        $self->register_webpath($self->{switchmandant}->{webpath}, "get_switchmandant", 'GET', 'POST');
+    }
+        
+
     return;
 }
 
@@ -132,6 +140,10 @@ sub crossregister($self) {
 
     if(defined($self->{applogin}->{webpath})) {
         $self->register_public_url($self->{applogin}->{webpath});
+    }
+
+    if(defined($self->{switchmandant}->{webpath}) && $self->{mandanth}->isActive()) {
+        $self->register_public_url($self->{switchmandant}->{webpath});
     }
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -360,6 +372,13 @@ sub get_login($self, $ua) {
         DisableMousechecks => $self->{disable_mousecheck},
         showads => $self->{showads},
     );
+
+    if($self->{mandanth}->isActive()) {
+        my @mandants = $self->{mandanth}->getList();
+        $webdata{Mandants} = \@mandants;
+        $webdata{MandantPath} = $self->{switchmandant}->{webpath};
+    }
+
 
     # Force lowercase username
     if($self->{forcelowercase}) {
@@ -1198,6 +1217,10 @@ sub authcheck($self, $ua) {
         }
     }
 
+    if($webpath eq $self->{switchmandant}->{webpath}) {
+        return;
+    }
+
     if($webpath =~ /^\/public\//) {
         $self->{isPublicUrl} = 1;
     }
@@ -1864,6 +1887,16 @@ sub getSettings($self) {
     return \%settings;
 }
 
+sub get_switchmandant($self, $ua) {
+    return (status      => 303,
+            location    => $self->{login}->{webpath},
+            type        => "text/html",
+            data         => "<html><body><h1>Please login</h1><br>" .
+                            "If you are not automatically redirected, click " .
+                            "<a href=\"" . $self->{login}->{webpath} . "\">here</a>.</body></html>",
+            keepalive => 0,
+            );
+}
 
    
 1;

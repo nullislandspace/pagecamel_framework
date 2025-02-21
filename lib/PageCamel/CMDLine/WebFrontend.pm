@@ -23,6 +23,7 @@ use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::WebPrint;
+use PageCamel::Helpers::Mandant;
 use Sys::Hostname;
 use POSIX;
 
@@ -53,6 +54,8 @@ sub new($class, $isDebugging, $configfile) {
     
     $self->{isDebugging} = $isDebugging;
     $self->{configfile} = $configfile;
+
+    $self->{mandanth} = PageCamel::Helpers::Mandant->new();
     
     if(0 && $isDebugging) {
         my @lines = `/usr/bin/who`;
@@ -464,6 +467,38 @@ sub handleClient($self, $client) {
             }
         }
 
+        if($self->{mandanth}->isActive()) {
+            # Check for Mandant cookie
+            my %cookies;
+            foreach my $header (@headers) {
+                if($header =~ /^Cookie\:\ (.+)$/i) {
+                    my @parts = split/\;/, $1;
+                    foreach my $part (@parts) {
+                        $part =~ s/^\s+//g;
+                        $part =~ s/\s+$//g;
+                        next if($part !~ /\=/);
+                        my ($cname, $cval) = split/\=/, $part;
+                        if(defined($cname) && $cname ne '' && defined($cval) && $cval ne '') {
+                            $cookies{$cname} = $cval;
+                        }
+                    }
+                }
+            }
+
+            if(defined($cookies{Mandant}) && $cookies{Mandant} ne '') {
+                my @mandants = $self->{mandanth}->getList();
+                if(contains($cookies{Mandant}, \@mandants)) {
+                    my $newselectedbackend = $self->{mandanth}->getBackend($cookies{Mandant});
+                    if(!defined($newselectedbackend)) {
+                        print STDERR "Unknown Mandant ", $cookies{Mandant}, ", using previously selected backend\n";
+                    } else {
+                        print STDERR "Using backend ", $newselectedbackend, " for mandant ", $cookies{Mandant}, "\n";
+                        $selectedbackend = $newselectedbackend;
+                    }
+                }
+            }
+        }
+
         my $backend;
         if(!$headererrors) {
             $backend = IO::Socket::UNIX->new(
@@ -509,12 +544,14 @@ sub handleClient($self, $client) {
 
         # Add Pagecamel header for backend
         unshift @headers, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1";
+        print STDERR Dumper(\@headers);
 
         # Prepare "overhead"
         my $overhead = '';
         foreach my $header (@headers) {
             $overhead .= encode_utf8($header) . "\r\n";
         }
+        print STDERR Dumper(\$overhead);
 
         if(!webPrint($backend, $overhead)) {
             print STDERR "Could not write overhead to backend!\n";
