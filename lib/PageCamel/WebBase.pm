@@ -923,18 +923,23 @@ nextrequest:
     if(defined($ua->{cookies}->{'Mandant'})) {
         if($currentmandant ne '' && $currentmandant ne $ua->{cookies}->{'Mandant'}) {
             # Mismatch, need to reload the page on a new connection
-            my %result = (status    => 200, # Default result
-                          type      => "text/plain",
-                          data      => "<html><head><title>Mandant change detected</title></head>" .
-                                        "<body onload=\"reloadPage()\">Reloading page because mandant changed.\n" .
-                                        "<script>function reloadPage() {\n" .
-                                        "window.location.reload();\n" .
-                                        "}\n" .
-                                        "</script></body></html>",
-                          pagedone => 1,
-                          keepalive => 0,
-                          );
-           $ua->{keepalive} = 0;
+
+            
+            $ua->{keepalive} = 0;
+            goto cleanup;
+
+            #my %result = (status    => 200, # Default result
+            #              type      => "text/plain",
+            #              data      => "<html><head><title>Mandant change detected</title></head>" .
+            #                            "<body onload=\"reloadPage()\">Reloading page because mandant changed.\n" .
+            #                            "<script>function reloadPage() {\n" .
+            #                            "window.location.reload();\n" .
+            #                            "}\n" .
+            #                            "</script></body></html>",
+            #              pagedone => 1,
+            #              keepalive => 0,
+            #              );
+            #$ua->{keepalive} = 0;
         }
     }
 
