@@ -457,7 +457,7 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
 
     my $line;
     my $datalen = 0;
-    my $postdata;
+    my $postdata = '';
     my $ok = 0;
     my $unread = $ua->{headers}->{'Content-Length'};
     my $tempdata;
@@ -496,7 +496,9 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
     };
 
     if(!$ok) {
-        print STDERR "POST data recieve timeout\n";
+        print STDERR "POST data recieve timeout - ";
+        print STDERR "Got ", length($postdata), " but should have gotten ", $ua->{headers}->{'Content-Length'}, "\n";
+        #print STDERR Dumper($ua->{headers});
         return 0;
     } elsif($datalen != $ua->{headers}->{'Content-Length'}) {
         print STDERR "Failed to read postdata\n";
@@ -1178,7 +1180,7 @@ nextrequest:
                 webPrint($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
             }
 
-            if(!$self->get_request_body($realsocket, $ua, 15, 1024)) {
+            if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
                 $ua->{keepalive} = 0;
                 webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                 goto cleanup;

@@ -22,6 +22,7 @@ use IO::Socket::UNIX;
 use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
+use PageCamel::Helpers::WebPrint;
 use Sys::Hostname;
 use POSIX;
 
@@ -438,19 +439,51 @@ sub handleClient($self, $client) {
                 $self->endprogram();
             }
         }
+        binmode($client);
 
-        my $backend = IO::Socket::UNIX->new(
-                Peer => $selectedbackend,
-                Type => SOCK_STREAM,
-                Timeout => 3,
-            );
+        # Read all HTTP headers of the first request on this connection.
+        # We don't do a full parsing and validation here (that's the duty of the backend).
+        # We only grab them to
+        #    a) make sure that the user agent is actually sending a request over the connection before starting a backend
+        #    b) check if a certain cookie is set if "mandant" capability is enabled and re-select the backend
+        my @headers;
+        my $headertimeout = 60; # Wait up to a minute for the first header to show up, then only 5 for each subsequent header
+        my $headererrors = 0;
+        while(1) {
+            my $line = $self->readheader($headertimeout, $client);
+            if(!defined($line)) {
+                $headererrors = 1;
+                last;
+            }
+
+            push @headers, $line;
+            $headertimeout = 5;
+
+            if($line eq '') {
+                last; # End of headers
+            }
+        }
+
+        my $backend;
+        if(!$headererrors) {
+            $backend = IO::Socket::UNIX->new(
+                    Peer => $selectedbackend,
+                    Type => SOCK_STREAM,
+                    Timeout => 15,
+                );
+        }
                 
         # Try to send error message to client that we couldn't reach the backend webserver
         if(!defined($backend)) {
             my $error = $ERRNO;
-            my $reply = $self->get590();
+            my $reply;
+            if($headererrors) {
+                $reply = $self->get408();
+            } else {
+                $reply = $self->get590();
+            }
 
-            my $timeout = time + 5;
+            my $timeout = time + 10;
             while(length($reply) && time < $timeout) {
                 my $written = 0;
                 eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -465,25 +498,26 @@ sub handleClient($self, $client) {
                 }
             }
             sleep(2);
-            close $client;
+            eval {
+                close $client;
+            };
             print STDERR "Failed to connect to backend $selectedbackend: $error\n";
             $self->endprogram();
         }
-                
 
-        binmode($client);
         binmode($backend);
 
-        my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
-        my $overheadwritten;
-        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-            $overheadwritten = syswrite($backend, $overhead);
-        };
-        if($EVAL_ERROR) {
-            print STDERR "EVAL ERROR on writing overhead to backend: $EVAL_ERROR\n";
-            $self->endprogram();
-        } elsif($overheadwritten != length($overhead)) {
-            print STDERR "Could not write overheadline to backend!\n";
+        # Add Pagecamel header for backend
+        unshift @headers, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1";
+
+        # Prepare "overhead"
+        my $overhead = '';
+        foreach my $header (@headers) {
+            $overhead .= encode_utf8($header) . "\r\n";
+        }
+
+        if(!webPrint($backend, $overhead)) {
+            print STDERR "Could not write overhead to backend!\n";
             $self->endprogram();
         }
 
@@ -522,10 +556,15 @@ sub handleClient($self, $client) {
             # something in out output buffers
             my $waittime = 0.1;
             if(length($toclientbuffer) || length($tobackendbuffer)) {
-                $waittime = 0.01;
+                $waittime = 0.001;
             }
             
+            $! = 0;
             my @connections = $select->can_read($waittime);
+            my $err = '' . $!;
+            if($err ne '') {
+                print STDERR $!, "\n";
+            }
             foreach my $connection (@connections) {
                 sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
                 if(!length($rawbuffer)) {
@@ -703,7 +742,73 @@ sub get590($self) {
     return $reply;
 }
 
+sub get408($self) {
+    my $html = '<html><head><title>408 Request Timeout</title></head><body onload="starttimer();">';
 
+    $html .= '<script>function starttimer() { setTimeout(() => {doreload();}, 15000); };function doreload() {window.location.reload();};</script>';
+
+    my $b64 = $self->_Image590();
+    $html .= '<p align="center"><img src="data:image/png;base64, ' . $b64 . '" onclick="doreload();" title="Net cat"></p>';
+    $html .= '<p align="center">Your browser did not send a full set of request headers within the alotted time.</p>';
+    $html .= '<p align="center">Click on the cat to reload the page.</p>';
+
+    $html .= "</body></html>";
+
+    my $reply = "HTTP/1.1 408 Request Timeout\r\n";
+    $reply .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $reply .= "Content-Length: " . length($html) . "\r\n";
+    $reply .= "\r\n";
+    $reply .= $html;
+
+    return $reply;
+}
+
+sub readheader($self, $timeout, $socket) {
+
+    my $line;
+    my $ok = 0;
+    my $buf;
+
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        my $endtime = time + $timeout;
+
+        while(1) {
+            $buf = undef;
+            #my $bufstatus = sysread($socket, $buf, 1);
+            my $bufstatus = $socket->sysread($buf, 1);
+            #if(defined($bufstatus) && !$bufstatus) {
+            #    return;
+            #}
+            if(!defined($buf) || !length($buf)) {
+                if(time > $endtime) {
+                    last;
+                }
+                sleep(0.01);
+                next;
+            }
+            $line .= $buf;
+            last if($buf eq "\n");
+        }
+        if(time <= $endtime) {
+            $ok = 1;
+        }
+    };
+    if(!$ok || !defined($line)) {
+        return;
+    }
+
+    $ok = 0;
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        my $temp = decode_utf8($line);
+        $line = $temp;
+        $ok = 1;
+    };
+    if(!$ok) {
+        return;
+    }
+    $line =~ s/[\r\n]+$//;
+    return $line;
+}
 
 sub _getLocalIPs($self) {
     my $starttime = time;
