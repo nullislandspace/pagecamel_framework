@@ -1264,7 +1264,7 @@ sub authcheck($self, $ua) {
             if(!$self->{isPublicUrl}) {
                 my $hasAccess = $ulh->checkAccess($webpath, $user->{rights});
                 if(!$hasAccess) {
-                    return (status      => 403,
+                    return (status      => 307,
                             location    => $self->{login}->{webpath},
                             type        => "text/html",
                             data         => "<html><body><h1>Permission denied.</h1><br>" .
