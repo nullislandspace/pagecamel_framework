@@ -282,7 +282,7 @@
             $(this).on('click', function() {
                 var mandant = $(this).val();
                 console.log("Mandant: " + mandant);
-                document.cookie = 'Mandant=' + mandant;
+                document.cookie = 'Mandant=' + mandant + '; path=/';
                 window.location = ttvars.mandantpath;
             });
         });

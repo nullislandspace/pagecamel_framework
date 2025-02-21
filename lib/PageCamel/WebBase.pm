@@ -922,7 +922,6 @@ nextrequest:
 
     if(defined($ua->{cookies}->{'Mandant'})) {
         if($currentmandant ne '' && $currentmandant ne $ua->{cookies}->{'Mandant'}) {
-            croak("BLA");
             # Mismatch, need to reload the page on a new connection
             my %result = (status    => 200, # Default result
                           type      => "text/plain",
