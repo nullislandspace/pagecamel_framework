@@ -121,11 +121,6 @@ sub register($self) {
         $self->register_webpath($self->{applogin}->{webpath}, "get_appuserlogin", 'GET', 'POST');
     }
 
-    if(defined($self->{switchmandant}->{webpath}) && $self->{mandanth}->isActive()) {
-        $self->register_webpath($self->{switchmandant}->{webpath}, "get_switchmandant", 'GET', 'POST');
-    }
-        
-
     return;
 }
 
@@ -140,10 +135,6 @@ sub crossregister($self) {
 
     if(defined($self->{applogin}->{webpath})) {
         $self->register_public_url($self->{applogin}->{webpath});
-    }
-
-    if(defined($self->{switchmandant}->{webpath}) && $self->{mandanth}->isActive()) {
-        $self->register_public_url($self->{switchmandant}->{webpath});
     }
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -376,7 +367,7 @@ sub get_login($self, $ua) {
     if($self->{mandanth}->isActive()) {
         my @mandants = $self->{mandanth}->getList();
         $webdata{Mandants} = \@mandants;
-        $webdata{MandantPath} = $self->{switchmandant}->{webpath};
+        $webdata{MandantsEnabled} = 1;
     }
 
 
@@ -1217,10 +1208,6 @@ sub authcheck($self, $ua) {
         }
     }
 
-    if($webpath eq $self->{switchmandant}->{webpath}) {
-        return;
-    }
-
     if($webpath =~ /^\/public\//) {
         $self->{isPublicUrl} = 1;
     }
@@ -1886,18 +1873,6 @@ sub getSettings($self) {
 
     return \%settings;
 }
-
-sub get_switchmandant($self, $ua) {
-    return (status      => 303,
-            location    => $self->{login}->{webpath},
-            type        => "text/html",
-            data         => "<html><body><h1>Please login</h1><br>" .
-                            "If you are not automatically redirected, click " .
-                            "<a href=\"" . $self->{login}->{webpath} . "\">here</a>.</body></html>",
-            keepalive => 0,
-            );
-}
-
    
 1;
 __END__

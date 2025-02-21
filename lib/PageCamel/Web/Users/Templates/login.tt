@@ -1,6 +1,6 @@
 [% IF ExtraLoginHTML != "" %][% ExtraLoginHTML %][% END %]
 
-[% IF MandantPath != "" %]
+[% IF MandantsEnabled == 1 %]
     <table border="1"><tr>
         [% FOREACH Mandant IN Mandants %]
             <td>
@@ -283,7 +283,6 @@
                 var mandant = $(this).val();
                 console.log("Mandant: " + mandant);
                 document.cookie = 'Mandant=' + mandant + '; path=/';
-                //window.location = ttvars.mandantpath;
                 window.location.reload();
             });
         });
