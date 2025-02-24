@@ -1,4 +1,15 @@
 [% IF ExtraLoginHTML != "" %][% ExtraLoginHTML %][% END %]
+
+[% IF MandantsEnabled == 1 %]
+    <table border="1"><tr>
+        [% FOREACH Mandant IN Mandants %]
+            <td>
+                <input type="button" value="[% Mandant %]" buttontype="mandant">
+            </td>
+        [% END %]
+    </table>
+[% END %]
+
 <form name="login" method="post" action="[% PostLink %]" onsubmit="return submitMe();">
     <p>
         <table class="data" align="center" id="MainDataTable">
@@ -265,6 +276,15 @@
                 setInterval(runFobReader, 100);
             }
         }
+
+        $("input[buttontype=mandant]").each(function() {
+            $(this).on('click', function() {
+                var mandant = $(this).val();
+                console.log("Mandant: " + mandant);
+                document.cookie = 'Mandant=' + mandant + '; path=/';
+                window.location.reload();
+            });
+        });
     }
 
     function maskExtraOnLoad() {
