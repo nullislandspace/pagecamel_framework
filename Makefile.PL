@@ -77,7 +77,7 @@ WriteMakefile(
         'Minecraft::RCON' => 0,
         'Module::Load' => 0,
         'Module::Load::Conditional' => 0,
-        'Net::Clacks::Client' => 29,
+        'Net::Clacks::Client' => 30,
         'Net::CUPS2' => 0,
         'Net::DNS' => 0,
         'Net::DNS::Packet' => 0,
