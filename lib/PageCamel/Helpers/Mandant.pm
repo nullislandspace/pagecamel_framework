@@ -73,6 +73,11 @@ sub new($proto) {
 
         $self->{active} = 1;
 
+        $self->{isDefault} = 0;
+        if($ENV{PC_MANDANT} eq $self->{xml}->{default}) {
+            $self->{isDefault} = 1;
+        }
+
         #print STDERR "Mandant subsystem active\n";
     }
 
@@ -81,6 +86,22 @@ sub new($proto) {
 
 sub isActive($self) {
     return $self->{active};
+}
+
+sub isDefault($self) {
+    if(!$self->{active}) {
+        croak("Can't call getName() without loaded mandant config");
+    }
+
+    return $self->{isDefault};
+}
+
+sub getDefaultMandant($self) {
+    if(!$self->{active}) {
+        croak("Can't call getName() without loaded mandant config");
+    }
+
+    return $self->{xml}->{default};
 }
 
 sub getName($self) {
