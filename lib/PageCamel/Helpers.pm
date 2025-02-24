@@ -38,6 +38,7 @@ use PageCamel::Helpers::JavaScript;
 use PageCamel::Helpers::JavaScriptDB;
 use PageCamel::Helpers::Logging::Graphs;
 use PageCamel::Helpers::Logo;
+use PageCamel::Helpers::Mandant;
 use PageCamel::Helpers::Mod43Checksum;
 use PageCamel::Helpers::NeatLittleHelpers;
 use PageCamel::Helpers::PDFReport;

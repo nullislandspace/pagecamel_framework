@@ -641,9 +641,9 @@ sub get_vncedit($self, $ua) {
 
 
     my $csth = $dbh->prepare_cached("SELECT * FROM computers
-                                    ORDER BY line_id, computer_name")
+                                    ORDER BY computer_name")
             or croak($dbh->errstr);
-    my $rsth = $dbh->prepare_cached("SELECT * FROM organisation
+    my $rsth = $dbh->prepare_cached("SELECT * FROM users_organisation
                                     ORDER BY organisation_name")
             or croak($dbh->errstr);
     my $vsth = $dbh->prepare_cached("SELECT * FROM computers_vncorganisation

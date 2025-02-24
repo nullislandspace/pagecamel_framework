@@ -247,35 +247,54 @@ sub _escpos_tmt88($self, $extrafeed) {
     return;
 }
 
+sub _resize_for_tmp20($self, $inputimg) {
+    my $reph = $self->{reph};
+
+    $reph->debuglog("Resizing image for TMP20");
+
+    my $inputtype = ref $inputimg;
+    my $srcimg;
+    if($inputtype eq '') {
+        # Got PNGDATA in a scalar
+        $reph->debuglog("    PNG DATA mode");
+        $srcimg = GD::Image->newFromPngData($inputimg);
+    } else {
+        # Got GD::Image object
+        $reph->debuglog("    GD::Image mode");
+        $srcimg = $inputimg;
+    }
+
+    my ($w, $h) = $srcimg->getBounds();
+    my $destw = 384;
+    my $scale = $w / $destw;
+    my $desth = int($h / $scale);
+    $reph->debuglog("Scale ", $scale, " WxH ", $destw, "x", $desth);
+
+    my $destimg = GD::Image->new($destw, $desth);
+    $destimg->colorAllocate(255, 255, 255);
+    $destimg->colorAllocate(0, 0, 0);
+    $destimg->colorAllocate(255, 0, 0);
+
+    $destimg->copyResized($srcimg,
+                          0, 0, # DEST X Y
+                          0, 0, # SRC X Y
+                          $destw, $desth, # DEST W H
+                          $w, $h, # SRC W H
+                          );
+
+    my $outimg = $destimg->png;
+    return $outimg;
+}
+
 sub _escpos_tmp20($self, $extrafeed) {
     my $reph = $self->{reph};
 
     my $raw = '';
-    my $img;
 
     # Bluetooth belt printer
     # This is largely compatible to the Epson TM-T88 models. Of course, it doesn't have a cash drawer and it only has 384 pixels width, so we need to downscale the image
-    
-    {
-        my ($w, $h) = $self->{img}->getBounds();
-        my $destw = 384;
-        my $scale = $w / $destw;
-        my $desth = int($h / $scale);
-        print STDERR "Scale $scale H $desth\n";
-        #croak("BLA");
+    my $img = $self->_resize_for_tmp20($self->{img});
 
-        $img = GD::Image->new($destw, $desth);
-        $img->colorAllocate(255, 255, 255);
-        $img->colorAllocate(0, 0, 0);
-        $img->colorAllocate(255, 0, 0);
-
-        $img->copyResized($self->{img},
-                              0, 0, # DEST X Y
-                              0, 0, # SRC X Y
-                              $destw, $desth, # DEST W H
-                              $w, $h, # SRC W H
-                              );
-    }
 
     # Reset printer
     $raw .= chr(0x1B) . chr(0x40);
