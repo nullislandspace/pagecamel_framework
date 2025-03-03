@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.6;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -141,6 +141,7 @@ use Socket;
 use Module::Load;
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::URI qw(decode_uri_part decode_uri_path);
+use PageCamel::Helpers::Mandant;
 
 use Time::HiRes qw[time sleep alarm];
 
@@ -457,7 +458,7 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
 
     my $line;
     my $datalen = 0;
-    my $postdata;
+    my $postdata = '';
     my $ok = 0;
     my $unread = $ua->{headers}->{'Content-Length'};
     my $tempdata;
@@ -496,7 +497,9 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
     };
 
     if(!$ok) {
-        print STDERR "POST data recieve timeout\n";
+        print STDERR "POST data recieve timeout - ";
+        print STDERR "Got ", length($postdata), " but should have gotten ", $ua->{headers}->{'Content-Length'}, "\n";
+        #print STDERR Dumper($ua->{headers});
         return 0;
     } elsif($datalen != $ua->{headers}->{'Content-Length'}) {
         print STDERR "Failed to read postdata\n";
@@ -725,6 +728,8 @@ sub process_request($self, $realsocket, $frontendheader) {
 #        }
 #    }
 
+    my $mandanth = PageCamel::Helpers::Mandant->new();
+
     local $INPUT_RECORD_SEPARATOR = undef;
     binmode($realsocket, ':bytes');
     $realsocket->blocking(0);
@@ -751,6 +756,13 @@ sub process_request($self, $realsocket, $frontendheader) {
         my $funcname = $worker->{Function} ;
 
         $module->$funcname();
+    }
+
+    my $currentmandant = '';
+
+    if($mandanth->isActive()) {
+        $currentmandant = $mandanth->getName();
+        #print STDERR "Current Mandant is ", $currentmandant, "\n";
     }
 
 nextrequest:
@@ -908,27 +920,56 @@ nextrequest:
     my %fallbackresult = %result; # Just in case
     my $head_automagic = 0;
 
+    if(defined($ua->{cookies}->{'Mandant'})) {
+        if($currentmandant ne '' && $currentmandant ne $ua->{cookies}->{'Mandant'}) {
+            # Mismatch, need to reload the page on a new connection
+
+            
+            $ua->{keepalive} = 0;
+            goto cleanup;
+
+            #my %result = (status    => 200, # Default result
+            #              type      => "text/plain",
+            #              data      => "<html><head><title>Mandant change detected</title></head>" .
+            #                            "<body onload=\"reloadPage()\">Reloading page because mandant changed.\n" .
+            #                            "<script>function reloadPage() {\n" .
+            #                            "window.location.reload();\n" .
+            #                            "}\n" .
+            #                            "</script></body></html>",
+            #              pagedone => 1,
+            #              keepalive => 0,
+            #              );
+            #$ua->{keepalive} = 0;
+        }
+    }
+
+
+
     # This starts logging with basic information before ANY filtering
-    foreach my $filtermodule (@{$self->{logstart}}) {
-        my $module = $filtermodule->{Module};
-        my $funcname = $filtermodule->{Function};
-        my %preresult = $module->$funcname($ua);
-        if(%preresult) {
-            %result = %preresult;
-            $result{pagedone} = 1;
-            last;
+    if(!$result{pagedone}) {
+        foreach my $filtermodule (@{$self->{logstart}}) {
+            my $module = $filtermodule->{Module};
+            my $funcname = $filtermodule->{Function};
+            my %preresult = $module->$funcname($ua);
+            if(%preresult) {
+                %result = %preresult;
+                $result{pagedone} = 1;
+                last;
+            }
         }
     }
 
     # See, if we can do any short circuit fast redirecting
-    foreach my $filtermodule (@{$self->{fastredirect}}) {
-        my $module = $filtermodule->{Module};
-        my $funcname = $filtermodule->{Function};
-        my %preresult = $module->$funcname($ua);
-        if(%preresult) {
-            %result = %preresult;
-            $result{pagedone} = 1;
-            last;
+    if(!$result{pagedone}) {
+        foreach my $filtermodule (@{$self->{fastredirect}}) {
+            my $module = $filtermodule->{Module};
+            my $funcname = $filtermodule->{Function};
+            my %preresult = $module->$funcname($ua);
+            if(%preresult) {
+                %result = %preresult;
+                $result{pagedone} = 1;
+                last;
+            }
         }
     }
 
@@ -1178,7 +1219,7 @@ nextrequest:
                 webPrint($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
             }
 
-            if(!$self->get_request_body($realsocket, $ua, 15, 1024)) {
+            if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
                 $ua->{keepalive} = 0;
                 webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                 goto cleanup;
@@ -1526,6 +1567,11 @@ nextrequest:
             goto cleanup;
         }
     }   
+
+    # Allow webmasks to decide they want the connection to close after fulfilling a request. This is to allow (among other things) the frontend server to re-evaluate which backend to select
+    if(defined($result{keepalive}) && !$result{keepalive}) {
+        $ua->{keepalive} = 0;
+    }
 
     # handle protocol upgrades like WebSockets
     if($result{status} eq "101") {

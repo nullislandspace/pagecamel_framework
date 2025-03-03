@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.6;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -486,7 +486,15 @@ reloaddata:
         $selsth->finish;
         $webdata{oldusername} = $webdata{username};
 
-        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey});
+        my $projectname = 'Demo';
+        my ($ok, $sysval) = $sysh->get('defaultwebdata', 'ProjectName');
+        if($ok && $sysval->{settingvalue} ne '') {
+            $projectname = $sysval->{settingvalue};
+        } else {
+            $reph->debuglog("### ", $ok, " / ", Dumper($sysval));
+        }
+
+        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
         $webdata{appqrcodeserver} = $ua->{headers}->{Host};
         $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
     }

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.6;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -397,6 +397,7 @@ sub prerender($self, $webdata) {
     }
 
     $webdata->{UserLanguage} = $lang;
+    $webdata->{ConfigObject}->{defaults}->{language} = $lang;
     PageCamel::Helpers::TemplateEngine::Translate->setLang($lang);
 
     # Remember for postfilter

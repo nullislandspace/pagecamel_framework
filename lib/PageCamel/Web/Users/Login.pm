@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.6;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -22,6 +22,7 @@ use Crypt::Digest::SHA256 qw[sha256_hex];
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::Passwords;
+use PageCamel::Helpers::Mandant;
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 use PageCamel::Helpers::URI qw[decode_uri_path];
 use MIME::Base64;
@@ -35,6 +36,8 @@ sub new($proto, %config) {
 
     #$self->{password_prefix} = "CARNIVORE::";
     #$self->{password_postfix} = "# or 1984";
+
+    $self->{mandanth} = PageCamel::Helpers::Mandant->new();
 
 
     my %paths;
@@ -360,6 +363,13 @@ sub get_login($self, $ua) {
         DisableMousechecks => $self->{disable_mousecheck},
         showads => $self->{showads},
     );
+
+    if($self->{mandanth}->isActive()) {
+        my @mandants = $self->{mandanth}->getList();
+        $webdata{Mandants} = \@mandants;
+        $webdata{MandantsEnabled} = 1;
+    }
+
 
     # Force lowercase username
     if($self->{forcelowercase}) {
@@ -1264,7 +1274,7 @@ sub authcheck($self, $ua) {
             if(!$self->{isPublicUrl}) {
                 my $hasAccess = $ulh->checkAccess($webpath, $user->{rights});
                 if(!$hasAccess) {
-                    return (status      => 403,
+                    return (status      => 307,
                             location    => $self->{login}->{webpath},
                             type        => "text/html",
                             data         => "<html><body><h1>Permission denied.</h1><br>" .
@@ -1863,8 +1873,6 @@ sub getSettings($self) {
 
     return \%settings;
 }
-
-
    
 1;
 __END__
