@@ -109,6 +109,10 @@
                 setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
             }
         }
+
+        ws.onerror = function(ev) {
+            //console.log("WebSocket error: ", event);
+        }
         
         return;
     }
