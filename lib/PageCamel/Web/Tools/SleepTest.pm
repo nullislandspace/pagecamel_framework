@@ -27,16 +27,12 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
     
-    if(!defined($self->{chunksize})) {
-        $self->{chunksize} = 50_000; # 50 kB
-    }
-
     return $self;
 }
 
 sub register($self) {
 
-    $self->register_webpath($self->{webpath}, "get");
+    $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
     return;
 }
 
@@ -53,8 +49,12 @@ sub crossregister($self) {
 sub get($self, $ua) {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    $reph->debuglog("SleepTest module: sleeping for 30 seconds");
-    sleep(30);
+    if($ua->{method} eq 'POST') {
+        return $self->handlePost($ua);
+    }
+
+    $reph->debuglog("SleepTest module: GET sleeping for 30 seconds");
+    #sleep(10);
     $reph->debuglog("SleepTest module: Wakeup");
 
     my %rawdata = (
@@ -70,3 +70,26 @@ sub get($self, $ua) {
     );
 
 }
+
+sub handlePost($self, $ua) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    print STDERR Dumper($ua);
+
+    $reph->debuglog("SleepTest module: POST sleeping for 30 seconds");
+    #sleep(10);
+    $reph->debuglog("SleepTest module: Wakeup");
+
+    my %rawdata = (
+        hello => 'world',
+        hallo => 'welt',
+    );
+
+    my $json = encode_json \%rawdata;
+
+    return (status => 200,
+            type => 'application/octet-stream',
+            data => $json,
+    );
+}
+
