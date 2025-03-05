@@ -75,7 +75,7 @@ sub _start_request($self, $method, $path, $contenttype = undef, $body = undef) {
         $self->{outbox} .= $body;
     }
 
-    print Dumper($self->{outbox});
+    #print Dumper($self->{outbox});
 
     my $socket;
     if($self->{use_ssl}) {
@@ -156,7 +156,7 @@ sub _sendData($self) {
 
     if(!length($full)) {
         # We are done writing
-        $self->{reph}->debuglog("Request sent");
+        #$self->{reph}->debuglog("Request sent");
         $self->{state} = 'readheaders';
     }
 
@@ -164,7 +164,7 @@ sub _sendData($self) {
 }
 
 sub _readHeaders($self) {
-    $self->{reph}->debuglog("Read headers");
+    #$self->{reph}->debuglog("Read headers");
     while(1) {
         my $buf = undef;
         my $bufstatus = $self->{socket}->sysread($buf, 1);
@@ -192,7 +192,7 @@ sub _readHeaders($self) {
             }
 
             push @{$self->{headers}}, $self->{headerline};
-            $self->{reph}->debuglog('< ', $self->{headerline});
+            #$self->{reph}->debuglog('< ', $self->{headerline});
             $self->{headerline} = '';
             next;
         }
@@ -202,7 +202,7 @@ sub _readHeaders($self) {
 
     if($self->{state} eq 'readbody') {
         my $statusline = shift @{$self->{headers}};
-        $self->{reph}->debuglog("Status line: ", $statusline);
+        #$self->{reph}->debuglog("Status line: ", $statusline);
         my ($proto, $status, $statustext) = split/\ /, $statusline, 3;
         $self->{returncode} = $status;
 
@@ -210,7 +210,7 @@ sub _readHeaders($self) {
             my ($key, $val) = split/\:\ /, $line, 2;
             $self->{parsedheaders}->{lc $key} = $val;
         }
-        $self->{reph}->debuglog("Headers read");
+        #$self->{reph}->debuglog("Headers read");
     }
 
     return;
