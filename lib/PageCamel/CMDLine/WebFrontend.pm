@@ -26,6 +26,7 @@ use PageCamel::Helpers::WebPrint;
 use PageCamel::Helpers::Mandant;
 use Sys::Hostname;
 use POSIX;
+use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 # For turning off SSL session cache
 use Readonly;
@@ -452,8 +453,10 @@ sub handleClient($self, $client) {
         my @headers;
         my $headertimeout = 60; # Wait up to a minute for the first header to show up, then only 5 for each subsequent header
         my $headererrors = 0;
-        while(1) {
-            my $line = $self->readheader($headertimeout, $client);
+        local $INPUT_RECORD_SEPARATOR = undef;
+        my $select = IO::Select->new($client);
+        while(0) {
+            my $line = $self->readheader($headertimeout, $select);
             if(!defined($line)) {
                 $headererrors = 1;
                 last;
@@ -467,7 +470,11 @@ sub handleClient($self, $client) {
             }
         }
 
-        if($self->{mandanth}->isActive()) {
+        print STDERR "##########################\n";
+        print STDERR Dumper(\@headers);
+        print STDERR "##########################\n";
+
+        if(0 && $self->{mandanth}->isActive()) {
             # Check for Mandant cookie
             my %cookies;
             foreach my $header (@headers) {
@@ -541,6 +548,7 @@ sub handleClient($self, $client) {
         }
 
         binmode($backend);
+        $select->add($backend);
 
         # Add Pagecamel header for backend
         unshift @headers, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1";
@@ -549,26 +557,20 @@ sub handleClient($self, $client) {
         # Prepare "overhead"
         my $overhead = '';
         foreach my $header (@headers) {
-            $overhead .= encode_utf8($header) . "\r\n";
+            #$overhead .= encode_utf8($header) . "\r\n";
+            $overhead .= $header . "\r\n";
         }
+        print STDERR "******************************\n";
         print STDERR Dumper(\$overhead);
+        writeBinFile("/home/cavac/src/temp/frontend.txt", $overhead);
+        print STDERR "******************************\n";
 
-        if(!webPrint($backend, $overhead)) {
-            print STDERR "Could not write overhead to backend!\n";
-            $self->endprogram();
-        }
+        #my $select = IO::Select->new($client, $backend);
 
-        #sleep(0.01);
-        if($sigpipeseen) {
-            print STDERR "SIGPIPE ON FIRST WRITE TO BACKEND - Bailing out\n";
-            $self->endprogram();
-        }
-
-        my $select = IO::Select->new($client, $backend);
 
         my $done = 0;
         my $toclientbuffer = '';
-        my $tobackendbuffer = '';
+        my $tobackendbuffer = $overhead;
         my $debugincapture = '';
         my $debugoutcapture = '';
         my $clientdisconnect = 0;
@@ -582,7 +584,7 @@ sub handleClient($self, $client) {
             }
             if($sigpipehandled > 200) {
                 print STDERR "Too many SIGPIPEs, bailing out.\n";
-                print STDERR "*** Debug IN data: \n", $debugincapture, "\n";
+                #print STDERR "*** Debug IN data: \n", $debugincapture, "\n";
                 #print STDERR "*** Debug OUT data: \n", $debugoutcapture, "\n";
                 $done = 1;
             }
@@ -800,31 +802,33 @@ sub get408($self) {
     return $reply;
 }
 
-sub readheader($self, $timeout, $socket) {
+sub readheader($self, $timeout, $select) {
 
-    my $line;
+    my $line = '';
     my $ok = 0;
-    my $buf;
+    my $buf = '';
+
+    local $INPUT_RECORD_SEPARATOR = undef;
 
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $endtime = time + $timeout;
 
         while(1) {
             $buf = undef;
-            #my $bufstatus = sysread($socket, $buf, 1);
-            my $bufstatus = $socket->sysread($buf, 1);
-            #if(defined($bufstatus) && !$bufstatus) {
-            #    return;
-            #}
-            if(!defined($buf) || !length($buf)) {
+            my @connections = $select->can_read(1);
+            foreach my $socket (@connections) {
+                sysread($socket, $buf, 1);
+            }
+            if(!length($buf)) {
                 if(time > $endtime) {
-                    last;
+                    #last;
                 }
                 sleep(0.01);
                 next;
             }
-            $line .= $buf;
+            next if($buf eq "\r");
             last if($buf eq "\n");
+            $line .= $buf;
         }
         if(time <= $endtime) {
             $ok = 1;
@@ -834,16 +838,6 @@ sub readheader($self, $timeout, $socket) {
         return;
     }
 
-    $ok = 0;
-    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-        my $temp = decode_utf8($line);
-        $line = $temp;
-        $ok = 1;
-    };
-    if(!$ok) {
-        return;
-    }
-    $line =~ s/[\r\n]+$//;
     return $line;
 }
 
