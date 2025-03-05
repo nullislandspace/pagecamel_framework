@@ -568,6 +568,11 @@ sub parse_header_line($self, $ua, $header) {
             $ua->{headers}->{'Accept-Encoding-Array'} = \@parts;
         }
 
+        if($name eq 'Host') {
+            # Remove port number from host
+            $value =~ s/\:\d+$//g;
+        }
+
         $ua->{headers}->{$name} = $value;
         if($name eq 'Cookie') {
             my @parts = split/\;/, $value;

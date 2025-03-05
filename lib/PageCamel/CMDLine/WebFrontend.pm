@@ -26,6 +26,7 @@ use PageCamel::Helpers::WebPrint;
 use PageCamel::Helpers::Mandant;
 use Sys::Hostname;
 use POSIX;
+use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 # For turning off SSL session cache
 use Readonly;
@@ -449,25 +450,45 @@ sub handleClient($self, $client) {
         # We only grab them to
         #    a) make sure that the user agent is actually sending a request over the connection before starting a backend
         #    b) check if a certain cookie is set if "mandant" capability is enabled and re-select the backend
+
+
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #      WARNING: IO::Socket::SSL does not work if you sysread single bytes - you always have to read blocks
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         my @headers;
-        my $headertimeout = 60; # Wait up to a minute for the first header to show up, then only 5 for each subsequent header
+        my $headertimeout = 60 + time; # Wait up to a minute for the first header to show up
         my $headererrors = 0;
-        while(1) {
-            my $line = $self->readheader($headertimeout, $client);
-            if(!defined($line)) {
+        local $INPUT_RECORD_SEPARATOR = undef;
+        my $select = IO::Select->new($client);
+        my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
+
+        while($overhead !~ /\r\n\r\n/) {
+            my $buf = undef;
+            my @connections = $select->can_read(1);
+            foreach my $socket (@connections) {
+                sysread($socket, $buf, 10_000_000);
+            }
+            if(!defined($buf) || !length($buf)) {
+                sleep(0.01);
+                next;
+            }
+            $overhead .= $buf;
+
+            if($headertimeout < time) {
                 $headererrors = 1;
                 last;
             }
-
-            push @headers, $line;
-            $headertimeout = 5;
-
-            if($line eq '') {
-                last; # End of headers
-            }
         }
 
-        if($self->{mandanth}->isActive()) {
+        my $rawheaders = '' . $overhead;
+        @headers = $self->parseheaders($rawheaders);
+
+        print STDERR "##########################\n";
+        print STDERR Dumper(\@headers);
+        print STDERR "##########################\n";
+
+        if(1 && $self->{mandanth}->isActive()) {
             # Check for Mandant cookie
             my %cookies;
             foreach my $header (@headers) {
@@ -541,34 +562,11 @@ sub handleClient($self, $client) {
         }
 
         binmode($backend);
-
-        # Add Pagecamel header for backend
-        unshift @headers, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1";
-        print STDERR Dumper(\@headers);
-
-        # Prepare "overhead"
-        my $overhead = '';
-        foreach my $header (@headers) {
-            $overhead .= encode_utf8($header) . "\r\n";
-        }
-        print STDERR Dumper(\$overhead);
-
-        if(!webPrint($backend, $overhead)) {
-            print STDERR "Could not write overhead to backend!\n";
-            $self->endprogram();
-        }
-
-        #sleep(0.01);
-        if($sigpipeseen) {
-            print STDERR "SIGPIPE ON FIRST WRITE TO BACKEND - Bailing out\n";
-            $self->endprogram();
-        }
-
-        my $select = IO::Select->new($client, $backend);
+        $select->add($backend);
 
         my $done = 0;
         my $toclientbuffer = '';
-        my $tobackendbuffer = '';
+        my $tobackendbuffer = $overhead;
         my $debugincapture = '';
         my $debugoutcapture = '';
         my $clientdisconnect = 0;
@@ -582,7 +580,7 @@ sub handleClient($self, $client) {
             }
             if($sigpipehandled > 200) {
                 print STDERR "Too many SIGPIPEs, bailing out.\n";
-                print STDERR "*** Debug IN data: \n", $debugincapture, "\n";
+                #print STDERR "*** Debug IN data: \n", $debugincapture, "\n";
                 #print STDERR "*** Debug OUT data: \n", $debugoutcapture, "\n";
                 $done = 1;
             }
@@ -800,51 +798,33 @@ sub get408($self) {
     return $reply;
 }
 
-sub readheader($self, $timeout, $socket) {
+sub parseheaders($self, $rawheaders) {
 
-    my $line;
-    my $ok = 0;
-    my $buf;
+    my @headers;
 
-    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-        my $endtime = time + $timeout;
+    local $INPUT_RECORD_SEPARATOR = undef;
 
-        while(1) {
-            $buf = undef;
-            #my $bufstatus = sysread($socket, $buf, 1);
-            my $bufstatus = $socket->sysread($buf, 1);
-            #if(defined($bufstatus) && !$bufstatus) {
-            #    return;
-            #}
-            if(!defined($buf) || !length($buf)) {
-                if(time > $endtime) {
-                    last;
-                }
-                sleep(0.01);
-                next;
+    my @bytes = split//, $rawheaders;
+    my $line = '';
+
+    while(scalar @bytes) {
+        my $char = shift @bytes;
+        
+        next if($char eq "\r");
+
+        if($char eq "\n") {
+            if($line eq '') {
+                last;
             }
-            $line .= $buf;
-            last if($buf eq "\n");
+            push @headers, '' . $line;
+            $line = '';
+            next;
         }
-        if(time <= $endtime) {
-            $ok = 1;
-        }
-    };
-    if(!$ok || !defined($line)) {
-        return;
+
+        $line .= $char;
     }
 
-    $ok = 0;
-    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-        my $temp = decode_utf8($line);
-        $line = $temp;
-        $ok = 1;
-    };
-    if(!$ok) {
-        return;
-    }
-    $line =~ s/[\r\n]+$//;
-    return $line;
+    return @headers;
 }
 
 sub _getLocalIPs($self) {
