@@ -54,7 +54,7 @@ sub get($self, $ua) {
     }
 
     $reph->debuglog("SleepTest module: GET sleeping for 30 seconds");
-    #sleep(10);
+    sleep(5);
     $reph->debuglog("SleepTest module: Wakeup");
 
     my %rawdata = (
@@ -77,7 +77,7 @@ sub handlePost($self, $ua) {
     print STDERR Dumper($ua);
 
     $reph->debuglog("SleepTest module: POST sleeping for 30 seconds");
-    #sleep(10);
+    sleep(5);
     $reph->debuglog("SleepTest module: Wakeup");
 
     my $data = join('', reverse split//, $ua->{postdata});
