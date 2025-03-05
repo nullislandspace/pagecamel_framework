@@ -450,31 +450,45 @@ sub handleClient($self, $client) {
         # We only grab them to
         #    a) make sure that the user agent is actually sending a request over the connection before starting a backend
         #    b) check if a certain cookie is set if "mandant" capability is enabled and re-select the backend
+
+
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #      WARNING: IO::Socket::SSL does not work if you sysread single bytes - you always have to read blocks
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         my @headers;
-        my $headertimeout = 60; # Wait up to a minute for the first header to show up, then only 5 for each subsequent header
+        my $headertimeout = 60 + time; # Wait up to a minute for the first header to show up
         my $headererrors = 0;
         local $INPUT_RECORD_SEPARATOR = undef;
         my $select = IO::Select->new($client);
-        while(0) {
-            my $line = $self->readheader($headertimeout, $select);
-            if(!defined($line)) {
+        my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
+
+        while($overhead !~ /\r\n\r\n/) {
+            my $buf = undef;
+            my @connections = $select->can_read(1);
+            foreach my $socket (@connections) {
+                sysread($socket, $buf, 10_000_000);
+            }
+            if(!defined($buf) || !length($buf)) {
+                sleep(0.01);
+                next;
+            }
+            $overhead .= $buf;
+
+            if($headertimeout < time) {
                 $headererrors = 1;
                 last;
             }
-
-            push @headers, $line;
-            $headertimeout = 5;
-
-            if($line eq '') {
-                last; # End of headers
-            }
         }
+
+        my $rawheaders = '' . $overhead;
+        @headers = $self->parseheaders($rawheaders);
 
         print STDERR "##########################\n";
         print STDERR Dumper(\@headers);
         print STDERR "##########################\n";
 
-        if(0 && $self->{mandanth}->isActive()) {
+        if(1 && $self->{mandanth}->isActive()) {
             # Check for Mandant cookie
             my %cookies;
             foreach my $header (@headers) {
@@ -549,24 +563,6 @@ sub handleClient($self, $client) {
 
         binmode($backend);
         $select->add($backend);
-
-        # Add Pagecamel header for backend
-        unshift @headers, "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1";
-        print STDERR Dumper(\@headers);
-
-        # Prepare "overhead"
-        my $overhead = '';
-        foreach my $header (@headers) {
-            #$overhead .= encode_utf8($header) . "\r\n";
-            $overhead .= $header . "\r\n";
-        }
-        print STDERR "******************************\n";
-        print STDERR Dumper(\$overhead);
-        writeBinFile("/home/cavac/src/temp/frontend.txt", $overhead);
-        print STDERR "******************************\n";
-
-        #my $select = IO::Select->new($client, $backend);
-
 
         my $done = 0;
         my $toclientbuffer = '';
@@ -802,43 +798,33 @@ sub get408($self) {
     return $reply;
 }
 
-sub readheader($self, $timeout, $select) {
+sub parseheaders($self, $rawheaders) {
 
-    my $line = '';
-    my $ok = 0;
-    my $buf = '';
+    my @headers;
 
     local $INPUT_RECORD_SEPARATOR = undef;
 
-    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-        my $endtime = time + $timeout;
+    my @bytes = split//, $rawheaders;
+    my $line = '';
 
-        while(1) {
-            $buf = undef;
-            my @connections = $select->can_read(1);
-            foreach my $socket (@connections) {
-                sysread($socket, $buf, 1);
+    while(scalar @bytes) {
+        my $char = shift @bytes;
+        
+        next if($char eq "\r");
+
+        if($char eq "\n") {
+            if($line eq '') {
+                last;
             }
-            if(!length($buf)) {
-                if(time > $endtime) {
-                    #last;
-                }
-                sleep(0.01);
-                next;
-            }
-            next if($buf eq "\r");
-            last if($buf eq "\n");
-            $line .= $buf;
+            push @headers, '' . $line;
+            $line = '';
+            next;
         }
-        if(time <= $endtime) {
-            $ok = 1;
-        }
-    };
-    if(!$ok || !defined($line)) {
-        return;
+
+        $line .= $char;
     }
 
-    return $line;
+    return @headers;
 }
 
 sub _getLocalIPs($self) {
