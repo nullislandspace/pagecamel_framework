@@ -484,9 +484,9 @@ sub handleClient($self, $client) {
         my $rawheaders = '' . $overhead;
         @headers = $self->parseheaders($rawheaders);
 
-        print STDERR "##########################\n";
-        print STDERR Dumper(\@headers);
-        print STDERR "##########################\n";
+        #print STDERR "##########################\n";
+        #print STDERR Dumper(\@headers);
+        #print STDERR "##########################\n";
 
         if(1 && $self->{mandanth}->isActive()) {
             # Check for Mandant cookie
