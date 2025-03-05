@@ -23,6 +23,7 @@ devscripts/fixcroak.pl
 devscripts/fixpragmas.pl
 devscripts/install_patched_modules.sh
 devscripts/nohss.pl
+devscripts/pagecamel_async_ua.pl
 devscripts/pgadmin4_install.txt
 devscripts/resetpod.pl
 devscripts/setcopyright.pl
@@ -47,6 +48,7 @@ lib/PageCamel/Framework.pm
 lib/PageCamel/Helpers.pm
 lib/PageCamel/Helpers/APPQRCode.pm
 lib/PageCamel/Helpers/ArduinoDisplay.pm
+lib/PageCamel/Helpers/AsyncUA.pm
 lib/PageCamel/Helpers/AutoDialogs.pm
 lib/PageCamel/Helpers/ClacksCache.pm
 lib/PageCamel/Helpers/Colors.pm
