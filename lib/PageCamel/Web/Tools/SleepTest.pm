@@ -80,16 +80,11 @@ sub handlePost($self, $ua) {
     #sleep(10);
     $reph->debuglog("SleepTest module: Wakeup");
 
-    my %rawdata = (
-        hello => 'world',
-        hallo => 'welt',
-    );
-
-    my $json = encode_json \%rawdata;
+    my $data = join('', reverse split//, $ua->{postdata});
 
     return (status => 200,
-            type => 'application/octet-stream',
-            data => $json,
+            type => 'application/octed-stream',
+            data => $data,
     );
 }
 
