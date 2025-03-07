@@ -463,32 +463,38 @@ sub handleClient($self, $client) {
         my $select = IO::Select->new($client);
         my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
 
-        while($overhead !~ /\r\n\r\n/) {
-            my $buf = undef;
-            my @connections = $select->can_read(1);
-            foreach my $socket (@connections) {
-                sysread($socket, $buf, 10_000_000);
-            }
-            if(!defined($buf) || !length($buf)) {
-                sleep(0.01);
-                next;
-            }
-            $overhead .= $buf;
+        my $headerevalok = 0;
+        eval {
+            alarm($headertimeout);
 
-            if($headertimeout < time) {
-                $headererrors = 1;
-                last;
+            while($overhead !~ /\r\n\r\n/) {
+                my $buf = undef;
+                my @connections = $select->can_read(1);
+                foreach my $socket (@connections) {
+                    sysread($socket, $buf, 10_000_000);
+                }
+                if(!defined($buf) || !length($buf)) {
+                    sleep(0.01);
+                    next;
+                }
+                $overhead .= $buf;
+
+                if($headertimeout < time) {
+                    $headererrors = 1;
+                    last;
+                }
             }
-        }
+            $headerevalok = 1;
+        };
+        alarm(0);
 
         my $rawheaders = '' . $overhead;
-        @headers = $self->parseheaders($rawheaders);
 
-        #print STDERR "##########################\n";
-        #print STDERR Dumper(\@headers);
-        #print STDERR "##########################\n";
+        if(!$headererrors) {
+            @headers = $self->parseheaders($rawheaders);
+        }
 
-        if(1 && $self->{mandanth}->isActive()) {
+        if(!$headererrors && $self->{mandanth}->isActive()) {
             # Check for Mandant cookie
             my %cookies;
             foreach my $header (@headers) {
