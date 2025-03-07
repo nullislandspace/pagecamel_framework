@@ -273,6 +273,10 @@ sub simplifyUA($useragentname) {
         # Seems to sell access for searching webshops and blogs. Block it.
         $simpleUserAgent = "Webspider_bad/datenbutler.de";
         $denyAccess = 1;
+    } elsif($useragentname =~ /openai\.com/io) {
+        # ShitGPT aka ChatGPT
+        $simpleUserAgent = "Webspider_bad/openai-chatgpt";
+        $denyAccess = 1;
     } elsif($useragentname =~ /nlpproject\.info/io) {
         # Crawler that doesn't provide ANY info (website down)
         $simpleUserAgent = "Suspicious/nlpproject.info";
