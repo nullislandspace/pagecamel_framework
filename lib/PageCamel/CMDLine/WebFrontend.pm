@@ -254,10 +254,14 @@ sub run($self) {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
 
-                #print "**** Connection from ", $client->peerhost(), "   \n";
+                my $peerhost = $client->peerhost();
+                print "**** Connection from ", $peerhost, "   \n";
+                #if(0 && $peerhost ne '94.130.141.212') {
+                #    $client->close;
+                #    next;
+                #}
 
                 if(defined($self->{debugip})) {
-                    my $peerhost = $client->peerhost();
                     if($peerhost ne $self->{debugip}) {
                         $client->close;
                         next;
@@ -356,12 +360,15 @@ sub handleClient($self, $client) {
             }
         }
 
+        my $headertimeout = 60; # Wait up to a minute for the first header to show up
         if($usessl) {
             my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
             my $encrypted;
             my $ok = 0;
             eval {
+                #print STDERR "SSL connecting\n";
                 $encrypted = IO::Socket::SSL->start_SSL($client,
+                    Timeout => $headertimeout,
                     SSL_server => 1,
                     SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
                     SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
@@ -434,6 +441,7 @@ sub handleClient($self, $client) {
                 );
                 $ok = 1;
             };
+            #print STDERR "SSL connected\n";
 
             if(!$ok) {
                 print STDERR "EVAL ERROR: ", $EVAL_ERROR, "\n";
@@ -457,38 +465,50 @@ sub handleClient($self, $client) {
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         my @headers;
-        my $headertimeout = 60 + time; # Wait up to a minute for the first header to show up
         my $headererrors = 0;
         local $INPUT_RECORD_SEPARATOR = undef;
         my $select = IO::Select->new($client);
         my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
+        my $endtime = time + $headertimeout;
 
-        while($overhead !~ /\r\n\r\n/) {
-            my $buf = undef;
-            my @connections = $select->can_read(1);
-            foreach my $socket (@connections) {
-                sysread($socket, $buf, 10_000_000);
-            }
-            if(!defined($buf) || !length($buf)) {
-                sleep(0.01);
-                next;
-            }
-            $overhead .= $buf;
+        my $headerevalok = 0;
+        eval {
+            #print STDERR "Start header reading...\n";
+            alarm($headertimeout);
 
-            if($headertimeout < time) {
-                $headererrors = 1;
-                last;
+            while($overhead !~ /\r\n\r\n/) {
+                my $buf = undef;
+                my @connections = $select->can_read(1);
+                foreach my $socket (@connections) {
+                    sysread($socket, $buf, 10_000_000);
+                }
+                if(!defined($buf) || !length($buf)) {
+                    sleep(0.01);
+                    next;
+                }
+                $overhead .= $buf;
+
+                if($endtime < time) {
+                    $headererrors = 1;
+                    last;
+                }
             }
+            $headerevalok = 1;
+        };
+        alarm(0);
+
+        if(!$headerevalok) {
+            #print STDERR "Header read timeout!\n";
+            $headererrors = 1;
         }
 
         my $rawheaders = '' . $overhead;
-        @headers = $self->parseheaders($rawheaders);
 
-        print STDERR "##########################\n";
-        print STDERR Dumper(\@headers);
-        print STDERR "##########################\n";
+        if(!$headererrors) {
+            @headers = $self->parseheaders($rawheaders);
+        }
 
-        if(1 && $self->{mandanth}->isActive()) {
+        if(!$headererrors && $self->{mandanth}->isActive()) {
             # Check for Mandant cookie
             my %cookies;
             foreach my $header (@headers) {
