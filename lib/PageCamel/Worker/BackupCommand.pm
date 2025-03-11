@@ -68,7 +68,6 @@ sub execute($self, $command, $arguments) {
 }
 
 sub do_backup($self, $arguments) {
-    my $ok = 1;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -150,14 +149,21 @@ sub do_backup($self, $arguments) {
     # This may take quite long, so disable the lifetick
     $memh->disable_lifetick;
 
-    # Backticks seem just right in this case, ignore perl::Critic
+    $fullcommand .= ' && echo PAGECAMEL_CALL_OK';
     my @lines = `$fullcommand`;
 
-    my $retval = ($CHILD_ERROR >> 8);
-    $reph->debuglog("RETVAL: ", $retval);
+    my $ok = 0;
 
-    if($retval != 0) {
-        $ok = 0;
+    foreach my $line (@lines) {
+        if($line =~ /PAGECAMEL\_CALL\_OK/) {
+            $ok = 1;
+        }
+    }
+
+    if($ok) {
+        $reph->debuglog("Backup OK");
+    } else {
+        $reph->debuglog("Backup FAILED");
     }
 
     my $inssth = $dbh->prepare("INSERT INTO pgbackup_log (backuptype, is_ok) VALUES ('BACKUP', ?)")
