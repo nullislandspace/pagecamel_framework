@@ -44,6 +44,10 @@ sub new($proto, %config) {
     $self->{Themes} = \@themes;
     $self->{firstReload} = 1;
 
+    if(!defined($self->{defaultlanguage})) {
+        $self->{defaultlanguage} = 'eng'; # Default to english if not set in config file
+    }
+
     return $self;
 }
 
@@ -375,14 +379,14 @@ sub prerender($self, $webdata) {
     if(!defined($webdata->{userData}) ||
               !defined($webdata->{userData}->{user}) ||
               $webdata->{userData}->{user} eq "") {
-              $webdata->{UserLanguage} = "eng";
-              PageCamel::Helpers::TemplateEngine::Translate->setLang("eng");
+              $webdata->{UserLanguage} = $self->{defaultlanguage};
+              PageCamel::Helpers::TemplateEngine::Translate->setLang($self->{defaultlanguage});
     }
 
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my ($ok, $langname) = $seth->get($webdata->{userData}->{user}, "UserLanguage");
 
-    my $lang = "eng"; # Use english as default
+    my $lang = $self->{defaultlanguage};
     if(defined($langname)) {
         $langname = dbderef($langname);
     }
