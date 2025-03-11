@@ -527,15 +527,18 @@ sub handleClient($self, $client) {
             }
 
             if(defined($cookies{Mandant}) && $cookies{Mandant} ne '') {
-                my @mandants = $self->{mandanth}->getList();
-                if(contains($cookies{Mandant}, \@mandants)) {
-                    my $newselectedbackend = $self->{mandanth}->getBackend($cookies{Mandant});
-                    if(!defined($newselectedbackend)) {
-                        print STDERR "Unknown Mandant ", $cookies{Mandant}, ", using previously selected backend\n";
-                    } else {
-                        print STDERR "Using backend ", $newselectedbackend, " for mandant ", $cookies{Mandant}, "\n";
-                        $selectedbackend = $newselectedbackend;
-                    }
+                my $shortname = $cookies{Mandant};
+                if(!$self->{mandanth}->isValidMandant($shortname)) {
+                    my $defaultmandant = $self->{mandanth}->getDefaultMandant();
+                    print STDERR "Unknown Mandant ", $shortname, ", using default mandant ", $defaultmandant, " instead\n";
+                    $shortname = $defaultmandant;
+                }
+                my $newselectedbackend = $self->{mandanth}->getBackend($shortname);
+                if(defined($newselectedbackend)) {
+                    print STDERR "Using backend ", $newselectedbackend, " for mandant ", $shortname, "\n";
+                    $selectedbackend = $newselectedbackend;
+                } else {
+                    print STDERR "Mandant config error? Ignoring Mandant config!\n";
                 }
             }
         }
