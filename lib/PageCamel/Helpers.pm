@@ -20,6 +20,7 @@ use base qw(Exporter);
 #=!=START-AUTO-INCLUDES
 use PageCamel::Helpers::APPQRCode;
 use PageCamel::Helpers::ArduinoDisplay;
+use PageCamel::Helpers::AsyncUA;
 use PageCamel::Helpers::AutoDialogs;
 use PageCamel::Helpers::CSVFilter;
 use PageCamel::Helpers::ClacksCache;

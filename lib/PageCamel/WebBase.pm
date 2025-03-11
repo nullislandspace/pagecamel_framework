@@ -926,25 +926,32 @@ nextrequest:
     my $head_automagic = 0;
 
     if(defined($ua->{cookies}->{'Mandant'})) {
-        if($currentmandant ne '' && $currentmandant ne $ua->{cookies}->{'Mandant'}) {
+        my $selectedmandant = $ua->{cookies}->{'Mandant'};
+        if(!$mandanth->isValidMandant($selectedmandant)) {
+            $selectedmandant = $mandanth->getDefaultMandant();
+        }
+        if($currentmandant ne '' && $currentmandant ne $selectedmandant) {
             # Mismatch, need to reload the page on a new connection
 
             
-            $ua->{keepalive} = 0;
-            goto cleanup;
-
-            #my %result = (status    => 200, # Default result
-            #              type      => "text/plain",
-            #              data      => "<html><head><title>Mandant change detected</title></head>" .
-            #                            "<body onload=\"reloadPage()\">Reloading page because mandant changed.\n" .
-            #                            "<script>function reloadPage() {\n" .
-            #                            "window.location.reload();\n" .
-            #                            "}\n" .
-            #                            "</script></body></html>",
-            #              pagedone => 1,
-            #              keepalive => 0,
-            #              );
-            #$ua->{keepalive} = 0;
+            if(1) {
+                # Works better!
+                $ua->{keepalive} = 0;
+                goto cleanup;
+            } else {
+                my %result = (status    => 200, # Default result
+                              type      => "text/plain",
+                              data      => "<html><head><title>Mandant change detected</title></head>" .
+                                            "<body onload=\"reloadPage()\">Reloading page because mandant changed.\n" .
+                                            "<script>function reloadPage() {\n" .
+                                            "window.location.reload();\n" .
+                                            "}\n" .
+                                            "</script></body></html>",
+                              pagedone => 1,
+                              keepalive => 0,
+                              );
+                $ua->{keepalive} = 0;
+            }
         }
     }
 

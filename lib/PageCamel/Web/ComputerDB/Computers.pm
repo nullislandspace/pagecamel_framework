@@ -542,7 +542,7 @@ sub get_edit($self, $ua) {
         push @{$webdata{HeadExtraCSS}}, $self->{csspath};
     }
 
-    print Dumper($webdata{HeadExtraCSS});
+    #print Dumper($webdata{HeadExtraCSS});
     
     # -- CVCEditor stuff --
     push @{$webdata{HeadExtraScripts}}, (

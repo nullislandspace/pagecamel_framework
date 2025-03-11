@@ -491,7 +491,7 @@ reloaddata:
         if($ok && $sysval->{settingvalue} ne '') {
             $projectname = $sysval->{settingvalue};
         } else {
-            $reph->debuglog("### ", $ok, " / ", Dumper($sysval));
+            #$reph->debuglog("### ", $ok, " / ", Dumper($sysval));
         }
 
         $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
