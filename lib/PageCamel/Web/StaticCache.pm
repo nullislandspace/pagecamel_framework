@@ -53,6 +53,12 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    if(defined($ENV{PC_DISABLE_HTTPCOMPRESSION}) && $ENV{PC_DISABLE_HTTPCOMPRESSION}) {
+        $self->{enableCompression} = 0;
+    } else {
+        $self->{enableCompression} = 1;
+    }
+
     my @tmp;
     if(!defined($self->{EXTRAINC})) {
         $self->{EXTRAINC} = \@tmp;
@@ -277,7 +283,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0, $relinkjs = 0) {
             $entry{data} = $data;
 
             #print STDERR "Compressing $nfname\n";
-            { # Try GZIP compression
+            if($self->{enableCompression}) { # Try GZIP compression
                 my $ldata = $data . '';
                 my $gzipped;
                 if(gzip(\$ldata => \$gzipped, '-Level' => 9)) {
@@ -289,7 +295,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0, $relinkjs = 0) {
                 }
             }
 
-            if($brotliavailable) { # Try BROTLI compression
+            if($self->{enableCompression} && $brotliavailable) { # Try BROTLI compression
                 #print STDERR "Compressing $nfname\n";
                 my $ldata = $data . '';
                 my $brotli = bro($ldata, 9); # Best compression (11) is way too slow, use a slghtly lower level
@@ -505,11 +511,11 @@ sub get($self, $ua) {
         my $compressed = 0;
         if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
             # Prefer brotli over gzip
-            if(!$compressed && contains('br', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{brotlidata})) {
+            if($self->{enableCompression} && !$compressed && contains('br', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{brotlidata})) {
                 $retpage{data} = $self->{cache}->{$name}->{brotlidata};
                 $retpage{"Content-Encoding"} = "br";
                 $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
-            } elsif(contains('gzip', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{gzipdata})) {
+            } elsif($self->{enableCompression} && contains('gzip', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{gzipdata})) {
                 $retpage{data} = $self->{cache}->{$name}->{gzipdata};
                 $retpage{"Content-Encoding"} = "gzip";
                 $self->extend_header(\%retpage, "Vary", "Accept-Encoding");

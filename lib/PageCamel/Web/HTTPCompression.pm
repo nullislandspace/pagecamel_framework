@@ -42,6 +42,13 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    if(defined($ENV{PC_DISABLE_HTTPCOMPRESSION}) && $ENV{PC_DISABLE_HTTPCOMPRESSION}) {
+        $self->{enableCompression} = 0;
+    } else {
+        $self->{enableCompression} = 1;
+    }
+
+
     if(!defined($self->{gzip})) {
         $self->{gzip} = 0;
     }
@@ -63,9 +70,12 @@ sub reload($self) {
 }
 
 sub register($self) {
+    if(!$self->{enableCompression}) {
+        return;
+    }
 
     # only register if we actually have at least ONE compression type enabled
-    if($self->{gzip}) {
+    if($self->{gzip} || $self->{brotli}) {
         $self->register_postfilter("postfilter");
     }
     return;
