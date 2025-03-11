@@ -190,7 +190,7 @@ sub init($self) {
 
     if($hasssl) {
         if(!defined($self->{config}->{sslconfig}->{ssldefaultdomain})) {
-            print Dumper($self->{config}->{sslconfig});
+            #print Dumper($self->{config}->{sslconfig});
             croak("ssldefaultdomain not set!");
         }
         my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};

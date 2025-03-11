@@ -63,7 +63,7 @@ sub init($self) {
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
     $PROGRAM_NAME = $ps_appname;
         
-    print Dumper($self);
+    #print Dumper($self);
     my $vserv = PageCamel::Helpers::VoiceClient->new($self->{config}->{ip}, $self->{config}->{port}, $self->{config}->{username});
     $vserv->setmike(1);
     $vserv->setspeaker(0);

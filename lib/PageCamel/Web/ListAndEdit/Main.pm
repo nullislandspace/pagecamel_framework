@@ -3357,7 +3357,7 @@ sub write_auditlog($self, $username, $mode, @data) {
     my @newdata;
     foreach my $field (@data) {
         if(ref $field eq 'ARRAY') {
-            print STDERR Dumper($field);
+            #print STDERR Dumper($field);
             my $parsedfield = $self->parseArray($field);
             print STDERR "Parsedfield:\n", $parsedfield;
             push @newdata, $parsedfield;

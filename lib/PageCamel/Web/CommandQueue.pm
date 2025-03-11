@@ -124,8 +124,8 @@ sub get_admin($self, $ua) {
         $backupsth->finish;
     }
     $webdata{Backups} = \@backups;
-    print STDERR Dumper(\@pagecameltables);
-    print STDERR Dumper($webdata{Backups});
+    #print STDERR Dumper(\@pagecameltables);
+    #print STDERR Dumper($webdata{Backups});
 
     my @computers;
     if(contains('pagecamel.computers', \@pagecameltables)) {
