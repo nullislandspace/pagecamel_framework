@@ -70,6 +70,7 @@ sub new($class, $isDebugging, $configfile) {
         }
     }
 
+
     $self->init();
     
     return $self;
@@ -133,14 +134,17 @@ sub init($self) {
             delete $self->{config}->{sslconfig}->{ssldomains}->{$host};
         }
     }
-
-
     
     my $APPNAME = $config->{appname};
     PageCamelLogo($APPNAME, $VERSION);
     print "Changing application name to '$APPNAME'\n\n";
     my $ps_appname = lc($APPNAME);
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
+
+    if(!defined($self->{config}->{headertimeout})) {
+        print STDERR "headertimeout not defined, setting it to 30 seconds\n";
+        $self->{config}->{headertimeout} = 30;
+    }
     
     if(!-d '/run/lock/pagecamel') {
         mkdir '/run/lock/pagecamel';
@@ -360,7 +364,8 @@ sub handleClient($self, $client) {
             }
         }
 
-        my $headertimeout = 60; # Wait up to a minute for the first header to show up
+        my $headertimeout = $self->{config}->{headertimeout};
+        my $endtime = time + $headertimeout;
         if($usessl) {
             my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
             my $encrypted;
@@ -469,12 +474,16 @@ sub handleClient($self, $client) {
         local $INPUT_RECORD_SEPARATOR = undef;
         my $select = IO::Select->new($client);
         my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
-        my $endtime = time + $headertimeout;
-
         my $headerevalok = 0;
+
+        my $readtimeout = $endtime - time;
+        if($readtimeout < 2) {
+            $readtimeout = 2;
+        }
+
         eval {
             #print STDERR "Start header reading...\n";
-            alarm($headertimeout);
+            alarm($readtimeout);
 
             while($overhead !~ /\r\n\r\n/) {
                 my $buf = undef;
