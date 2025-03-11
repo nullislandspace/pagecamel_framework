@@ -184,12 +184,14 @@ sub do_backup($self, $arguments) {
     }
 
     if($backupdata->{external_backup_directory} ne '') {
-        if(!$self->_dirsync($backupdata->{backup_directory}, $backupdata->{external_backup_directory}, $backupdata->{external_max_age_days})) {
-            $ok = 0;
+        if($ok) {
+            if(!$self->_dircleaner($backupdata->{external_backup_directory}, $backupdata->{external_max_age_days})) {
+                $ok = 0;
+            }
         }
 
         if($ok) {
-            if(!$self->_dircleaner($backupdata->{external_backup_directory}, $backupdata->{external_max_age_days})) {
+            if(!$self->_dirsync($backupdata->{backup_directory}, $backupdata->{external_backup_directory}, $backupdata->{external_max_age_days})) {
                 $ok = 0;
             }
         }
