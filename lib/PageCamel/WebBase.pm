@@ -925,7 +925,7 @@ nextrequest:
     my %fallbackresult = %result; # Just in case
     my $head_automagic = 0;
 
-    if(defined($ua->{cookies}->{'Mandant'})) {
+    if(defined($ua->{cookies}->{'Mandant'}) && $mandanth->isActive() && $currentmandant ne '') {
         my $selectedmandant = $ua->{cookies}->{'Mandant'};
         if(!$mandanth->isValidMandant($selectedmandant)) {
             $selectedmandant = $mandanth->getDefaultMandant();
