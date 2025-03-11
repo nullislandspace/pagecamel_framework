@@ -63,6 +63,18 @@ sub reload($self) {
     }
     tr_reload();
 
+    if(defined($ENV{PC_IMPORT_TRANSLATIONS}) && $ENV{PC_IMPORT_TRANSLATIONS}) {
+        my $fname = $ENV{PC_IMPORT_TRANSLATIONS};
+        print STDERR "Importing translations from ", $fname, "\n";
+        if(!-f $fname) {
+            print STDERR "   FILE NOT FOUND!\n";
+        } else {
+            my $data = slurpBinFile($fname);
+            tr_import($data);
+            print "Translations imported!\n";
+        }
+    }
+
     return;
 }
 
