@@ -77,8 +77,6 @@ sub new($proto) {
         if($ENV{PC_MANDANT} eq $self->{xml}->{default}) {
             $self->{isDefault} = 1;
         }
-
-        #print STDERR "Mandant subsystem active\n";
     }
 
     return $self;
@@ -125,6 +123,16 @@ sub getList($self) {
     @mandants = sort @mandants;
 
     return @mandants;
+}
+
+sub isValidMandant($self, $shortname) {
+    if(!$self->{active}) {
+        croak("Can't call isValidMandant() without loaded mandant config");
+    }
+
+    my @mandants = $self->getList();
+
+    return contains($shortname, \@mandants);
 }
 
 sub getBackend($self, $shortname) {

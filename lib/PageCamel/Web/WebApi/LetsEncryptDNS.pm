@@ -209,7 +209,7 @@ sub api_remove {
 sub api_test {
     my($self, $ua, %options) =@_;
 
-    print Dumper(\%options);
+    #print Dumper(\%options);
     my $returncode = 0;
     if(defined($options{returnCode})) {
         $returncode = 0 + $options{returnCode};

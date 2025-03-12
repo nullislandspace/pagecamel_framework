@@ -527,9 +527,11 @@ sub updateIPTables($self) {
     }
 
     $reph->debuglog("Loading ip4 rules into kernel");
-    `/usr/bin/updateiptables iptables-restore < /home/cavac/src/pagecamel_cavac/server/iptables/ip4tables.rules`;
+    #`/usr/bin/updateiptables iptables-restore < /home/cavac/src/pagecamel_cavac/server/iptables/ip4tables.rules`;
+    `/usr/bin/updateiptables --ipv4 /home/cavac/src/pagecamel_cavac/server/iptables/ip4tables.rules`;
     $reph->debuglog("Loading ip6 rules into kernel");
-    `/usr/bin/updateiptables ip6tables-restore < /home/cavac/src/pagecamel_cavac/server/iptables/ip6tables.rules`;
+    #`/usr/bin/updateiptables ip6tables-restore < /home/cavac/src/pagecamel_cavac/server/iptables/ip6tables.rules`;
+    `/usr/bin/updateiptables -- ipv6 /home/cavac/src/pagecamel_cavac/server/iptables/ip6tables.rules`;
     $reph->debuglog("Firewall updated");
 
 

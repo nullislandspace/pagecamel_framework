@@ -56,7 +56,7 @@ sub new($proto, %config) {
          },
      );
 
-     print STDERR Dumper(\%bridgeconfig);
+     #print STDERR Dumper(\%bridgeconfig);
 
      $self->{bridge} = Net::Clacks::PostgreSQL2Clacks->new(%bridgeconfig);
 

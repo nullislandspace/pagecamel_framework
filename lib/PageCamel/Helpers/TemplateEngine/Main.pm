@@ -50,6 +50,12 @@ my $templatemodulecount = 0;
 my @knowntemplatemodules;
 
 sub init($self) {
+    if(defined($ENV{PC_DISABLE_HTTPCOMPRESSION}) && $ENV{PC_DISABLE_HTTPCOMPRESSION}) {
+        $self->{enableCompression} = 0;
+    } else {
+        $self->{enableCompression} = 1;
+    }
+
     $self->_initTT();
     foreach my $key (qw[uninlineJavascript preventCSS prerenderCallback db reporting]) {
         if(!defined($self->{$key})) {
@@ -603,7 +609,7 @@ sub do_uninline($self, $data, $kname, $fname) {
         }
         
         my $jsdata = join("\n", @jslines);
-        if(!$dynamicmode && !$self->{isDebugging}) {
+        if(!$dynamicmode && !$self->{isDebugging} && $self->{enableCompression}) {
             my $minified = minify(input => $jsdata);
             if(length($minified) < length($jsdata)) {
                 print "   Minified $jsname_static, saved ", length($jsdata) - length($minified), " bytes\n";
@@ -628,7 +634,7 @@ sub do_uninline($self, $data, $kname, $fname) {
             $filedata{uncompresseddata} = '[% USE tr %]' . $filedata{uncompresseddata} . "\n";
             $self->{uninlinefiles}->{$jsname_dynamic}= \%filedata;
         } else {
-            {
+            if($self->{enableCompression}) {
                 my $gzipped;
                 if(gzip(\$jsdata => \$gzipped, '-Level' => 9)) { # Use best available gzip compression for static stuff
                     if(length($gzipped) < length($jsdata)) {
@@ -636,7 +642,7 @@ sub do_uninline($self, $data, $kname, $fname) {
                     }
                 }
             }
-            if($brotliavailable) {
+            if($self->{enableCompression} && $brotliavailable) {
                 my $brotli = bro($jsdata, 9);
                 if(length($brotli) < length($jsdata)) {
                     $filedata{brotlidata} = $brotli
@@ -703,13 +709,13 @@ sub get_uninline_static($self, $ua) {
 
     if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
         my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
-        if($brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{brotlidata})) {
+        if($self->{enableCompression} && $brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{brotlidata})) {
             $retpage{data} = $self->{uninlinefiles}->{$fname}->{brotlidata};
             $retpage{"Content-Encoding"} = "br";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
             $compressed = 1;
         }
-        if(!$compressed && contains('gzip', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{gzipdata})) {
+        if($self->{enableCompression} && !$compressed && contains('gzip', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{gzipdata})) {
             $retpage{data} = $self->{uninlinefiles}->{$fname}->{gzipdata};
             $retpage{"Content-Encoding"} = "gzip";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");

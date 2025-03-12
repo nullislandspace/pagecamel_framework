@@ -124,8 +124,8 @@ sub get_admin($self, $ua) {
         $backupsth->finish;
     }
     $webdata{Backups} = \@backups;
-    print STDERR Dumper(\@pagecameltables);
-    print STDERR Dumper($webdata{Backups});
+    #print STDERR Dumper(\@pagecameltables);
+    #print STDERR Dumper($webdata{Backups});
 
     my @computers;
     if(contains('pagecamel.computers', \@pagecameltables)) {
@@ -151,7 +151,6 @@ sub get_admin($self, $ua) {
 
             if($mode eq "schedulecommand") {
                 my $isodate = $ua->{postparams}->{'starttime'} || '';
-                print "Fucking datestring: ->", $isodate, "<-\n";
                 if($isodate eq '-- ::' || $isodate eq '____-__-__ __:__:__') {
                     # Compensate for datetimepicker mask when field is empty
                     $isodate = '';

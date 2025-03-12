@@ -56,6 +56,12 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    if(defined($ENV{PC_DISABLE_HTTPCOMPRESSION}) && $ENV{PC_DISABLE_HTTPCOMPRESSION}) {
+        $self->{enableCompression} = 0;
+    } else {
+        $self->{enableCompression} = 1;
+    }
+
     $self->{sessionname} = "ListView::" . $self->{modname};
 
     # iframemode can either be "list" or "edit"
@@ -172,7 +178,7 @@ sub new($proto, %config) {
         $self->{extraeditscript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
         $self->{extraeditscript_webdate} = getWebdate();
 
-        {
+        if($self->{enableCompression}) {
             my $gzipped;
             if(gzip(\$extrajavascript => \$gzipped, '-Level' => 9)) {
                 if(length($gzipped) < length($extrajavascript)) {
@@ -180,7 +186,7 @@ sub new($proto, %config) {
                 }
             }
         }
-        if($brotliavailable) {
+        if($self->{enableCompression} && $brotliavailable) {
             my $brotli = bro($extrajavascript, 9);;
             if(length($brotli) < length($extrajavascript)) {
                 $self->{extraeditscript_brotli} = $brotli;
@@ -206,7 +212,7 @@ sub new($proto, %config) {
         $self->{extralistscript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
         $self->{extralistscript_webdate} = getWebdate();
 
-        {
+        if($self->{enableCompression}) {
             my $gzipped;
             if(gzip(\$extrajavascript => \$gzipped, '-Level' => 9)) {
                 if(length($gzipped) < length($extrajavascript)) {
@@ -214,7 +220,7 @@ sub new($proto, %config) {
                 }
             }
         }
-        if($brotliavailable) {
+        if($self->{enableCompression} && $brotliavailable) {
             my $brotli = bro($extrajavascript, 9);;
             if(length($brotli) < length($extrajavascript)) {
                 $self->{extralistscript_brotli} = $brotli;
@@ -1313,13 +1319,13 @@ sub get_pagescript($self, $ua, $mode) {
 
     if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
         my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
-        if($brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{$prefix . '_brotli'})) {
+        if($self->{enableCompression} && $brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{$prefix . '_brotli'})) {
             $retpage{data} = $self->{$prefix . '_brotli'};
             $retpage{"Content-Encoding"} = "br";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
             $compressed = 1;
         }
-        if(!$compressed && contains('gzip', $supportedcompress) && defined($self->{$prefix . '_gzip'})) {
+        if($self->{enableCompression} && !$compressed && contains('gzip', $supportedcompress) && defined($self->{$prefix . '_gzip'})) {
             $retpage{data} = $self->{$prefix . '_gzip'};
             $retpage{"Content-Encoding"} = "gzip";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
@@ -3357,7 +3363,7 @@ sub write_auditlog($self, $username, $mode, @data) {
     my @newdata;
     foreach my $field (@data) {
         if(ref $field eq 'ARRAY') {
-            print STDERR Dumper($field);
+            #print STDERR Dumper($field);
             my $parsedfield = $self->parseArray($field);
             print STDERR "Parsedfield:\n", $parsedfield;
             push @newdata, $parsedfield;

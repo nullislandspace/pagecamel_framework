@@ -44,6 +44,10 @@ sub new($proto, %config) {
     $self->{Themes} = \@themes;
     $self->{firstReload} = 1;
 
+    if(!defined($self->{defaultlanguage})) {
+        $self->{defaultlanguage} = 'eng'; # Default to english if not set in config file
+    }
+
     return $self;
 }
 
@@ -58,6 +62,18 @@ sub reload($self) {
         tr_init($dbh, $memh, $self->{isDebugging});
     }
     tr_reload();
+
+    if(defined($ENV{PC_IMPORT_TRANSLATIONS}) && $ENV{PC_IMPORT_TRANSLATIONS}) {
+        my $fname = $ENV{PC_IMPORT_TRANSLATIONS};
+        print STDERR "Importing translations from ", $fname, "\n";
+        if(!-f $fname) {
+            print STDERR "   FILE NOT FOUND!\n";
+        } else {
+            my $data = slurpBinFile($fname);
+            tr_import($data);
+            print "Translations imported!\n";
+        }
+    }
 
     return;
 }
@@ -375,14 +391,14 @@ sub prerender($self, $webdata) {
     if(!defined($webdata->{userData}) ||
               !defined($webdata->{userData}->{user}) ||
               $webdata->{userData}->{user} eq "") {
-              $webdata->{UserLanguage} = "eng";
-              PageCamel::Helpers::TemplateEngine::Translate->setLang("eng");
+              $webdata->{UserLanguage} = $self->{defaultlanguage};
+              PageCamel::Helpers::TemplateEngine::Translate->setLang($self->{defaultlanguage});
     }
 
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my ($ok, $langname) = $seth->get($webdata->{userData}->{user}, "UserLanguage");
 
-    my $lang = "eng"; # Use english as default
+    my $lang = $self->{defaultlanguage};
     if(defined($langname)) {
         $langname = dbderef($langname);
     }

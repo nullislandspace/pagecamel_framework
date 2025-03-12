@@ -95,9 +95,14 @@ sub work($self) {
 
         my $extrawhere = '';
         if(time < $self->{starttime} + 600) {
-            # Don't start backups right after worker start, wait at least 10 minutes
-            $extrawhere .= "AND command != 'BACKUP' ";
-            $reph->debuglog("Ignoring BACKUP commands until 10 after worker start");
+            if($self->{isDebugging}) {
+                $reph->debuglog("Would ignore BACKUP commands for 10 minutes after start, but we are in debugging mode");
+                $self->{starttime} = 0;
+            } else {
+                # Don't start backups right after worker start, wait at least 10 minutes
+                $extrawhere .= "AND command != 'BACKUP' ";
+                $reph->debuglog("Ignoring BACKUP commands until 10 after worker start");
+            }
         }
 
         # We LOCK the command we're working on and update it with the name of
