@@ -777,6 +777,34 @@ sub printAddBoldTextLine($self, $line, $y = undef) {
     return $oldoffs;
 }
 
+sub printAddVerySmallTextLine($self, $line, $x = undef, $y = undef) {
+    
+    chomp $line;
+    
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 10, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 10, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 14;
+    }
+    
+    return;
+}
+
+sub printAddBoldVerySmallTextLine($self, $line, $x = undef, $y = undef) {
+    
+    chomp $line;
+    
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 10, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 10, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 14;
+    }
+    
+    return;
+}
+
 sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     
     chomp $line;
