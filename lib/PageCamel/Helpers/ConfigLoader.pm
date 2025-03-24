@@ -77,7 +77,10 @@ sub LoadConfig {
         my @modules = @{$config->{module}};
         my @newmodules;
         foreach my $module (@modules) {
-            if($module->{modname} ne "include") {
+            #if(!defined($module->{modname})) {
+            #    print STDERR "\nModule is missing modname:\n", Dumper($module), "\n";
+            #}
+            if(!defined($module->{modname}) || $module->{modname} ne "include") {
                 push @newmodules, $module;
             } else {
                 # Lets do some recursion
