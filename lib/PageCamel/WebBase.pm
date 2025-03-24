@@ -598,7 +598,9 @@ sub parse_post_data($self, $ua) {
 
     my $ok = 1;
 
-    if($ua->{headers}->{'Content-Type'} =~ /application\/x\-www\-form\-urlencoded/ && $ua->{method} eq 'POST') {
+    if(!defined($ua->{headers}->{'Content-Type'})) {
+        # Do nothing
+    } elsif($ua->{headers}->{'Content-Type'} =~ /application\/x\-www\-form\-urlencoded/ && $ua->{method} eq 'POST') {
         #print STDERR Dumper($ua);
         my %postparams;
         my @parts = split/\&/, $ua->{postdata};
