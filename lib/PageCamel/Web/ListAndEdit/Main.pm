@@ -3097,11 +3097,16 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             $where = ' WHERE ' . $item->{enumwhere} . ' ';
         }
 
+        my $orderby = $item->{enumcolumn};
+        if(defined($item->{enumsortcolumn})) {
+            $orderby = $item->{enumsortcolumn};
+        }
+
         my $eselstmt = 'SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
                         $extracolumn .
                         ' FROM ' . $item->{enumtable} .
                         $where .
-                        ' ORDER BY ' . $item->{enumcolumn};
+                        ' ORDER BY ' . $orderby;
 
         my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
         if(!defined($cache->{$cachekey})) {
@@ -3214,11 +3219,16 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             $where = ' WHERE ' . $item->{enumwhere} . ' ';
         }
 
+        my $orderby = $item->{enumcolumn};
+        if(defined($item->{enumsortcolumn})) {
+            $orderby = $item->{enumsortcolumn};
+        }
+
         my $eselstmt = 'SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
                        $extracolumn .
                        ' FROM ' . $item->{enumtable} .
                        $where .
-                       ' ORDER BY ' . $item->{enumcolumn};
+                       ' ORDER BY ' . $orderby;
 
         my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
         if(!defined($cache->{$cachekey})) {
