@@ -171,49 +171,29 @@
             };
 
             var printdoc = JSON.stringify(printobj);
+            lastprintid = msg.printid;
 
-            var retval = "";
-            if(window.onPrintStart) {
-                debuglog("Printing locally via window.onPrintStart");
-                retval = window.onPrintStart(printdoc);
-                debuglog("retval: " + retval);
-            } else if(document.onPrintStart) {
-                debuglog("Printing locally via document.onPrintStart");
-                retval = document.onPrintStart(printdoc);
-                debuglog("retval: " + retval);
-            } else if(window.Android && window.Android.onPrintStart) {
-                debuglog("Printing locally via window.Android.onPrintStart");
-                var printok = window.Android.onPrintStart(printdoc);
-                if(printok) {
-                    retval = 'printed';
+            try {
+                if(Bridge && Bridge.interfaces && Bridge.interfaces.Android && Bridge.interfaces.Android.onPrintStart) {
+                    Bridge.interfaces.Android.onPrintStart(printdoc).then(
+                        function(result) {
+                            debuglog("Print OK");
+                            sendPrintStatus('printed', lastprintid);
+                        },
+                        function(result) {
+                            debuglog("Print FAILED");
+                            sendPrintStatus('Bridge.interfaces.Android.onPrintStart returned error', lastprintid);
+                        }
+                    );
                 } else {
-                    retval = 'window.Android.onPrintStart returned false';
+                    debuglog("Bridge.interfaces.Android.onECStart not available");
+                    sendPrintStatus('Bridge.interfaces.Android.onPrintStart not available', lastprintid);
                 }
-            } else if(window.flutter_inappwebview) {
-                debuglog("Printing via flutter app");
-                lastprintid = msg.printid;
-                retval = window.flutter_inappwebview.callHandler("onPrintStart", printdoc);
-                debuglog("Got promise");
-                retval.then(
-                    function(value) {
-                        sendPrintStatus(value.result, lastprintid);
-                        debuglog("Got: <code>" + JSON.stringify(value) + "</code>");
-                        //sendPrintStatus(value, lastprintid);
-                    },
-                    function(error) {
-                        debuglog("Promise failed");
-                        sendPrintStatus("error promise failed", lastprintid);
-                    }
-                );
-
-            } else {
-                debuglog("onPrintStart not available");
-                retval = "error onPrintStart not available";
+            } catch(error) {
+                debuglog("Bridge interface not available, not running in the App?");
+                sendPrintStatus('Bridge interface not available, not running the App?', lastprintid);
             }
 
-            if(retval != "") {
-                sendPrintStatus(retval, msg.printid);
-            }
         } else {
             if(window.handleMessage) {
                 var starttime = Date.now();
