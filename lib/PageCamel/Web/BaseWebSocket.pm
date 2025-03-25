@@ -34,6 +34,17 @@ sub new($proto, %config) {
         croak("Option 'wspath' set, but not allowed with new BaseWebSocket class");
     }
 
+    my $ok = 1;
+    foreach my $key (qw[reporting systemsettings]) {
+        if(!defined($self->{$key})) {
+            print STDERR "BaseWebSocket for ", $self->{modname}, " is missing setting ", $key, "\n";
+            $ok = 0;
+        }
+    }
+    if(!$ok) {
+        croak("Config errors in module ", $self->{modname});
+    }
+
     if(!defined($self->{sleeptime})) {
         # Make it VERY responsive and CPU hungry by default
         $self->{sleeptime} = 0.01;
@@ -368,6 +379,7 @@ sub sockethandler($self, $ua) {
     my $session = $self->{sessiondata};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $th = $self->{server}->{modules}->{templates};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my %settings;
     my @setnames = qw[websocket_encryption client_connect_timeout client_disconnect_timeout chunk_size];
@@ -454,7 +466,19 @@ sub sockethandler($self, $ua) {
                         last;
                     }
                     next;
-
+                } elsif($realmsg->{type} eq 'DEBUGLOG') {
+                    my $debugline;
+                    if(ref $realmsg->{data} eq 'SCALAR' || ref $realmsg->{data} eq '') {
+                        $debugline = $realmsg->{data};
+                    } else {
+                        $debugline = Dumper($realmsg->{data});
+                        if($debugline =~ /^\$VAR1\ \=\ \{\}\;/) {
+                            $debugline = '';
+                        }
+                    }
+                    if($debugline ne '') {
+                        $reph->debuglog("DEBUGLOG MESSAGE: ", $debugline);
+                    }
                 } else {
                     if(!$self->wshandlemessage($realmsg)) {
                         $socketclosed = 1;
