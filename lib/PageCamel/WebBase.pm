@@ -343,12 +343,12 @@ sub allow_deny_hook($self, $peerhost) {
     $self->{last_accepted_client} = '0.0.0.0';
 
     if(!defined($peerhost)) {
-        print STDERR "Undefined \$peerhost in allow_deny_hook\n";
+        $self->printdebuglog("Undefined \$peerhost in allow_deny_hook");
         return 0;
     }
 
     if (!(defined $peerhost)) {
-        print STDERR "Couldn't get peer name!\n";
+        $self->printdebuglog("Couldn't get peer name!");
         return 0;
     }
 
@@ -497,15 +497,14 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
     };
 
     if(!$ok) {
-        print STDERR "POST data recieve timeout - ";
-        print STDERR "Got ", length($postdata), " but should have gotten ", $ua->{headers}->{'Content-Length'}, "\n";
-        #print STDERR Dumper($ua->{headers});
+        $self->printdebuglog("POST data recieve timeout");
+        $self->printdebuglog("Got ", length($postdata), " but should have gotten ", $ua->{headers}->{'Content-Length'});
         return 0;
     } elsif($datalen != $ua->{headers}->{'Content-Length'}) {
-        print STDERR "Failed to read postdata\n";
+        $self->printdebuglog("Failed to read postdata");
         return 0;
     } elsif($datalen != length($postdata)) {
-        print STDERR "INTERNAL ERROR: read() reported wrong number of bytes read\n";
+        $self->printdebuglog("INTERNAL ERROR: read() reported wrong number of bytes read");
         return 0;
     }
     $ua->{postdata} = $postdata;
@@ -587,7 +586,7 @@ sub parse_header_line($self, $ua, $header) {
             }
         }
     } else {
-        print STDERR "Illegal header line!\n";
+        $self->printdebuglog("Illegal header line!");
         return 0;
     }
 
@@ -613,14 +612,14 @@ sub parse_post_data($self, $ua) {
                 $dkey = $temp;
             };
             if($EVAL_ERROR) {
-                print STDERR "Warning: $EVAL_ERROR\n";
+                $self->printdebuglog("Warning: $EVAL_ERROR");
             }
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 my $temp = decode_utf8($dval);
                 $dval = $temp;
             };
             if($EVAL_ERROR) {
-                print STDERR "Warning: $EVAL_ERROR\n";
+                $self->printdebuglog("Warning: $EVAL_ERROR");
             }
             if(!defined($postparams{$dkey})) {
                 $postparams{$dkey} = $dval;
@@ -742,7 +741,7 @@ sub process_request($self, $realsocket, $frontendheader) {
     $realsocket->blocking(0);
 
     local $SIG{USR2} = sub {
-        print STDERR "******************   SIGNAL USR2 DETECTED ****************\n";
+        $self->printdebuglog("******************   SIGNAL USR2 DETECTED ****************");
         eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             confess();
         };
@@ -1611,7 +1610,7 @@ nextrequest:
                     }
                 }
                 next unless $upgradetofound;
-                print STDERR getISODate() . " Upgrading connection to $upgradeTo in PID $PID\n";
+                $self->printdebuglog(" Upgrading connection to $upgradeTo in PID $PID");
                 my $evalok = 0;
                 my $conok = 0;
                 eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -1619,9 +1618,9 @@ nextrequest:
                     $evalok = 1;
                 };
                 if(!$evalok) {
-                    print STDERR getISODate(), " Eval error in connection upgrade: $EVAL_ERROR\n";
+                    $self->printdebuglog(" Eval error in connection upgrade: $EVAL_ERROR");
                 }
-                print STDERR getISODate() . " Connection for $upgradeTo closed in PID $PID, status $conok\n";
+                $self->printdebuglog(" Connection for $upgradeTo closed in PID $PID, status $conok");
                 last;
             }
         }
@@ -1647,7 +1646,7 @@ nextrequest:
             }
             last if($dpart{done});
         }
-        print STDERR getISODate() . "     Send $totallength bytes in $partcount datagenerator parts.\n";
+        $self->printdebuglog("     Send $totallength bytes in $partcount datagenerator parts.");
     }
     
     # run some logging callbacks
@@ -1711,6 +1710,24 @@ cleanup:
     return;
 }
 
+sub printdebuglog($self, @args) {
+    my $found = 0;
+    foreach my $worker (@{$self->{debuglog}}) {
+        my $module = $worker->{Module};
+        my $funcname = $worker->{Function} ;
+
+        #$workCount += $module->$funcname();
+        $module->$funcname(@args);
+        $found = 1;
+    }
+    if(!$found) {
+        print STDERR "Fallback: ", getISODate(), " ", join('', @args), "\n";
+    }
+
+    return;
+
+}
+
 sub startconfig($self) {
 
     # Pre-create empty lists and hashes
@@ -1719,7 +1736,7 @@ sub startconfig($self) {
     }
     foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished logstacktrace authcheck prefilter postauthfilter prerender lateprerender tasks postfilter
                                 default_webdata late_default_webdata loginitems logoutitems sessionrefresh cleanup
-                                public_urls remotelog sitemap firewall fastredirect
+                                public_urls remotelog sitemap firewall fastredirect debuglog
                                 ]) {
         $self->{$anonarrays} = [];
     }
@@ -2232,6 +2249,7 @@ BEGIN {
 
     # -- Deep magic begins here...
     my %varsubs = (
+        debuglog       => "debuglog",
         prefilter       => "prefilter",
         postauthfilter       => "postauthfilter",
         postfilter      => "postfilter",

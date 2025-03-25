@@ -235,7 +235,7 @@ BEGIN {
     # every child.
     my @stdFuncs = qw(prefilter postauthfilter postfilter defaultwebdata late_defaultwebdata task loginitem
                         logoutitem sessionrefresh preconnect prerender lateprerender cleanup authcheck logstart
-                        logend logdatadelivery logwebsocket logrequestfinished logstacktrace remotelog sitemap firewall fastredirect);
+                        logend logdatadelivery logwebsocket logrequestfinished logstacktrace remotelog sitemap firewall fastredirect debuglog);
 
     # -- Deep magic begins here...
     for my $f (@stdFuncs){
