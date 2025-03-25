@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.6;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -497,6 +497,7 @@ sub sockethandler($self, $ua) {
 
     my $session = $self->{sessiondata};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     my ($ok1, $husebase64) = $sysh->get($self->{modname}, 'force_base64');
@@ -516,6 +517,8 @@ sub sockethandler($self, $ua) {
     my $recordsession = $hrecordsession->{settingvalue};
 
     my $frame = PageCamel::Helpers::WSockFrame->new;
+
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
 
     my $rfh;
     my $starttime = time;
@@ -593,7 +596,7 @@ sub sockethandler($self, $ua) {
 
             if(time > $nextping) {
                 $nextping = time + $timeout;
-                if(!webPrint($ua->{realsocket}, $frame->new(buffer=>'keepalive', type => 'ping')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer=>'keepalive', type => 'ping')->to_bytes)) {
                     if($self->{isDebugging}) {
                         print STDERR "WS Write Timeout (Ping)!\n";
                     }
@@ -678,9 +681,9 @@ sub sockethandler($self, $ua) {
                 my $printok;
                 if($usebase64) {
                     my $bvncline = encode_base64($vncline, '');
-                    $printok = webPrint($ua->{realsocket}, $frame->new(buffer => $bvncline, type => 'text')->to_bytes);
+                    $printok = $webprint->write($ua->{realsocket}, $frame->new(buffer => $bvncline, type => 'text')->to_bytes);
                 } else {
-                    $printok = webPrint($ua->{realsocket}, $frame->new(buffer => $vncline, type => 'binary')->to_bytes);
+                    $printok = $webprint->write($ua->{realsocket}, $frame->new(buffer => $vncline, type => 'binary')->to_bytes);
                 }
                 if(!$printok) {
                     if($self->{isDebugging}) {
@@ -731,7 +734,7 @@ sub sockethandler($self, $ua) {
                     my $toffs = int((time - $starttime) * 1000);
                     print $rfh '\'}' . $toffs . '}' . encodeVNCString($message) . '\',' . chr(10);
                 }
-                if(!webPrint($vnc, $message)) {
+                if(!$webprint->write($vnc, $message)) {
                     if($self->{isDebugging}) {
                         print STDERR "VNC write Timeout!\n";
                     }
@@ -751,7 +754,7 @@ sub sockethandler($self, $ua) {
                 if($self->{isDebugging}) {
                     print STDERR "WS send 'Socket close'!\n";
                 }
-                if(!webPrint($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
                     print STDERR "Write to socket failed, failed to properly close connection!\n";
                 }
                 $socketclosed = 1;
