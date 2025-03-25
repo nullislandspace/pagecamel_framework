@@ -25,6 +25,7 @@ devscripts/install_patched_modules.sh
 devscripts/nohss.pl
 devscripts/pagecamel_async_ua.pl
 devscripts/pgadmin4_install.txt
+devscripts/qrcodegenerator.pl
 devscripts/resetpod.pl
 devscripts/setcopyright.pl
 devscripts/setversion.pl
