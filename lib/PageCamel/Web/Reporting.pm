@@ -36,6 +36,12 @@ sub new($proto, %config) {
     return $self;
 }
 
+sub register($self) {
+    $self->register_debuglog('debuglog');
+
+    return;
+}
+
 sub crossregister($self) {
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
