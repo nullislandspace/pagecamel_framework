@@ -3,7 +3,7 @@
 use v5.40;
 use strict;
 use warnings;
-our $VERSION = 4.6;
+our $VERSION = 4.7;
 
 package Reporting;
 
