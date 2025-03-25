@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.6;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -343,12 +343,12 @@ sub allow_deny_hook($self, $peerhost) {
     $self->{last_accepted_client} = '0.0.0.0';
 
     if(!defined($peerhost)) {
-        print STDERR "Undefined \$peerhost in allow_deny_hook\n";
+        $self->printdebuglog("Undefined \$peerhost in allow_deny_hook");
         return 0;
     }
 
     if (!(defined $peerhost)) {
-        print STDERR "Couldn't get peer name!\n";
+        $self->printdebuglog("Couldn't get peer name!");
         return 0;
     }
 
@@ -497,15 +497,14 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
     };
 
     if(!$ok) {
-        print STDERR "POST data recieve timeout - ";
-        print STDERR "Got ", length($postdata), " but should have gotten ", $ua->{headers}->{'Content-Length'}, "\n";
-        #print STDERR Dumper($ua->{headers});
+        $self->printdebuglog("POST data recieve timeout");
+        $self->printdebuglog("Got ", length($postdata), " but should have gotten ", $ua->{headers}->{'Content-Length'});
         return 0;
     } elsif($datalen != $ua->{headers}->{'Content-Length'}) {
-        print STDERR "Failed to read postdata\n";
+        $self->printdebuglog("Failed to read postdata");
         return 0;
     } elsif($datalen != length($postdata)) {
-        print STDERR "INTERNAL ERROR: read() reported wrong number of bytes read\n";
+        $self->printdebuglog("INTERNAL ERROR: read() reported wrong number of bytes read");
         return 0;
     }
     $ua->{postdata} = $postdata;
@@ -587,7 +586,7 @@ sub parse_header_line($self, $ua, $header) {
             }
         }
     } else {
-        print STDERR "Illegal header line!\n";
+        $self->printdebuglog("Illegal header line!");
         return 0;
     }
 
@@ -613,14 +612,14 @@ sub parse_post_data($self, $ua) {
                 $dkey = $temp;
             };
             if($EVAL_ERROR) {
-                print STDERR "Warning: $EVAL_ERROR\n";
+                $self->printdebuglog("Warning: $EVAL_ERROR");
             }
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 my $temp = decode_utf8($dval);
                 $dval = $temp;
             };
             if($EVAL_ERROR) {
-                print STDERR "Warning: $EVAL_ERROR\n";
+                $self->printdebuglog("Warning: $EVAL_ERROR");
             }
             if(!defined($postparams{$dkey})) {
                 $postparams{$dkey} = $dval;
@@ -736,13 +735,14 @@ sub process_request($self, $realsocket, $frontendheader) {
 #    }
 
     my $mandanth = PageCamel::Helpers::Mandant->new();
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $self, rephfunc => 'printdebuglog');
 
     local $INPUT_RECORD_SEPARATOR = undef;
     binmode($realsocket, ':bytes');
     $realsocket->blocking(0);
 
     local $SIG{USR2} = sub {
-        print STDERR "******************   SIGNAL USR2 DETECTED ****************\n";
+        $self->printdebuglog("******************   SIGNAL USR2 DETECTED ****************");
         eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             confess();
         };
@@ -818,7 +818,7 @@ nextrequest:
             if(!$ok) {
                 #print STDERR "BLOCKING CLIENT " . $ua->{remote_addr} . "!!!\n";
                 my $message = "Attack or server policy violation detected. Client " . $ua->{remote_addr} . " blocked for some time.";
-                webPrint($realsocket, "HTTP/1.1 403 Policy violation\r\n" .
+                $webprint->write($realsocket, "HTTP/1.1 403 Policy violation\r\n" .
                                     "Content-Type: text/plain\r\n".
                                     "Content-Length: " . length($message) . "\r\n" .
                                     "Connection: close\r\n" .
@@ -836,7 +836,7 @@ nextrequest:
     if(!defined($requestline)) {
         #print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
-        webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+        $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
 
         goto cleanup;
     }
@@ -854,7 +854,7 @@ nextrequest:
         if(!defined($header)) {
             #print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
         $hcount++;
@@ -862,14 +862,14 @@ nextrequest:
             # too many headers, may be an attack
             #print STDERR "Too many headers!\n";
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
             goto cleanup;
         }
         last if($header eq "");
         if(!$self->parse_header_line($ua, $header)) {
             #print STDERR "Error parsing header!\n";
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
             goto cleanup;
         }
     }
@@ -1225,23 +1225,23 @@ nextrequest:
 
                 if(!$expectok) {
                     $ua->{keepalive} = 0;
-                    webPrint($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
+                    $webprint->write($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
                     #print STDERR "      Expectation failed\n";
                     goto cleanup;
                 }
                 #print STDERR "      Expectation matched\n";
-                webPrint($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
+                $webprint->write($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
             }
 
             if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
                 $ua->{keepalive} = 0;
-                webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+                $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                 goto cleanup;
             }
 
             if(!$self->parse_post_data($ua)) {
                 $ua->{keepalive} = 0;
-                webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
+                $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
                 goto cleanup;
             }
         }
@@ -1363,7 +1363,7 @@ nextrequest:
         }
     }
 
-    if(!webPrint($realsocket, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
+    if(!$webprint->write($realsocket, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
@@ -1456,13 +1456,13 @@ nextrequest:
     if(defined($header{'-cookie'})) {
         if(ref $header{'-cookie'} eq 'ARRAY') {
             foreach my $cookie (@{$header{'-cookie'}}) {
-                if(!webPrint($realsocket, "Set-Cookie: ", $cookie, "\r\n")) {
+                if(!$webprint->write($realsocket, "Set-Cookie: ", $cookie, "\r\n")) {
                     $ua->{keepalive} = 0;
                     goto cleanup;
                 }
             }
         } else {
-            if(!webPrint($realsocket, "Set-Cookie: ", $header{'-cookie'}, "\r\n")) {
+            if(!$webprint->write($realsocket, "Set-Cookie: ", $header{'-cookie'}, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1535,19 +1535,19 @@ nextrequest:
             } elsif($val =~ /^[\+\-]/) {
                 $val = getWebdate(undef, $val);
             }
-            if(!webPrint($realsocket, $printkey, ": ", $val, "\r\n")) {
+            if(!$webprint->write($realsocket, $printkey, ": ", $val, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
         } elsif(ref $header{$header_key} eq 'ARRAY') {
             foreach my $headerval (@{$header{$header_key}}) {
-                if(!webPrint($realsocket, $printkey, ": ", $headerval, "\r\n")) {
+                if(!$webprint->write($realsocket, $printkey, ": ", $headerval, "\r\n")) {
                     $ua->{keepalive} = 0;
                     goto cleanup;
                 }
             }
         } else {
-            if(!webPrint($realsocket, $printkey, ": ", $header{$header_key}, "\r\n")) {
+            if(!$webprint->write($realsocket, $printkey, ": ", $header{$header_key}, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1557,26 +1557,26 @@ nextrequest:
 
     # Force printing current time as "Date" header
     if(!$dateprinted) {
-        if(!webPrint($realsocket, "Date: " . getWebdate(). "\r\n")) {
+        if(!$webprint->write($realsocket, "Date: " . getWebdate(). "\r\n")) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
     }
 
     # Removing this header may break things, don't touch!
-    if(!webPrint($realsocket, "X-Clacks-Overhead: GNU Terry Pratchett\r\n")) {
+    if(!$webprint->write($realsocket, "X-Clacks-Overhead: GNU Terry Pratchett\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
-    if(!webPrint($realsocket, "\r\n")) {
+    if(!$webprint->write($realsocket, "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
     if(defined($result{data})) {
         # Some results do not have a body
-        if(!webPrint($realsocket, $result{data})) {
+        if(!$webprint->write($realsocket, $result{data})) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
@@ -1611,7 +1611,7 @@ nextrequest:
                     }
                 }
                 next unless $upgradetofound;
-                print STDERR getISODate() . " Upgrading connection to $upgradeTo in PID $PID\n";
+                $self->printdebuglog(" Upgrading connection to $upgradeTo in PID $PID");
                 my $evalok = 0;
                 my $conok = 0;
                 eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -1619,9 +1619,9 @@ nextrequest:
                     $evalok = 1;
                 };
                 if(!$evalok) {
-                    print STDERR getISODate(), " Eval error in connection upgrade: $EVAL_ERROR\n";
+                    $self->printdebuglog(" Eval error in connection upgrade: $EVAL_ERROR");
                 }
-                print STDERR getISODate() . " Connection for $upgradeTo closed in PID $PID, status $conok\n";
+                $self->printdebuglog(" Connection for $upgradeTo closed in PID $PID, status $conok");
                 last;
             }
         }
@@ -1641,13 +1641,13 @@ nextrequest:
             $partcount++;
             $totallength += length($dpart{data});
             #print STDERR getISODate() . "     Data part, length ", length($dpart{data}), " bytes\n";
-            if(!webPrint($realsocket, $dpart{data})) {
+            if(!$webprint->write($realsocket, $dpart{data})) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
             last if($dpart{done});
         }
-        print STDERR getISODate() . "     Send $totallength bytes in $partcount datagenerator parts.\n";
+        $self->printdebuglog("     Send $totallength bytes in $partcount datagenerator parts.");
     }
     
     # run some logging callbacks
@@ -1711,6 +1711,24 @@ cleanup:
     return;
 }
 
+sub printdebuglog($self, @args) {
+    my $found = 0;
+    foreach my $worker (@{$self->{debuglog}}) {
+        my $module = $worker->{Module};
+        my $funcname = $worker->{Function} ;
+
+        #$workCount += $module->$funcname();
+        $module->$funcname(@args);
+        $found = 1;
+    }
+    if(!$found) {
+        print STDERR "Fallback: ", getISODate(), " ", join('', @args), "\n";
+    }
+
+    return;
+
+}
+
 sub startconfig($self) {
 
     # Pre-create empty lists and hashes
@@ -1719,7 +1737,7 @@ sub startconfig($self) {
     }
     foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished logstacktrace authcheck prefilter postauthfilter prerender lateprerender tasks postfilter
                                 default_webdata late_default_webdata loginitems logoutitems sessionrefresh cleanup
-                                public_urls remotelog sitemap firewall fastredirect
+                                public_urls remotelog sitemap firewall fastredirect debuglog
                                 ]) {
         $self->{$anonarrays} = [];
     }
@@ -2232,6 +2250,7 @@ BEGIN {
 
     # -- Deep magic begins here...
     my %varsubs = (
+        debuglog       => "debuglog",
         prefilter       => "prefilter",
         postauthfilter       => "postauthfilter",
         postfilter      => "postfilter",

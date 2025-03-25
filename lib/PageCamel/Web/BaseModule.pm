@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.6;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -235,7 +235,7 @@ BEGIN {
     # every child.
     my @stdFuncs = qw(prefilter postauthfilter postfilter defaultwebdata late_defaultwebdata task loginitem
                         logoutitem sessionrefresh preconnect prerender lateprerender cleanup authcheck logstart
-                        logend logdatadelivery logwebsocket logrequestfinished logstacktrace remotelog sitemap firewall fastredirect);
+                        logend logdatadelivery logwebsocket logrequestfinished logstacktrace remotelog sitemap firewall fastredirect debuglog);
 
     # -- Deep magic begins here...
     for my $f (@stdFuncs){
