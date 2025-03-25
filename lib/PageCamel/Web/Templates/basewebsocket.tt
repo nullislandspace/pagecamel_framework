@@ -175,22 +175,25 @@
 
             try {
                 if(Bridge && Bridge.interfaces && Bridge.interfaces.Android && Bridge.interfaces.Android.onPrintStart) {
+                    debuglog("Spooling document");
                     Bridge.interfaces.Android.onPrintStart(printdoc).then(
                         function(result) {
                             debuglog("Print OK");
+                            debuglog(JSON.stringify(result));
                             sendPrintStatus('printed', lastprintid);
                         },
                         function(result) {
                             debuglog("Print FAILED");
+                            debuglog(JSON.stringify(result));
                             sendPrintStatus('Bridge.interfaces.Android.onPrintStart returned error', lastprintid);
                         }
                     );
                 } else {
-                    debuglog("Bridge.interfaces.Android.onECStart not available");
+                    debuglog("Bridge.interfaces.Android.onPrintStart not available");
                     sendPrintStatus('Bridge.interfaces.Android.onPrintStart not available', lastprintid);
                 }
             } catch(error) {
-                debuglog("Bridge interface not available, not running in the App?");
+                debuglog("Printing: Bridge interface not available, not running in the App?");
                 sendPrintStatus('Bridge interface not available, not running the App?', lastprintid);
             }
 
@@ -225,6 +228,8 @@
     }
 
     function debuglog(textline) {
+        console.log(textline);
+        wstransmit('DEBUGLOG', textline, lastprintid);
         //$('<p>' + textline + '</p>').appendTo('#logtext');
     }
 
