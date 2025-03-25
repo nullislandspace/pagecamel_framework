@@ -15,14 +15,19 @@ use Data::Printer;
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
-use base qw(Exporter);
-our @EXPORT = qw(webPrint); ## no critic (Modules::ProhibitAutomaticExportation)
 use File::Binary;
 use Time::HiRes qw(sleep);
 use Errno qw(:POSIX);
 
-sub webPrint($ofh, @parts) {
-    
+sub new($proto, %config) {
+    my $class = ref($proto) || $proto;
+
+    my $self = bless \%config, $class;
+
+    return $self;
+}
+
+sub write($self, $ofh, @parts) {
     my $brokenpipe = 0;
     local $SIG{PIPE} = sub { $brokenpipe = 1;};
 
@@ -32,7 +37,7 @@ sub webPrint($ofh, @parts) {
     my $full;
     foreach my $npart (@parts) {
         if(!defined($npart)) {
-            #print STDERR "Empty npart in Webprint!\n";
+            #$self->debuglog("Empty npart in Webprint!");
             next;
         }
         if(is_utf8($npart)) {
@@ -59,17 +64,17 @@ sub webPrint($ofh, @parts) {
             $written = syswrite($ofh, $full);
         };
         if($EVAL_ERROR) {
-            print STDERR "Write error: $EVAL_ERROR\n";
+            $self->debuglog("Write error: $EVAL_ERROR");
             return 0;
         }
         if(!defined($written)) {
             $written = 0;
         }
         last if($written == length($full));
-        #print STDERR "Sent $written bytes (", length($full) - $written, "remaining)\n";
+        #$self->debuglog("Sent $written bytes (", length($full) - $written, "remaining)");
         if($!{EWOULDBLOCK} || $!{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
             if(!$shownlimitmessage) {
-                #print STDERR "Rate limiting output\n";
+                #self->debuglog("Rate limiting output");
                 $shownlimitmessage = 1;
             }
             $timeout = time + $timeoutthres;
@@ -77,10 +82,10 @@ sub webPrint($ofh, @parts) {
                 sleep(0.01);
             }
         } elsif(0 && $brokenpipe) {
-            print STDERR "webPrint write failure: SIGPIPE\n";
+            $self->debuglog("webPrint write failure: SIGPIPE");
             return 0;
         } elsif($ofh->error || $ERRNO ne '') {
-            print STDERR "webPrint write failure: $ERRNO / ", $ofh->opened, " / ", $ofh->error, "\n";
+            $self->debuglog("webPrint write failure: $ERRNO / ", $ofh->opened, " / ", $ofh->error);
             return 0;
         }
         if($written) {
@@ -91,7 +96,7 @@ sub webPrint($ofh, @parts) {
         }
         
         if($timeout < time) {
-            print STDERR "***** webPrint TIMEOUT ****** $ERRNO\n";
+            $self->debuglog("***** webPrint TIMEOUT ****** $ERRNO");
             return 0;
         }
         
@@ -99,12 +104,27 @@ sub webPrint($ofh, @parts) {
         $needprintdone = 1;
     }
     if($needprintdone) {
-        #print STDERR "Webprint Done\n";
+        $self->debuglog("Webprint Done");
     }
     return 1;
-
-
 }
+
+sub debuglog($self, @parts) {
+    if(!defined($self->{reph})) {
+        print STDERR "FALLBACK: ", getISODate(), " ", join('', @parts), "\n";
+        return;
+    }
+
+    my $modname = $self->{reph};
+    my $funcname = 'debuglog';
+    if(defined($self->{rephfunc})) {
+        $funcname = $self->{rephfunc};
+    }
+    $modname->$funcname(@parts);
+
+    return;
+}
+
 1;
 __END__
 

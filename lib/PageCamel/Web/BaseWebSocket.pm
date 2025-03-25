@@ -203,9 +203,11 @@ sub wsprint($self, $message, $usebinary = 0) {
     my $frame = $self->{sessiondata}->{frame};
     my $ua = $self->{sessiondata}->{ua};
     my $settings = $self->{sessiondata}->{settings};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
     
     my $buffer = encode_json($message);
-    #print STDERR "JSON: $buffer\n";
+    #$reph->debuglog("JSON: $buffer");
     
     my $frametype = 'text';
     if($usebinary) {
@@ -214,14 +216,14 @@ sub wsprint($self, $message, $usebinary = 0) {
     
     my $framedata = $frame->new(buffer => $buffer, type => $frametype)->to_bytes;
 
-    #print STDERR "Sending ", length($framedata) , " bytes (= original buffer length ", length($buffer) , " bytes)\n";
+    #$reph->debuglog("Sending ", length($framedata) , " bytes (= original buffer length ", length($buffer) , " bytes)");
     #my $starttime = time;
-    if(!webPrint($ua->{realsocket}, $framedata)) {
-        print STDERR "Write to socket failed, closing connection!\n";
+    if(!$webprint->write($ua->{realsocket}, $framedata)) {
+        $reph->debuglog("Write to socket failed, closing connection!");
         return 0;
     }
     #my $endtime = time;
-    #print STDERR "   done, took ", $endtime - $starttime, " seconds\n";
+    #$reph->debuglog("   done, took ", $endtime - $starttime, " seconds");
     
     return 1;
 }
@@ -230,6 +232,7 @@ sub get($self, $ua) {
 
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $upgrade = $ua->{headers}->{"Upgrade"};
     if(defined($upgrade)) {
@@ -306,7 +309,7 @@ sub get($self, $ua) {
 
     my $subtemplate = $th->render_partials($self->{template}, %webdata);
     if(!defined($subtemplate)) {
-        print STDERR "Error rendering subtemplate ", $self->{template}, " for BaseWebSocket: ";
+        $reph->debuglog("Error rendering subtemplate ", $self->{template}, " for BaseWebSocket: ", $self->{modname});
         return (status  =>  404);
     }
     $webdata{WEBSOCKETMASK} = $subtemplate;
@@ -380,6 +383,7 @@ sub sockethandler($self, $ua) {
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $th = $self->{server}->{modules}->{templates};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
 
     my %settings;
     my @setnames = qw[websocket_encryption client_connect_timeout client_disconnect_timeout chunk_size];
@@ -423,7 +427,7 @@ sub sockethandler($self, $ua) {
                 if(!$ua->{realsocket}) {
                 #if(0 && defined($status) && $status == 0) {
                     if($self->{isDebugging}) {
-                        print STDERR "Websocket closed\n";
+                        $reph->debuglog("Websocket closed");
                     }
                     $socketclosed = 1;
                     last;
@@ -450,7 +454,7 @@ sub sockethandler($self, $ua) {
                 }
 
                 if($frame->opcode == 8) {
-                    print STDERR "Connection closed by Browser\n";
+                    $reph->debuglog("Connection closed by Browser");
                     $socketclosed = 1;
                     last;
                 }
@@ -461,7 +465,7 @@ sub sockethandler($self, $ua) {
                         type => 'PING',
                     );
                     if(!$self->wsprint(\%msg)) {
-                        print STDERR "Write to socket failed, closing connection!\n";
+                        $reph->debuglog("Write to socket failed, closing connection!");
                         $socketclosed = 1;
                         last;
                     }
@@ -490,10 +494,10 @@ sub sockethandler($self, $ua) {
             # This is OUTSIDE the $frame->next_bytes loop, because a close event never returns a full frame
             # from WSockFrame
             if($frame->is_close) {
-                print STDERR "CLOSE FRAME RECIEVED!\n";
+                $reph->debuglog("CLOSE FRAME RECIEVED!");
                 $socketclosed = 1;
-                if(!webPrint($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
-                    print STDERR "Write to socket failed, failed to properly close connection!\n";
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                    $reph->debuglog("Write to socket failed, failed to properly close connection!");
                 }
             }
             
@@ -507,7 +511,7 @@ sub sockethandler($self, $ua) {
             }
 
             if($timeout < time) {
-                print STDERR "CLIENT TIMEOUT\n";
+                $reph->debuglog("CLIENT TIMEOUT");
                 $socketclosed = 1;
             }
 

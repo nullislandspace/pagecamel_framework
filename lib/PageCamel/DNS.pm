@@ -494,7 +494,7 @@ sub handleUDP($self, $peerhost) {
 }
 
 sub handleTCP($self, $peerhost, $realsocket) {
-
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $self);
 
     binmode($realsocket);
     $realsocket->blocking(0);
@@ -618,7 +618,7 @@ sub handleTCP($self, $peerhost, $realsocket) {
             my $outdata = $reply->data();
             my $outlenheader = pack('n', length($outdata));
 
-            if(!webPrint($realsocket, $outlenheader, $outdata)) {
+            if(!$webprint->write($realsocket, $outlenheader, $outdata)) {
                 if($self->{isVerbose}) {
                     print STDERR "webPrint failed, closing connection!\n";
                 }

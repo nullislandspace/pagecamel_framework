@@ -393,7 +393,7 @@ sub get_login($self, $ua) {
     $appkey =~ s/\/$//;
     my $fullappkey = '' . $appkey;
 
-    print STDERR "URI: ", $ua->{url}, "  Appkey: ", $appkey, "\n";
+    #print STDERR "URI: ", $ua->{url}, "  Appkey: ", $appkey, "\n";
 
     if(length($appkey)) {
         my @appkeyparts = split/\+/, $appkey;

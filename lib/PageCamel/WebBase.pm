@@ -735,6 +735,7 @@ sub process_request($self, $realsocket, $frontendheader) {
 #    }
 
     my $mandanth = PageCamel::Helpers::Mandant->new();
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $self, rephfunc => 'printdebuglog');
 
     local $INPUT_RECORD_SEPARATOR = undef;
     binmode($realsocket, ':bytes');
@@ -817,7 +818,7 @@ nextrequest:
             if(!$ok) {
                 #print STDERR "BLOCKING CLIENT " . $ua->{remote_addr} . "!!!\n";
                 my $message = "Attack or server policy violation detected. Client " . $ua->{remote_addr} . " blocked for some time.";
-                webPrint($realsocket, "HTTP/1.1 403 Policy violation\r\n" .
+                $webprint->write($realsocket, "HTTP/1.1 403 Policy violation\r\n" .
                                     "Content-Type: text/plain\r\n".
                                     "Content-Length: " . length($message) . "\r\n" .
                                     "Connection: close\r\n" .
@@ -835,7 +836,7 @@ nextrequest:
     if(!defined($requestline)) {
         #print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
-        webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+        $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
 
         goto cleanup;
     }
@@ -853,7 +854,7 @@ nextrequest:
         if(!defined($header)) {
             #print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
         $hcount++;
@@ -861,14 +862,14 @@ nextrequest:
             # too many headers, may be an attack
             #print STDERR "Too many headers!\n";
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
             goto cleanup;
         }
         last if($header eq "");
         if(!$self->parse_header_line($ua, $header)) {
             #print STDERR "Error parsing header!\n";
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
             goto cleanup;
         }
     }
@@ -1224,23 +1225,23 @@ nextrequest:
 
                 if(!$expectok) {
                     $ua->{keepalive} = 0;
-                    webPrint($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
+                    $webprint->write($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
                     #print STDERR "      Expectation failed\n";
                     goto cleanup;
                 }
                 #print STDERR "      Expectation matched\n";
-                webPrint($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
+                $webprint->write($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
             }
 
             if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
                 $ua->{keepalive} = 0;
-                webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+                $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                 goto cleanup;
             }
 
             if(!$self->parse_post_data($ua)) {
                 $ua->{keepalive} = 0;
-                webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
+                $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
                 goto cleanup;
             }
         }
@@ -1362,7 +1363,7 @@ nextrequest:
         }
     }
 
-    if(!webPrint($realsocket, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
+    if(!$webprint->write($realsocket, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
@@ -1455,13 +1456,13 @@ nextrequest:
     if(defined($header{'-cookie'})) {
         if(ref $header{'-cookie'} eq 'ARRAY') {
             foreach my $cookie (@{$header{'-cookie'}}) {
-                if(!webPrint($realsocket, "Set-Cookie: ", $cookie, "\r\n")) {
+                if(!$webprint->write($realsocket, "Set-Cookie: ", $cookie, "\r\n")) {
                     $ua->{keepalive} = 0;
                     goto cleanup;
                 }
             }
         } else {
-            if(!webPrint($realsocket, "Set-Cookie: ", $header{'-cookie'}, "\r\n")) {
+            if(!$webprint->write($realsocket, "Set-Cookie: ", $header{'-cookie'}, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1534,19 +1535,19 @@ nextrequest:
             } elsif($val =~ /^[\+\-]/) {
                 $val = getWebdate(undef, $val);
             }
-            if(!webPrint($realsocket, $printkey, ": ", $val, "\r\n")) {
+            if(!$webprint->write($realsocket, $printkey, ": ", $val, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
         } elsif(ref $header{$header_key} eq 'ARRAY') {
             foreach my $headerval (@{$header{$header_key}}) {
-                if(!webPrint($realsocket, $printkey, ": ", $headerval, "\r\n")) {
+                if(!$webprint->write($realsocket, $printkey, ": ", $headerval, "\r\n")) {
                     $ua->{keepalive} = 0;
                     goto cleanup;
                 }
             }
         } else {
-            if(!webPrint($realsocket, $printkey, ": ", $header{$header_key}, "\r\n")) {
+            if(!$webprint->write($realsocket, $printkey, ": ", $header{$header_key}, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1556,26 +1557,26 @@ nextrequest:
 
     # Force printing current time as "Date" header
     if(!$dateprinted) {
-        if(!webPrint($realsocket, "Date: " . getWebdate(). "\r\n")) {
+        if(!$webprint->write($realsocket, "Date: " . getWebdate(). "\r\n")) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
     }
 
     # Removing this header may break things, don't touch!
-    if(!webPrint($realsocket, "X-Clacks-Overhead: GNU Terry Pratchett\r\n")) {
+    if(!$webprint->write($realsocket, "X-Clacks-Overhead: GNU Terry Pratchett\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
-    if(!webPrint($realsocket, "\r\n")) {
+    if(!$webprint->write($realsocket, "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
     if(defined($result{data})) {
         # Some results do not have a body
-        if(!webPrint($realsocket, $result{data})) {
+        if(!$webprint->write($realsocket, $result{data})) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
@@ -1640,7 +1641,7 @@ nextrequest:
             $partcount++;
             $totallength += length($dpart{data});
             #print STDERR getISODate() . "     Data part, length ", length($dpart{data}), " bytes\n";
-            if(!webPrint($realsocket, $dpart{data})) {
+            if(!$webprint->write($realsocket, $dpart{data})) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }

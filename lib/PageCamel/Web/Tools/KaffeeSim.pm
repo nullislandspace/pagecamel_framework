@@ -202,6 +202,8 @@ sub sockethandler($self, $ua) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
 
     my %settings;
     foreach my $setname (qw[websocket_encryption client_connect_timeout client_disconnect_timeout]) {
@@ -312,7 +314,7 @@ sub sockethandler($self, $ua) {
                     my %msg = (
                         type => 'PING',
                     );
-                    if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
+                    if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
                         print STDERR "Write to socket failed, closing connection!\n";
                         $socketclosed = 1;
                         last;
@@ -340,7 +342,7 @@ sub sockethandler($self, $ua) {
             if($frame->is_close) {
                 print STDERR "CLOSE FRAME RECIEVED!\n";
                 $socketclosed = 1;
-                if(!webPrint($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
                     print STDERR "Write to socket failed, failed to properly close connection!\n";
                 }
             }
@@ -362,7 +364,7 @@ sub sockethandler($self, $ua) {
                         varname => $webname,
                         varval => $cmsg->{data},
                     );
-                    if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
+                    if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
                         print STDERR "Write to socket failed, closing connection!\n";
                         $socketclosed = 1;
                         last;
