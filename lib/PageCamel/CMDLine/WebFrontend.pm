@@ -259,7 +259,10 @@ sub run($self) {
                 my $client = $connection->accept;
 
                 my $peerhost = $client->peerhost();
-                print "**** Connection from ", $peerhost, "   \n";
+                my $peerport = $client->peerport();
+                my $hostip = $client->sockhost();
+                my $hostport = $client->sockport();
+                print "**** Connection from ", $peerhost, ":", $peerport, " to ", $hostip, ":", $hostport, "   \n";
                 #if(0 && $peerhost ne '94.130.141.212') {
                 #    $client->close;
                 #    next;
