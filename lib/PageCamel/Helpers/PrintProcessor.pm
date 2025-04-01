@@ -916,6 +916,59 @@ sub printAddDottedLine($self) {
     return;
 }
 
+sub printAddSparseDottedLine($self) {
+    for(my $i = 0; $i < $self->{width}; $i += 12) {
+        $self->{img}->filledRectangle($i, $self->{imgoffs} + 5, $i + 3,
+                                          $self->{imgoffs} + 1 + 5,
+                                          $self->_getPrintColor());
+    }
+    $self->{imgoffs} += 24;
+
+    return;
+}
+
+sub printAddCutHereLine($self) {
+    for(my $i = 40; $i < $self->{width}; $i += 12) {
+        $self->{img}->filledRectangle($i, $self->{imgoffs} + 5, $i + 3,
+                                          $self->{imgoffs} + 1 + 5,
+                                          $self->_getPrintColor());
+    }
+    #my $scissor = '✂';
+    #$scissor = 'Ü';
+    #$scissor = encode_utf8 $scissor;
+    #$self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $scissor);
+
+    my $pngdata = decode_base64 "iVBORw0KGgoAAAANSUhEUgAAABsAAAARAQMAAAAWgUVwAAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9
+                                 kT1Iw0AcxV9TtaIVBzuICGaoTnZREcdahSJUCLVCqw4ml34ITRqSFBdHwbXg4Mdi1cHFWVcHV0EQ
+                                 /ABxF5wUXaTE/yWFFjEeHPfj3b3H3TtAqJeZZnXEAU23zXQyIWZzK2LoFUGMoBdRdMnMMmYlKQXf
+                                 8XWPAF/vYjzL/9yfo0/NWwwIiMRxZpg28Trx9KZtcN4njrCSrBKfE4+bdEHiR64rHr9xLros8MyI
+                                 mUnPEUeIxWIbK23MSqZGPEUcVTWd8oWsxyrnLc5aucqa9+QvDOf15SWu0xxGEgtYhAQRCqrYQBk2
+                                 YrTqpFhI037Cxz/k+iVyKeTaACPHPCrQILt+8D/43a1VmJzwksIJoPPFcT5GgdAu0Kg5zvex4zRO
+                                 gOAzcKW3/JU6MPNJeq2lRY+A/m3g4rqlKXvA5Q4w+GTIpuxKQZpCoQC8n9E35YCBW6Bn1eutuY/T
+                                 ByBDXaVugINDYKxI2Ws+7+5u7+3fM83+fgB583KpOEhA4QAAAAZQTFRFAAAA////pdmf3QAAAAlw
+                                 SFlzAAALEwAACxMBAJqcGAAAAE1JREFUCNdj+P///wOGRhCxE0RY/v+nwLD7/wcFhob/jQ8Y/tix
+                                 P2D432APJA78h7L+yfA/YGiobwTpeJDAYPv/jwJQ238FhmaQASDzAFMdMR1WHA5dAAAAAElFTkSu
+                                 QmCC";
+    my $tmpimg = GD::Image->newFromPngData($pngdata);
+
+    my ($w, $h) = $tmpimg->getBounds();
+    for(my $x = 0; $x < $w; $x++) {
+        for(my $y = 0; $y < $h; $y++) {
+            my $index = $tmpimg->getPixel($x, $y);
+            my ($r,$g,$b) = $tmpimg->rgb($index);
+            my $greypixel = int(($r+$g+$b)/3);
+            if($greypixel < 128) {
+                $self->{img}->setPixel(10+$x, $self->{imgoffs}+$y-3, $self->_getPrintColor());
+            }
+        }
+    }
+
+
+    $self->{imgoffs} += 24;
+
+    return;
+}
+
 sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $doscale = true, $center = false) {
     
     my $reph = $self->{reph};
