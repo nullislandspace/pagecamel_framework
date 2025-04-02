@@ -195,6 +195,10 @@ sub do_backup($self, $arguments) {
                 $ok = 0;
             }
         }
+    } else {
+        if(!$self->_simulate_dirsync()) {
+            $ok = 0;
+        }
     }
 
     if(!$ok) {
@@ -366,6 +370,26 @@ finished:
     return $ok;
 }
 
+sub _simulate_dirsync($self) {
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    $reph->debuglog("USB Backup dir not configured, marking dirsync as complete");
+
+    my $inssth = $dbh->prepare("INSERT INTO pgbackup_log (backuptype, is_ok) VALUES ('DIRSYNC', ?)")
+            or croak($dbh->errstr);
+
+    if(!$inssth->execute(1)) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+
+    $dbh->commit;
+    return 1;
+
+}
 
 1;
 __END__
