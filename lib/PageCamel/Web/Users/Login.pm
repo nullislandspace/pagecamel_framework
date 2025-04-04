@@ -82,6 +82,10 @@ sub new($proto, %config) {
         $self->{forcelowercase} = 1;
     }
 
+    if(!defined($self->{calyx_allow_invalid_ip_adresses_in_cookies})) {
+        $self->{calyx_allow_invalid_ip_adresses_in_cookies} = 0;
+    }
+
     if(defined($self->{foblogin})) {
         if(!defined($self->{foblogin}->{mode}) || $self->{foblogin}->{mode} ne 'websocket') {
             $self->{foblogin}->{mode} = 'ajax';
@@ -1692,13 +1696,16 @@ sub validateSession($self, $session, $ua) {
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
+    if($self->{calyx_allow_invalid_ip_adresses_in_cookies}) {
+        return $self->validateSessionINSECURE($session, $ua);
+    }
+
     if(!defined($session) || $session eq "NONE") {
         #warn "No session cookie: $session\n";
         return 0; # Invalid session
     }
 
     my $host_addr = $ua->{remote_addr};
-    my $userAgent = $ua->{headers}->{'User-Agent'} || '--unknown--';
 
     my $countsth = $dbh->prepare_cached("SELECT count(*) FROM sessions
                                         WHERE sid = ?
@@ -1706,6 +1713,40 @@ sub validateSession($self, $session, $ua) {
             or croak($dbh->errstr);
 
     $countsth->execute($session, $host_addr)
+            or croak($dbh->errstr); # if we can not check if the session is
+                                    # valid, we are really, really screwed!
+
+
+
+    my ($count) = $countsth->fetchrow_array;
+    $countsth->finish;
+    $dbh->commit;
+
+    if(!defined($count) || $count != 1) {
+        return 0;
+    }
+
+    $self->refreshSession($session, $ua);
+    return 1;
+
+}
+
+# Requested by daniel
+# Technically, this risks copying the session cookie to another device!
+sub validateSessionINSECURE($self, $session, $ua) {
+
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    if(!defined($session) || $session eq "NONE") {
+        #warn "No session cookie: $session\n";
+        return 0; # Invalid session
+    }
+
+    my $countsth = $dbh->prepare_cached("SELECT count(*) FROM sessions
+                                        WHERE sid = ?")
+            or croak($dbh->errstr);
+
+    $countsth->execute($session)
             or croak($dbh->errstr); # if we can not check if the session is
                                     # valid, we are really, really screwed!
 
