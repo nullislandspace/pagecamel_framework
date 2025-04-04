@@ -31,6 +31,7 @@
     var wsconnecting = 0;
 
     var stayoffline = 0;
+    var wsreopennow = 0;
     
     function extraOnLoad() {
 
@@ -57,6 +58,7 @@
     }
 
     function wsOnAppReactivate() {
+        console.log("~~~~ wsOnAppReactivate()");
         if(wsconnecting) {
             // Already trying to reconnect
             return;
@@ -64,11 +66,15 @@
 
         if(!wsconnected) {
             // We are not connected, try again immediately
+            //console.log("Socket already closed");
             openWebsocket();
             return;
         }
 
         // We are still connected, but me *might* be in the process of tearing down the connection, so check again in 100ms 
+        //console.log("Closing socket");
+        wsreopennow = 1;
+        closeSocket();
         setTimeout(openWebsocket, 100);
     }
 
@@ -107,6 +113,7 @@
         wsconnecting = 1;
     
         // Second argument is the custom protocol name. It must match $proto in socketstart() in BaseWebSocket.pm
+        //console.log(" OPENING WEBSOCKET");
         ws = new WebSocket(ttvars.websocketurl, 'pagecamel');
 
         // When receiving a BINARY frame, make sure we get it as ArrayBuffer instead of Blob
@@ -132,32 +139,41 @@
         ws.onmessage = handleServerRequests;
         
         ws.onclose = function(ev) {
-            //console.log("Websocket disconnected");
-            wsconnecting = 0;
-            if(ttvars.blockui == "1") {
-                if(ttvars.reconnect == "1") {
-                    $('#dataarea').block({ message: ttvars.trquote.Wsreconnecting });
-                } else {
-                    $('#dataarea').block({ message: ttvars.trquote.Wsclosed });
-                }
-            }
-            wsconnected = 0;
-            window.pcws.isconnected = !!wsconnected;
-            if(window.websocketmaskOnSocketClose) {
-                websocketmaskOnSocketClose();
-            }
-            if(ttvars.reconnect == "1") {
-                //console.log("Trying to reconnect in " + ttvars.client_connect_timeout + " seconds");
-                setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
-            }
+            wsOnCloseOrError(ev);
         }
 
         ws.onerror = function(ev) {
-            //console.log("WebSocket error: ", event);
-            wsconnecting = 0;
+            wsOnCloseOrError(ev);
         }
         
         return;
+    }
+
+    function wsOnCloseOrError(ev) {
+        wsconnecting = 0;
+        if(ttvars.blockui == "1") {
+            if(ttvars.reconnect == "1") {
+                $('#dataarea').block({ message: ttvars.trquote.Wsreconnecting });
+            } else {
+                $('#dataarea').block({ message: ttvars.trquote.Wsclosed });
+            }
+        }
+        wsconnected = 0;
+        window.pcws.isconnected = !!wsconnected;
+        if(window.websocketmaskOnSocketClose) {
+            websocketmaskOnSocketClose();
+        }
+
+        if(wsreopennow == 1) {
+            wsreopennow = 0;
+            openWebsocket();
+            return;
+        }
+
+        if(ttvars.reconnect == "1") {
+            //console.log("Trying to reconnect in " + ttvars.client_connect_timeout + " seconds");
+            setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
+        }
     }
 
     var lastprintid = 0;
