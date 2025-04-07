@@ -418,6 +418,7 @@
 
                 </div>
     <div id="pagecamelFooterContent" class="elem_display_none" width="100%" align="center" valign="top" border="0">
+        <p><input type="button" value="App Reactivate" onclick="onAppReactivate();return false;"></p>
 
         <br>
 

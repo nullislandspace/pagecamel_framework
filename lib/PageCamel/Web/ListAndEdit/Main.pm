@@ -1087,6 +1087,13 @@ sub validateEditItem($self, $item, $multiarraymode) {
         }
     }
 
+    if($item->{type} eq 'dateonly' || $item->{type} eq 'date') {
+        if(!defined($item->{nullable})) {
+            print "    EDIT: type $item->{type} does not define nullable, defaulting to 0\n";
+            $item->{nullable} = 0;
+        }
+    }
+
     $self->{editcolumntypes}->{$self->columnBasename($item->{column})} = $item->{type};
 }
 
@@ -2207,20 +2214,28 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     }
 
                     # Check if this column defines a default value
+                    my $usenull = 0;
                     if($tmp eq 'now') {
                         foreach my $item (@{$self->{edit}->{item}}) {
                             if(defined($item->{column}) && $item->{column} eq $column) {
                                 if(defined($item->{default}) && $item->{default} ne '') {
                                     $tmp = $item->{default};
                                 }
+                                if($item->{nullable}) {
+                                    $usenull = 1;
+                                }
                                 last;
                             }
                         }
                     }
 
-                    $tmp = parseNaturalDate($tmp);
-                    if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
-                        $tmp =~ s/\ .*//;
+                    if($usenull && $tmp eq 'now') {
+                        $tmp = undef;
+                    } else {
+                        $tmp = parseNaturalDate($tmp);
+                        if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
+                            $tmp =~ s/\ .*//;
+                        }
                     }
                 } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
@@ -2405,20 +2420,27 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     }
                     
                     # Check if this column defines a default value
+                    my $usenull = 0;
                     if($tmp eq 'now') {
                         foreach my $item (@{$self->{edit}->{item}}) {
                             if(defined($item->{column}) && $item->{column} eq $column) {
                                 if(defined($item->{default}) && $item->{default} ne '') {
                                     $tmp = $item->{default};
                                 }
+                                if($item->{nullable}) {
+                                    $usenull = 1;
+                                }
                                 last;
                             }
                         }
                     }
-
-                    $tmp = parseNaturalDate($tmp);
-                    if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
-                        $tmp =~ s/\ .*//;
+                    if($usenull && $tmp eq 'now') {
+                        $tmp = undef;
+                    } else {
+                        $tmp = parseNaturalDate($tmp);
+                        if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
+                            $tmp =~ s/\ .*//;
+                        }
                     }
                 } elsif($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
@@ -3002,7 +3024,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             $column{columnvalue} =~ s/\:\d\d$//;
         }
     }
-    
+
     if($column{displaytype} eq 'image') {
         #$column{displaytype} = 'text';
         if($column{columnvalue} ne '') {

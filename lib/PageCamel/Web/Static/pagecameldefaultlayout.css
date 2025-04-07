@@ -408,3 +408,16 @@ div.title_grey {
     color: #b0b0b0;
 }
 
+a.aid:link {
+    color: transparent;
+}
+a.aid:hover {
+    color: transparent;
+}
+a.aid:visited {
+    color: transparent;
+}
+a.aid:active {
+    color: transparent;
+}
+
