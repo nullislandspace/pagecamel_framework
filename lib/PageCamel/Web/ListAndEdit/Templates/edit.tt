@@ -805,14 +805,14 @@
 
         if(ttvars.iframemode == "edit") {
             $("#iFrameChangeButton").on('click', function() {
-                console.log("Saving data");
+                //console.log("Saving data");
                 $('form[name="listandedit"]').block({ message: ttvars.trquote.Wslost });
                 runAutosave();
             });
 
 
             $("#iFrameCancelButton").on('click', function() {
-                console.log("CANCEL pressed");
+                //console.log("CANCEL pressed");
                 window.parent.postMessage({
                     'iframestate': 'cancel'
                 }, "*");
