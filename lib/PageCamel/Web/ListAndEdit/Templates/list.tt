@@ -309,7 +309,7 @@
     }
 
     function iFrameCancel() {
-        console.log("CANCEL pressed");
+        //console.log("CANCEL pressed");
         window.parent.postMessage({
             'iframestate': 'cancel'
         }, "*");
