@@ -51,7 +51,6 @@ sub register($self) {
 }
 
 sub get_blob($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $id = $ua->{url};
     $id =~ s/^.*\///g;

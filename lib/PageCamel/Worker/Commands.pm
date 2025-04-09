@@ -37,7 +37,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # Reset queued commands that have been interrupted due to crash or debugging
@@ -58,7 +57,6 @@ sub register($self) {
 }
 
 sub register_extcommand($self, $command, $modul) {
-
     $self->{extcommand}->{$command} = $modul;
 
     my @cmdlist;
@@ -73,7 +71,6 @@ sub register_extcommand($self, $command, $modul) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

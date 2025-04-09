@@ -38,7 +38,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my @lines = ('# ' . $self->{prefixline});
@@ -70,7 +69,6 @@ sub get($self, $ua) {
 }
 
 sub sitemap($self, $sitemap) {
-
     push @{$sitemap}, $self->{webpath};
 
     return;

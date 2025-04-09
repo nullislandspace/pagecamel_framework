@@ -43,7 +43,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     $self->{blockdelsth} = $dbh->prepare_cached("DELETE FROM firewall_permablock
@@ -81,7 +80,6 @@ sub crossregister($self) {
 
 
 sub work($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

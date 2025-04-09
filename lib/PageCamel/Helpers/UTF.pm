@@ -21,12 +21,10 @@ use PageCamel::Helpers::Padding qw(doSpacePad);
 our @EXPORT = qw(encode_utf8 decode_utf8 encode_utf8_array decode_utf8_array encode_utf16 decode_utf16 is_utf8); ## no critic (Modules::ProhibitAutomaticExportation)
 
 sub encode_utf8($orig) {
-
     return encode('UTF-8', $orig);
 }
 
 sub decode_utf8($orig) {
-
     return decode('UTF-8', $orig);
 }
 
@@ -54,17 +52,14 @@ sub decode_utf8_array {
 
 
 sub encode_utf16($orig) {
-
     return encode('UTF-16', $orig);
 }
 
 sub decode_utf16($orig) {
-
     return decode('UTF-16', $orig);
 }
 
 sub is_utf8($orig) {
-
     return Encode::is_utf8($orig);
 }
 

@@ -41,7 +41,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createEnum(modulename => $self->{modname},
@@ -64,7 +63,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
 
@@ -97,7 +95,6 @@ sub get($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     my $userMenubar = $self->{default_menubar};
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};

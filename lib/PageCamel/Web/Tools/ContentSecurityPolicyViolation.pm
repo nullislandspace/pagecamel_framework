@@ -34,7 +34,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $plain;

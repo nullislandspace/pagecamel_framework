@@ -21,7 +21,6 @@ our @EXPORT_OK = qw(simplifyUA);
 use HTTP::BrowserDetect;
 
 sub simplifyUA($useragentname) {
-
     my $simpleUserAgent = '';
     my $denyAccess = 0;
 

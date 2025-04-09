@@ -17,7 +17,6 @@ use PageCamel::Helpers::UTF;
 
 
 sub get($self, $key) {
-
     return unless(defined($key));
 
     return unless(defined($self->{$key}));

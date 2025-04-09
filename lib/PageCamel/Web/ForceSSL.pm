@@ -41,7 +41,6 @@ sub register($self) {
 }
 
 sub prefilter($self, $ua) {
-
     if($ua->{frontend}->{ssl}) {
         # Nothing to do
         return;

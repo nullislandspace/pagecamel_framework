@@ -96,7 +96,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{login}->{webpath}, "get_login");
 
     $self->register_webpath($self->{logout}->{webpath}, "get_logout");
@@ -129,7 +128,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     $self->register_public_url($self->{login}->{webpath});
     $self->register_public_url($self->{logout}->{webpath});
 
@@ -152,7 +150,6 @@ sub crossregister($self) {
 }
 
 sub reload($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -289,7 +286,6 @@ sub reload($self) {
 }
 
 sub get_logout($self, $ua) {
-
     my $session = $ua->{cookies}->{"pagecamel-session"};
 
     my %oldwebdata = (
@@ -338,7 +334,6 @@ sub get_logout($self, $ua) {
 }
 
 sub get_forcelogout($self, $ua) {
-
     # This is called by session manager
     my $session = $ua->{cookies}->{"pagecamel-session"};
     if(!$self->validateSession($session, $ua)) {
@@ -670,7 +665,6 @@ sub get_login($self, $ua) {
 
 
 sub get_keyfoblogin($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -753,7 +747,6 @@ sub get_keyfoblogin($self, $ua) {
 }
 
 sub get_appuserlogin($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -984,7 +977,6 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
 }
 
 sub get_switchtouser($self, $ua) {
-
     my $remove = $self->{switchtouser}->{webpath};
     my $targetuser = $ua->{url};
     substr($targetuser, 0, length($remove), '');
@@ -1011,7 +1003,6 @@ sub get_switchtouser($self, $ua) {
 }
 
 sub get_switchfromuser($self, $ua) {
-
     my $startpage = $self->adminSwitchFromUser($ua);
     if(!defined($startpage)) {
         return (status => 403); # Forbidden
@@ -1133,7 +1124,6 @@ sub adminSwitchToUser($self, $username, $ua) {
 }
 
 sub adminSwitchFromUser($self, $ua) {
-
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -1181,7 +1171,6 @@ sub adminSwitchFromUser($self, $ua) {
 }
 
 sub preauthcleanup($self, $ua) {
-
     delete $self->{cookie};
     delete $self->{currentData};
     delete $self->{currentSessionID};
@@ -1195,7 +1184,6 @@ sub preauthcleanup($self, $ua) {
 }
 
 sub authcheck($self, $ua) {
-
     my $webpath = $ua->{url};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
     #warn "User requested path $webpath\n";
@@ -1384,7 +1372,6 @@ sub authcheck($self, $ua) {
 }
 
 sub genBasicAuthRequest($self, $realm) {
-
     return (
         status  => 401,
         "WWW-Authenticate"  => 'Basic realm="' . $realm . '"',
@@ -1392,7 +1379,6 @@ sub genBasicAuthRequest($self, $realm) {
 }
 
 sub do_basic_auth($self, $ua, $realm) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -1468,7 +1454,6 @@ sub do_basic_auth($self, $ua, $realm) {
 }
 
 sub password_changed($self, $ua) {
-
     my $session = $ua->{cookies}->{"pagecamel-session"};
     my $user;
     if(defined($session) && $self->validateSession($session, $ua)) {
@@ -1492,7 +1477,6 @@ sub password_changed($self, $ua) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     # Just add the cookie to the header
     if(defined($self->{cookie})) {
         if(!defined($header->{-cookie})) {
@@ -1515,7 +1499,6 @@ sub postfilter($self, $ua, $header, $result) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     if(defined($self->{currentData})) {
         my $clone = dclone $self->{currentData}; # Make sure we clone first
         foreach my $key (qw[first_name last_name]) {
@@ -1553,7 +1536,6 @@ sub get_defaultwebdata($self, $webdata) {
 }
 
 sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $settings = $self->getSettings();
 
@@ -1646,7 +1628,6 @@ sub deleteSession($self, $session) {
 }
 
 sub updateSessionUsername($self, $session, $username) {
-
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -1665,7 +1646,6 @@ sub updateSessionUsername($self, $session, $username) {
 }
 
 sub deleteStaleSessions($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my @stales;
@@ -1693,7 +1673,6 @@ sub deleteStaleSessions($self) {
 }
 
 sub validateSession($self, $session, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if($self->{calyx_allow_invalid_ip_adresses_in_cookies}) {
@@ -1734,7 +1713,6 @@ sub validateSession($self, $session, $ua) {
 # Requested by daniel
 # Technically, this risks copying the session cookie to another device!
 sub validateSessionINSECURE($self, $session, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if(!defined($session) || $session eq "NONE") {
@@ -1766,7 +1744,6 @@ sub validateSessionINSECURE($self, $session, $ua) {
 }
 
 sub refreshSession($self, $session, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -1777,7 +1754,6 @@ sub refreshSession($self, $session, $ua) {
 }
 
 sub get_sessionid($self) {
-
     if(defined($self->{forcedSessionID})) {
         return $self->{forcedSessionID};
     }
@@ -1786,7 +1762,6 @@ sub get_sessionid($self) {
 }
 
 sub get_sessionrefresh($self, $ua) {
-
     if($ua->{method} eq 'POST') {
         # Beacon
         return (
@@ -1808,7 +1783,6 @@ sub get_sessionrefresh($self, $ua) {
 }
 
 sub firewall_log_loginfailure($self, $ua) {
-
     if($self->{disable_firewall}) {
         return;
     }
@@ -1827,7 +1801,6 @@ sub firewall_log_loginfailure($self, $ua) {
 }
 
 sub firewall_check_loginfailure($self, $ua) {
-
     if($self->{disable_firewall}) {
         return 1;
     }
@@ -1864,7 +1837,6 @@ sub firewall_check_loginfailure($self, $ua) {
 }
 
 sub getSettings($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

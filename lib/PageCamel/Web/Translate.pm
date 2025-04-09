@@ -52,7 +52,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Update the handles for the template plugin
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -92,7 +91,6 @@ sub register($self) {
 }
 
 sub get_settings($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -143,7 +141,6 @@ sub get_settings($self, $ua) {
 }
 
 sub get_languages($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -220,7 +217,6 @@ sub get_languages($self, $ua) {
 }
 
 sub get_translations($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -328,7 +324,6 @@ sub get_translations($self, $ua) {
 }
 
 sub get_export($self, $ua) {
-
     my $webpath = $ua->{url};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -373,7 +368,6 @@ sub get_export($self, $ua) {
 
 
 sub get_file($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $exp = tr_export();
@@ -423,7 +417,6 @@ sub prerender($self, $webdata) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     return if(!defined($self->{lastuserlanguage}));
 
     ### FIXME: This should come from the translation database
@@ -440,7 +433,6 @@ sub postfilter($self, $ua, $header, $result) {
 
 # Translation
 sub check_translationupdates($self) {
-
     tr_checkreload();
 
     return;

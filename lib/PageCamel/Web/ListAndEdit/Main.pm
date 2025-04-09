@@ -234,7 +234,6 @@ sub new($proto, %config) {
 
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get");
 
     if($self->{iframemode} ne '') {
@@ -246,7 +245,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     # Run sanity checks on configuration
     my $ok = 1;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -1100,7 +1098,6 @@ sub validateEditItem($self, $item, $multiarraymode) {
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning
 # of Perl::Critic
 sub get($self, $ua) {
-
     my $mode = $ua->{postparams}->{'mode'} || 'list';
     my $primarykey = '';
     if(defined($ua->{postparams}->{'primary_key'})) {
@@ -1190,7 +1187,6 @@ sub get($self, $ua) {
 }
 
 sub send_csv($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
 
@@ -1245,7 +1241,6 @@ sub send_csv($self, $ua) {
 }
 
 sub download_csv($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
 
@@ -1290,7 +1285,6 @@ sub download_csv($self, $ua) {
 
 
 sub get_pagescript($self, $ua, $mode) {
-
     my $lastetag = $ua->{headers}->{'If-None-Match'} || '';
     
     my $prefix = 'extra' . $mode . 'script';
@@ -1495,8 +1489,6 @@ sub get_list($self, $ua, $usemasterlayout = true) {
 }
 
 sub get_lines($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
     my $method = $ua->{method};
@@ -1912,7 +1904,6 @@ sub get_lines($self, $ua) {
 }
 
 sub get_prevnext($self, $ua, $currentprimkey) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
@@ -1976,7 +1967,6 @@ sub get_prevnext($self, $ua, $currentprimkey) {
 }
 
 sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
-
     if($self->{listonly}) {
         return (status => 403); # Forbidden
     }
@@ -3322,7 +3312,6 @@ sub makeCacheKey($self, $hasdescription, $stmt) {
 
 
 sub get_autosave($self, $ua) {
-
     if($self->{listonly}) {
         return (status => 403); # Forbidden
     }
@@ -3386,7 +3375,6 @@ sub keyvalueIntermix($self, $keys, $values) {
 
 
 sub write_auditlog($self, $username, $mode, @data) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $insth = $dbh->prepare_cached("INSERT INTO auditlog (worker_name, module_name, username, logtext, extrainfo)
@@ -3439,7 +3427,6 @@ sub columnBasename($self, $colname) {
 
 # Only called in iframe mode!!!
 sub get_defaultwebdata($self, $webdata) {
-
     if($self->{iframemode} eq 'list') {
         $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{mode} = 'list';
         $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{webpath} = $self->{webpath};

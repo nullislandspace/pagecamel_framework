@@ -42,7 +42,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $th = $self->{server}->{modules}->{templates};
 

@@ -252,7 +252,6 @@ sub init($self) {
 }
 
 sub run($self) {
-
     while(1) {
         while((my @connections = $self->{select}->can_read(1))) {
             foreach my $connection (@connections) {
@@ -318,7 +317,6 @@ sub run($self) {
 }
 
 sub handleClient($self, $client) {
-
     my $sigpipeseen = 0;
     my $sigpipehandled = 0;
 
@@ -783,7 +781,6 @@ sub handleClient($self, $client) {
 }
 
 sub endprogram($self) {
-
     sleep(1);
     while(1) {
         kill 9, $PID;
@@ -834,7 +831,6 @@ sub get408($self) {
 }
 
 sub parseheaders($self, $rawheaders) {
-
     my @headers;
 
     local $INPUT_RECORD_SEPARATOR = undef;

@@ -21,7 +21,6 @@ use File::Binary;
 
 
 sub slurpTextFile($fname) {
-
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
     # to work around the multiple idiosynchrasies of Perl on Windows
@@ -44,7 +43,6 @@ sub slurpTextFile($fname) {
 }
 
 sub slurpBinFile($fname) {
-
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
     # to work around the multiple idiosynchrasies of Perl on Windows
@@ -58,7 +56,6 @@ sub slurpBinFile($fname) {
 }
 
 sub slurpBinFilePart($fname, $start, $len) {
-
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
     # to work around the multiple idiosynchrasies of Perl on Windows
@@ -71,7 +68,6 @@ sub slurpBinFilePart($fname, $start, $len) {
 }
 
 sub slurpBinFilehandle($fh) {
-
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
     # to work around the multiple idiosynchrasies of Perl on Windows
@@ -84,7 +80,6 @@ sub slurpBinFilehandle($fh) {
 }
 
 sub writeBinFile($fname, $data) {
-
     # Read in file in binary mode, slurping it into a single scalar.
     # We have to make sure we use binmode *and* turn on the line termination variable completly
     # to work around the multiple idiosynchrasies of Perl on Windows

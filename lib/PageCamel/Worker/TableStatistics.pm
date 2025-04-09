@@ -36,7 +36,6 @@ sub register($self) {
 
 
 sub work($self) {
-
     # Only work loop again until we reach the 30 seconds mark so we don't block the system for too long
     #
     # Also, we choose not to use cached prepared statements in here.

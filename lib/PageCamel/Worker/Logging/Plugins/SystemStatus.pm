@@ -33,13 +33,11 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     $self->register_plugin('work', 'SYSTEMSTATUS', 'SYSTEMSTATUS');
     return;
 }
 
 sub loadColumns($self, $dbh) {
-
     my %cols;
     my $selsth = $dbh->prepare("SELECT column_name, data_type FROM information_schema.columns
                                 WHERE table_name = 'logging_log_systemstatus'")
@@ -56,7 +54,6 @@ sub loadColumns($self, $dbh) {
 }
 
 sub work($self, $device, $dbh, $reph, $memh) {
-
     my $workCount = 0;
 
     if($self->{firstrun}) {

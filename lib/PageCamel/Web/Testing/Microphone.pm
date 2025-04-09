@@ -41,7 +41,6 @@ sub wsregister($self) {
 }
 
 sub wsreload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createNumber(modulename => $self->{modname},
@@ -72,7 +71,6 @@ sub wsreload($self) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-
     my %audio = (
         playbackbuffer => [],
         playbackchunksize => 256,
@@ -107,7 +105,6 @@ sub wscleanup($self) {
 my $tmpaccu = 0;
 my $tmpcnt = 0;
 sub wshandlemessage($self, $message) {
-
     if($message->{type} eq 'START') {
         if(defined($self->{ofh})) {
             print STDERR "Got START but file is already OPEN!\n";

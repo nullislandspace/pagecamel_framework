@@ -37,7 +37,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -87,7 +86,6 @@ sub get($self, $ua) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     if(!defined($webdata->{userData}) ||
               !defined($webdata->{userData}->{user}) ||
               $webdata->{userData}->{user} eq "") {

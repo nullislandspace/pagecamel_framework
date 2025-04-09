@@ -45,14 +45,12 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_worker('logdata');
     $self->register_worker('rollingwindow');
     return;
 }
 
 sub logdata($self) {
-
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -83,7 +81,6 @@ sub logdata($self) {
 }
 
 sub rollingwindow($self) {
-
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

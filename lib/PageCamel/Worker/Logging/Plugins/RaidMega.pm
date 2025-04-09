@@ -29,13 +29,11 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     $self->register_plugin('work', 'RAIDSTATUS', 'MegaRaid');
     return;
 }
 
 sub work($self, $device, $dbh, $reph, $memh) {
-
     my $workCount = 0;
 
     $reph->debuglog("Logging MegaRaid status for " . $device->{hostname});

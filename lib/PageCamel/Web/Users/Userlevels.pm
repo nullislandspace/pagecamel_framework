@@ -121,7 +121,6 @@ sub checkAccessForUser($self, $uri, $username) {
 
 
 sub finalcheck($self) {
-
     # Check which webpaths are under restricted paths and print some stats
     my %levelpaths;
     my %levelcount;

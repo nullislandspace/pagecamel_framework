@@ -34,7 +34,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     my @headerparts;
     my %defaultheaders;
     foreach my $header (@{$self->{headers}->{header}}) {

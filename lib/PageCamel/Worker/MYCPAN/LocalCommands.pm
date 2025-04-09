@@ -37,7 +37,6 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
 
@@ -48,7 +47,6 @@ sub crossregister($self) {
 }
 
 sub execute($self, $command, $arguments) {
-
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
         return $self->$cmdfunc($arguments);
@@ -58,7 +56,6 @@ sub execute($self, $command, $arguments) {
 
 
 sub do_mycpan_update_files($self, $arguments) {
-
     my $logtype = "OTHER"; # make logging visible only to admin user
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

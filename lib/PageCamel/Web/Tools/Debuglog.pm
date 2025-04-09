@@ -37,7 +37,6 @@ sub new($proto, %config) {
 
 
 sub wshandlerstart($self, $ua, $settings) {
-
     $self->{nextping} = time + 10;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -51,7 +50,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-
     delete $self->{nextping};
     delete $self->{clacks};
 
@@ -59,7 +57,6 @@ sub wscleanup($self) {
 }
 
 sub wscyclic($self, $ua) {
-
     my $now = time;
     if($now > $self->{nextping}) {
         $self->{clacks}->ping();

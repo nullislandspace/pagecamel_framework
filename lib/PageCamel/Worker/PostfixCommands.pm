@@ -47,7 +47,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
     
@@ -67,7 +66,6 @@ sub execute($self, $command, $arguments) {
 }
 
 sub do_postfix_update_aliases($self, $arguments) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     $reph->debuglog("Generating new /etc/aliases file");

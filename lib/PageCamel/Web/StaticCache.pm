@@ -85,7 +85,6 @@ sub new($proto, %config) {
 }
 
 sub addPath($self, $basePath) {
-
     push @{$self->{EXTRAINC}}, $basePath;
 
     return 1;
@@ -432,7 +431,6 @@ sub execute_external_command($self, $cmd) {
 }
 
 sub register($self) {
-
     # Also need to register the webpaths during addview() call, because we can get additional paths during
     # the crossregister loop
     foreach my $view (@{$self->{view}}) {
@@ -449,7 +447,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $name = $ua->{url};
 
     return (status  =>  404) unless defined($self->{cache}->{$name});
@@ -550,7 +547,6 @@ sub getFilename($self, $uri) {
 }
 
 sub sitemap($self, $sitemap) {
-
     push @{$sitemap}, keys %{$self->{cache}};
 
     return;

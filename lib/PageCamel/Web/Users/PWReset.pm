@@ -55,7 +55,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get_pwreset");
     $self->register_public_url($self->{webpath});
     $self->register_defaultwebdata("defaultwebdata");
@@ -63,15 +62,12 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     # Nothing to do
 
     return;
 }
 
 sub get_pwreset($self, $ua) {
-
-
     my $mode = $ua->{postparams}->{'mode'} || 'view';
     my $pwresetid = $ua->{url};
     my $remove = $self->{webpath};
@@ -88,7 +84,6 @@ sub get_pwreset($self, $ua) {
 
 
 sub get_request($self, $ua) {
-
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
@@ -203,7 +198,6 @@ END
 
 
 sub get_execute($self, $ua, $resetkey) {
-
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
@@ -279,7 +273,6 @@ sub get_execute($self, $ua, $resetkey) {
 }
 
 sub defaultwebdata($self, $webdata) {
-
     # Just allow the "password reset" menu item
     $webdata->{canResetPassword} = 1;
     return;

@@ -36,7 +36,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
@@ -48,14 +47,12 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     $self->register_public_url($self->{webpath});
 
     return;
 }
 
 sub get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $host = $ua->{remote_addr} || '0.0.0.0';

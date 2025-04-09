@@ -39,7 +39,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
 
     my %webdata = (
@@ -67,7 +66,6 @@ sub get($self, $ua) {
 }
 
 sub sitemap($self, $sitemap) {
-
     push @{$sitemap}, $self->{webpath};
 
     return;

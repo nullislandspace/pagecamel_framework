@@ -53,7 +53,6 @@ sub register($self) {
 
 
 sub work_hour($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -95,7 +94,6 @@ sub work_hour($self) {
 }
 
 sub work_day($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

@@ -52,7 +52,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     $reph->debuglog("Connecting to Fritz!Box");
@@ -66,7 +65,6 @@ sub reload($self) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

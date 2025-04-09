@@ -32,7 +32,6 @@ sub register($self) {
 }
 
 sub prefilter($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $host = $ua->{remote_addr};

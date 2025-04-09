@@ -76,7 +76,6 @@ sub reload($self) {
 }
 
 sub get_list($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $th = $self->{server}->{modules}->{templates};
@@ -128,7 +127,6 @@ sub get_list($self, $ua) {
 }
 
 sub get_edit($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

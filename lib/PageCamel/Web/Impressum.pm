@@ -65,7 +65,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     $self->register_public_url($self->{webpath});
     return;
 }
@@ -73,7 +72,6 @@ sub crossregister($self) {
 
 
 sub get($self, $ua) {
-
     my %sets;
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     foreach my $key (qw[impressum_enable impressum_html]) {
@@ -107,7 +105,6 @@ sub get($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my ($ok, $data) = $sysh->get($self->{modname}, 'impressum_enable');
     if($ok && $data->{settingvalue}) {
@@ -119,7 +116,6 @@ sub prerender($self, $webdata) {
 }
 
 sub sitemap($self, $sitemap) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my ($ok, $data) = $sysh->get($self->{modname}, 'impressum_enable');
     if($ok && $data->{settingvalue}) {

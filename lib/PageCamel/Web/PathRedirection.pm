@@ -56,7 +56,6 @@ sub register($self) {
 }
 
 sub prefilter($self, $ua) {
-
     my $webpath = $ua->{url};
 
     # if there is a redirect for the current path, just return the

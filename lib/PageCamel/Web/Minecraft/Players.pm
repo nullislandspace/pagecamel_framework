@@ -97,7 +97,6 @@ sub get_js($self, $ua) {
 }
 
 sub get_json($self, $ua) {
-
     my $jsonfile;    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
@@ -210,7 +209,6 @@ sub makeDragon($self, $world, $x, $z) {
 }
 
 sub get_playericon($self, $ua) {
-
     my $playerskin;    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
@@ -256,7 +254,6 @@ sub get_playericon($self, $ua) {
 }
 
 sub decodeEnderDragon($self) {
-
     $self->{enderdragongif} = decode_base64("
         R0lGODlhQABAAPcvAAMDAwgKBwwMDAcECA4RDhINEw8QEBMTExgYFxcUGBsbGyQkJCsrKzMzMzw8
         PERERExMTFNTU1tbW2NjY2xsbHR0dHx8fIODg+zs7A8MENvb28vLy5OTk7Ozsx8bIKurqwUJBeTk

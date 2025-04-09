@@ -33,13 +33,11 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get_file");
     return;
 }
 
 sub get_file($self, $ua) {
-
     my $webpath = '' . $ua->{url};
     $webpath =~ s/^$self->{webpath}//;
     $webpath =~ s/^\///;

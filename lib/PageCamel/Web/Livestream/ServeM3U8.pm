@@ -49,7 +49,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if(defined($self->{public}) && $self->{public} == 1) {
         $self->register_public_url($self->{webpath});
     }
@@ -58,7 +57,6 @@ sub crossregister($self) {
 }
 
 sub get_download($self, $ua) {
-
     my $filename = $ua->{url};
     my $remove = $self->{webpath};
     $filename =~ s/^$remove//;
@@ -108,7 +106,6 @@ sub get_download($self, $ua) {
 }
 
 sub get_index($self, $ua) {
-
     my $data = '';
     my $filecount = 0;
     my $loopcount = 0;

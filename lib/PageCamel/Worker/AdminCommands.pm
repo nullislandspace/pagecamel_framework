@@ -44,7 +44,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
 
@@ -55,7 +54,6 @@ sub register($self) {
 }
 
 sub execute($self, $command, $arguments) {
-
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
         return $self->$cmdfunc($arguments);
@@ -64,7 +62,6 @@ sub execute($self, $command, $arguments) {
 }
 
 sub do_svc_reset_all_services($self, $arguments) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

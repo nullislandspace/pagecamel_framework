@@ -33,7 +33,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # make sure the relevant system settings exist
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -68,12 +67,10 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     return;
 }
 
 sub get_settings($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
 
@@ -144,7 +141,6 @@ sub get_settings($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     my $publicpage = 0;
 
     if(!defined($webdata->{userData}->{user})) {

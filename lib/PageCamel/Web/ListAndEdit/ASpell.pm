@@ -36,7 +36,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
 
     my $rawdata = $ua->{postparams}->{'textinputs[]'};

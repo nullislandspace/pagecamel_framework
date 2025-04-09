@@ -150,7 +150,6 @@ sub load_base_project($self, $projectname) {
 
 
 sub configure($self, $modname, $perlmodulename, %config) {
-
     # Let the module know its configured module name...
     $config{modname} = $modname;
 
@@ -187,7 +186,6 @@ sub configure($self, $modname, $perlmodulename, %config) {
 }
 
 sub endconfig($self) {
-
     #$self->{modules}->{$modname}->reload;   # (Re)load module's data
     print "Guidance is internal!\n"; # We REQUIRE an Apollo reference here!!1!
     print "Cross registering modules...\n";
@@ -223,7 +221,6 @@ sub endconfig($self) {
 }
 
 sub run($self) {
-
     my $workCount = 0;
 
     # Run cleanup functions in case the last cycle bailed out with croak
@@ -267,7 +264,6 @@ sub run($self) {
 }
 
 sub add_worker($self, $module, $funcname) {
-
     my %conf = (
         Module  => $module,
         Function=> $funcname
@@ -278,7 +274,6 @@ sub add_worker($self, $module, $funcname) {
 }
 
 sub add_cleanup($self, $module, $funcname) {
-
     my %conf = (
         Module  => $module,
         Function=> $funcname
@@ -289,7 +284,6 @@ sub add_cleanup($self, $module, $funcname) {
 }
 
 sub add_sigchld($self, $module, $funcname) {
-
     my %conf = (
         Module  => $module,
         Function=> $funcname

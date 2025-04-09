@@ -40,12 +40,10 @@ sub colorHex2RGB($colorstring) {
 }
 
 sub colorRGB2Hex($r, $g, $b) {
-
     return sprintf("#%02lx%02lx%02lx", $r, $g, $b);
 }
 
 sub colorMaxContrast($r, $g, $b) {
-
     my ($newr, $newg, $newb);
 
     my $avg = ($r + $g + $b) / 3;
@@ -84,13 +82,11 @@ sub colorMaxContrast($r, $g, $b) {
 }
 
 sub colorHexMaxContrast($colorstring) {
-
     return colorRGB2Hex(colorMaxContrast(colorHex2RGB($colorstring)));
 }
 
 my %colorswatchcache;
 sub colorSwatch($color) {
-
     if(defined($colorswatchcache{$color})) {
         return $colorswatchcache{$color};
     }

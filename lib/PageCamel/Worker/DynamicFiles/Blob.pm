@@ -40,7 +40,6 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
 
@@ -51,7 +50,6 @@ sub crossregister($self) {
 }
 
 sub execute($self, $command, $arguments) {
-
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
         return $self->$cmdfunc($arguments);
@@ -61,7 +59,6 @@ sub execute($self, $command, $arguments) {
 
 
 sub do_dynamicfiles_update_database($self, $arguments) {
-
     my ($dbmodule, $localdir, $filesdontchange) = @{$arguments};
 
     if(!defined($filesdontchange)) {
@@ -196,7 +193,6 @@ sub do_dynamicfiles_update_database($self, $arguments) {
 }
 
 sub find_files($self, $realdir, $virtdir, $dbmodule, $filesdontchange) {
-
     my %dirs;
     my %files;
 

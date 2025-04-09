@@ -49,7 +49,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createText(modulename => $self->{modname},
@@ -118,7 +117,6 @@ sub reload($self) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

@@ -51,7 +51,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     if(defined($self->{webpath})) {
         $self->register_webpath($self->{webpath}, "get", "GET", "POST");
     }
@@ -66,7 +65,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createText(modulename => $self->{modname},
@@ -195,7 +193,6 @@ sub reload($self) {
 
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
@@ -225,7 +222,6 @@ sub get($self, $ua) {
 }
 
 sub get_select($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -273,7 +269,6 @@ sub get_select($self, $ua) {
 }
 
 sub get_vnc($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -421,7 +416,6 @@ sub get_vnc($self, $ua) {
 }
 
 sub socketstart($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -494,7 +488,6 @@ sub socketstart($self, $ua) {
 }
 
 sub sockethandler($self, $ua) {
-
     my $session = $self->{sessiondata};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

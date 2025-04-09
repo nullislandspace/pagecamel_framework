@@ -34,7 +34,6 @@ sub register($self) {
 }
 
 sub log($self, $logdata) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $webpath = $logdata->{webpath} . '';

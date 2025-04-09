@@ -57,7 +57,6 @@ sub new($class, $isDebugging, $configfile) {
 }
 
 sub init($self) {
-
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => [ ],);
@@ -126,7 +125,6 @@ sub init($self) {
 }
 
 sub run($self) {
-
     my $buf = undef;
     my $fromaddr;       # address & port from which packet was received
     my $dhcpreq;
@@ -178,7 +176,6 @@ sub run($self) {
 }
 
 sub do_discover($self, $dhcpreq) {
-
     # Get IP from database
     my $mac = $self->parseMac($dhcpreq->chaddr());
     my $vendor = $dhcpreq->getOptionValue( DHO_VENDOR_CLASS_IDENTIFIER() ) || '';
@@ -226,7 +223,6 @@ sub do_discover($self, $dhcpreq) {
 }
 
 sub do_request($self, $dhcpreq) {
-
     # Get IP from database
     my $mac = $self->parseMac($dhcpreq->chaddr());
     my $vendor = $dhcpreq->getOptionValue( DHO_VENDOR_CLASS_IDENTIFIER() ) || '';
@@ -300,7 +296,6 @@ sub do_request($self, $dhcpreq) {
 }
 
 sub logdb($self, $type, $vendor, $ip, $mac, $hname, $refused) {
-
     if(!$self->{logsth}->execute($type, $vendor, $ip, $mac, $hname, $refused)) {
         logger("DB ERROR: " . $self->{dbh}->errstr);
         $self->{dbh}->rollback;
@@ -312,7 +307,6 @@ sub logdb($self, $type, $vendor, $ip, $mac, $hname, $refused) {
 }
 
 sub parseMac($self, $rawmac) {
-
     $rawmac = substr($rawmac, 0, 12);
     my @parts = split//, $rawmac;
     my $mac = '';

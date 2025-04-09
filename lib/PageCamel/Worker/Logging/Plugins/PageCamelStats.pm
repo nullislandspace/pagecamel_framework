@@ -32,13 +32,11 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     $self->register_plugin('work', 'WEBGUI', 'ACCESS');
     return;
 }
 
 sub work($self, $device, $dbh, $reph, $memh) {
-
     my $workCount;
 
     $workCount += $self->workWebgui($device, $dbh, $reph, $memh);
@@ -51,7 +49,6 @@ sub work($self, $device, $dbh, $reph, $memh) {
 }
 
 sub workWebgui($self, $device, $dbh, $reph, $memh) {
-
     my $workCount = 0;
 
     $reph->debuglog("Logging webclicks status for " . $device->{hostname});
@@ -130,8 +127,6 @@ sub workWebgui($self, $device, $dbh, $reph, $memh) {
 }
 
 sub workFirewall($self, $device, $dbh, $reph, $memh) {
-
-
     $reph->debuglog("Updating CAVACDISPLAY for Firewall");
     $memh->refresh_lifetick;
 

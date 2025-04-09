@@ -44,7 +44,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     $self->initLocal();
 
 
@@ -53,7 +52,6 @@ sub crossregister($self) {
 }
 
 sub initLocal($self) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $now = time;
     foreach my $varname (@{$self->{item}}) {
@@ -69,7 +67,6 @@ sub initLocal($self) {
 
 
 sub work($self) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $workCount = 0;

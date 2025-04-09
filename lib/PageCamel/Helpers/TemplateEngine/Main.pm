@@ -91,7 +91,6 @@ sub init($self) {
 }
 
 sub addPath($self, $basePath) {
-
     push @{$self->{EXTRAINC}}, $basePath;
 
     return 1;
@@ -198,7 +197,6 @@ sub reloadFiles($self, $reph) {
 }
 
 sub load_dir($self, $dir, $base, $files, $reph) {
-
     $base =~ s/^\///o;
     $base =~ s/\/$//o;
 
@@ -243,7 +241,6 @@ sub runFinalcheck($self) {
 }
 
 sub addTranslations($self, $webdata) {
-
     my $lang = 'engi';
     if(defined($webdata->{UserLanguage})) {
         $lang = $webdata->{UserLanguage};
