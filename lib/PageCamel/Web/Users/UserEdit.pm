@@ -33,16 +33,34 @@ sub register($self) {
         }
     }
 
-    if(!$ok) {
-        croak("Failed to load " . $self->{modname} . " due to config errors!");
-    }
-
     if(!defined($self->{forcelowercase})) {
         $self->{forcelowercase} = 1;
     }
 
     if(!defined($self->{switchtouser})) {
         $self->{switchtouser} = '';
+    }
+
+    if(!defined($self->{textpermissions}->{item})) {
+        $self->{textpermissions}->{item} = [];
+    } else {
+        foreach my $textpermission (@{$self->{textpermissions}->{item}}) {
+            if(!defined($textpermission->{column})) {
+                print STDERR "Textpermission has no column name\n";
+                $ok = 0;
+                next;
+            }
+            foreach my $key (qw[displaytext table enumcolumn]) {
+                if(!defined($textpermission->{$key})) {
+                    print STDERR "Textpermission for column ", $textpermission->{column}, " has no setting for ", $key, "\n";
+                    $ok = 0;
+                }
+            }
+        }
+    }
+
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
     }
 
     $self->{qrcode} = PageCamel::Helpers::APPQRCode->new(scale => 5);
@@ -149,9 +167,14 @@ sub get_edit($self, $ua) {
 
     my @textpermissions;
     foreach my $item (@{$self->{textpermissions}->{item}}) {
-        push @textpermissions, 'textpermission_' . $item->{column};
+        push @textpermissions, $item->{column};
 
-        my $enumsth = $dbh->prepare("SELECT permission_name, permission_text FROM " . $item->{table} . " ORDER BY permission_name")
+        my $aliasname = '';
+        if($item->{enumcolumn} ne 'permission_name') {
+            $aliasname = ' AS permission_name ';
+        }
+
+        my $enumsth = $dbh->prepare("SELECT " . $item->{enumcolumn} . $aliasname . " FROM " . $item->{table} . " ORDER BY " . $item->{enumcolumn})
                 or croak($dbh->errstr);
         if(!$enumsth->execute) {
             $reph->debuglog($dbh->errstr);
@@ -168,7 +191,7 @@ sub get_edit($self, $ua) {
         }
         $enumsth->finish;
         my %txtpermission = (
-            column => 'textpermission_' . $item->{column},
+            column => $item->{column},
             displaytext => $item->{displaytext}, 
             data => \@enumvals,
         );
@@ -309,6 +332,9 @@ sub get_edit($self, $ua) {
                 $webdata{statuscolor} = "errortext";
                 goto reloaddata 
             }
+            if(!defined($fielddata)) {
+                $fielddata = '';
+            }
             push @auditdata, "$fieldname: $fielddata";
         }
 
@@ -400,6 +426,9 @@ sub get_edit($self, $ua) {
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
                 goto reloaddata 
+            }
+            if(!defined($fielddata)) {
+                $fielddata = '';
             }
             push @auditdata, "$fieldname: $fielddata";
         }
