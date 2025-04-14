@@ -74,8 +74,8 @@
         // We are still connected, but me *might* be in the process of tearing down the connection, so check again in 100ms 
         //console.log("Closing socket");
         wsreopennow = 1;
-        closeSocket();
-        setTimeout(openWebsocket, 100);
+        //closeSocket();
+        setTimeout(openWebsocket, 1000);
     }
 
     function setoffline(newstate) {
