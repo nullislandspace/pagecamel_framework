@@ -175,13 +175,13 @@ sub getColumnType($self, $xtable, $xcolumn) {
     return $type;
 }
 
-sub getDefaultValue($self, $xtable, $xcolumn) {
+sub getDefaultValue($self, $xtable, $xcolumn, $dateexpander=0) {
     my $table = '' . $xtable;
     my $column = '' . $xcolumn;
 
     $self->checkDBH();
 
-    my $sth = $self->{mdbh}->prepare_cached("SELECT column_name, column_default
+    my $sth = $self->{mdbh}->prepare_cached("SELECT column_name, column_default, data_type
                                                 FROM information_schema.columns
                                                 WHERE table_schema = ?
                                                 AND table_name = ?
@@ -205,7 +205,11 @@ sub getDefaultValue($self, $xtable, $xcolumn) {
         return;
     }
 
-    if($line->{column_default} =~ /^nextval/ || $line->{column_default} eq 'now()') {
+    if($dateexpander, $line->{data_type} =~ /(date|time)/ && $line->{column_default} =~ /now\(\)/) {
+        return 'XXAUTOEXPANDXX_' . $line->{column_default};
+    }
+
+    if($line->{column_default} =~ /^nextval/) {
         return;
     }
 
