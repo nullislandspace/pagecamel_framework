@@ -42,7 +42,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{download}->{webpath} . '/download', "get_download", 'GET');
 
     $self->register_webpath($self->{manage}->{webpath}, "get_manage", 'GET', 'POST');
@@ -61,7 +60,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if(defined($self->{upload}->{auth_realm})) {
         $self->register_basic_auth($self->{upload}->{webpath}, $self->{upload}->{auth_realm});
     }
@@ -70,7 +68,6 @@ sub crossregister($self) {
 }
 
 sub clean_fname($self, $filename) {
-
     my $safe_filename_characters = "a-zA-Z0-9_.-";
     $filename =~ s/\\/\//go;
     my ( $name, $path, $extension ) = fileparse ( $filename, '\..*' );
@@ -94,7 +91,6 @@ sub check_continue($self, $ua) {
 
 
 sub get_manage($self, $ua) {
-
     my $webpath = $ua->{url};
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -257,7 +253,6 @@ sub get_delete($self, $fname) {
 }
 
 sub get_download($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $filename = $ua->{url};
@@ -293,7 +288,6 @@ sub get_download($self, $ua) {
 
 
 sub get_fname($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $filename = $ua->{postparams}->{'fname'} || '';
@@ -332,8 +326,6 @@ sub get_fname($self, $ua) {
 }
 
 sub get_lines($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     #my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $method = $ua->{method};

@@ -22,7 +22,6 @@ our @EXPORT_OK = qw(tabsToTable normalizeString elemNameQuote stripString humanF
 
 
 sub tabsToTable($txt, @lengths) {
-
     my @parts = split/\t/, $txt;
     my $newtext = "";
     foreach my $part (@parts) {

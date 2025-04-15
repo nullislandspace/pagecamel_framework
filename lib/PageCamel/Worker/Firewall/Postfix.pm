@@ -47,7 +47,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     $self->{clacks}->listen('Firewall::Syslog');
@@ -88,7 +87,6 @@ sub crossregister($self) {
 
 
 sub work($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

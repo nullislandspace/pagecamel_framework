@@ -70,7 +70,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, 'get', "GET", "CONNECT");
     $self->register_protocolupgrade($self->{webpath}, 'sockethandler', "websocket");
     
@@ -89,7 +88,6 @@ sub crossregister($self) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
 
@@ -163,7 +161,6 @@ sub wsreload($self) {
 }
 
 sub wsmaskget($self, $ua, $settings, $webdata) {
-
     return 200; # HTTP Status OK
 }
 
@@ -229,7 +226,6 @@ sub wsprint($self, $message, $usebinary = 0) {
 }
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -328,7 +324,6 @@ sub get($self, $ua) {
 
     
 sub socketstart($self, $ua) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     my $upgrade = $ua->{headers}->{"Upgrade"};
@@ -378,7 +373,6 @@ sub socketstart($self, $ua) {
 }
 
 sub sockethandler($self, $ua) {
-
     my $session = $self->{sessiondata};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $th = $self->{server}->{modules}->{templates};

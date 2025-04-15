@@ -47,20 +47,17 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get_pwchange");
     return;
 }
 
 sub reload($self) {
-
     # Nothing to do
 
     return;
 }
 
 sub get_pwchange($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $auth = $self->{server}->{modules}->{$self->{authentification}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

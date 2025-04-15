@@ -41,7 +41,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     $dbh->{disconnectIsFatal} = 1; # Don't automatically reconnect but exit instead!
@@ -97,7 +96,6 @@ sub crossregister($self) {
 
 
 sub work($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

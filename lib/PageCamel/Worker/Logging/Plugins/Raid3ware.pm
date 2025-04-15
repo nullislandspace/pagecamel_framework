@@ -27,13 +27,11 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     $self->register_plugin('work', 'RAIDSTATUS', '3ware');
     return;
 }
 
 sub work($self, $device, $dbh, $reph, $memh) {
-
     my $workCount = 0;
 
     $reph->debuglog("Logging 3ware Raid status for " . $device->{hostname});

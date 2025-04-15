@@ -27,7 +27,6 @@ use File::Binary;
 
 # Get unique elements of array as hash keys
 sub arraytohashkeys(@in) {
-
     my %out = map {$_=>1} @in;
 
     return %out;
@@ -36,7 +35,6 @@ sub arraytohashkeys(@in) {
 # count how many times each unique element exists in array, return
 # as hash
 sub hashcountfromarray(@in) {
-
     my %out;
     $out{$_}++ for (@in);
 

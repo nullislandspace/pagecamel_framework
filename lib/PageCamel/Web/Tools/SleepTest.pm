@@ -31,7 +31,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
     return;
 }

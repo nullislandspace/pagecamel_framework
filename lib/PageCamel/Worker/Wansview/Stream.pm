@@ -47,13 +47,11 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_worker('work');
     return;
 }
 
 sub reload($self) {
-
     if(defined($self->{archivepath}) && !-d $self->{archivepath}) {
         croak($self->{modname} . 'error: Directory does not exist: ' . $self->{archivepath});
     }
@@ -61,7 +59,6 @@ sub reload($self) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -136,7 +133,6 @@ sub work($self) {
 }
 
 sub getImage($self) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $mech = WWW::Mechanize::GZip->new();
     $mech->credentials($self->{netloc}, $self->{realm}, $self->{username}, $self->{password});

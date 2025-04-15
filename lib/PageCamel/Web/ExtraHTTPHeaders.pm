@@ -35,7 +35,6 @@ sub register($self) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     foreach my $name (keys %{$self->{headers}->{item}}) {
         my $realname = $name;
         if($realname !~ /^\//) {

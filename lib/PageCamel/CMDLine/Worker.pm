@@ -35,7 +35,6 @@ sub new($class, $isDebugging, $configfile) {
 
 
 sub init($self) {
-
     my $initok = 0;
 
     eval {

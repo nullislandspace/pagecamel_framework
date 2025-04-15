@@ -48,7 +48,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
 
     my @recievers;
@@ -125,7 +124,6 @@ sub get($self, $ua) {
 
 
 sub sendMail($self, $recievers, $subject, $message, $contenttype) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $sth = $dbh->prepare_cached("INSERT INTO mail_data

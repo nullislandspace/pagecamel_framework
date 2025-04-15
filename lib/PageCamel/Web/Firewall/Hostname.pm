@@ -47,7 +47,6 @@ sub register($self) {
 }
 
 sub prefilter($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if(defined($self->{defaultwebdata})) {
@@ -153,7 +152,6 @@ sub prefilter($self, $ua) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     return unless defined($self->{defaultwebdata});
     foreach my $key (keys %{$self->{defaultwebdata}}) {
         my $val = $self->{defaultwebdata}->{$key};

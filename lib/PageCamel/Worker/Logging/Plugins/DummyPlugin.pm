@@ -43,7 +43,6 @@ sub crossregister($self) {
 }
 
 sub work($self, $device, $dbh, $reph, $memh) {
-
     my $workCount = 0;
 
     # Nothing to do here by design

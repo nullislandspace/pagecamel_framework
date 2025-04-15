@@ -42,7 +42,6 @@ BEGIN {
 
 
 sub tr_init($dbh, $memh, $debugflag) {
-
     $globalmemh = $memh;
     $globaldbh = $dbh;
     $isDebugging = $debugflag;
@@ -132,7 +131,6 @@ sub makeCacheChecksum($cache) {
 }
 
 sub tr_checklang($lang) {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
@@ -145,7 +143,6 @@ sub tr_checklang($lang) {
 }
 
 sub tr_rememberkey($key) {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
@@ -166,7 +163,6 @@ sub tr_rememberkey($key) {
 }
 
 sub tr_translate($lang, $key) {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
@@ -204,7 +200,6 @@ sub tr_translate($lang, $key) {
 }
 
 sub tr_export() {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
@@ -222,7 +217,6 @@ sub tr_export() {
 }
 
 sub tr_import($impraw) {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 

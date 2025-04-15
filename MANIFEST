@@ -26,6 +26,7 @@ devscripts/nohss.pl
 devscripts/pagecamel_async_ua.pl
 devscripts/pgadmin4_install.txt
 devscripts/qrcodegenerator.pl
+devscripts/removeemptylinesaftersub.pl
 devscripts/resetpod.pl
 devscripts/setcopyright.pl
 devscripts/setversion.pl

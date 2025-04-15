@@ -63,7 +63,6 @@ sub register($self) {
 
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $now = getCurrentHour();
@@ -85,7 +84,6 @@ sub work($self) {
 }
 
 sub clean($self, $dir) {
-
     my @todelete;
     my $deletes = 0;
     my $ok = 1;

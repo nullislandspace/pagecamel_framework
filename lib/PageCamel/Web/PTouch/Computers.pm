@@ -36,7 +36,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $webpath = $ua->{url};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

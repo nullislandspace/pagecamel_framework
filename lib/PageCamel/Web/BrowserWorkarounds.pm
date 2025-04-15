@@ -33,7 +33,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_prefilter("prefilter");
     $self->register_postfilter("postfilter");
     $self->register_defaultwebdata("get_defaultwebdata");
@@ -42,7 +41,6 @@ sub register($self) {
 
 
 sub prefilter($self, $ua) {
-
     my $webpath = $ua->{url};
     my $userAgent = $ua->{headers}->{'User-Agent'} || "Unknown";
 
@@ -62,7 +60,6 @@ sub prefilter($self, $ua) {
 
 }
 sub postfilter($self, $ua, $header, $result) {
-
     if(!defined($self->{BrowserData}->{Browser})) {
         return;
     } elsif($self->{BrowserData}->{Browser} eq "Firefox") {
@@ -97,7 +94,6 @@ sub postfilter($self, $ua, $header, $result) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     $webdata->{BrowserData} = $self->{BrowserData};
     return;
 }

@@ -43,7 +43,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $type = ref $memh;
 
@@ -55,7 +54,6 @@ sub crossregister($self) {
 }
 
 sub dblog($self, $error_type, $description) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $sth = $dbh->prepare("INSERT INTO errors (error_type, description)" .
@@ -69,7 +67,6 @@ sub dblog($self, $error_type, $description) {
 }
 
 sub auditlog($self, $modulename, $logtext, $username, @extrainfo) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $worker = $self->{PSAPPNAME};
 
@@ -84,7 +81,6 @@ sub auditlog($self, $modulename, $logtext, $username, @extrainfo) {
 }
 
 sub debuglog($self, @parts) {
-
     my $line = '';
     foreach my $part (@parts) {
         next unless(defined($part));
@@ -110,7 +106,6 @@ sub debuglog($self, @parts) {
 }
 
 sub debuglog_overwrite($self, @parts) {
-
     my $line = '';
     foreach my $part (@parts) {
         chomp $part;

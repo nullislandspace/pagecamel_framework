@@ -155,7 +155,6 @@ sub init($self) {
 }
 
 sub run($self) {
-
     while(1) {
         my @connections = $self->{select}->can_read();
         foreach my $connection (@connections) {
@@ -194,7 +193,6 @@ sub run($self) {
 }
 
 sub handleClient($self, $client) {
-
     my $ok = 0;
 
     my $header = $self->readFrontendheader($client);
@@ -274,7 +272,6 @@ sub handleClient($self, $client) {
 }
 
 sub endprogram($self, $header, $debugmessage) {
-
     if($debugmessage !~ /exit\(0\)/) {
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
     }
@@ -291,7 +288,6 @@ sub endprogram($self, $header, $debugmessage) {
 }
 
 sub readFrontendheader($self, $client) {
-
     my $line = '';
     while(1) {
         my $temp;

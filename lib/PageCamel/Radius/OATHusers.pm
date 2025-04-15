@@ -27,7 +27,6 @@ sub new($class) {
 }
 
 sub validate($self, $database, $username, $password, $service) {
-
     # Missing fields
     if(!defined($username) || !defined($password) || !defined($service) ||
        $username eq '' || $password eq '' || $service eq '') {

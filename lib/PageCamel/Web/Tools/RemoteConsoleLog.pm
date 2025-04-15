@@ -32,7 +32,6 @@ sub new($proto, %config) {
 }
 
 sub wsmaskget($self, $ua, $settings, $webdata) {
-
     foreach my $key (qw[HeadExtraScripts HeadExtraCSS]) {
         if(!defined($webdata->{$key})) {
             my @temp;
@@ -64,7 +63,6 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
 }
 
 sub wscrossregister($self) {
-
     $self->register_webpath($self->{beacon}->{webpath}, 'beaconhandler', 'POST');
     $self->register_public_url($self->{beacon}->{webpath});
     $self->register_defaultwebdata("get_defaultwebdata");
@@ -73,7 +71,6 @@ sub wscrossregister($self) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-
     $self->{nextping} = time + 10;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -86,7 +83,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-
     delete $self->{nextping};
     delete $self->{clacks};
 
@@ -94,7 +90,6 @@ sub wscleanup($self) {
 }
 
 sub wscyclic($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -142,7 +137,6 @@ sub wscyclic($self, $ua) {
 
 
 sub get_defaultwebdata($self, $webdata) {
-
     $webdata->{EnableRemoteConsoleLog} = 1;
     return;
 }

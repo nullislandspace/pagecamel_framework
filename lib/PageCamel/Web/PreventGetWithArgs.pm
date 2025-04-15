@@ -36,14 +36,12 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_prefilter("prefilter");
     return;
 }
 
 
 sub prefilter($self, $ua) {
-
     if($ua->{method} =~ /^(?:GET|HEAD)$/io) {
         my @names = keys %{$ua->{postparams}};
         my $count = scalar @names;

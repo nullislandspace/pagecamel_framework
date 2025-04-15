@@ -52,7 +52,6 @@ sub register($self) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -105,7 +104,6 @@ sub work($self) {
 }
 
 sub updateStates($self) {
-
     my $xml = $self->runCommand('mode=actor&type=list');
     if(!defined($xml)) {
         foreach my $key (%{$self->{switches}}) {
@@ -126,7 +124,6 @@ sub updateStates($self) {
 }
 
 sub setSwitch($self, $clacksname, $value) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     if($value ne '0') {
@@ -172,7 +169,6 @@ sub setSwitch($self, $clacksname, $value) {
 }
 
 sub runCommand($self, $command) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $mech = WWW::Mechanize->new();

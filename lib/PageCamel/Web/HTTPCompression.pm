@@ -82,7 +82,6 @@ sub register($self) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     # Ignore replies without content
     return if(!(defined($result->{data})));
 

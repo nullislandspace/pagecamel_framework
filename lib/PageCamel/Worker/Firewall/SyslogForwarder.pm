@@ -61,7 +61,6 @@ sub register($self) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

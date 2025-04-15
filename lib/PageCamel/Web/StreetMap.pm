@@ -34,7 +34,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if($self->{public}) {
         $self->register_public_url($self->{webpath});
     }
@@ -43,8 +42,6 @@ sub crossregister($self) {
 }
 
 sub get($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
 

@@ -46,7 +46,6 @@ sub wsregister($self) {
 }
 
 sub wsreload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createNumber(modulename => $self->{modname},
@@ -143,7 +142,6 @@ sub wscyclic($self, $ua) {
 }
 
 sub wshandlemessage($self, $message) {
-
     if($message->{type} eq 'DATA') {
 
         $self->{audio}->{vserv}->sendvoice($message->{sample});

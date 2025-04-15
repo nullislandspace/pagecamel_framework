@@ -42,7 +42,6 @@ sub register($self) {
 }
 
 sub get_admin($self, $ua) {
-
     my $webpath = $ua->{url};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};

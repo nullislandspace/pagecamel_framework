@@ -51,19 +51,16 @@ sub crossregister {
 }
 
 sub register_worker($self, $funcname) {
-
     $self->{server}->add_worker($self, $funcname);
     return;
 }
 
 sub register_cleanup($self, $funcname) {
-
     $self->{server}->add_cleanup($self, $funcname);
     return;
 }
 
 sub register_sigchld($self, $funcname) {
-
     $self->{server}->add_sigchld($self, $funcname);
     return;
 }
@@ -79,7 +76,6 @@ sub endconfig($self) {
 }
 
 sub newClacksFromConfig($self, $clconf) {
-
     my $socket = $clconf->get('socket');
     my $clacks;
     if(defined($socket) && $socket ne '') {

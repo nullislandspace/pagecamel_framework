@@ -21,31 +21,40 @@ use PageCamel::Helpers::UTF;
 
 print "Searching files...\n";
 my @files = (find_pm('lib'), find_pm('devscripts'));
-#my @files = find_pm('server');
 
 print "Changing files:\n";
 foreach my $file (@files) {
-    if($file =~ /useEnglish\.pl/) {
-        print "Skipping my own script...\n";
-        next;
-    }
+    my $inserted = 0;
     print "Editing $file...\n";
 
     my @lines;
-    open(my $ifh, "<", $file) or die($!);
+    open(my $ifh, "<", $file) or die($ERRNO);
     @lines = <$ifh>;
     close $ifh;
 
-    open(my $ofh, ">", $file) or die($!);
+    open(my $ofh, ">", $file) or die($ERRNO);
+    my $substart = 0;
     foreach my $line (@lines) {
-        $line =~ s/\$\@/\$EVAL_ERROR/g;
-        $line =~ s/\$\/(\ *\=)/\$INPUT_RECORD_SEPARATOR$1/g;
-        $line =~ s/\$\!/\$ERRNO/g;
-        $line =~ s/\$\>/\$EFFECTIVE_USER_ID/g;
-        $line =~ s/\$\^\O/\$OSNAME/g;
-        $line =~ s/\$\?/\$CHILD_ERROR/g;
+        chomp $line;
 
-        print $ofh $line;
+        if($line =~ /^sub\ /) {
+            print $ofh $line . "\n";
+            $substart = 1;
+            next;
+        }
+
+        if($substart) {
+            my $tmpline = '' . $line;
+            $tmpline =~ s/\ +//g;
+            if(!length($line)) {
+                # Skip empty line
+                next;
+            }
+        }
+
+        print $ofh $line . "\n";
+        $substart = 0;
+
     }
     close $ofh;
 }
@@ -56,7 +65,7 @@ exit(0);
 
 sub find_pm($workDir) {
     my @files;
-    opendir(my $dfh, $workDir) or die($!);
+    opendir(my $dfh, $workDir) or die($ERRNO);
     while((my $fname = readdir($dfh))) {
         next if($fname eq "." || $fname eq ".." || $fname eq ".hg");
         $fname = $workDir . "/" . $fname;

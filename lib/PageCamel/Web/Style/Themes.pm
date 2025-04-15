@@ -41,7 +41,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createEnum(modulename => $self->{modname},
@@ -65,7 +64,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
 
@@ -98,7 +96,6 @@ sub get($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     my $userTheme = $self->{default_theme};
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -154,7 +151,6 @@ sub prerender($self, $webdata) {
 # Just rewrite the URL internally
 # FIXME: Somehow fix the theme support so jQuery always goes to the correct path...
 sub redirect_themed_images($self, $ua) {
-
     if($ua->{url} !~ /css\/themes/ && $ua->{url} =~ /^\/static\/images\/(ui\-.*\.png)$/) {
         my $oldfname = $1;
 

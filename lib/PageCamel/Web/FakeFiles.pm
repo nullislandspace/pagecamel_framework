@@ -28,7 +28,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Can load files only once due to register(),
     # and we ain't doing it here
 
@@ -36,7 +35,6 @@ sub reload($self) {
 }
 
 sub load_files($self) {
-
     # Empty cache
     my %files;
     $self->{cache} = \%files;
@@ -78,7 +76,6 @@ sub load_files($self) {
 }
 
 sub load_dir($self, $basedir) {
-
     my $fcount = 0;
 
     opendir(my $dfh, $basedir) or croak("$ERRNO");
@@ -107,7 +104,6 @@ sub load_dir($self, $basedir) {
 }
 
 sub register($self) {
-
     $self->load_files;
 
     return;
@@ -115,7 +111,6 @@ sub register($self) {
 
 
 sub crossregister($self) {
-
     # Register every file on its own
     foreach my $url (keys %{$self->{fastmap}}) {
         $self->register_webpath($url, "get", 'GET', 'POST'); # yeah, let the hackers think they can POST
@@ -126,7 +121,6 @@ sub crossregister($self) {
 }
 
 sub get($self, $ua) {
-
     if($ua->{method} eq 'POST') {
         # "ooops, we are so so sorryyyy that we can't parse whatever junk you just POSTed"
         return(status => 400,

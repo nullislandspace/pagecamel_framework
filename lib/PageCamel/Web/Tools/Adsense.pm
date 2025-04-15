@@ -35,7 +35,6 @@ sub register($self) {
 }
 
 sub prefilter($self, $ua) {
-
     # Remember host for prerender call (no access to $ua there)
     if(defined($self->{domain})) {
         delete $self->{domain};
@@ -87,7 +86,6 @@ sub prefilter($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     if(!defined($webdata->{showads})) {
         $webdata->{showads} = 0;
     }

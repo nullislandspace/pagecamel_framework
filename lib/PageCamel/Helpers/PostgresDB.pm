@@ -97,7 +97,6 @@ sub checkDBH($self, $hasforked = false) {
 }
 
 sub getColumnType($self, $xtable, $xcolumn) {
-
     my $table = '' . $xtable;
     my $column = '' . $xcolumn;
 
@@ -177,7 +176,6 @@ sub getColumnType($self, $xtable, $xcolumn) {
 }
 
 sub getDefaultValue($self, $xtable, $xcolumn) {
-
     my $table = '' . $xtable;
     my $column = '' . $xcolumn;
 
@@ -233,14 +231,12 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_cleanup("cleanup");
 
     return;
 }
 
 sub cleanup($self) {
-
     $self->checkDBH();
     $self->{mdbh}->rollback;
 
@@ -358,19 +354,16 @@ BEGIN {
 }
 
 sub decode_hstore($self, $val) {
-
     # return hashref
     return Pg::hstore::decode($val);
 }
 
 sub encode_hstore($self, $hashref) {
-
     # return string
     return Pg::hstore::encode($hashref);
 }
 
 sub pg_notifies($self) {
-
     $self->checkDBH();
     my $notify = $self->{mdbh}->pg_notifies;
     return $notify;

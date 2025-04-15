@@ -40,15 +40,12 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{selecttable}->{webpath}, "get_lines", 'POST');
 
     return;
 }
 
 sub get_lines($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     #my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $method = $ua->{method};
