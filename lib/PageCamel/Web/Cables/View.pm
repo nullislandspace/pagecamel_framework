@@ -30,7 +30,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
@@ -42,7 +41,6 @@ sub register($self) {
 
 
 sub get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 

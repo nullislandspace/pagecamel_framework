@@ -40,7 +40,6 @@ sub register($self) {
 
 
 sub work($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

@@ -47,7 +47,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     $self->{clacks}->listen('Firewall::ExternalProject');
@@ -71,7 +70,6 @@ sub crossregister($self) {
 
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

@@ -247,8 +247,6 @@ sub getInputForm($self, $result) {
 }
 
 sub custom_LONG($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $urls = '';
 
@@ -287,8 +285,6 @@ sub custom_LONG($self, $ua) {
 
 
 sub custom_SHORT($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $urls = '';
 

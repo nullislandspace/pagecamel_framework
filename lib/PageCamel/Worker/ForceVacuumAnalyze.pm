@@ -34,7 +34,6 @@ sub register($self) {
 
 
 sub force_vacuum($self) {
-
     my $workCount = 0;
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -83,7 +82,6 @@ sub force_vacuum($self) {
 }
 
 sub force_analyze($self) {
-
     my $workCount = 0;
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};

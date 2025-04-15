@@ -55,8 +55,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
 
@@ -132,7 +130,6 @@ sub get($self, $ua) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $stmt = "SELECT count(*) FROM errors " .

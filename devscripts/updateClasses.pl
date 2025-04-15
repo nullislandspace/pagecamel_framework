@@ -26,7 +26,6 @@ print "Done\n";
 
 
 sub updateClass($filename, $dirname, $basename) {
-
     print "updating $filename with $basename classes from $dirname\n";
 
     my @files = findModules($dirname, $basename);
@@ -60,7 +59,6 @@ sub updateClass($filename, $dirname, $basename) {
 }
 
 sub findModules($dirname, $basename) {
-
     my @files;
 
     opendir(my $dfh, $dirname) or die($ERRNO);

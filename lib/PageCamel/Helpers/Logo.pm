@@ -43,7 +43,6 @@ my @lines = (
 );
 
 sub PageCamelLogo($appname, $version) {
-
     my @xlines = @lines; # Do NOT work on original data set
     foreach my $line (@xlines) {
         $line =~ s/APPNAME/$appname/g;

@@ -58,7 +58,6 @@ sub tr($self, $data) {
 }
 
 sub quote($self, $data) {
-
     my $quoted = encode_entities($data, "'<>&\"\n");
     $quoted =~ s/ä/&auml;/;
     $quoted =~ s/ö/&ouml;/;
@@ -72,12 +71,10 @@ sub quote($self, $data) {
 }
 
 sub trquote($self, $data) {
-
     return $self->quote($self->tr($data));
 }
 
 sub fixdate($self, $data) {
-
     return $self->quote(fixDateField($data));
 }
 

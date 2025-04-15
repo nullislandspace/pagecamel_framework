@@ -27,7 +27,6 @@ sub new($proto, %config) {
 }
 
 sub register_plugin($self, $funcname, $type, $subtype) {
-
     print "  $self->{modname} will handle logging for $type / $subtype\n";
 
     $self->{server}->{modules}->{$self->{scheduler}}->add_plugin($type, $subtype, $self, $funcname);

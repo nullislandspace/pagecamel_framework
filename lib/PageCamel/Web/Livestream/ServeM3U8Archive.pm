@@ -53,7 +53,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if(defined($self->{public}) && $self->{public} == 1) {
         $self->register_public_url($self->{webpath});
     }
@@ -62,7 +61,6 @@ sub crossregister($self) {
 }
 
 sub get_download($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $webpath = $ua->{url};
@@ -139,7 +137,6 @@ sub get_download($self, $ua) {
 }
 
 sub get_index($self, $ua, $streamid) {
-
     my $data = '';
     my $filecount = 0;
     my $loopcount = 0;

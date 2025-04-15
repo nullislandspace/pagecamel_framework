@@ -29,7 +29,6 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     $self->register_webpath($self->{webpath}, 'beaconhandler', 'POST');
     $self->register_public_url($self->{webpath});
     $self->register_defaultwebdata("get_defaultwebdata");
@@ -38,7 +37,6 @@ sub crossregister($self) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     $webdata->{EnablePageViewStats} = 1;
     return;
 }

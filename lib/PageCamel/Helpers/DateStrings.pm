@@ -54,7 +54,6 @@ my $timemap_updated = "";
 my $timezoneoffset = 0;
 
 sub setmylocaltime($lt) {
-
     $timezoneoffset = $lt;
     return 1;
 }
@@ -288,7 +287,6 @@ sub getWebdate($num = undef, $reloffset = undef) {
 }
 
 sub parseWebdate($str) {
-
     if($str =~ /^([+-])(\d+(\.\d+)?)(\w)/) {
         my %multipliers = (
             s   => 1,
@@ -378,7 +376,6 @@ sub getWindowsDateAndTime {
 }
 
 sub getLastModifiedWebdate($fname) {
-
     my $epoch_timestamp = (stat($fname))[9];
     return time2str($epoch_timestamp);
 }
@@ -397,7 +394,6 @@ sub isAprilFoolsDay {
 }
 
 sub parseNaturalDate($dateString) {
-
     updateTimeMap();
 
     # parse some extra mappings
@@ -473,7 +469,6 @@ sub offsetISODate {
 }
 
 sub getScanspeedDate($scanspeed) {
-
     my ($sec,$min, $hour, $mday,$mon, $year, $wday,$yday, $isdst) = getmylocaltime();
 
     if($scanspeed eq 'fast') {
@@ -502,7 +497,6 @@ sub getScanspeedDate($scanspeed) {
 }
 
 sub timeToSeconds($timestring) {
-
     my ($hours, $minutes) = split/\:/, $timestring;
 
     my $seconds = ($hours * 60) + $minutes;
@@ -558,7 +552,6 @@ sub eternalseptemberize {
 }
 
 sub secondsToInterval($seconds) {
-
     my $interval = '';
     my @divisors = (60, 60, 24);
     foreach my $divisor (@divisors) {

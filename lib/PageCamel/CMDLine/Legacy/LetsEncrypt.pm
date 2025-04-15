@@ -82,7 +82,6 @@ sub new($proto, $configfile, $isDebugging, $isVerbose) {
 my $needrestart;
 
 sub run($self) {
-
     chdir($self->{homedir});
     my $lastrun = '';
 
@@ -147,7 +146,6 @@ sub run($self) {
 # HELLLO WOOOOOORLLLLLLLLLDDDDDDDDDDD
 # -----------------------------------
 sub debuglog($self, @args) {
-
     #return unless($self->{isDebugging});
 
     my $printarg = join(' ## ', @args);
@@ -307,7 +305,6 @@ sub work($self, $opt) {
 }
 
 sub parse_options($self, $opt) {
-
     $self->debuglog("[ ZeroSSL Crypt::LE client v$VERSION started. ]");
     $self->debuglog("Could not encode arguments, support for internationalized domain names may not be available.") if $opt->{'e'};
 

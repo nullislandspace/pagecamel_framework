@@ -54,7 +54,6 @@ sub run_command($self, $command) {
 }
 
 sub saveall($self) {
-
     my $reply = $self->run_command("save-all");
     if(defined($reply) && $reply =~ /Saved\ the\ world/i) {
         return 1;
@@ -63,7 +62,6 @@ sub saveall($self) {
 }
 
 sub backup($self) {
-
     my $reply = $self->run_command("backup");
     if($reply =~ /Started/i) {
         return 1;
@@ -72,7 +70,6 @@ sub backup($self) {
 }
 
 sub say($self, $text) {
-
     my $reply = $self->run_command("say $text");
     if(defined($reply)) {
         return 1;
@@ -81,7 +78,6 @@ sub say($self, $text) {
 }
 
 sub listWhitelist($self) {
-
     my $rawlist = $self->run_command("whitelist list");
     if(!defined($rawlist)) {
         return;
@@ -95,7 +91,6 @@ sub listWhitelist($self) {
 }
 
 sub addWhitelist($self, $username) {
-
     my $reply = $self->run_command("whitelist add $username");
     if(defined($reply) && $reply =~ /Added/) {
         return 1;
@@ -105,7 +100,6 @@ sub addWhitelist($self, $username) {
 }
 
 sub removeWhitelist($self, $username) {
-
     my $reply = $self->run_command("whitelist remove $username");
     if(defined($reply) && $reply =~ /Removed/) {
         return 1;
@@ -115,7 +109,6 @@ sub removeWhitelist($self, $username) {
 }
 
 sub teleport($self, $username, $x, $y, $z) {
-
     my $reply = $self->run_command("tp $username $x $y $z");
     if(defined($reply) && $reply =~ /Teleported/) {
         return 1;

@@ -81,7 +81,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Create fields in system settings (if not existing)
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     foreach my $keyname (keys %{$self->{fields}}) {
@@ -156,7 +155,6 @@ sub crossregister($self) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 

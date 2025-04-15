@@ -46,7 +46,6 @@ sub new($proto, $config) {
 
 
 sub gen_textsalt($self) {
-
     my $saltbase = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     my $salt = '';
@@ -61,8 +60,6 @@ sub gen_textsalt($self) {
 
 
 sub update_password($self, $username, $password) {
-
-
     # While pre- and postsalt does not much for complexity, it helps preventing rainbow tables attacks.
     # I know, the bcrypt salt already does that, in case of a general bcrypt breach, this should
     # make it a bit more difficult.
@@ -102,7 +99,6 @@ sub update_password($self, $username, $password) {
 }
 
 sub verify_password($self, $username, $password) {
-
     # Pre-initialize for random pw calculations in case no user is found (there should be no
     # measurable time difference for unknown users. This will make it harder to guess is a username
     # exists)
@@ -169,7 +165,6 @@ sub verify_password($self, $username, $password) {
 }
 
 sub verify_appkey($self, $username, $appkey) {
-
     my $isLocked = 0;
 
     my $selsth = $self->{dbh}->prepare("SELECT account_locked
@@ -204,7 +199,6 @@ sub verify_appkey($self, $username, $appkey) {
 }
 
 sub getSettings($self) {
-
     my $sysh = $self->{sysh};
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};

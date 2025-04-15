@@ -58,7 +58,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if($self->{public}) {
         $self->register_public_url($self->{download}->{webpath});
     }
@@ -390,7 +389,6 @@ sub get_download($self, $ua, $isErrorMode = false) {
 }
 
 sub file_get_multipart_contentlength($self, $ua) {
-
     # Add up all data block sizes and corresponding headers
 
     my $len = 0;
@@ -409,7 +407,6 @@ sub file_get_multipart_contentlength($self, $ua) {
 }
 
 sub file_get_multipart($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if(!defined($self->{file}->{fh})) {
@@ -474,7 +471,6 @@ sub file_get_multipart($self, $ua) {
 }
 
 sub file_get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if(!defined($self->{file}->{fh})) {
@@ -510,7 +506,6 @@ sub file_get($self, $ua) {
 
 
 sub getDirectory($self, $ua, $filename) {
-
     return (status => 404) unless defined($self->{server}->{modules}->{templates});
 
     if($ua->{method} eq 'POST' && defined($ua->{postparams}->{mode}) &&
@@ -641,7 +636,6 @@ sub getDirectory($self, $ua, $filename) {
 }
 
 sub getDirectorySearch($self, $ua, $filename) {
-
     return (status => 404) unless defined($self->{server}->{modules}->{templates});
 
 

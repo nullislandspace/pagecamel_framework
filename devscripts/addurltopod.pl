@@ -77,7 +77,6 @@ exit(0);
 
 
 sub find_pm($workDir) {
-
     my @files;
     opendir(my $dfh, $workDir) or die($ERRNO);
     while((my $fname = readdir($dfh))) {

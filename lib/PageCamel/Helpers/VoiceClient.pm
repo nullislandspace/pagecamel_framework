@@ -36,7 +36,6 @@ sub new($class, $server, $port, $username = 'unknown') {
 }
 
 sub reconnect($self) {
-
     if(defined($self->{socket})) {
         delete $self->{socket};
     }
@@ -85,7 +84,6 @@ sub reconnect($self) {
 }
 
 sub doNetwork($self) {
-
     # doNetwork interleaves handling incoming and outgoing traffic.
     # This is only relevant on slow links.
     #
@@ -129,7 +127,6 @@ sub doNetwork($self) {
 }
 
 sub ping($self) {
-
     if($self->{lastping} < (time - 120)) {
         # Only send a ping every 120 seconds or less
         $self->{outbuffer} .= "PING\r\n";
@@ -140,14 +137,12 @@ sub ping($self) {
 }
 
 sub disablePing($self) {
-
     $self->{outbuffer} .= "NOPING\r\n";
 
     return;
 }
 
 sub setmike($self, $value) {
-
     if($value) {
         $self->{outbuffer} .= "MIKE=on\r\n";
     } else {
@@ -157,7 +152,6 @@ sub setmike($self, $value) {
 }
 
 sub setspeaker($self, $value) {
-
     if($value) {
         $self->{outbuffer} .= "SPEAKER=on\r\n";
     } else {
@@ -167,7 +161,6 @@ sub setspeaker($self, $value) {
 }
 
 sub setmonitor($self, $value) {
-
     if($value) {
         $self->{outbuffer} .= "MONITOR=on\r\n";
     } else {
@@ -177,18 +170,15 @@ sub setmonitor($self, $value) {
 }
 
 sub sendvoice($self, $value) {
-
     $self->{outbuffer} .= "DATA=" . $value . "\r\n";
     return;
 }
 
 sub getServerinfo($self) {
-
     return $self->{serverinfo};
 }
 
 sub getNext($self) {
-
     # Recieve next incoming message (if any)
 
     my $line = shift @{$self->{inlines}};

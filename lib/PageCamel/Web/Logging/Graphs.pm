@@ -30,19 +30,16 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{admin}->{webpath}, "get_admin");
     return;
 }
 
 sub get_admin($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my %webdata =

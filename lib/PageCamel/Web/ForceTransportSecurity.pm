@@ -35,7 +35,6 @@ sub register($self) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     # Don't set the header while debugging, since we use non-encrypted connections
     # for easy sniffing and ignore certificate juggling
     return if($self->{isDebugging});

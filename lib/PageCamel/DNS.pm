@@ -51,7 +51,6 @@ sub setThreadingMode {
 
 
 sub doConfig($self, $isDebugging, $isVerbose, $dbconf, $config) {
-
     $self->{isDebugging} = $isDebugging;
     $self->{isVerbose} = $isVerbose;
     $self->{dbconf} = $dbconf;
@@ -65,7 +64,6 @@ sub doConfig($self, $isDebugging, $isVerbose, $dbconf, $config) {
 }
 
 sub child_init_hook($self) {
-
     if(!defined($self->{config}->{remotelookup})) {
         $self->{config}->{remotelookup} = 0;
     }
@@ -250,7 +248,6 @@ sub child_init_hook($self) {
 }
 
 sub child_finish_hook($self) {
-
     $self->debuglog("******************** CHILD STOP *********************");
     delete $self->{clacks};
     if(defined($self->{dbh})) {
@@ -262,7 +259,6 @@ sub child_finish_hook($self) {
 }
 
 sub isownip($self, $ip, $dbh) {
-
     $ip =~ s/\/.*//;
 
     foreach my $ownip (@{$self->{config}->{server}->{bind_adresses}->{item}}) {
@@ -322,7 +318,6 @@ sub isownip($self, $ip, $dbh) {
 }
 
 sub ignorerequest($self, $hostname) {
-
     my $found = 0;
 
     if(!$self->{ignoreselsth}->execute($hostname)) {
@@ -369,7 +364,6 @@ sub debuglog($self, @loglineparts) {
 }
 
 sub countRequest($self) {
-
     if(!defined($self->{clacks})) {
         return;
     }
@@ -381,7 +375,6 @@ sub countRequest($self) {
     
 
 sub process_request($self, $realsocket) {
-
     if(!defined($self->{dbh})) {
         $self->child_init_hook;
     }
@@ -402,7 +395,6 @@ sub process_request($self, $realsocket) {
 }
 
 sub handleUDP($self, $peerhost) {
-
     eval {  ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $prop = $self->{'server'};
 
@@ -1244,7 +1236,6 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
 
 sub resolve_extern($self, $qname, $qtype) {
-
     my $dbh = $self->{dbh};
 
     my $reply;
@@ -1404,7 +1395,6 @@ if(1) {
 }
 
 sub fixDestination($domain, $host) {
-
     my $destination;
     if($host =~ /\./ || $host =~ /\:/) {
         $destination = $host;

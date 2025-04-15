@@ -47,7 +47,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, 'get', "GET");
     $self->register_webpath($self->{wspath}, 'socketstart', "GET", "CONNECT");
     $self->register_protocolupgrade($self->{wspath}, 'sockethandler', "websocket");
@@ -56,7 +55,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
 
@@ -100,7 +98,6 @@ sub reload($self) {
 }
 
 sub get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -153,7 +150,6 @@ sub get($self, $ua) {
 
 
 sub socketstart($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -197,7 +193,6 @@ sub socketstart($self, $ua) {
 }
 
 sub sockethandler($self, $ua) {
-
     my $session = $self->{sessiondata};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};

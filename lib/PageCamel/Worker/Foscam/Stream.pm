@@ -49,13 +49,11 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_worker('work');
     return;
 }
 
 sub reload($self) {
-
     if(defined($self->{archivepath}) && !-d $self->{archivepath}) {
         croak($self->{modname} . 'error: Directory does not exist: ' . $self->{archivepath});
     }
@@ -63,7 +61,6 @@ sub reload($self) {
 }
 
 sub startupCommands($self) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     $reph->debuglog("Initializing camera");
@@ -96,7 +93,6 @@ sub startupCommands($self) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
 
     if($self->{needInit}) {
@@ -201,7 +197,6 @@ sub work($self) {
 }
 
 sub runCommand($self, $command, $params = undef) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $mech = WWW::Mechanize::GZip->new(ssl_opts => {verify_hostname => 0});
     

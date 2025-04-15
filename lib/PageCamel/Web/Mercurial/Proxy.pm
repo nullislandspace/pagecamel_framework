@@ -36,7 +36,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     if($self->{readwrite}) {
         $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
     } else {
@@ -47,7 +46,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if(defined($self->{auth_realm})) {
         $self->register_basic_auth($self->{webpath}, $self->{auth_realm});
     }
@@ -55,7 +53,6 @@ sub crossregister($self) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     my $clientpath = $ua->{url};
     my $mypath = $self->{webpath};
 
@@ -72,7 +69,6 @@ sub postfilter($self, $ua, $header, $result) {
 }
 
 sub get($self, $ua) {
-
     if(!$self->{readwrite} && $ua->{method} ne 'GET' && $ua->{method} ne 'HEAD') {
         # Readonly proxy does not accept POST
         # Should be handled by WebBase anyway, this is just to be sure
@@ -213,7 +209,6 @@ sub get($self, $ua) {
 }
 
 sub readsocketline($self, $socket, $timeout = 30) {
-
     if(!defined($timeout) || !$timeout) {
         $timeout = 30;
     };
@@ -238,7 +233,6 @@ sub readsocketline($self, $socket, $timeout = 30) {
 }
 
 sub streamChunked($self, $ua) {
-
     my $content = '';
 
     my $chunklen = $self->readsocketline($self->{socket}, 600);
@@ -278,7 +272,6 @@ sub streamChunked($self, $ua) {
 }
 
 sub readChunked($self, $socket) {
-
     my $content = '';
     while(1) {
         my $chunklen = $self->readsocketline($socket, 60);
@@ -298,7 +291,6 @@ sub readChunked($self, $socket) {
 }
 
 sub readPlain($self, $socket, $clength, $timeout = 30) {
-
     if(!defined($timeout) || !$timeout) {
         $timeout = 30;
     };

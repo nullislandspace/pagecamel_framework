@@ -65,7 +65,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createEnum(modulename => $self->{modname},
@@ -111,7 +110,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
 
@@ -146,7 +144,6 @@ sub get($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     my $userFont = $self->{default_font};
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -195,7 +192,6 @@ sub prerender($self, $webdata) {
 }
 
 sub get_css($self, $ua) {
-
     my $webpath = $ua->{url};
     my $userFont;
     if($webpath =~ /\/([a-zA-Z0-9]+?)\.css/) {

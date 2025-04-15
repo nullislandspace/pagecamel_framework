@@ -34,13 +34,11 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_worker("work");
     return;
 }
 
 sub add_plugin($self, $device, $subdevice, $module, $func) {
-
     if(defined($self->{loggers}->{$device}->{$subdevice})) {
         croak("Logging plugin for $device / $subdevice already registered!");
     }
@@ -52,7 +50,6 @@ sub add_plugin($self, $device, $subdevice, $module, $func) {
 
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $scanspeeddate = getScanspeedDate($self->{scanspeed});

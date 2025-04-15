@@ -38,7 +38,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
@@ -50,7 +49,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if(defined($self->{auth_realm})) {
         $self->register_basic_auth($self->{webpath}, $self->{auth_realm});
     }
@@ -59,7 +57,6 @@ sub crossregister($self) {
 }
 
 sub handle_rpc($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $host = $ua->{remote_addr} || '0.0.0.0';

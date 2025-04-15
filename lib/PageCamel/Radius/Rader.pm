@@ -22,7 +22,6 @@ use RADIUS::Packet;
 use PageCamel::Radius::OATHusers;
 
 sub setConfig($self, $secret, $database) {
-
     $self->{secret} = $secret;
     $self->{database} = $database;
 

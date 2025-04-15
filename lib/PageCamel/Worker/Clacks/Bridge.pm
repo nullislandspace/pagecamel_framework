@@ -63,7 +63,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     $self->initLocal();
     $self->initRemote();
@@ -78,7 +77,6 @@ sub crossregister($self) {
 }
 
 sub initLocal($self) {
-
     my $now = time;
 
     foreach my $varname (@{$self->{local2remote}->{item}}) {
@@ -93,7 +91,6 @@ sub initLocal($self) {
 }
 
 sub initRemote($self) {
-
     my $now = time;
 
     foreach my $varname (@{$self->{remote2local}->{item}}) {
@@ -109,7 +106,6 @@ sub initRemote($self) {
 
 
 sub work($self) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $workCount = 0;

@@ -22,7 +22,6 @@ use PageCamel::Helpers::Padding qw(doFPad);
 use PDF::Report;
 
 sub reload($self) {
-
     my (@keynames, @nullfields, @readonlykeynames, %datatypes);
 
     push @keynames, 'old_computer_name';
@@ -77,7 +76,6 @@ sub register($self) {
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning
 # of Perl::Critic
 sub get_edit($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -634,7 +632,6 @@ sub get_select($self, $ua, $afterdelete = false) {
 # VNCEdit is a quickedit tool to quickly changes VNC access rights on a number
 # of computers
 sub get_vncedit($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $mode = $ua->{postparams}->{'mode'} || 'view';

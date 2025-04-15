@@ -34,7 +34,6 @@ sub new($proto, %config) {
 }
 
 sub wsmaskget($self, $ua, $settings, $webdata) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my @workers;
@@ -80,7 +79,6 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-
     $self->{nextping} = time + 10;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -91,7 +89,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-
     delete $self->{nextping};
     delete $self->{clacks};
 
@@ -99,7 +96,6 @@ sub wscleanup($self) {
 }
 
 sub wshandlemessage($self, $message) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     if($message->{type} eq 'LISTEN') {
@@ -118,7 +114,6 @@ sub wshandlemessage($self, $message) {
 }
 
 sub wscyclic($self, $ua) {
-
     my $now = time;
     if($now > $self->{nextping}) {
         $self->{clacks}->ping();

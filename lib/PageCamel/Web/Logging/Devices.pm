@@ -30,13 +30,11 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{list}->{webpath}, "get_list");
     $self->register_webpath($self->{edit}->{webpath}, "get_edit");
 
@@ -44,7 +42,6 @@ sub register($self) {
 }
 
 sub get_list($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my %webdata =
@@ -76,7 +73,6 @@ sub get_list($self, $ua) {
 }
 
 sub get_edit($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my %webdata =

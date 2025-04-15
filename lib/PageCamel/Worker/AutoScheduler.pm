@@ -43,7 +43,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_worker("work_minute");
     $self->register_worker("work_shift");
     $self->register_worker("work_hour");
@@ -54,7 +53,6 @@ sub register($self) {
 
 
 sub work_shift($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -100,7 +98,6 @@ sub work_shift($self) {
 }
 
 sub work_hour($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -172,7 +169,6 @@ sub work_hour($self) {
 }
 
 sub work_day($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -303,7 +299,6 @@ sub work_day($self) {
 }
 
 sub work_minute($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

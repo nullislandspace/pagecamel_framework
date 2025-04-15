@@ -85,7 +85,6 @@ sub new($class, %config) {
 }
 
 sub _logfromjs($self, $text) {
-
     $self->{reph}->debuglog($text);
 
     return;
@@ -128,7 +127,6 @@ sub getCode($self) {
     
 
 sub call($self, $name, @arguments) {
-
     my $func = $self->{js}->get_object($name);
     if(!defined($func)) {
         print STDERR "Function $name does not exist!\n";
@@ -154,24 +152,20 @@ sub call($self, $name, @arguments) {
 }
 
 sub registerCallback($self, $name, $func) {
-
     $self->{js}->set($name, $func);
 
     return;
 }
 
 sub encode($self, $data) {
-
     return encode_json $data;
 }
 
 sub decode($self, $json) {
-
     return decode_json $json;
 }
 
 sub toArray($self, $object) {
-
     my @arr;
     $object->forEach(sub {
         my ($value, $index, $ar) = @_;
@@ -184,14 +178,12 @@ sub toArray($self, $object) {
 }
 
 sub getKeys($self, $object) {
-
     my $rval = $self->call('__getKeys', $object);
     
     return $self->toArray($rval);
 }
 
 sub toHash($self, $object) {
-
     my @keys = $self->getKeys($object);
     my %hash;
 
@@ -203,7 +195,6 @@ sub toHash($self, $object) {
 }
 
 sub setMemory($self, $memory) {
-
     $self->call('__setmemory', $memory);
     if($self->{hasError}) {
         return 0;
@@ -212,12 +203,10 @@ sub setMemory($self, $memory) {
 }
 
 sub getMemory($self) {
-
     return $self->call('__getmemory');
 }
 
 sub initMemory($self) {
-
     return $self->call('initMemory');
 }
 

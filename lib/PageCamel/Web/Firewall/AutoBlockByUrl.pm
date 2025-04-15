@@ -32,7 +32,6 @@ sub register($self) {
 }
 
 sub checkpath($self, $ua) {
-
     my $webpath = $ua->{url} || '--unknown--';
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 

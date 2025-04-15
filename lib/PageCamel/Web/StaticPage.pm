@@ -47,7 +47,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if(defined($self->{public}) && $self->{public} == 1) {
         $self->register_public_url($self->{webpath});
     }
@@ -57,7 +56,6 @@ sub crossregister($self) {
 
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
 
     my %webdata = (
@@ -77,7 +75,6 @@ sub get($self, $ua) {
 }
 
 sub sitemap($self, $sitemap) {
-
     push @{$sitemap}, $self->{webpath};
 
     return;

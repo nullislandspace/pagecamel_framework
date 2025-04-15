@@ -35,7 +35,6 @@ sub register($self) {
 }
 
 sub log($self, $logdata) {
-
     if(!defined($self->{socket})) {
         $self->{socket} = IO::Socket::INET->new(
             PeerAddr    => $self->{host},

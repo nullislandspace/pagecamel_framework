@@ -38,7 +38,6 @@ sub new($proto, %config) {
 
 
 sub register($self) {
-
     $self->register_prefilter("prefilter");
 
     return;

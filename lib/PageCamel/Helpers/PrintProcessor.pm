@@ -454,7 +454,6 @@ sub _escpos_cts801($self, $extrafeed) {
 }
 
 sub _escpos_sgt116($self, $extrafeed) {
-
     my $raw = '';
     my $img = $self->{img};
 
@@ -1348,7 +1347,6 @@ sub rememberPrint($self, $description) {
 }
 
 sub reprintDocument($self, $documentid, $printername) {
-
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
     

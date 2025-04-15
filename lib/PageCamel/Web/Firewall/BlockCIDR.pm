@@ -34,7 +34,6 @@ sub register($self) {
 }
 
 sub firewall($self, $client) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $selsth = $dbh->prepare_cached("UPDATE firewall_block_cidr
                                         SET seen_last = now()

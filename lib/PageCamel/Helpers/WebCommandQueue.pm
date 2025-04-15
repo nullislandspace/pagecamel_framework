@@ -33,7 +33,6 @@ sub new($proto, $baseurl) {
 }
 
 sub nextcommand($self, $command) {
-
     my $result = $self->{mech}->get($self->{url} . "/getnext/$command");
     if(!$result->is_success) {
         return;
@@ -51,7 +50,6 @@ sub nextcommand($self, $command) {
 }
 
 sub finished($self, $commandid, $status) {
-
     my $result = $self->{mech}->get($self->{url} . "/markdone/$commandid/status");
     if(!$result->is_success) {
         return 0;

@@ -34,7 +34,6 @@ sub new($class, $isDebugging, $isVerbose, $configfile) {
 }
 
 sub init($self) {
-
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => [ 'module', 'redirect', 'menu', 'view', 'userlevel', 'rootfile', 'item', 'columnprefix', ],);
@@ -101,7 +100,6 @@ sub init($self) {
 }
 
 sub run($self) {
-
     # Let STDOUT/STDERR settle down first
     sleep(0.1);
 

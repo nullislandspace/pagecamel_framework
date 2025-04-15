@@ -39,7 +39,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -114,7 +113,6 @@ if(1) {
 }
 
 sub getStreamMode($self) {
-
     my $streammode = 1;
     if(-f $self->{livedir} . '/_is_archived') {
         $streammode = 4;

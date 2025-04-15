@@ -33,19 +33,16 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get", 'GET');
     return;
 }
 
 sub crossregister($self) {
-
     $self->register_public_url($self->{webpath});
     return;
 }
 
 sub get($self, $ua) {
-
     my $tile = $ua->{url};
 
     my $remove = $self->{webpath};

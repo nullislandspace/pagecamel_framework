@@ -44,7 +44,6 @@ sub new($proto, %config) {
 
 
 sub wsmaskget($self, $ua, $settings, $webdata) {
-
     $webdata->{cameras} = $self->{item};
     if(defined($self->{bodytext})) {
         $webdata->{bodytext} = $self->{bodytext};
@@ -56,7 +55,6 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-
     $self->{nextping} = time + 10;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -80,7 +78,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-
     delete $self->{nextping};
     delete $self->{clacks};
 
@@ -88,7 +85,6 @@ sub wscleanup($self) {
 }
 
 sub wshandlemessage($self, $message) {
-
     if($message->{type} eq 'COMMAND') {
         $self->{clacks}->set($self->{camname} . '::Command', $message->{cmdstring});
         $self->{clacks}->doNetwork();
@@ -98,7 +94,6 @@ sub wshandlemessage($self, $message) {
 }
 
 sub wscyclic($self, $ua) {
-
     if($self->{retrievecached}) {
         $self->{retrievecached} = 0;
         foreach my $item (@{$self->{item}}) {

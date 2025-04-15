@@ -44,7 +44,6 @@ sub register($self) {
 # "get_select" actually only displays the available card list, POST
 # is done to the main mask to have a smoother workflow without redirects
 sub get_select($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
@@ -87,7 +86,6 @@ sub get_select($self, $ua) {
 # "get_select" actually only displays the available card list, POST
 # is done to the main mask to have a smoother workflow without redirects
 sub get_edit($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 

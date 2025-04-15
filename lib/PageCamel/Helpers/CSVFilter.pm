@@ -25,7 +25,6 @@ sub new($class, %config) {
 }
 
 sub filter($self) {
-
     my (@headers, @headcount, @lines);
 
     $self->{logger}->debuglog("Loading input file");
