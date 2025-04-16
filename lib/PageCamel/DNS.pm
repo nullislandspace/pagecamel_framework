@@ -104,7 +104,7 @@ sub child_init_hook($self) {
     }
     $self->{debuglogpid} = $childpid;
 
-    $self->debuglog("******************** CHILD START *********************");
+    #$self->debuglog("******************** CHILD START *********************");
 
     my $dbconf = $self->{dbconf};
     $self->{dbh} = DBI->connect($dbconf->{dburl}, $dbconf->{dbuser}, $dbconf->{dbpassword}, {AutoCommit => 0, RaiseError => 0})
@@ -248,7 +248,7 @@ sub child_init_hook($self) {
 }
 
 sub child_finish_hook($self) {
-    $self->debuglog("******************** CHILD STOP *********************");
+    #$self->debuglog("******************** CHILD STOP *********************");
     delete $self->{clacks};
     if(defined($self->{dbh})) {
         $self->{dbh}->disconnect;
@@ -641,7 +641,7 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
     my $remotelookup = 0;
     if($peerhost ne $RECURSIVELOOKUP) {
-        if($self->{isDebugging}) {
+        if(1 || $self->{isDebugging}) {
             $self->debuglog("Requested: $qtype OF $qname by $peerhost");
         }
     }
