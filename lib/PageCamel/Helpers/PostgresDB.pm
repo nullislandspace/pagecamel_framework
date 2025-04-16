@@ -205,7 +205,7 @@ sub getDefaultValue($self, $xtable, $xcolumn, $dateexpander=0) {
         return;
     }
 
-    if($dateexpander, $line->{data_type} =~ /(date|time)/ && $line->{column_default} =~ /now\(\)/) {
+    if($dateexpander && $line->{data_type} =~ /(date|time)/ && $line->{column_default} =~ /now\(\)/) {
         return 'XXAUTOEXPANDXX_' . $line->{column_default};
     }
 
