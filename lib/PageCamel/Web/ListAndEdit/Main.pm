@@ -820,7 +820,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
     }
 
     if(!defined($item->{default})) {
-        my $default = $dbh->getDefaultValue($self->{table}, $item->{column});
+        my $default = $dbh->getDefaultValue($self->{table}, $item->{column}, 1);
         if(defined($default)) {
             #print "    EDIT: Attribute \"default\" not set, using database default: $default\n";
             $item->{default} = $default;
@@ -2209,7 +2209,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                         foreach my $item (@{$self->{edit}->{item}}) {
                             if(defined($item->{column}) && $item->{column} eq $column) {
                                 if(defined($item->{default}) && $item->{default} ne '') {
-                                    $tmp = $item->{default};
+                                    $tmp = $self->_expandDefault($item->{default});
                                 }
                                 if($item->{nullable}) {
                                     $usenull = 1;
@@ -2415,7 +2415,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                         foreach my $item (@{$self->{edit}->{item}}) {
                             if(defined($item->{column}) && $item->{column} eq $column) {
                                 if(defined($item->{default}) && $item->{default} ne '') {
-                                    $tmp = $item->{default};
+                                    $tmp = $self->_expandDefault($item->{default});
                                 }
                                 if($item->{nullable}) {
                                     $usenull = 1;
@@ -2665,7 +2665,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             if($tmp eq '') {
                 foreach my $tmpitem (@{$self->{edit}->{item}}) {
                     if(defined($tmpitem->{column}) && $tmpitem->{column} eq $column && defined($tmpitem->{default})) {
-                        $tmp = $tmpitem->{default};
+                        $tmp = $self->_expandDefault($tmpitem->{default});
                         last;
                     }
                 }
@@ -3482,6 +3482,31 @@ sub _getUsername($self, $webdata) {
     }
 
     return $username;
+}
+
+sub _expandDefault($self, $defaultvalue) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my $newval = '' . $defaultvalue;
+    #print "ORIG DEFAULT VALUE: ", $newval, "\n";
+    if($newval =~ /^XXAUTOEXPANDXX\_/) {
+        $newval =~ s/^XXAUTOEXPANDXX\_//;
+        my $selsth = $dbh->prepare_cached("SELECT " . $newval . " AS xxfielddefaultvaluexx ")
+                or croak($dbh->errstr);
+        if(!$selsth->execute) {
+            croak($dbh->errstr);
+        }
+        my $line = $selsth->fetchrow_hashref;
+        $selsth->finish;
+        $dbh->commit;
+
+        if(defined($line) && defined($line->{xxfielddefaultvaluexx})) {
+            $newval = $line->{xxfielddefaultvaluexx};
+            #print "   Expanded: ", $newval, "\n";
+        }
+    }
+
+    return $newval;
 }
 
 1;
