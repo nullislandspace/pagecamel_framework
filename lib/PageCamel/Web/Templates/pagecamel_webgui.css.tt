@@ -51,7 +51,7 @@ div.webgui_headermessage_right {
 /* Projectlogo, Motto and Login/Register/logout buttons */
 div.webgui_projectbar {
 	padding-top: 5px;
-	padding-bottom: 5px;
+	padding-bottom: 25px;
 	padding-left: 0px;
 	padding-right: 0px;
     width: 100%;
