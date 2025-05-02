@@ -206,33 +206,62 @@ sub tr_export() {
     tr_reload();
 
     my %exportdata = (
-        ExportVersion   => 3,
-        Translations    => encode_base64(freeze($localcache), ''),
+        ExportVersion   => 4,
+        Translations    => $localcache,
     );
-
-
-    my $exp = dbfreeze(\%exportdata);
+    
+    #my $exp = encode_utf8 "#💾\n" . JSON::XS->new->pretty(1)->canonical(1)->encode(\%exportdata);
+    my $exp = encode_utf8 "#💾\n" . encode_json(\%exportdata);
 
     return $exp;
 }
 
 sub tr_import($impraw) {
     croak("Not initialized!") unless($is_init);
+
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
+
+    print STDERR "\n\nTRANSLATION IMPORT\n";
 
     tr_reload();
 
-
-    my $imp = dbthaw($impraw);
-    $imp = dbderef($imp);
+    my $imp;
     my $impversion = 1;
-    if(defined($imp->{ExportVersion})) {
-        $impversion = $imp->{ExportVersion};
-        delete $imp->{ExportVersion};
+
+    if($impraw =~ /^\-\-\-/) {
+        # Old format
+        print STDERR "FREEZE FORMAT\n";
+        $imp = dbthaw($impraw);
+        $imp = dbderef($imp);
+    } elsif($impraw =~ /^\#/) {
+        # New format
+        print STDERR "JSON FORMAT\n";
+        $impraw =~ s/^\#//;
+        if($impraw =~ /^💾/) {
+            print STDERR "    ALREADY UTF8 DECODED - RE-ENCODING\n";
+            $impraw = encode_utf8 $impraw;
+        }
+
+        # Remove file leader
+        my @parts = split/\n/, $impraw, 2;
+        my $bla = substr Dumper(\@parts), 0, 100;
+        print STDERR $bla, "\n";
+        $imp = decode_json $parts[1];
+    } else {
+        # UNKNOWN
+        print STDERR "UNKNOWN FILE FORMAT!\n";
+        return;
     }
 
-    if($impversion >= 3) {
+
+    if(defined($imp->{ExportVersion})) {
+        $impversion = $imp->{ExportVersion};
+    }
+
+    if($impversion == 3) {
         $imp = thaw(decode_base64($imp->{Translations}));
+    } elsif($impversion > 3) {
+        $imp = $imp->{Translations};
     }
 
     my $delsth = $dbh->prepare("DELETE FROM translate_languages")
