@@ -210,8 +210,14 @@ sub tr_export() {
         Translations    => $localcache,
     );
     
-    #my $exp = encode_utf8 "#💾\n" . JSON::XS->new->pretty(1)->canonical(1)->encode(\%exportdata);
-    my $exp = encode_utf8 "#💾\n" . encode_json(\%exportdata);
+    my $rawexp = encode_utf8 JSON::XS->new->pretty(1)->canonical(1)->encode(\%exportdata);
+    #my $rawexp = encode_utf8 encode_json(\%exportdata);
+    my @parts = split/\n/, $rawexp;
+    my $exp = "#V4\n";
+    foreach my $part (@parts) {
+        $exp .= encode_base64($part, '');
+        $exp .= "\n";
+    }
 
     return $exp;
 }
@@ -225,7 +231,7 @@ sub tr_import($impraw) {
 
     tr_reload();
 
-    my $imp;
+    my $imp = '';
     my $impversion = 1;
 
     if($impraw =~ /^\-\-\-/) {
@@ -233,20 +239,22 @@ sub tr_import($impraw) {
         print STDERR "FREEZE FORMAT\n";
         $imp = dbthaw($impraw);
         $imp = dbderef($imp);
-    } elsif($impraw =~ /^\#/) {
+    } elsif($impraw =~ /^\#V/) {
         # New format
         print STDERR "JSON FORMAT\n";
-        $impraw =~ s/^\#//;
-        if($impraw =~ /^💾/) {
-            print STDERR "    ALREADY UTF8 DECODED - RE-ENCODING\n";
-            $impraw = encode_utf8 $impraw;
-        }
 
         # Remove file leader
-        my @parts = split/\n/, $impraw, 2;
-        my $bla = substr Dumper(\@parts), 0, 100;
-        print STDERR $bla, "\n";
-        $imp = decode_json $parts[1];
+        my @parts = split/\n/, $impraw;
+        shift @parts;
+
+        while(@parts) {
+            my $line = shift @parts;
+            $imp .= decode_base64 $line;
+            $imp .= "\n";
+        }
+
+        $imp = decode_json $imp;
+
     } else {
         # UNKNOWN
         print STDERR "UNKNOWN FILE FORMAT!\n";
@@ -257,6 +265,7 @@ sub tr_import($impraw) {
     if(defined($imp->{ExportVersion})) {
         $impversion = $imp->{ExportVersion};
     }
+
 
     if($impversion == 3) {
         $imp = thaw(decode_base64($imp->{Translations}));
