@@ -264,7 +264,6 @@ sub drawTimestamp($img) {
 }
 
 sub drawLetter($img, $x, $y, $letter) {
-    
     my $segments;
     if($letter eq ' ') {
         $segments = ""

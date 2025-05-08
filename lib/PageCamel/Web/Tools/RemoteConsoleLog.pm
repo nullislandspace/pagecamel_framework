@@ -143,7 +143,6 @@ sub get_defaultwebdata($self, $webdata) {
 
 
 sub beaconhandler($self, $ua) {
-    
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

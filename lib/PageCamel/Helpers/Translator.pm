@@ -111,7 +111,6 @@ sub tr_reload() {
 }
 
 sub makeCacheChecksum($cache) {
-    
     my $cachestring = '';
     $cachestring .= join('', sort @{$cache->{keys}});
     

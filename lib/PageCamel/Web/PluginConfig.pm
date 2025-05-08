@@ -30,7 +30,6 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-    
     if(defined($self->{templates})) {
         # Configure an additional path in the TemplateCache module
         my $tch = $self->{server}->{modules}->{$self->{templates}->{templatecache}};

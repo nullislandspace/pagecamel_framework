@@ -23,7 +23,6 @@ use MIME::Base64;
 our @EXPORT_OK = qw(colorHex2RGB colorRGB2Hex colorMaxContrast colorHexMaxContrast colorSwatch colorSwatchB64 colorSwatchUrl colorSwatchHTML);
 
 sub colorHex2RGB($colorstring) {
-    
     my @rgb = (0, 0, 0);
     my @hexrgb;
 

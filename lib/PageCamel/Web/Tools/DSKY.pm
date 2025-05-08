@@ -34,7 +34,6 @@ sub new($proto, %config) {
 }
 
 sub wsmaskget($self, $ua, $settings, $webdata) {
-    
     if(!defined($webdata->{HeadExtraScript})) {
         $webdata->{HeadExtraScript} = [];
     }

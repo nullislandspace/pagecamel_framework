@@ -34,7 +34,6 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-    
     foreach my $item (@{$self->{item}}) {
         $self->register_plugin('work', $item->{device}, $item->{subtype});
     }

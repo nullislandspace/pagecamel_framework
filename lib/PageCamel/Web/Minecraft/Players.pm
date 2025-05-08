@@ -51,7 +51,6 @@ sub register($self) {
 }
 
 sub get_index($self, $ua) {
-    
     my @lines = slurpTextFile($self->{basedir} . 'index.html');
 
     if(!@lines) {
@@ -80,7 +79,6 @@ sub get_index($self, $ua) {
 }
 
 sub get_js($self, $ua) {
-    
     my $th = $self->{server}->{modules}->{templates};
     
     my %webdata = (
@@ -178,7 +176,6 @@ sub get_json($self, $ua) {
 }
 
 sub makeDragon($self, $world, $x, $z) {
-    
     my $dname = 'border' . $self->{dragoncount};
     $self->{dragoncount}++;
     

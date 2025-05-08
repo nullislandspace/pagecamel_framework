@@ -29,7 +29,6 @@ Readonly my $SAMPLERATE => 8000.0;
 Readonly my $CFACTOR => 2048.0 / 44_100.0; # Original timing in browser (most likely) 44100 Sample/s in 2048 samples "batches"
 
 sub new($class, $isDebugging, $configfile) {
-    
     my $self = bless {}, $class;
 
     $self->{isDebugging} = $isDebugging;
@@ -39,7 +38,6 @@ sub new($class, $isDebugging, $configfile) {
 }
 
 sub init($self) {
-    
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => ['file' ],);
@@ -79,7 +77,6 @@ sub init($self) {
 }
 
 sub run($self) {
-    
     # Let STDOUT/STDERR settle down first
     sleep(0.1);
 

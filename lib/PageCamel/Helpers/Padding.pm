@@ -45,7 +45,6 @@ sub doLeftSpacePad($val, $len) {
 }
 
 sub doCenterPad($val, $len) {
-    
     while(length($val) < $len) {
         $val = " $val";
         
@@ -64,7 +63,6 @@ sub trimLine($string) {
 }
 
 sub forceByteLength($string, $len) {
-    
     if(length($string) > $len) {
         $string = substr $string, 0, $len;
     } else {

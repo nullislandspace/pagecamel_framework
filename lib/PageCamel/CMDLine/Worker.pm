@@ -94,7 +94,6 @@ sub init($self) {
 }
 
 sub run($self) {
-    
     my $runok = 0;
 
     eval {

@@ -43,7 +43,6 @@ sub get_defaultwebdata($self, $webdata) {
 
 
 sub beaconhandler($self, $ua) {
-    
     my $beacondata;
     my $decoded = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
