@@ -18,7 +18,6 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseModule);
 
 sub register($self) {
-    
     my $ok = 1;
     # Required settings
     foreach my $key (qw[db reporting userlevels]) {
@@ -38,7 +37,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-    
     return;
 }
 

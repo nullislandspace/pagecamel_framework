@@ -38,7 +38,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-    
     if($self->{uninlineJavascript}) {
         $self->register_webpath($self->{uninline}->{webpath} . '/static', 'get_uninline_static', 'GET');
         $self->register_webpath($self->{uninline}->{webpath} . '/dynamic', 'get_uninline_dynamic', 'GET');

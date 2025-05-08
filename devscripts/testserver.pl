@@ -21,7 +21,6 @@ use base qw(Net::Server::Single);
 
 
 sub process_request($self) {
-    
     my @headers;
     my $lcount = 0;
     my %request;
@@ -76,7 +75,6 @@ sub process_request($self) {
 }
 
 sub parse_request_line($self, $request, $header) {
-    
     if($header =~ /^([A-Z]+)\ (\S+)\ HTTP\/(1\.\d)$/) {
         ($request->{method}, $request->{url}, $request->{httpversion}) = ($1, $2, $3); 
     } else {
@@ -113,7 +111,6 @@ sub parse_request_line($self, $request, $header) {
 }
 
 sub parse_postdata($self, $request, $postdata) {
-    
     my %postparams;
     my @parts = split/\&/, $postdata;
     foreach my $part (@parts) {
@@ -139,7 +136,6 @@ sub parse_postdata($self, $request, $postdata) {
 }
 
 sub parse_header_line($self, $request, $header) {
-    
     if($header =~ /^(\S+)\:\ (.+)$/) {
         my ($name, $value) = ($1, $2);
         if(!defined($request->{headers})) {
@@ -154,7 +150,6 @@ sub parse_header_line($self, $request, $header) {
 }
 
 sub getForm($self, $request) {
-    
     my $form = <<'END_FORM';
 <html>
     <head>
@@ -176,7 +171,6 @@ END_FORM
 }
 
 sub parseSubmit($self, $request) {
-    
     my $form = <<'END_FORM';
 <html>
     <head>

@@ -66,7 +66,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-    
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     if(defined($self->{public}->{webpath})) {

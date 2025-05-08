@@ -20,7 +20,6 @@ our @EXPORT = qw(getTestText getTestImage1 getTestImage2); ## no critic (Modules
 use MIME::Base64;
 
 sub getTestLines() {
-    
     my $raw = decode_base64('
         PT09PT09PT09PT09PT09PT09PT09CkZpbmFsIHByb2plY3QgcmVwb3J0Ogo9PT09PT09PT09PT09
         PT09PT09PT0KClRoaXMgd2FzIGEgdHJpdW1waCEKSSdtIG1ha2luZyBhIG5vdGUgaGVyZToKSHVn
@@ -57,7 +56,6 @@ sub getTestLines() {
 }
 
 sub getTestImage1() {
-    
     return decode_base64('
         iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAAAAADRE4smAAABI2lDQ1BJQ0MgcHJvZmlsZQAAKJGd
         kLFKw1AUhr9UURE7VRzEIYNrxcXg4FIVglAhxgpWpzRJsZjEkKQU38A30YfpIAg+gg+g4Ox/o4OD
@@ -634,7 +632,6 @@ sub getTestImage1() {
 }
 
 sub getTestImage2() {
-    
     return decode_base64('
         iVBORw0KGgoAAAANSUhEUgAAAgAAAAJ/CAIAAACBbvy5AAABhmlDQ1BJQ0MgcHJvZmlsZQAAKJF9
         kT1Iw1AUhU9bpSItDu0g4pChumhBVESctApFqBBqhVYdTF76B00akhQXR8G14ODPYtXBxVlXB1dB

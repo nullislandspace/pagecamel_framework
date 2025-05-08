@@ -76,7 +76,6 @@ sub wsreload($self) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-    
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
     );
@@ -99,7 +98,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-    
     delete $self->{audio};
     
     if(defined($self->{ofh})) {
@@ -111,7 +109,6 @@ sub wscleanup($self) {
 }
 
 sub wscyclic($self, $ua) {
-    
     $self->{audio}->{vserv}->doNetwork();
     my %outmsg;
     while((my $msg = $self->{audio}->{vserv}->getNext())) {

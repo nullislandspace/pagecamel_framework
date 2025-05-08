@@ -743,7 +743,6 @@ sub getDirectorySearch($self, $ua, $filename) {
 
 
 sub get_wastedspace($self, $ua) {
-    
     return (status => 404) unless defined($self->{server}->{modules}->{templates});
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

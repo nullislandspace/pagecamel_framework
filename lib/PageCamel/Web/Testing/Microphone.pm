@@ -91,7 +91,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-    
     delete $self->{audio};
     
     if(defined($self->{ofh})) {

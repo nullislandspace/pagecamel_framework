@@ -32,7 +32,6 @@ sub register($self) {
 }
 
 sub do_redirect($self, $ua) {
-    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
     return if(!defined($ua->{headers}->{Host}));
