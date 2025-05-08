@@ -55,7 +55,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-    
     if(0) {
         my $rickroll = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
         return (
@@ -216,7 +215,6 @@ sub get($self, $ua) {
 }
 
 sub createID($self) {
-    
     my @validchars = split//, '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
     my $shortid = '';
     for(1..6) {
@@ -227,7 +225,6 @@ sub createID($self) {
 }
 
 sub getInputForm($self, $result) {
-    
     if(!defined($result)) {
         $result = '';
     }

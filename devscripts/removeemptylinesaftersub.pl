@@ -20,7 +20,7 @@ use PageCamel::Helpers::UTF;
 
 
 print "Searching files...\n";
-my @files = (find_pm('lib'), find_pm('devscripts'));
+my @files = (find_pm('lib'), find_pm('devscripts'), find_pm('database'));
 
 print "Changing files:\n";
 foreach my $file (@files) {
@@ -46,7 +46,7 @@ foreach my $file (@files) {
         if($substart) {
             my $tmpline = '' . $line;
             $tmpline =~ s/\ +//g;
-            if(!length($line)) {
+            if(!length($tmpline)) {
                 # Skip empty line
                 next;
             }

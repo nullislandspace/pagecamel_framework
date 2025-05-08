@@ -52,7 +52,6 @@ sub new($class, $isDebugging, $configfile) {
 }
 
 sub init($self) {
-    
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => [ 'module', 'redirect', 'menu', 'view', 'userlevel', 'rootfile', 'item', 'header' ],);

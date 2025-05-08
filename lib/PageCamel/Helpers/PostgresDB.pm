@@ -24,7 +24,6 @@ use Readonly;
 Readonly::Scalar my $BLOBMODE => 0x00020000; ## no critic (ValuesAndExpressions::RequireNumberSeparators)
 
 sub updateConfig($self) {
-    
     # This must be done *AFTER* new in SUPER (to handle host specific cases)
     if(defined($self->{include})) {
         print "    Using PostgreSQL connection info from ", $self->{include}, "\n";

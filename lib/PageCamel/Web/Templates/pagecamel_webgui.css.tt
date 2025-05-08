@@ -80,6 +80,14 @@ div.webgui_projectname {
 	padding-left: [% ProjectHeaderLeftMargin %];
 }
 
+div.webgui_projectcentertext {
+	color: "#ffffff";
+	font-size: [% ProjectNameSize %];
+	float: left;
+	height: [% ProjectHeaderSize %];
+	padding-left: [% ProjectHeaderLeftMargin %];
+}
+
 div.webgui_watching_eyes {
 	width: 120px;
 	float: right;

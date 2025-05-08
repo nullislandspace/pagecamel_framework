@@ -101,9 +101,11 @@
     </p>
    
     [% IF statustext == "" OR statuscolor != "oktext" %]
+        <!--
         <p align="center">
             <a href="#" onclick="return showBrowserInfo();">[% tr.trquote("Does my browser support HTML5?") %]</a>
         </p>
+        -->
         <div id="dialog-browserinfo" title="[% tr.trquote("HTML5 support") %]">
             <p align="center">
                 <table align="center" id="HelperTable1">

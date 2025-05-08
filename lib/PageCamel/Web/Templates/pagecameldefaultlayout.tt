@@ -166,6 +166,10 @@
 
             <div class="webgui_projectname">[% ProjectName %]</div>
 
+            [% IF CenterHeaderText != "" %]
+                <div class="webgui_projectcentertext">[% CenterHeaderText %]</div>
+            [% END %]
+
             [% IF WebAppShowEyes == "1" %]
                 <div class="webgui_watching_eyes">
                     <div class="eye">

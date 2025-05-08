@@ -67,7 +67,6 @@ sub reload($self) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-    
     my $cspname = 'DEFAULT';
     if(defined($self->{csp}->{$ua->{url}})) {
         $cspname = $ua->{url};

@@ -50,7 +50,6 @@ sub register($self) {
 
 
 sub update_map($self) {
-    
     my $workCount = 0;
     
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

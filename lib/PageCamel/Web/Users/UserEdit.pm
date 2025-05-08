@@ -23,7 +23,6 @@ use PageCamel::Helpers::URI qw(encode_uri_path);
 use PageCamel::Helpers::APPQRCode;
 
 sub register($self) {
-    
     my $ok = 1;
     # Required settings
     foreach my $key (qw[systemsettings db reporting]) {
@@ -71,7 +70,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-    
     return;
 }
 

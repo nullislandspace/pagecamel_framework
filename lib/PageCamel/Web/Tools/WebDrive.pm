@@ -183,12 +183,10 @@ sub get($self, $ua) {
 }
 
 sub get_hashingworker($self, $ua) {
-    
     return $self->get_workerscript($ua, 'tools/webdrive_hashingworker.js');
 }
 
 sub get_uploadworker($self, $ua) {
-    
     return $self->get_workerscript($ua, 'tools/webdrive_uploadworker.js');
 }
 
@@ -545,7 +543,6 @@ sub sockethandler($self, $ua) {
 }
 
 sub get_files($self, $ua) {
-    
     my @files;
     my $total = 0;
     my $count = 0;
