@@ -160,8 +160,8 @@ lib/PageCamel/Web/Images/blog_documentation.bmp
 lib/PageCamel/Web/Images/blog_rant.bmp
 lib/PageCamel/Web/Images/blueprint.bmp
 lib/PageCamel/Web/Images/blueprint2.bmp
-lib/PageCamel/Web/Images/calendar.gif
-lib/PageCamel/Web/Images/calendar_large.gif
+lib/PageCamel/Web/Images/calendar.png
+lib/PageCamel/Web/Images/calendar_large.png
 lib/PageCamel/Web/Images/checkbox_classic_DELETE.png
 lib/PageCamel/Web/Images/checkbox_classic_OFF.png
 lib/PageCamel/Web/Images/checkbox_classic_ON.png
@@ -227,6 +227,8 @@ lib/PageCamel/Web/Images/menubar_top.png
 lib/PageCamel/Web/Images/movemouse.gif
 lib/PageCamel/Web/Images/PageCamelFramework.png
 lib/PageCamel/Web/Images/PageCamelLogo.bmp
+lib/PageCamel/Web/Images/resetfield.png
+lib/PageCamel/Web/Images/resetfield_large.png
 lib/PageCamel/Web/Images/rufzeichen.png
 lib/PageCamel/Web/Images/snow.gif
 lib/PageCamel/Web/Images/space/stars.png
