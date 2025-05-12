@@ -93,7 +93,7 @@
                 $("input[displaytype=dateonly]").datepicker({
                     dateFormat: 'yy-mm-dd',
                     showOn: 'button',
-                    buttonImage: '/pics/calendar.gif',
+                    buttonImage: '/pics/calendar.png',
                     buttonImageOnly: true,
                     buttonText: ttvars.trquote.Calendarbutton
                 });

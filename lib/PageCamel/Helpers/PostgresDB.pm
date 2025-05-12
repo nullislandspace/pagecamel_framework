@@ -80,6 +80,8 @@ sub checkDBH($self, $hasforked = false) {
                                {
                                    AutoCommit => 0,
                                    RaiseError => 0,
+                                   PrintError => 0,
+                                   PrintWarn  => 0,
                                    AutoInactiveDestroy => 1,
                                }) or croak("$EVAL_ERROR");
     $self->{mdbh} = $dbh;
