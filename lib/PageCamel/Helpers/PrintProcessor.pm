@@ -144,7 +144,10 @@ sub _generateEscPos($self, $img = undef) {
 
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
-        return $self->_escpos_tmt88($self->{printerExtraFeed});
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, 0);
+    } elsif($self->{printerType} eq 'ORDERMAN') {
+        $reph->debuglog("    Type: TMT88 in ORDERMAN mode");
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, 1);
     } elsif($self->{printerType} eq 'TMP20') {
         $reph->debuglog("    Type: TMP20");
         return $self->_escpos_tmp20($self->{printerExtraFeed});
@@ -164,7 +167,7 @@ sub _generateEscPos($self, $img = undef) {
 }
     
 
-sub _escpos_tmt88($self, $extrafeed) {
+sub _escpos_tmt88($self, $extrafeed, $ordermanprinter = 0) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -199,7 +202,10 @@ sub _escpos_tmt88($self, $extrafeed) {
     # Print bitmap image
     #print "\nTotal: $w x $h\n";
 
-    my $blocksize = 1000;
+    my $blocksize = 2000;
+    if($ordermanprinter) {
+        $blocksize = 300;
+    }
    
     # Image data
 
