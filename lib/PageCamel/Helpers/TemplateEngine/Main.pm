@@ -230,6 +230,7 @@ sub runFinalcheck($self) {
     foreach my $key (@{$self->{translatekeys}}) {
         tr_rememberkey($key);
     }
+    $self->{finalcheckdone} = 1;
 
     #print "\nTemplates available:\n";
     #foreach my $name (sort keys %{$self->{cache}}) {
@@ -240,7 +241,7 @@ sub runFinalcheck($self) {
 }
 
 sub addTranslations($self, $webdata) {
-    my $lang = 'engi';
+    my $lang = 'eng';
     if(defined($webdata->{UserLanguage})) {
         $lang = $webdata->{UserLanguage};
     }
@@ -260,6 +261,13 @@ sub addTranslations($self, $webdata) {
     return;
 }
 
+sub translateTextDirect($self, $lang, $key) {
+    return tr_translate($lang, $key);
+}
+sub translateAddKeyDirect($self, $key) {
+    #print STDERR "  Adding translate key: ", $key, "\n";
+    return tr_rememberkey($key);
+}
 
 sub get($self, $name, $uselayout, %webdata) {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
