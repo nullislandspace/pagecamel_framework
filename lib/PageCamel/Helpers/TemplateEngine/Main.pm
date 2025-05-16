@@ -230,6 +230,7 @@ sub runFinalcheck($self) {
     foreach my $key (@{$self->{translatekeys}}) {
         tr_rememberkey($key);
     }
+    $self->{finalcheckdone} = 1;
 
     #print "\nTemplates available:\n";
     #foreach my $name (sort keys %{$self->{cache}}) {
@@ -260,8 +261,12 @@ sub addTranslations($self, $webdata) {
     return;
 }
 
-sub translateText($self, $lang, $key) {
+sub translateTextDirect($self, $lang, $key) {
     return tr_translate($lang, $key);
+}
+sub translateAddKeyDirect($self, $key) {
+    #print STDERR "  Adding translate key: ", $key, "\n";
+    return tr_rememberkey($key);
 }
 
 sub get($self, $name, $uselayout, %webdata) {
