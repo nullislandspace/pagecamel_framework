@@ -240,7 +240,7 @@ sub runFinalcheck($self) {
 }
 
 sub addTranslations($self, $webdata) {
-    my $lang = 'engi';
+    my $lang = 'eng';
     if(defined($webdata->{UserLanguage})) {
         $lang = $webdata->{UserLanguage};
     }
@@ -260,6 +260,9 @@ sub addTranslations($self, $webdata) {
     return;
 }
 
+sub translateText($self, $lang, $key) {
+    return tr_translate($lang, $key);
+}
 
 sub get($self, $name, $uselayout, %webdata) {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
