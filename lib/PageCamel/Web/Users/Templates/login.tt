@@ -271,6 +271,7 @@
     function extraOnLoad() {
         if(ttvars.statustext === "" || ttvars.statuscolor != "oktext") {
             maskExtraOnLoad();
+            tryAppLogin();
         }
         if(ttvars.foblogin != '') {
             if(ttvars.fobmode == 'ajax') {
@@ -287,6 +288,19 @@
                 window.location.reload();
             });
         });
+    }
+
+    function tryAppLogin() {
+        try {
+            if(Bridge && Bridge.interfaces && Bridge.interfaces.Android && Bridge.interfaces.Android.reloadWebView) {
+                Bridge.interfaces.Android.reloadWebView();
+            } else {
+                //console.log("Not running in the APP");
+            }
+        } catch(error) {
+            //console.log("Not running in the APP");
+        }
+
     }
 
     function maskExtraOnLoad() {
