@@ -146,17 +146,14 @@ sub reload($self) {
 
 # define empty Websocket base callbacks (in case the specific implementation doesn't overload them)
 sub wsregister($self) {
-    
     return;
 }
 
 sub wscrossregister($self) {
-    
     return;
 }
 
 sub wsreload($self) {
-    
     return;
 }
 
@@ -165,38 +162,31 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
 }
 
 sub wsstart($self, $ua, $webdata) {
-    
     return;
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-    
     return;
 }
 
 sub wsdisconnect($self, $ua, $settings) {
-    
     return;
 }
 
 sub wscleanup($self, $ua, $settings) {
-    
     return;
 }
 
 
 sub wshandlemessage($self, $message) {
-    
     return 1;
 }
 
 sub wscyclic($self, $ua) {
-    
     return 1;
 }
 
 sub wsprint($self, $message, $usebinary = 0) {
-    
     my $frame = $self->{sessiondata}->{frame};
     my $ua = $self->{sessiondata}->{ua};
     my $settings = $self->{sessiondata}->{settings};

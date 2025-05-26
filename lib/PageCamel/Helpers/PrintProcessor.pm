@@ -82,7 +82,6 @@ sub new($proto, $config) {
 }
 
 sub printStartDocument($self) {
-    
     $self->{img} = GD::Image->new($self->{width}, $self->{height});
     $self->{imgoffs} = 0;
     $self->{imgwhite} = $self->{img}->colorAllocate(255, 255, 255);
@@ -145,7 +144,10 @@ sub _generateEscPos($self, $img = undef) {
 
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
-        return $self->_escpos_tmt88($self->{printerExtraFeed});
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, 0);
+    } elsif($self->{printerType} eq 'ORDERMAN') {
+        $reph->debuglog("    Type: TMT88 in ORDERMAN mode");
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, 1);
     } elsif($self->{printerType} eq 'TMP20') {
         $reph->debuglog("    Type: TMP20");
         return $self->_escpos_tmp20($self->{printerExtraFeed});
@@ -165,7 +167,7 @@ sub _generateEscPos($self, $img = undef) {
 }
     
 
-sub _escpos_tmt88($self, $extrafeed) {
+sub _escpos_tmt88($self, $extrafeed, $ordermanprinter = 0) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -200,7 +202,10 @@ sub _escpos_tmt88($self, $extrafeed) {
     # Print bitmap image
     #print "\nTotal: $w x $h\n";
 
-    my $blocksize = 1000;
+    my $blocksize = 2000;
+    if($ordermanprinter) {
+        $blocksize = 300;
+    }
    
     # Image data
 
@@ -741,7 +746,6 @@ sub _getPrintColor($self, $isfont = 0) {
 }
 
 sub printAddTextLine($self, $line, $y = undef) {
-    
     chomp $line;
     
     $line = encode_utf8($line);
@@ -759,7 +763,6 @@ sub printAddTextLine($self, $line, $y = undef) {
 }
 
 sub printAddBoldTextLine($self, $line, $y = undef) {
-    
     chomp $line;
     
     $line = encode_utf8($line);
@@ -777,7 +780,6 @@ sub printAddBoldTextLine($self, $line, $y = undef) {
 }
 
 sub printAddVerySmallTextLine($self, $line, $x = undef, $y = undef) {
-    
     chomp $line;
     
     if(defined($x) && defined($y)) {
@@ -791,7 +793,6 @@ sub printAddVerySmallTextLine($self, $line, $x = undef, $y = undef) {
 }
 
 sub printAddBoldVerySmallTextLine($self, $line, $x = undef, $y = undef) {
-    
     chomp $line;
     
     if(defined($x) && defined($y)) {
@@ -805,7 +806,6 @@ sub printAddBoldVerySmallTextLine($self, $line, $x = undef, $y = undef) {
 }
 
 sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
-    
     chomp $line;
     
     if(defined($x) && defined($y)) {
@@ -819,7 +819,6 @@ sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
 }
 
 sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
-    
     chomp $line;
     
     if(defined($x) && defined($y)) {
@@ -834,7 +833,6 @@ sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
 
 
 sub printAddSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
-    
     chomp $line;
     
     if(defined($x) && defined($y)) {
@@ -848,7 +846,6 @@ sub printAddSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
 }
 
 sub printAddBoldSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
-    
     chomp $line;
     
     if(defined($x) && defined($y)) {
@@ -862,7 +859,6 @@ sub printAddBoldSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
 }
 
 sub printAddBigTextLine($self, $line) {
-    
     chomp $line;
     
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
@@ -873,7 +869,6 @@ sub printAddBigTextLine($self, $line) {
 }
 
 sub printAddMediumBigTextLine($self, $line) {
-    
     chomp $line;
     
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
@@ -969,7 +964,6 @@ sub printAddCutHereLine($self) {
 }
 
 sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $doscale = true, $center = false) {
-    
     my $reph = $self->{reph};
     
     my $pic;
@@ -1018,7 +1012,6 @@ sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $dos
 }
 
 sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
-    
     my $reph = $self->{reph};
     
     my $rawpic;
@@ -1260,7 +1253,6 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
 }
 
 sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
-    
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
     $self->{imagedata} = $self->{img}->png;
 
@@ -1315,7 +1307,6 @@ sub saveDBCache($self, $imagekey, $imagedata) {
 }
 
 sub rememberPrint($self, $description) {
-    
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
 
@@ -1393,7 +1384,6 @@ sub reprintDocumentData($self, $imagedata, $printername) {
 }
 
 sub printAddTestPattern_HeatupCooldown($self) {
-    
     for(1..2) {
         $self->{img}->filledRectangle(0, $self->{imgoffs},
                                       $self->{width}, $self->{imgoffs} + 200,
@@ -1418,7 +1408,6 @@ sub printAddTestPattern_HeatupCooldown($self) {
 }
 
 sub printAddTestPattern_VerticalLines($self, $pointsize) {
-    
     for(my $x = 0; $x < $self->{width}; $x += $pointsize) {
 
         if($x % ($pointsize * 2) != 0) {
@@ -1437,7 +1426,6 @@ sub printAddTestPattern_VerticalLines($self, $pointsize) {
 }
 
 sub printAddTestPattern_HorizontalLines($self, $pointsize) {
-    
     for(1..2) {
         my $i = 0;
 
@@ -1514,7 +1502,6 @@ sub printAddTestPattern_GreyBlocks($self) {
 }
 
 sub printAddTestPattern_Rectangle($self) {
-    
     for(my $i = 0; $i < $self->{width}; $i++) {
         if($i == 0 || $i == ($self->{width} - 1)) {
             for(my $j = 0; $j <= $self->{width}; $j++) {
@@ -1534,7 +1521,6 @@ sub printAddTestPattern_Rectangle($self) {
 
 
 sub printTestMessage($self, $tests) {
-    
     my @lines = PageCamel::Helpers::TestData::getTestLines();
     
     $self->printStartDocument();

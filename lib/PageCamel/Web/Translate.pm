@@ -83,7 +83,8 @@ sub register($self) {
     $self->register_webpath($self->{translations}->{webpath}, "get_translations");
     $self->register_webpath($self->{export}->{webpath}, "get_export");
     $self->register_webpath($self->{exportfile}->{webpath}, "get_file");
-    $self->register_prerender("prerender");
+    $self->register_late_defaultwebdata("prerender_and_late_defaultwebdata");
+    $self->register_prerender("prerender_and_late_defaultwebdata");
     $self->register_postfilter("postfilter");
 
     $self->register_preconnect("check_translationupdates");
@@ -380,7 +381,7 @@ sub get_file($self, $ua) {
 }
 
 
-sub prerender($self, $webdata) {
+sub prerender_and_late_defaultwebdata($self, $webdata) {
     # Unless the user is logged in, we don't have set a user selected Language, use English
     if(!defined($webdata->{userData}) ||
               !defined($webdata->{userData}->{user}) ||
@@ -397,8 +398,6 @@ sub prerender($self, $webdata) {
         $langname = dbderef($langname);
     }
     if($ok && defined($langname) && $langname ne "") {
-        # Now, we have to check if this theme is still available
-
         # FIXME: Check if language still available!
         if(tr_checklang($langname)) {
             $lang = $langname;

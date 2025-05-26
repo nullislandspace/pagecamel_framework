@@ -39,7 +39,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-    
     if(defined($self->{public}) && $self->{public}) {
         $self->register_public_url($self->{webpath});
     }

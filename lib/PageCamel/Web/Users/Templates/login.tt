@@ -101,9 +101,11 @@
     </p>
    
     [% IF statustext == "" OR statuscolor != "oktext" %]
+        <!--
         <p align="center">
             <a href="#" onclick="return showBrowserInfo();">[% tr.trquote("Does my browser support HTML5?") %]</a>
         </p>
+        -->
         <div id="dialog-browserinfo" title="[% tr.trquote("HTML5 support") %]">
             <p align="center">
                 <table align="center" id="HelperTable1">
@@ -269,6 +271,7 @@
     function extraOnLoad() {
         if(ttvars.statustext === "" || ttvars.statuscolor != "oktext") {
             maskExtraOnLoad();
+            tryAppLogin();
         }
         if(ttvars.foblogin != '') {
             if(ttvars.fobmode == 'ajax') {
@@ -285,6 +288,19 @@
                 window.location.reload();
             });
         });
+    }
+
+    function tryAppLogin() {
+        try {
+            if(Bridge && Bridge.interfaces && Bridge.interfaces.Android && Bridge.interfaces.Android.reloadWebView) {
+                Bridge.interfaces.Android.reloadWebView();
+            } else {
+                //console.log("Not running in the APP");
+            }
+        } catch(error) {
+            //console.log("Not running in the APP");
+        }
+
     }
 
     function maskExtraOnLoad() {

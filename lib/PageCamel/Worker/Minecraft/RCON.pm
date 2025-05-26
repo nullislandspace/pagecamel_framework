@@ -36,7 +36,6 @@ sub new($proto, %config) {
 }
 
 sub run_command($self, $command) {
-    
     my $workCount = 0;
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

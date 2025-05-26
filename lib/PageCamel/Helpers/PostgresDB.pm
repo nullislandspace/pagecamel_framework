@@ -24,7 +24,6 @@ use Readonly;
 Readonly::Scalar my $BLOBMODE => 0x00020000; ## no critic (ValuesAndExpressions::RequireNumberSeparators)
 
 sub updateConfig($self) {
-    
     # This must be done *AFTER* new in SUPER (to handle host specific cases)
     if(defined($self->{include})) {
         print "    Using PostgreSQL connection info from ", $self->{include}, "\n";
@@ -81,6 +80,8 @@ sub checkDBH($self, $hasforked = false) {
                                {
                                    AutoCommit => 0,
                                    RaiseError => 0,
+                                   PrintError => 0,
+                                   PrintWarn  => 0,
                                    AutoInactiveDestroy => 1,
                                }) or croak("$EVAL_ERROR");
     $self->{mdbh} = $dbh;

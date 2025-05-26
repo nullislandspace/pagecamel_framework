@@ -97,7 +97,6 @@ sub addPath($self, $basePath) {
 }
 
 sub addView($self, $path, $base) {
-    
     foreach my $v (@{$self->{view}}) {
         if($v->{base} eq $base) {
             croak("Can't addView for $base / $path because base $base is already configured!");
@@ -231,6 +230,7 @@ sub runFinalcheck($self) {
     foreach my $key (@{$self->{translatekeys}}) {
         tr_rememberkey($key);
     }
+    $self->{finalcheckdone} = 1;
 
     #print "\nTemplates available:\n";
     #foreach my $name (sort keys %{$self->{cache}}) {
@@ -241,7 +241,7 @@ sub runFinalcheck($self) {
 }
 
 sub addTranslations($self, $webdata) {
-    my $lang = 'engi';
+    my $lang = 'eng';
     if(defined($webdata->{UserLanguage})) {
         $lang = $webdata->{UserLanguage};
     }
@@ -261,6 +261,13 @@ sub addTranslations($self, $webdata) {
     return;
 }
 
+sub translateTextDirect($self, $lang, $key) {
+    return tr_translate($lang, $key);
+}
+sub translateAddKeyDirect($self, $key) {
+    #print STDERR "  Adding translate key: ", $key, "\n";
+    return tr_rememberkey($key);
+}
 
 sub get($self, $name, $uselayout, %webdata) {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -380,7 +387,6 @@ sub render_partials($self, $name, %webdata) {
 
 
 sub do_uninline($self, $data, $kname, $fname) {
-        
     my @newlines;
     
     my ($preparseddata, $autodialogjs, $autodialoghtml) = $self->parseAutoDialogs($fname, $data);
@@ -665,7 +671,6 @@ sub do_uninline($self, $data, $kname, $fname) {
 }
 
 sub get_uninline_static($self, $ua) {
-    
     my $fname = $ua->{url};
     
     if(!defined($self->{uninlinefiles}->{$fname})) {
@@ -735,7 +740,6 @@ sub get_uninline_static($self, $ua) {
 }
 
 sub get_uninline_dynamic($self, $ua) {
-    
     my $fname = $ua->{url};
     
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -775,7 +779,6 @@ sub get_uninline_dynamic($self, $ua) {
 }
 
 sub makeDynamicScript($self, $page, $webdata, $templatename) {
-    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
     my $dynsource;
@@ -822,7 +825,6 @@ sub makeDynamicScript($self, $page, $webdata, $templatename) {
 }
 
 sub gen_dynjsname($self) {
-    
     my $namebase = 'abcdefghijklmnopqrstuvwxyz';
 
     my $name = '';
@@ -837,7 +839,6 @@ sub gen_dynjsname($self) {
 }
 
 sub gen_eventhandlername($self) {
-    
     my $namebase = 'abcdefghijklmnopqrstuvwxyz';
 
     my $name = '';
@@ -855,7 +856,6 @@ sub gen_eventhandlername($self) {
 #my @oldlines = split/\n/, $data;
 
 sub parseAutoDialogs($self, $fname, $data) {
-    
     my @oldlines = split/\n/, $data;
     my @newlines;
     my $generator = PageCamel::Helpers::AutoDialogs->new();

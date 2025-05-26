@@ -57,7 +57,6 @@ sub register($self) {
 }
 
 sub execute($self, $command, $arguments) {
-    
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
         return $self->$cmdfunc($arguments);
