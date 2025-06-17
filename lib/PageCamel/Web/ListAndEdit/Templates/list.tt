@@ -56,12 +56,13 @@
                                         [% IF iFrameMode == 'list' %]
                                             <td valign="top"><input type="button" value=" 🗁 " onclick="iFrameSelect('__NEW__');"></td>
                                         [% ELSE %]
-                                            <td valign="top"><input type="button" value=" 🖉 " onclick="quickSelect('__NEW__');"></td>
+                                            <!--<td valign="top"><input type="button" value=" 🖉 " onclick="quickSelect('__NEW__');"></td>-->
+                                            <td valign="top" id="newentry_td1_id"><input type="button" value=" [% tr.trquote("NEW") %] " onclick="quickSelect('__NEW__');"></td>
                                         [% END %]
                                     [% ELSE %]
                                          <td valign="top"><input type="radio" name="primary_key" value="__NEW__"></td>
                                     [% END %]
-                                    <td colspan="[% column_count %]" align="left" valign="top">[% tr.trquote("New") %]</td>
+                                    <td colspan="[% column_count %]" align="left" valign="top" id="newentry_td2_id">[% tr.trquote("New") %]</td>
 
                                 </tr>
                             [% END %]
@@ -224,6 +225,9 @@
                "processing": '<img src="/pics/loading_bar.gif">'
             },
         });
+
+        $('#newentry_td1_id').removeClass('ui-state-default');
+        $('#newentry_td2_id').removeClass('ui-state-default');
 
         // Column auto-resize event handling
         letable.on('draw', function () {
