@@ -3138,7 +3138,8 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         if($item->{nullable}) {
             my %emptyval = (
                 selectorenumvalue   => '',
-                hasdescription      => 0,
+                hasdescription      => 1,
+                selectorenumdescription => '❌',
             );
             unshift @enum_values, \%emptyval;
         }
@@ -3262,7 +3263,8 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             # enum array ALWAYS has a "nullable" row"
             my %emptyval = (
                 selectorenumvalue   => '',
-                hasdescription      => 0,
+                hasdescription      => 1,
+                selectorenumdescription => '❌',
             );
             unshift @enum_values, \%emptyval;
         }
