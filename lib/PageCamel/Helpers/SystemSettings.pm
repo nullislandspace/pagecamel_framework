@@ -230,8 +230,18 @@ sub get($self, $modulename, $settingname, $forcedb = false) {
     $dbh->rollback;
 
     if(defined($settingref)) {
-        $settingref->{settingvalue} = decode_utf8($settingref->{settingvalue});
+        my $ok = 0;
+        eval {
+            my $tmp = decode_utf8($settingref->{settingvalue});
+            $settingref->{settingvalue} = $tmp;
+            $ok = 1;
+        };
+        if(!$ok) {
+            # Something went wrong with decoding UTF8
+            #print STDERR Dumper($settingref);
+        }
         return (1, $settingref);
+
     } else {
         return 0;
     }
