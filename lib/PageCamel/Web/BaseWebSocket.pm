@@ -182,6 +182,11 @@ sub wshandlemessage($self, $message) {
     return 1;
 }
 
+sub wshandlebinarymessage($self, $message) {
+    return 1;
+}
+
+
 sub wscyclic($self, $ua) {
     return 1;
 }
@@ -426,6 +431,28 @@ sub sockethandler($self, $ua) {
             while (my $message = $frame->next_bytes) {
                 $workCount++;
 
+                #$reph->debuglog("OPCODE ", $frame->opcode);
+
+                if($frame->opcode == 8) {
+                    $reph->debuglog("Connection closed by Browser");
+                    $socketclosed = 1;
+                    last;
+                }
+
+                if($frame->opcode == 2) {
+                    #$reph->debuglog("BINARY FRAME! ", Dumper($message));
+                    if(!$self->wshandlebinarymessage($message)) {
+                        $socketclosed = 1;
+                        last;
+                    }
+                }
+
+
+                if($frame->opcode != 1) {
+                    $reph->debuglog("UNSUPPORTED OPCODE ", $frame->opcode);
+                    next;
+                }
+
                 my $realmsg;
                 my $parseok = 0;
                 eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -437,11 +464,6 @@ sub sockethandler($self, $ua) {
                     next;
                 }
 
-                if($frame->opcode == 8) {
-                    $reph->debuglog("Connection closed by Browser");
-                    $socketclosed = 1;
-                    last;
-                }
 
                 if($realmsg->{type} eq 'PING') {
                     $timeout = time + $settings{client_disconnect_timeout};
