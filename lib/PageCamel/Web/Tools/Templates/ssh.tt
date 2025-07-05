@@ -1,0 +1,25 @@
+<p align="left">
+    <div id="terminal" align="left"></div>
+</p>
+
+<script>    
+    //function websocketmaskOnload() {
+    var xterm;
+    function websocketmaskOnSocketOpen() {
+        var xterm = new Terminal();
+        var attachAddon = new AttachAddon.AttachAddon(ws, {bidirectional: true});
+        xterm.loadAddon(attachAddon);
+        xterm.open(document.getElementById('terminal'));
+        //term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
+    }
+
+
+    function handleMessage(msg) {                
+        if(msg.type === "XYZ") {
+            console.log(msg);
+            
+            return;
+        }
+        
+    }
+</script>
