@@ -18,7 +18,8 @@ use PageCamel::Helpers::UTF;
 use base qw(PageCamel::Web::BaseWebSocket);
 use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
 use JSON::XS;
-use IPC::Open2;
+#use IPC::Open2;
+use IO::Pty::Easy;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -57,21 +58,27 @@ sub wscrossregister($self) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-    my ($ifh, $ofh);
-    my $pid = open2($ifh, $ofh, '/bin/bash');
-    binmode($ofh);
-    binmode($ifh);
-    $ofh->blocking(0);
-    $ifh->blocking(0);
-
-    $self->{bashpid} = $pid;
-    $self->{ifh} = $ifh;
-    $self->{ofh} = $ofh;
+#   my ($ifh, $ofh);
+#   my $pid = open2($ifh, $ofh, '/bin/bash');
+#   binmode($ofh);
+#   binmode($ifh);
+#   $ofh->blocking(0);
+#   $ifh->blocking(0);
+#
+#   $self->{bashpid} = $pid;
+#   $self->{ifh} = $ifh;
+#   $self->{ofh} = $ofh;
+    
+    $self->{bash} = IO::Pty::Easy->new;
+    $self->{bash}->set_winsize(25, 120);
+    $self->{bash}->spawn('/bin/bash');
+    $self->{bash}->write("stty echo\r\n");
 
     return;
 }
 
 sub wscleanup($self) {
+    delete $self->{bash};
 
     return;
 }
@@ -84,13 +91,14 @@ sub wshandlemessage($self, $message) {
         #print STDERR Dumper($message);
         #$self->{ofh}->write($message->{data});
         my $outval = $message->{data};
-        $outval =~ s/\r/\n/g;
+        #$outval =~ s/\r/\n/g;
         #$self->dumpString($outval);
 
-        $self->{ofh}->write($outval);
+        #$self->{ofh}->write($outval);
+        $self->{bash}->write($outval,0);
 
         # echo input back to console
-        $self->writeData($outval);
+        #$self->writeData($outval);
     }
 
     return 1;
@@ -100,8 +108,9 @@ sub wscyclic($self, $ua) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
-    my $bytes;
-    read($self->{ifh}, $bytes, 100);
+    #my $bytes;
+    #read($self->{ifh}, $bytes, 100);
+    my $bytes = $self->{bash}->read(0);
     if(defined($bytes) && length($bytes)) {
         #print STDERR "\n#### ", Dumper($bytes), "\n";
         #$self->dumpString($fixed);

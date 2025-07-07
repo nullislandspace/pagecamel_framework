@@ -6,7 +6,7 @@
     //function websocketmaskOnload() {
     var xterm;
     function websocketmaskOnSocketOpen() {
-        var xterm = new Terminal();
+        var xterm = new Terminal({rows: 25, cols: 120});
         var attachAddon = new AttachAddon.AttachAddon(ws, {bidirectional: true});
         xterm.loadAddon(attachAddon);
         xterm.open(document.getElementById('terminal'));

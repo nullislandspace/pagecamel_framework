@@ -62,6 +62,7 @@ WriteMakefile(
         'IO::Socket::INET' => 0,
         'IO::Socket::INET6' => 0,
         'IO::Socket::IP' => 0,
+        'IO::Pty::Easy' => 0,
         'JavaScript::Embedded' => '2.7.2',
         'JavaScript::Minifier' => 0,
         'JSON::RPC::Legacy::Client' => 0,
