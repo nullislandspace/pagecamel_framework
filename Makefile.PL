@@ -16,6 +16,7 @@ WriteMakefile(
         'CPAN::Mini::Inject' => 0,
         'Crypt::Digest::SHA256' => 0,
         'Crypt::LE' => 0,
+        'Crypt::OpenSSL::RSA' => 0.99, # Workaround for Crypt::LE
         'CSS::Minifier::XS' => 0,
         'Data::Dumper' => 0,
         'Data::Entropy::Algorithms' => 0,
@@ -62,6 +63,7 @@ WriteMakefile(
         'IO::Socket::INET' => 0,
         'IO::Socket::INET6' => 0,
         'IO::Socket::IP' => 0,
+        'IO::Pty::Easy' => 0,
         'JavaScript::Embedded' => '2.7.2',
         'JavaScript::Minifier' => 0,
         'JSON::RPC::Legacy::Client' => 0,
