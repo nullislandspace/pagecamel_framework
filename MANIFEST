@@ -2856,6 +2856,10 @@ lib/PageCamel/Web/Static/vnc_html5/ui.js
 lib/PageCamel/Web/Static/vnc_html5/util.js
 lib/PageCamel/Web/Static/vnc_html5/websock.js
 lib/PageCamel/Web/Static/vnc_html5/webutil.js
+lib/PageCamel/Web/Static/xterm/addon-attach.js
+lib/PageCamel/Web/Static/xterm/pagecamel.xml
+lib/PageCamel/Web/Static/xterm/xterm.css
+lib/PageCamel/Web/Static/xterm/xterm.js
 lib/PageCamel/Web/StaticCache.pm
 lib/PageCamel/Web/StaticPage.pm
 lib/PageCamel/Web/StreetMap.pm
@@ -2924,6 +2928,7 @@ lib/PageCamel/Web/Tools/ShortURL.pm
 lib/PageCamel/Web/Tools/Sitemap.pm
 lib/PageCamel/Web/Tools/SleepTest.pm
 lib/PageCamel/Web/Tools/SQLJS.pm
+lib/PageCamel/Web/Tools/SSH.pm
 lib/PageCamel/Web/Tools/Templates/clacksconsole.tt
 lib/PageCamel/Web/Tools/Templates/debuglog.tt
 lib/PageCamel/Web/Tools/Templates/dsky.tt
@@ -2933,6 +2938,7 @@ lib/PageCamel/Web/Tools/Templates/pimenu_public.tt
 lib/PageCamel/Web/Tools/Templates/remoteconsolelog.tt
 lib/PageCamel/Web/Tools/Templates/sitemap.tt
 lib/PageCamel/Web/Tools/Templates/sqljs.tt
+lib/PageCamel/Web/Tools/Templates/ssh.tt
 lib/PageCamel/Web/Tools/Templates/webdrive.tt
 lib/PageCamel/Web/Tools/Templates/webdrive_hashingworker.js.tt
 lib/PageCamel/Web/Tools/Templates/webdrive_uploadworker.js.tt
