@@ -16,6 +16,7 @@ WriteMakefile(
         'CPAN::Mini::Inject' => 0,
         'Crypt::Digest::SHA256' => 0,
         'Crypt::LE' => 0,
+        'Crypt::OpenSSL::RSA' => 0.99, # Workaround for Crypt::LE
         'CSS::Minifier::XS' => 0,
         'Data::Dumper' => 0,
         'Data::Entropy::Algorithms' => 0,
