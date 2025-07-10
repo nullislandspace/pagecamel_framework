@@ -222,7 +222,7 @@
                "first": ttvars.trquote.First,
                "last": ttvars.trquote.Last,
                "search": ttvars.trquote.Filterresults,
-               "processing": '<img src="/pics/loading_bar.gif">'
+               "processing": '<img src="/pics/loading.gif">'
             },
         });
 
