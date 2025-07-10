@@ -103,7 +103,7 @@
     
     function submitMe() {
         if(canSubmit) {
-            $.blockUI({ message: '<h1>' + ttvars.trquote.Checkingpassword +'<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+            $.blockUI({ message: '<h1>' + ttvars.trquote.Checkingpassword +'<br/><img src="/pics/loading.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
         }
         return canSubmit;
     }

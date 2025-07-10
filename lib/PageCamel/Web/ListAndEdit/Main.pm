@@ -2279,7 +2279,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     }
                 }
 
-                if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
+                if($self->{editcolumnnullable}->{$column} && defined($tmp) && $tmp eq '') {
                     $tmp = undef;
                 }
                 

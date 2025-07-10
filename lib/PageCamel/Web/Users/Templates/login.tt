@@ -181,7 +181,7 @@
 <script>
 
     function submitMe() {
-        $.blockUI({ message: '<h1>' + ttvars.trquote.Checkingpassword + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+        $.blockUI({ message: '<h1>' + ttvars.trquote.Checkingpassword + '<br/><img src="/pics/loading.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
         return true;
     }
 
@@ -250,7 +250,7 @@
                     console.log("Starting FOB login...");
                     fobloginrunning = 1;
                     $('#fobid').val(newfob);
-                    $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+                    $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
                     $('#fobloginform').trigger("submit");
                 }
             }
@@ -263,7 +263,7 @@
         if(newfob != '' && newfob != '00 00 00 00 00 00') {
             fobloginrunning = 1;
             $('#fobid').val(newfob);
-            $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+            $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
             $('#fobloginform').trigger("submit");
         }
     }
