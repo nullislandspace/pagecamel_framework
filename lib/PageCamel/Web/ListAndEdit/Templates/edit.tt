@@ -26,12 +26,6 @@
     ) %]
 [% END %]
 [% IF EditPageHeader != "" %][% EditPageHeader %][% END %]
-[% IF errstr != '' %]
-    <div class="errortext" onclick="removeStatusText();" id="errorstatustext"><p align="center" >[% tr.quote(errstr) %]</div>
-[% END %]
-[% IF okstr != '' %]
-    <div class="oktext" onclick="removeStatusText();" id="okstatustext"><p align="center" >[% tr.quote(okstr) %]</div>
-[% END %]
 
 <p align="center">
     [% IF SidebarHTML != '' %]
@@ -413,6 +407,8 @@
     [% END %]
 </p>
 
+<div class="pagecamel_listandedit_infobox" id="statusinfobox"> </div>
+
 <span id="masktemplatedataset"
     data-trquote-charactersleft="[% tr.trquote("characters left") %]"
     data-trquote-requiredfield="[% tr.trquote("Required field") %]"
@@ -430,6 +426,8 @@
     data-nextprimarykey="[% nextprimarykey %]"
     data-primarykeysanitize="[% PrimaryKeySanitize %]"
     data-primarykeycolumns="[% PrimaryKeyColumns %]"
+    data-okstr="[% tr.quote(okstr) %]"
+    data-errstr="[% tr.quote(errstr) %]"
     [% FOREACH colorname IN colors.keys %]
         data-colorswatch[% tr.cleancolorname(colorname) %]="[% colors.$colorname %]"
     [% END %]
@@ -849,8 +847,6 @@
 
             }
         }
-
-
     }
 
     function lateExtraOnLoad() {
@@ -862,7 +858,24 @@
             }
         }
 
-        $('#okstatustext').delay(1000).animate({height: 1}, 300, function() { $(this).remove(); });
+        var needautohide = false;
+        if(ttvars.okstr != "") {
+            $('#statusinfobox').html(ttvars.okstr);
+            $('#statusinfobox').show();
+            $('#statusinfobox').css('background-color', 'lightgreen');
+            $('#statusinfobox').css('background-color', 'lightred');
+            needautohide = true;
+        } else if(ttvars.errstr) {
+            $('#statusinfobox').html(ttvars.errstr);
+            $('#statusinfobox').show();
+            needautohide = true;
+        }
+            
+        if(needautohide) {
+            setTimeout(function() {
+                $('#statusinfobox').fadeOut();
+            }, 4000);
+        }
 
         if(window.LaEExtraOnLoad) {
             LaEExtraOnLoad();
@@ -871,11 +884,6 @@
         if(ttvars.editmode == "edit" && ttvars.autosave == "1") {
             setInterval(runAutosave, 60000);
         }
-    }
-
-    function removeStatusText() {
-        $('#errorstatustext').animate({height: 1}, 300, function() { $(this).remove(); });
-        $('#okstatustext').animate({height: 1}, 300, function() { $(this).remove(); });
     }
 
     function runAutosave() {
