@@ -505,6 +505,56 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
     return 1;
 }
 
+sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xfuncname) {
+    # Note: Timeout is set per datablock
+
+    my $line;
+    my $datalen = 0;
+    my $ok = 0;
+    my $unread = $ua->{headers}->{'Content-Length'};
+    my $tempdata;
+    #print STDERR Dumper($ua->{headers});
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        my $endtime = time + $timeout;
+        while($unread) {
+            my $thisblocksize = $blocksize;
+            if($unread < $thisblocksize) {
+                $thisblocksize = $unread;
+            }
+            $tempdata = undef;
+            my $lastread = sysread($socket, $tempdata, $thisblocksize);
+            if(!defined($tempdata) || !length($tempdata)) {
+                if(time > $endtime) {
+                    last;
+                }
+                sleep(0.01);
+                next;
+            }
+
+            # Got data, move timeout window
+            $endtime = time + $timeout;
+           
+            $unread -= $lastread;
+            $datalen += $lastread;
+            print STDERR "---------> STREAMING $lastread bytes\n";
+            if(!$xmodule->$xfuncname($ua, $tempdata)) {
+                print STDERR "--------- STREAMING FAILED\n";
+                return 0;
+            }
+
+            #print STDERR "Getting POST data ($unread to go)....\n";
+
+        }
+
+        if(!$unread) {
+            $ok = 1;
+        }
+    };
+
+    print STDERR "--------- STREAMING DONE: $ok\n";
+    return $ok;
+}
+
 sub parse_request_line($self, $ua, $header) {
     if($header =~ /^([A-Z]+)\ (\S+)\ HTTP\/(.*)$/) {
         ($ua->{method}, $ua->{url}, $ua->{httpversion}) = ($1, $2, $3);
@@ -890,6 +940,15 @@ nextrequest:
     }
     $ua->{url} = $webpath;
 
+    my $useuploadstream = 0;
+    foreach my $dpath (keys %{$self->{uploadstreamwebpaths}}) {
+        if($webpath =~ /^$dpath/) {
+            $useuploadstream = 1;
+            $self->printdebuglog("*** UPLOADSTREAM MODE FOR ", $webpath);
+        }
+    }
+
+
     if($self->{isDebugging} && $webpath eq '/crashme' && $ua->{remote_addr} eq '127.0.0.1') {
         croak("/crashme triggered!");
     }
@@ -1223,16 +1282,19 @@ nextrequest:
                 $webprint->write($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
             }
 
-            if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
-                $ua->{keepalive} = 0;
-                $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
-                goto cleanup;
-            }
+            if(!$useuploadstream) {
+                #$self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
+                if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
+                    $ua->{keepalive} = 0;
+                    $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+                    goto cleanup;
+                }
 
-            if(!$self->parse_post_data($ua)) {
-                $ua->{keepalive} = 0;
-                $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
-                goto cleanup;
+                if(!$self->parse_post_data($ua)) {
+                    $ua->{keepalive} = 0;
+                    $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
+                    goto cleanup;
+                }
             }
         }
     }
@@ -1309,6 +1371,28 @@ nextrequest:
                 my $module = $pathmodule->{Module};
                 my $funcname = $pathmodule->{Function};
                 %result = $module->$funcname($ua);
+                if($useuploadstream && $result{status} == 100) {
+                    # We need to do more stuff for upload streaming
+                    {
+                        #goto cleanup;
+                        #print STDERR "################# ", Dumper($dpath), "\n";
+                        #print STDERR Dumper($self->{uploadstreamwebpaths}->{$dpath});
+                        my $xmodule = $self->{uploadstreamwebpaths}->{$dpath}->{Module};
+                        my $xfuncnamestream = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{stream};
+                        my $xfuncnamefinish = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{finish};
+                        my $ok = 1;
+                        if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
+                            $ok = $self->stream_request_body($realsocket, $ua, 30, 1024, $xmodule, $xfuncnamestream);
+                            #$ok = $xmodule->$xfuncnamestream($ua, $ua->{postdata});
+                        }
+
+                        if(!$ok) {
+                            $result{status} = 500;
+                        } else {
+                            %result = $xmodule->$xfuncnamefinish($ua);
+                        }
+                    }
+                }
                 $result{pagedone} = 1;
                 last;
             }
@@ -2037,6 +2121,24 @@ sub add_webpath($self, $path, $module, $funcname, @methods) {
     $self->{webpaths}->{$path} = \%conf;
     return;
 }
+
+sub add_uploadstream_webpath($self, $path, $module, $funcnamestream, $funcnamefinish) {
+    if(defined($self->{uploadstreamwebpaths}->{$path})) {
+        croak($module->{modname} . " error: $path already registered as uploadstreampath, previously registered in " . $self->{uploadstreamwebpaths}->{$path}->{Module}->{modname});
+    }
+
+    my %conf = (
+        Module  => $module,
+        Functions => {
+            stream => $funcnamestream,
+            finish => $funcnamefinish,
+        },
+    );
+
+    $self->{uploadstreamwebpaths}->{$path} = \%conf;
+    return;
+}
+
 
 sub add_overridewebpath($self, $path, $module, $funcname, @methods) {
     if(!@methods) {

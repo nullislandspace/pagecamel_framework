@@ -158,6 +158,15 @@ sub register_overridewebpath($self, $path, $funcname, @methods) {
     return;
 }
 
+sub register_uploadstreamwebpath($self, $path, $funcnamestream, $funcnamefinish) {
+    confess("No Webpath specified") unless defined($path);
+    confess("No stream function name specified") unless defined($funcnamestream);
+    confess("No finish function name specified") unless defined($funcnamefinish);
+
+    $self->{server}->add_uploadstream_webpath($path, $self, $funcnamestream, $funcnamefinish);
+    return;
+}
+
 sub register_custom_method($self, $method, $funcname) {
     confess("No Method specified") unless defined($method);
     confess("No function name specified") unless defined($funcname);

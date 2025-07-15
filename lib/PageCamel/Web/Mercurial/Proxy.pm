@@ -41,6 +41,10 @@ sub register($self) {
     } else {
         $self->register_webpath($self->{webpath}, "get", 'GET');
     }
+
+    # Register the callbacks for upstream handling and actually finishing the page
+    $self->register_uploadstreamwebpath($self->{webpath}, "handlePOST", "finishPage");
+
     $self->register_postfilter("postfilter");
     return;
 }
@@ -69,6 +73,7 @@ sub postfilter($self, $ua, $header, $result) {
 }
 
 sub get($self, $ua) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     if(!$self->{readwrite} && $ua->{method} ne 'GET' && $ua->{method} ne 'HEAD') {
         # Readonly proxy does not accept POST
         # Should be handled by WebBase anyway, this is just to be sure
@@ -124,9 +129,27 @@ sub get($self, $ua) {
     }
     $socket->send("\r\n");
 
-    if($ua->{method} eq 'POST') {
-        $socket->send($ua->{postdata});
+    $self->{socket} = $socket;
+
+    return(status => 100); # Continue
+}
+
+sub handlePOST($self, $ua, $data) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $socket = $self->{socket};
+    if($ua->{method} ne 'POST') {
+        return 0;
     }
+
+    $socket->send($data);
+
+    return 1;
+}
+
+sub finishPage($self, $ua) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $socket = $self->{socket};
+
     my %retpage;
     my $statusline = $self->readsocketline($socket, 90);
     if(!defined($statusline)) {
@@ -204,6 +227,8 @@ sub get($self, $ua) {
     $ua->{UseUnsafeMercurialProxy} = 1;
 
     $retpage{data} = $content;
+
+    delete $self->{socket};
 
     return %retpage;
 }
