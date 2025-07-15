@@ -56,7 +56,7 @@ sub tr_checkreload {
 
     my $remotechecksum = $memh->get("LanguageCache");
     $remotechecksum = dbderef($remotechecksum);
-    if($cachechecksum ne $remotechecksum) {
+    if(!defined($remotechecksum) || $cachechecksum ne $remotechecksum) {
         tr_reload();
     }
 
