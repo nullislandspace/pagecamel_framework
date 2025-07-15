@@ -1283,7 +1283,7 @@ nextrequest:
             }
 
             if(!$useuploadstream) {
-                $self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
+                #$self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
                 if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
                     $ua->{keepalive} = 0;
                     $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
