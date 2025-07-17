@@ -160,6 +160,9 @@ sub _generateEscPos($self, $img = undef) {
     } elsif($self->{printerType} eq 'JWS360') {
         $reph->debuglog("    Type: JWS360");
         return $self->_escpos_jws360($self->{printerExtraFeed});
+    } elsif($self->{printerType} eq 'JAW500') {
+        $reph->debuglog("    Type: JAW500");
+        return $self->_escpos_jws360($self->{printerExtraFeed});
     }
 
     $reph->debuglog("   UNSUPPORTED PRINTER TYPE, TRYING TMT88 compatible");
