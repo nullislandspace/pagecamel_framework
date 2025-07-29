@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -26,7 +26,6 @@ print "Done\n";
 
 
 sub updateClass($filename, $dirname, $basename) {
-
     print "updating $filename with $basename classes from $dirname\n";
 
     my @files = findModules($dirname, $basename);
@@ -60,7 +59,6 @@ sub updateClass($filename, $dirname, $basename) {
 }
 
 sub findModules($dirname, $basename) {
-
     my @files;
 
     opendir(my $dfh, $dirname) or die($ERRNO);

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -29,7 +29,6 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     $self->register_webpath($self->{webpath}, 'beaconhandler', 'POST');
     $self->register_public_url($self->{webpath});
     $self->register_defaultwebdata("get_defaultwebdata");
@@ -38,14 +37,12 @@ sub crossregister($self) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     $webdata->{EnablePageViewStats} = 1;
     return;
 }
 
 
 sub beaconhandler($self, $ua) {
-    
     my $beacondata;
     my $decoded = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)

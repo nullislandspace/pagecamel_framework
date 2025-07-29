@@ -8,7 +8,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -47,7 +47,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
     
@@ -58,7 +57,6 @@ sub register($self) {
 }
 
 sub execute($self, $command, $arguments) {
-    
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
         return $self->$cmdfunc($arguments);
@@ -67,7 +65,6 @@ sub execute($self, $command, $arguments) {
 }
 
 sub do_postfix_update_aliases($self, $arguments) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     $reph->debuglog("Generating new /etc/aliases file");

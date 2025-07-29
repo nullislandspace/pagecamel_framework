@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -73,7 +73,6 @@ sub new {
 }
 
 sub checkDatabase($self) {
-
     if(defined($self->{dbh}) && !$self->{dbh}->ping) {
         $self->{dbh}->disconnect;
         delete $self->{dbh};
@@ -94,21 +93,18 @@ sub checkDatabase($self) {
 }
 
 sub setRealPerlBinary($self, $binary) {
-
     print "** SETTING REAL PERL BINARY TO $binary **\n";
     $self->{realperlbinary} = $binary;
     return;
 }
 
 sub requestStop($self) {
-
     my $tmp = 1;
     $self->{clacks}->store("StopSVC", $tmp);
     return;
 }
 
 sub shouldStop($self) {
-
     my $stop = $self->{clacks}->retrieve("StopSVC");
     if(!defined($stop) || $stop != 1){
         return 0;
@@ -119,13 +115,11 @@ sub shouldStop($self) {
 }
 
 sub setServerStatus($self, $status) {
-
     $self->{clacks}->store("SVCRunningStatus", $status);
     return;
 }
 
 sub getServerStatus($self) {
-
     my $status = $self->{clacks}->retrieve("SVCRunningStatus");
     if(!defined($status)){
         return "stopped";
@@ -136,7 +130,6 @@ sub getServerStatus($self) {
 }
 
 sub startconfig($self) {
-
     $self->{apps} = ();
     $self->{startup_scripts} = ();
     $self->{shutdown_scripts} = ();
@@ -144,7 +137,6 @@ sub startconfig($self) {
 }
 
 sub configure_module($self, $module) {
-
     print "Configuring module " . $module->{description} . "...\n";
     $module->{handle} = undef;
 
@@ -195,14 +187,12 @@ sub configure_module($self, $module) {
 }
 
 sub configure_startup($self, $command) {
-
     $command =~ s/\//\\/g;
     push @{$self->{startup_scripts}}, $command;
     return;
 }
 
 sub configure_shutdown($self, $command) {
-
     $command =~ s/\//\\/g;
     push @{$self->{shutdown_scripts}}, $command;
     return;
@@ -217,7 +207,6 @@ sub endconfig($self) {
 }
 
 sub startup($self) {
-
     # "Don't fear the Reaper"
     $SIG{CHLD} = 'IGNORE';
 
@@ -272,7 +261,6 @@ sub startup($self) {
 # do a full loop-around or we find ONE that needed stuff to be done to it. This will give a better
 # response time, since we don't have to wait a full loop time for a single app to be started/stopped.
 sub work($self) {
-
     my $workCount = 0;
 
     if(!defined($self->{nextappindex})) {
@@ -338,7 +326,6 @@ sub work($self) {
 }
 
 sub handleClacksCommands($self) {
-
     my $workCount = 0;
     my $done = 0;
 
@@ -445,7 +432,6 @@ sub handleClacksCommands($self) {
 }
 
 sub shutdownsvc($self) {
-
     if($self->{is_configured} == 1) {
         print "Shutdown started.\n";
 
@@ -465,19 +451,16 @@ sub shutdownsvc($self) {
 }
 
 sub disable_service($self, $svcname) {
-
     $self->{sysh}->set('pagecamel_services', $svcname . '_enable', 0);
     return;
 }
 
 sub enable_service($self, $svcname) {
-
     $self->{sysh}->set('pagecamel_services', $svcname . '_enable', 1);
     return;
 }
 
 sub check_service($self, $svcname) {
-
     my ($ok, $refstatus) = $self->{sysh}->get('pagecamel_services', $svcname . '_status');
 
     if(!$ok) {
@@ -487,8 +470,6 @@ sub check_service($self, $svcname) {
 }
 
 sub check_app($self, $app) {
-
-
     my ($ok, $refshouldrun) = $self->{sysh}->get('pagecamel_services', $app->{enable_name});
     if(!$ok) {
         # Oh well, something happened. Ignore this $app until the next cycle
@@ -567,7 +548,6 @@ sub check_app($self, $app) {
 }
 
 sub start_app($self, $app) {
-
     my $pid = fork();
 
     if($pid) {
@@ -608,7 +588,6 @@ sub start_app($self, $app) {
 }
 
 sub stop_app($self, $app) {
-
     $self->{sysh}->set('pagecamel_services', $app->{status_name}, 0);
     $self->{clacks}->set($app->{clacks_name}, 0);
     $self->{clacks}->doNetwork();
@@ -644,7 +623,6 @@ sub stop_app($self, $app) {
 }
 
 sub kill_app($self, $app) {
-
     if(defined($app->{handle}) && $app->{handle}) {
         $self->{clacks}->set($app->{clacks_name}, 1); # Red
         $self->{clacks}->doNetwork();
@@ -676,7 +654,6 @@ sub kill_app($self, $app) {
 }
 
 sub run_script($self, $command) {
-
     print "Running command '$command':\n";
     my @lines = `$command`;
     foreach my $line (@lines) {
@@ -688,7 +665,6 @@ sub run_script($self, $command) {
 }
 
 sub resetServer($self) {
-
     print"  Flushing ClacksCache...\n";
     $self->{clacks}->clearcache();
     my $dbh = DBI->connect($self->{db}->{dburl}, $self->{db}->{dbuser}, $self->{db}->{dbpassword}, {AutoCommit => 0})

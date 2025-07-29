@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -41,7 +41,6 @@ sub wsregister($self) {
 }
 
 sub wsreload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createNumber(modulename => $self->{modname},
@@ -72,7 +71,6 @@ sub wsreload($self) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-
     my %audio = (
         playbackbuffer => [],
         playbackchunksize => 256,
@@ -93,7 +91,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-    
     delete $self->{audio};
     
     if(defined($self->{ofh})) {
@@ -107,7 +104,6 @@ sub wscleanup($self) {
 my $tmpaccu = 0;
 my $tmpcnt = 0;
 sub wshandlemessage($self, $message) {
-
     if($message->{type} eq 'START') {
         if(defined($self->{ofh})) {
             print STDERR "Got START but file is already OPEN!\n";

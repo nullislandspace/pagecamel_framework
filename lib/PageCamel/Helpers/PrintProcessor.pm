@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -82,7 +82,6 @@ sub new($proto, $config) {
 }
 
 sub printStartDocument($self) {
-    
     $self->{img} = GD::Image->new($self->{width}, $self->{height});
     $self->{imgoffs} = 0;
     $self->{imgwhite} = $self->{img}->colorAllocate(255, 255, 255);
@@ -139,21 +138,31 @@ sub _generateEscPos($self, $img = undef) {
         $self->{imgwhite} = 0;
     }
 
+    if(!defined($self->{printerExtraFeed})) {
+        $self->{printerExtraFeed} = 0;
+    }
+
     if($self->{printerType} eq 'TMT88') {
         $reph->debuglog("    Type: TMT88");
-        return $self->_escpos_tmt88();
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, 0);
+    } elsif($self->{printerType} eq 'ORDERMAN') {
+        $reph->debuglog("    Type: TMT88 in ORDERMAN mode");
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, 1);
     } elsif($self->{printerType} eq 'TMP20') {
         $reph->debuglog("    Type: TMP20");
-        return $self->_escpos_tmp20();
+        return $self->_escpos_tmp20($self->{printerExtraFeed});
     } elsif($self->{printerType} eq 'CTS801') {
         $reph->debuglog("    Type: CTS801");
-        return $self->_escpos_cts801();
+        return $self->_escpos_cts801($self->{printerExtraFeed});
     } elsif($self->{printerType} eq 'SGT116') {
         $reph->debuglog("    Type: SGT116");
-        return $self->_escpos_sgt116();
+        return $self->_escpos_sgt116($self->{printerExtraFeed});
     } elsif($self->{printerType} eq 'JWS360') {
         $reph->debuglog("    Type: JWS360");
-        return $self->_escpos_jws360();
+        return $self->_escpos_jws360($self->{printerExtraFeed});
+    } elsif($self->{printerType} eq 'JAW500') {
+        $reph->debuglog("    Type: JAW500");
+        return $self->_escpos_jws360($self->{printerExtraFeed});
     }
 
     $reph->debuglog("   UNSUPPORTED PRINTER TYPE, TRYING TMT88 compatible");
@@ -161,7 +170,7 @@ sub _generateEscPos($self, $img = undef) {
 }
     
 
-sub _escpos_tmt88($self) {
+sub _escpos_tmt88($self, $extrafeed, $ordermanprinter = 0) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -196,7 +205,10 @@ sub _escpos_tmt88($self) {
     # Print bitmap image
     #print "\nTotal: $w x $h\n";
 
-    my $blocksize = 1000;
+    my $blocksize = 2000;
+    if($ordermanprinter) {
+        $blocksize = 300;
+    }
    
     # Image data
 
@@ -231,40 +243,66 @@ sub _escpos_tmt88($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
 }
 
-sub _escpos_tmp20($self) {
+sub _resize_for_tmp20($self, $inputimg) {
+    my $reph = $self->{reph};
+
+    $reph->debuglog("Resizing image for TMP20");
+
+    my $inputtype = ref $inputimg;
+    my $srcimg;
+    if($inputtype eq '') {
+        # Got PNGDATA in a scalar
+        $reph->debuglog("    PNG DATA mode");
+        $srcimg = GD::Image->newFromPngData($inputimg);
+    } else {
+        # Got GD::Image object
+        $reph->debuglog("    GD::Image mode");
+        $srcimg = $inputimg;
+    }
+
+    my ($w, $h) = $srcimg->getBounds();
+    my $destw = 384;
+    my $scale = $w / $destw;
+    my $desth = int($h / $scale);
+    $reph->debuglog("Scale ", $scale, " WxH ", $destw, "x", $desth);
+
+    my $destimg = GD::Image->new($destw, $desth);
+    $destimg->colorAllocate(255, 255, 255);
+    $destimg->colorAllocate(0, 0, 0);
+    $destimg->colorAllocate(255, 0, 0);
+
+    $destimg->copyResized($srcimg,
+                          0, 0, # DEST X Y
+                          0, 0, # SRC X Y
+                          $destw, $desth, # DEST W H
+                          $w, $h, # SRC W H
+                          );
+
+    my $outimg = $destimg->png;
+    return $outimg;
+}
+
+sub _escpos_tmp20($self, $extrafeed) {
     my $reph = $self->{reph};
 
     my $raw = '';
-    my $img;
 
     # Bluetooth belt printer
     # This is largely compatible to the Epson TM-T88 models. Of course, it doesn't have a cash drawer and it only has 384 pixels width, so we need to downscale the image
-    
-    {
-        my ($w, $h) = $self->{img}->getBounds();
-        my $destw = 384;
-        my $scale = $w / $destw;
-        my $desth = int($h / $scale);
-        print STDERR "Scale $scale H $desth\n";
-        #croak("BLA");
+    my $img = $self->_resize_for_tmp20($self->{img});
 
-        $img = GD::Image->new($destw, $desth);
-        $img->colorAllocate(255, 255, 255);
-        $img->colorAllocate(0, 0, 0);
-        $img->colorAllocate(255, 0, 0);
-
-        $img->copyResized($self->{img},
-                              0, 0, # DEST X Y
-                              0, 0, # SRC X Y
-                              $destw, $desth, # DEST W H
-                              $w, $h, # SRC W H
-                              );
-    }
 
     # Reset printer
     $raw .= chr(0x1B) . chr(0x40);
@@ -320,13 +358,20 @@ sub _escpos_tmp20($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
 }
 
 
-sub _escpos_cts801($self) {
+sub _escpos_cts801($self, $extrafeed) {
     my $reph = $self->{reph};
 
     # Citizen CTS801 is *mostly* compatible with Epson TM-T88V but has a wider print head that print right to (and sometimes over) the edge of the paper.
@@ -404,13 +449,19 @@ sub _escpos_cts801($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
 }
 
-sub _escpos_sgt116($self) {
-
+sub _escpos_sgt116($self, $extrafeed) {
     my $raw = '';
     my $img = $self->{img};
 
@@ -469,12 +520,19 @@ sub _escpos_sgt116($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
 
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
 }
 
-sub _escpos_jws360($self) {
+sub _escpos_jws360($self, $extrafeed) {
     my $raw = '';
     my $img = $self->{img};
 
@@ -534,6 +592,13 @@ sub _escpos_jws360($self) {
     # Feed and half-cut
     $raw .= chr(0x1D) . chr(0x56) . chr(0x42) . chr(0x00);
     #$raw .= "\n";
+
+    if($extrafeed) {
+        # Feed 5 empty lines after half-cut to prevent paper jam on older/worn out printers
+        for(1..5) {
+            $raw .= " \n";
+        }
+    }
 
     $self->{escposimagedata} = $raw;
 
@@ -684,7 +749,6 @@ sub _getPrintColor($self, $isfont = 0) {
 }
 
 sub printAddTextLine($self, $line, $y = undef) {
-    
     chomp $line;
     
     $line = encode_utf8($line);
@@ -702,7 +766,6 @@ sub printAddTextLine($self, $line, $y = undef) {
 }
 
 sub printAddBoldTextLine($self, $line, $y = undef) {
-    
     chomp $line;
     
     $line = encode_utf8($line);
@@ -719,8 +782,33 @@ sub printAddBoldTextLine($self, $line, $y = undef) {
     return $oldoffs;
 }
 
-sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
+sub printAddVerySmallTextLine($self, $line, $x = undef, $y = undef) {
+    chomp $line;
     
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 10, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 10, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 14;
+    }
+    
+    return;
+}
+
+sub printAddBoldVerySmallTextLine($self, $line, $x = undef, $y = undef) {
+    chomp $line;
+    
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 10, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 10, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 14;
+    }
+    
+    return;
+}
+
+sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
@@ -734,7 +822,6 @@ sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
 }
 
 sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
-    
     chomp $line;
     
     if(defined($x) && defined($y)) {
@@ -747,8 +834,34 @@ sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
     return;
 }
 
-sub printAddBigTextLine($self, $line) {
+
+sub printAddSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
+    chomp $line;
     
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 18, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 18, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 22;
+    }
+    
+    return;
+}
+
+sub printAddBoldSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
+    chomp $line;
+    
+    if(defined($x) && defined($y)) {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 18, 0, $x, $y + 8, $line);
+    } else {
+        $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 18, 0, 10, $self->{imgoffs} + 8, $line);
+        $self->{imgoffs} += 22;
+    }
+    
+    return;
+}
+
+sub printAddBigTextLine($self, $line) {
     chomp $line;
     
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
@@ -759,7 +872,6 @@ sub printAddBigTextLine($self, $line) {
 }
 
 sub printAddMediumBigTextLine($self, $line) {
-    
     chomp $line;
     
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
@@ -801,8 +913,60 @@ sub printAddDottedLine($self) {
     return;
 }
 
+sub printAddSparseDottedLine($self) {
+    for(my $i = 0; $i < $self->{width}; $i += 12) {
+        $self->{img}->filledRectangle($i, $self->{imgoffs} + 5, $i + 3,
+                                          $self->{imgoffs} + 1 + 5,
+                                          $self->_getPrintColor());
+    }
+    $self->{imgoffs} += 24;
+
+    return;
+}
+
+sub printAddCutHereLine($self) {
+    for(my $i = 40; $i < $self->{width}; $i += 12) {
+        $self->{img}->filledRectangle($i, $self->{imgoffs} + 5, $i + 3,
+                                          $self->{imgoffs} + 1 + 5,
+                                          $self->_getPrintColor());
+    }
+    #my $scissor = '✂';
+    #$scissor = 'Ü';
+    #$scissor = encode_utf8 $scissor;
+    #$self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $scissor);
+
+    my $pngdata = decode_base64 "iVBORw0KGgoAAAANSUhEUgAAABsAAAARAQMAAAAWgUVwAAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9
+                                 kT1Iw0AcxV9TtaIVBzuICGaoTnZREcdahSJUCLVCqw4ml34ITRqSFBdHwbXg4Mdi1cHFWVcHV0EQ
+                                 /ABxF5wUXaTE/yWFFjEeHPfj3b3H3TtAqJeZZnXEAU23zXQyIWZzK2LoFUGMoBdRdMnMMmYlKQXf
+                                 8XWPAF/vYjzL/9yfo0/NWwwIiMRxZpg28Trx9KZtcN4njrCSrBKfE4+bdEHiR64rHr9xLros8MyI
+                                 mUnPEUeIxWIbK23MSqZGPEUcVTWd8oWsxyrnLc5aucqa9+QvDOf15SWu0xxGEgtYhAQRCqrYQBk2
+                                 YrTqpFhI037Cxz/k+iVyKeTaACPHPCrQILt+8D/43a1VmJzwksIJoPPFcT5GgdAu0Kg5zvex4zRO
+                                 gOAzcKW3/JU6MPNJeq2lRY+A/m3g4rqlKXvA5Q4w+GTIpuxKQZpCoQC8n9E35YCBW6Bn1eutuY/T
+                                 ByBDXaVugINDYKxI2Ws+7+5u7+3fM83+fgB583KpOEhA4QAAAAZQTFRFAAAA////pdmf3QAAAAlw
+                                 SFlzAAALEwAACxMBAJqcGAAAAE1JREFUCNdj+P///wOGRhCxE0RY/v+nwLD7/wcFhob/jQ8Y/tix
+                                 P2D432APJA78h7L+yfA/YGiobwTpeJDAYPv/jwJQ238FhmaQASDzAFMdMR1WHA5dAAAAAElFTkSu
+                                 QmCC";
+    my $tmpimg = GD::Image->newFromPngData($pngdata);
+
+    my ($w, $h) = $tmpimg->getBounds();
+    for(my $x = 0; $x < $w; $x++) {
+        for(my $y = 0; $y < $h; $y++) {
+            my $index = $tmpimg->getPixel($x, $y);
+            my ($r,$g,$b) = $tmpimg->rgb($index);
+            my $greypixel = int(($r+$g+$b)/3);
+            if($greypixel < 128) {
+                $self->{img}->setPixel(10+$x, $self->{imgoffs}+$y-3, $self->_getPrintColor());
+            }
+        }
+    }
+
+
+    $self->{imgoffs} += 24;
+
+    return;
+}
+
 sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $doscale = true, $center = false) {
-    
     my $reph = $self->{reph};
     
     my $pic;
@@ -851,7 +1015,6 @@ sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $dos
 }
 
 sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
-    
     my $reph = $self->{reph};
     
     my $rawpic;
@@ -1093,7 +1256,6 @@ sub printAddGreyscaleImage($self, $filename, $isbindata, $imagesoftness = 1) {
 }
 
 sub markAsCopy($self, $markascopytext = undef, $copy_y = undef) {
-    
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $copy_y + 10, $markascopytext);
     $self->{imagedata} = $self->{img}->png;
 
@@ -1148,7 +1310,6 @@ sub saveDBCache($self, $imagekey, $imagedata) {
 }
 
 sub rememberPrint($self, $description) {
-    
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
 
@@ -1180,7 +1341,6 @@ sub rememberPrint($self, $description) {
 }
 
 sub reprintDocument($self, $documentid, $printername) {
-
     my $dbh = $self->{dbh};
     my $reph = $self->{reph};
     
@@ -1227,7 +1387,6 @@ sub reprintDocumentData($self, $imagedata, $printername) {
 }
 
 sub printAddTestPattern_HeatupCooldown($self) {
-    
     for(1..2) {
         $self->{img}->filledRectangle(0, $self->{imgoffs},
                                       $self->{width}, $self->{imgoffs} + 200,
@@ -1252,7 +1411,6 @@ sub printAddTestPattern_HeatupCooldown($self) {
 }
 
 sub printAddTestPattern_VerticalLines($self, $pointsize) {
-    
     for(my $x = 0; $x < $self->{width}; $x += $pointsize) {
 
         if($x % ($pointsize * 2) != 0) {
@@ -1271,7 +1429,6 @@ sub printAddTestPattern_VerticalLines($self, $pointsize) {
 }
 
 sub printAddTestPattern_HorizontalLines($self, $pointsize) {
-    
     for(1..2) {
         my $i = 0;
 
@@ -1348,7 +1505,6 @@ sub printAddTestPattern_GreyBlocks($self) {
 }
 
 sub printAddTestPattern_Rectangle($self) {
-    
     for(my $i = 0; $i < $self->{width}; $i++) {
         if($i == 0 || $i == ($self->{width} - 1)) {
             for(my $j = 0; $j <= $self->{width}; $j++) {
@@ -1368,7 +1524,6 @@ sub printAddTestPattern_Rectangle($self) {
 
 
 sub printTestMessage($self, $tests) {
-    
     my @lines = PageCamel::Helpers::TestData::getTestLines();
     
     $self->printStartDocument();

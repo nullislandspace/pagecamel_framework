@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -24,7 +24,6 @@ our @EXPORT = qw(dbfreeze dbthaw dbderef); ## no critic (Modules::ProhibitAutoma
 use YAML::Syck;
 
 sub dbfreeze($data) {
-
     if(!defined($data)) {
         croak('$data is undefined in dbfreeze');
     } elsif(ref($data) eq "REF") {
@@ -36,12 +35,10 @@ sub dbfreeze($data) {
 }
 
 sub dbthaw($data) {
-
     return Load($data);
 }
 
 sub dbderef($val) {
-
     return if(!defined($val));
 
     while(ref($val) eq "SCALAR" || ref($val) eq "REF") {

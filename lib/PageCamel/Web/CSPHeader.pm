@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -34,7 +34,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     my @headerparts;
     my %defaultheaders;
     foreach my $header (@{$self->{headers}->{header}}) {
@@ -68,7 +67,6 @@ sub reload($self) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-    
     my $cspname = 'DEFAULT';
     if(defined($self->{csp}->{$ua->{url}})) {
         $cspname = $ua->{url};

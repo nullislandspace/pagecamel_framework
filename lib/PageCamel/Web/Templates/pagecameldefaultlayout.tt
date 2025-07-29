@@ -166,6 +166,10 @@
 
             <div class="webgui_projectname">[% ProjectName %]</div>
 
+            [% IF CenterHeaderText != "" %]
+                <div class="webgui_projectcentertext">[% CenterHeaderText %]</div>
+            [% END %]
+
             [% IF WebAppShowEyes == "1" %]
                 <div class="webgui_watching_eyes">
                     <div class="eye">
@@ -224,14 +228,14 @@
     <div id="pagecamelLoadingContent" class="elem_display_block">
         <p align="center">
             <div class="infotext">[% tr.trquote("Please wait...") %]</div><br>
-            <div align="center"><img src="/pics/loading_doublerings.gif[% URLReloadPostfix %]"></div>
+            <div align="center"><img src="/pics/loading.gif[% URLReloadPostfix %]"></div>
         </p>
     </div>
 
     <div id="pagecamelSendingContent" class="elem_display_none">
         <p align="center">
             <div class="infotext">[% tr.trquote("Please wait...") %]</div><br>
-            <div align="center"><img src="/pics/loading_bar_large.gif[% URLReloadPostfix %]"></div>
+            <div align="center"><img src="/pics/loading.gif[% URLReloadPostfix %]"></div>
         </p>
     </div>
 
@@ -418,6 +422,7 @@
 
                 </div>
     <div id="pagecamelFooterContent" class="elem_display_none" width="100%" align="center" valign="top" border="0">
+        <!--<p><input type="button" value="App Reactivate" onclick="onAppReactivate();return false;"></p>-->
 
         <br>
 
@@ -443,7 +448,10 @@
                     [% END %]
                 </td>
                 <td colspan="1" align="left">
-                    <a href="#" onclick="return showWhoami();">[% tr.trquote("Session information") %]</a>
+                    [% IF DisableFooterDialogs != "1" %]
+                        <a href="#" onclick="return showWhoami();return false;">[% tr.trquote("Session information") %]</a><br/>
+                        <a href="#" onclick="return showVersionInfoDialog();return false;">[% tr.trquote("Version information") %]</a>
+                    [% END %]
                 </td>
             </tr>
             [% IF EnablePIMenu == 1 && webpath != PIMenuPublicUrl %]
@@ -481,6 +489,16 @@
                         [% tr.trquote("First name") %]: [% tr.quote(userData.first_name) %]<br/>
                         [% tr.trquote("Last name") %]: [% tr.quote(userData.last_name) %]<br/>
                         [% tr.trquote("Email") %]: [% tr.quote(userData.email_addr) %]
+                    [% END %]
+                </span>
+            </p>
+        </div>
+
+        <div id="dialog-versioninfo" title="[% tr.trquote("Version information") %]">
+            <p>
+                <span>
+                    [% FOREACH VersionInfo IN VersionInfos %]
+                        [% tr.quote(VersionInfo) %]<br/>
                     [% END %]
                 </span>
             </p>

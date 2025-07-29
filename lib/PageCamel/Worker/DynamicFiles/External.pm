@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -49,7 +49,6 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
 
@@ -60,7 +59,6 @@ sub crossregister($self) {
 }
 
 sub execute($self, $command, $arguments) {
-
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
         return $self->$cmdfunc($arguments);
@@ -70,7 +68,6 @@ sub execute($self, $command, $arguments) {
 
 
 sub do_dynamicexternalfiles_update_database($self, $arguments) {
-
     my ($dbmodule, $localdir, $filesdontchange, $lazymetadata) = @{$arguments};
 
     if(!defined($filesdontchange)) {
@@ -220,7 +217,6 @@ sub do_dynamicexternalfiles_update_database($self, $arguments) {
 }
 
 sub find_files($self, $realdir, $virtdir, $dbmodule, $filesdontchange, $lazymetadata) {
-
     my %dirs;
     my %files;
 

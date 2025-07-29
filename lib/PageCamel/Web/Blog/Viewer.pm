@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -89,7 +89,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createBool(modulename => $self->{modname},
@@ -114,7 +113,6 @@ sub crossregister($self) {
 }
 
 sub hookrootpath($self, $ua) {
-
     if($ua->{url} ne '/') {
         return;
     }
@@ -154,7 +152,6 @@ sub hookrootpath($self, $ua) {
 }
 
 sub shorturl($self, $ua) {
-
     my $article_id;
 
     my $matcher = $self->{shorturl} . '/';
@@ -172,7 +169,6 @@ sub shorturl($self, $ua) {
 }
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -556,7 +552,6 @@ sub get($self, $ua) {
 }
 
 sub get_script($self, $ua, $id) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $selclause = '';
@@ -596,7 +591,6 @@ sub get_script($self, $ua, $id) {
 }
 
 sub get_blog_archive($self, $ua) {
-
     my $clientMode = $self->getClientMode($ua);
     if($clientMode ne 'mobile') {
         # Don't do anything
@@ -653,7 +647,6 @@ sub get_blog_archive($self, $ua) {
 }
 
 sub sitemap($self, $sitemap) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $whereclause = '';
@@ -677,7 +670,6 @@ sub sitemap($self, $sitemap) {
 }
 
 sub rssfeed($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -737,7 +729,6 @@ sub rssfeed($self, $ua) {
 }
 
 sub getClientMode($self, $ua) {
-
     if(!$self->{supportmobile}) {
         return '';
     }

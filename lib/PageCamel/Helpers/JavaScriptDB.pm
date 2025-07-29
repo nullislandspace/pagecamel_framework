@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -192,7 +192,6 @@ sub save($self) {
 }
 
 sub call($self, $name, @arguments) {
-
     my $retval = $self->SUPER($name, @arguments);
 
     if($self->{logerror} && $self->{hasError}) {
@@ -203,7 +202,6 @@ sub call($self, $name, @arguments) {
 }
 
 sub _loadJSModule($self, $id) {
-
     $self->{reph}->debuglog("   Loading JS module $id");
     my $selsth = $self->{dbh}->prepare_cached("SELECT usercode FROM " . $self->{moduletable} . " " .
                                               "WHERE scriptname = ?")
@@ -271,7 +269,6 @@ sub updateUserCode($self, $newcode, $memoryupdatefunction = '') {
 }
 
 sub _updateCode($self, $newcode, $column, $memoryupdatefunction) {
-
     if(!$self->{loaded}) {
         croak("_updateCode() called when script not loaded");
     }

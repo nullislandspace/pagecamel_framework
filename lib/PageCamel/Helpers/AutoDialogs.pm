@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -34,7 +34,6 @@ sub new($class) {
 }
 
 sub addDialog($self, $config) {
-
     if($config->{type} eq 'notification') {
         return $self->notification($config);
     } elsif($config->{type} eq 'simpleform') {
@@ -48,7 +47,6 @@ sub addDialog($self, $config) {
 
 
 sub notification($self, $data) {
-
     my $title = $data->{title} || 'UNDEFINED';
     my $text = $data->{text} || 'UNDEFINED';
     my $action = $data->{confirm} || 'OK';
@@ -124,7 +122,6 @@ ENDJQUERY
 
 
 sub simpleform($self, $data) {
-
     my $title = $data->{title} || 'UNDEFINED';
     my $text = $data->{text} || 'UNDEFINED';
     my $action = $data->{confirm} || 'OK';
@@ -217,7 +214,6 @@ ENDJQUERY
 }
 
 sub modechangeform($self, $data) {
-
     my $title = $data->{title} || 'UNDEFINED';
     my $text = $data->{text} || 'UNDEFINED';
     my $action = $data->{confirm} || 'OK';
@@ -322,7 +318,6 @@ ENDMCJQUERY
 }
 
 sub getHTML($self) {
-
     if(!$self->{count}) {
         return "";
     }
@@ -339,7 +334,6 @@ sub getHTML($self) {
 }
 
 sub getJS($self) {
-
     if(!$self->{count}) {
         return "";
     }
@@ -353,7 +347,6 @@ sub getJS($self) {
 }
 
 sub tr($self, $data) {
-
     return $data if($data eq '');
 
     my $lang = $self->getLang;
@@ -363,7 +356,6 @@ sub tr($self, $data) {
 }
 
 sub quote($self, $data) {
-
     my $quoted = encode_entities($data, "'<>&\"\n");
     $quoted =~ s/ä/&auml;/;
     $quoted =~ s/ö/&ouml;/;
@@ -377,7 +369,6 @@ sub quote($self, $data) {
 }
 
 sub trquote($self, $data) {
-
     return $self->quote($self->tr($data));
 }
 

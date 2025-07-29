@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -55,7 +55,6 @@ sub register($self) {
 # login module for timed-out sessions
 
 sub get($self, $settingname) {
-
     my $settingref;
 
     my $loginh = $self->{server}->{modules}->{$self->{login}};
@@ -94,7 +93,6 @@ sub get($self, $settingname) {
 }
 
 sub set($self, $settingname, $settingref) {
-
     my $loginh = $self->{server}->{modules}->{$self->{login}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -137,7 +135,6 @@ sub set($self, $settingname, $settingref) {
 }
 
 sub delete($self, $settingname, $forcedid = undef) {
-
     my $settingref;
 
     my $loginh = $self->{server}->{modules}->{$self->{login}};
@@ -185,7 +182,6 @@ sub delete($self, $settingname, $forcedid = undef) {
 }
 
 sub list($self, $forcedid = undef) {
-
     my @settingnames = ();
 
     my $loginh = $self->{server}->{modules}->{$self->{login}};
@@ -213,7 +209,6 @@ sub list($self, $forcedid = undef) {
 }
 
 sub on_logout($self, $sessionid) {
-
     my ($status, @keys) = $self->list($sessionid);
     if($status != 0) {
         foreach my $key (@keys) {

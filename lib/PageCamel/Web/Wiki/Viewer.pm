@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -69,7 +69,6 @@ sub register($self) {
 }
 
 sub hookrootpath($self, $ua) {
-
     if($ua->{url} ne '/') {
         return;
     }
@@ -86,7 +85,6 @@ sub hookrootpath($self, $ua) {
 }
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -328,7 +326,6 @@ sub get($self, $ua) {
             );
 }
 sub get_wiki_archive($self, $ua) {
-
     my $clientMode = $self->getClientMode($ua);
     if($clientMode ne 'mobile') {
         # Don't do anything
@@ -384,7 +381,6 @@ sub get_wiki_archive($self, $ua) {
 }
 
 sub sitemap($self, $sitemap) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $selsth = $dbh->prepare_cached("SELECT article_id FROM " . $self->{tablename} .
@@ -402,7 +398,6 @@ sub sitemap($self, $sitemap) {
 }
 
 sub getClientMode($self, $ua) {
-
     if(!$self->{supportmobile}) {
         return '';
     }

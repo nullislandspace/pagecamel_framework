@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -43,7 +43,6 @@ sub new($proto, $config) {
 }
 
 sub getEvents($self) {
-
     while(1) {
         my ($count, $data) = $self->{arduino}->read(1);
         last if(!$count);
@@ -76,7 +75,6 @@ sub getEvents($self) {
 
 
 sub decodeSerial($self) {
-
     my $cavacdecoded;
 
     while(scalar @{$self->{inSerial}} > 1) {
@@ -91,7 +89,6 @@ sub decodeSerial($self) {
 }
 
 sub blankDisplay($self) {
-
     for(my $i = 0; $i < 7; $i++) {
         $self->writeDisplay($i, $self->leftPad(''));
     }
@@ -100,7 +97,6 @@ sub blankDisplay($self) {
 }
 
 sub writeDisplay($self, $displaynum, $data) {
-
     return if($data eq $self->{states}->{displaybuffer}->[$displaynum]); # already displayed
 
     $self->{states}->{displaybuffer}->[$displaynum] = $data;
@@ -111,7 +107,6 @@ sub writeDisplay($self, $displaynum, $data) {
 }
 
 sub writePacket($self, $binarydata) {
-
     my $outdata = chr(0x02); # STX
 
     foreach my $part (split//, $binarydata) {
@@ -131,7 +126,6 @@ sub writePacket($self, $binarydata) {
 
 # This is a very general call to "send your sensor data packet". The answer is very implementation dependant
 sub sendEnquiry($self) {
-
     $self->{arduino}->write(chr(0x05)); # ENQ
 
     sleep(0.05);
@@ -163,7 +157,6 @@ sub secondsToTimestring($self, $val) {
 }
 
 sub numberToString($self, $num) {
-
     my $val = '';
     my @binaries = $self->get7Segment();
 

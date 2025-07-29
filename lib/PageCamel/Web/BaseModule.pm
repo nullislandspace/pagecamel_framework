@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -64,12 +64,10 @@ sub handle_child_start {
 }
 
 sub handle_child_stop($self) {
-
     return;
 }
 
 sub create_cookie($self, $ua, %fields) {
-
     # Check for required fields
     foreach my $fname (qw[name value]) {
         if(!defined($fields{$fname})) {
@@ -132,7 +130,6 @@ sub endconfig($self) {
 
 
 sub extend_header($self, $headers, $headername, $value) {
-
     if(!defined($headers->{$headername})) {
         $headers->{$headername} = $value;
         return;
@@ -146,7 +143,6 @@ sub extend_header($self, $headers, $headername, $value) {
 
 # Convenience functions for registering various callbacks
 sub register_webpath($self, $path, $funcname, @methods) {
-
     confess("No Webpath specified") unless defined($path);
     confess("No function name specified") unless defined($funcname);
 
@@ -155,7 +151,6 @@ sub register_webpath($self, $path, $funcname, @methods) {
 }
 
 sub register_overridewebpath($self, $path, $funcname, @methods) {
-
     confess("No Webpath specified") unless defined($path);
     confess("No function name specified") unless defined($funcname);
 
@@ -163,8 +158,16 @@ sub register_overridewebpath($self, $path, $funcname, @methods) {
     return;
 }
 
-sub register_custom_method($self, $method, $funcname) {
+sub register_uploadstreamwebpath($self, $path, $funcnamestream, $funcnamefinish) {
+    confess("No Webpath specified") unless defined($path);
+    confess("No stream function name specified") unless defined($funcnamestream);
+    confess("No finish function name specified") unless defined($funcnamefinish);
 
+    $self->{server}->add_uploadstream_webpath($path, $self, $funcnamestream, $funcnamefinish);
+    return;
+}
+
+sub register_custom_method($self, $method, $funcname) {
     confess("No Method specified") unless defined($method);
     confess("No function name specified") unless defined($funcname);
 
@@ -173,7 +176,6 @@ sub register_custom_method($self, $method, $funcname) {
 }
 
 sub register_protocolupgrade($self, $path, $funcname, @protocols) {
-
     confess("No Webpath specified") unless defined($path);
     confess("No function name specified") unless defined($funcname);
     confess("No protocols specified") unless(@protocols);
@@ -184,7 +186,6 @@ sub register_protocolupgrade($self, $path, $funcname, @protocols) {
 
 # Convenience functions for registering various callbacks
 sub register_continueheader($self, $path, $funcname) {
-
     confess("No Webpath specified") unless defined($path);
     confess("No function name specified") unless defined($funcname);
 
@@ -193,30 +194,25 @@ sub register_continueheader($self, $path, $funcname) {
 }
 
 sub register_basic_auth($self, $url, $realm) {
-
     $self->{server}->add_basic_auth($url, $realm);
     return;
 }
 
 sub get_basic_auths($self) {
-
     return $self->{server}->get_basic_auths();
 }
 
 sub register_public_url($self, $url) {
-
     $self->{server}->add_public_url($url);
     return;
 }
 
 sub get_public_urls($self) {
-
     return $self->{server}->get_public_urls();
 }
 
 # Allow Cross Origin Resource Sharing on specific URLs
 sub register_cors($self, $path, $origin, @methods) {
-
     confess("No Webpath specified") unless defined($path);
     confess("No origin specified") unless defined($origin);
     confess("No methods specified") unless(@methods);
@@ -235,7 +231,7 @@ BEGIN {
     # every child.
     my @stdFuncs = qw(prefilter postauthfilter postfilter defaultwebdata late_defaultwebdata task loginitem
                         logoutitem sessionrefresh preconnect prerender lateprerender cleanup authcheck logstart
-                        logend logdatadelivery logwebsocket logrequestfinished logstacktrace remotelog sitemap firewall fastredirect);
+                        logend logdatadelivery logwebsocket logrequestfinished logstacktrace remotelog sitemap firewall fastredirect debuglog);
 
     # -- Deep magic begins here...
     for my $f (@stdFuncs){
@@ -259,7 +255,6 @@ BEGIN {
 
 
 sub newClacksFromConfig($self, $clconf) {
-
     my $socket = $clconf->get('socket');
     my $clacks;
     if(defined($socket) && $socket ne '') {

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -21,13 +21,14 @@ use Date::Manip;
 use HTTP::Date;
 use Readonly;
 use Lingua::EN::Numbers::Ordinate;
+use Time::Local qw(timelocal_modern);
 
 use base qw(Exporter);
 our @EXPORT = qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime
                  getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute 
                  getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime
                  getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash 
-                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC); ## no critic (Modules::ProhibitAutomaticExportation)
+                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC dateToTimestamp timestampToDate); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
 Readonly my $YEARBASEOFFSET => 1900;
@@ -53,7 +54,6 @@ my $timemap_updated = "";
 my $timezoneoffset = 0;
 
 sub setmylocaltime($lt) {
-
     $timezoneoffset = $lt;
     return 1;
 }
@@ -287,7 +287,6 @@ sub getWebdate($num = undef, $reloffset = undef) {
 }
 
 sub parseWebdate($str) {
-
     if($str =~ /^([+-])(\d+(\.\d+)?)(\w)/) {
         my %multipliers = (
             s   => 1,
@@ -377,7 +376,6 @@ sub getWindowsDateAndTime {
 }
 
 sub getLastModifiedWebdate($fname) {
-
     my $epoch_timestamp = (stat($fname))[9];
     return time2str($epoch_timestamp);
 }
@@ -396,7 +394,6 @@ sub isAprilFoolsDay {
 }
 
 sub parseNaturalDate($dateString) {
-
     updateTimeMap();
 
     # parse some extra mappings
@@ -472,7 +469,6 @@ sub offsetISODate {
 }
 
 sub getScanspeedDate($scanspeed) {
-
     my ($sec,$min, $hour, $mday,$mon, $year, $wday,$yday, $isdst) = getmylocaltime();
 
     if($scanspeed eq 'fast') {
@@ -501,12 +497,29 @@ sub getScanspeedDate($scanspeed) {
 }
 
 sub timeToSeconds($timestring) {
-
     my ($hours, $minutes) = split/\:/, $timestring;
 
     my $seconds = ($hours * 60) + $minutes;
 
     return $seconds;
+}
+
+sub dateToTimestamp($date) {
+    my ($year, $mon, $day) = split/\-/, $date;
+
+    return timelocal_modern(12, 0, 0, $day, $mon-1, $year);
+}
+
+sub timestampToDate($timestamp) {
+    my ($sec,$min, $hour, $mday,$mon, $year, $wday,$yday, $isdst) = localtime $timestamp;
+
+    $year += $YEARBASEOFFSET;
+    $mon += 1;
+
+    $mon = doFPad($mon, 2);
+    $mday = doFPad($mday, 2);
+
+    return join('-', $year, $mon, $mday);
 }
 
 sub eternalseptemberize {
@@ -539,7 +552,6 @@ sub eternalseptemberize {
 }
 
 sub secondsToInterval($seconds) {
-
     my $interval = '';
     my @divisors = (60, 60, 24);
     foreach my $divisor (@divisors) {

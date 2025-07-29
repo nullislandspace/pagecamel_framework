@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -23,7 +23,6 @@ use MIME::Base64;
 our @EXPORT_OK = qw(colorHex2RGB colorRGB2Hex colorMaxContrast colorHexMaxContrast colorSwatch colorSwatchB64 colorSwatchUrl colorSwatchHTML);
 
 sub colorHex2RGB($colorstring) {
-    
     my @rgb = (0, 0, 0);
     my @hexrgb;
 
@@ -40,12 +39,10 @@ sub colorHex2RGB($colorstring) {
 }
 
 sub colorRGB2Hex($r, $g, $b) {
-
     return sprintf("#%02lx%02lx%02lx", $r, $g, $b);
 }
 
 sub colorMaxContrast($r, $g, $b) {
-
     my ($newr, $newg, $newb);
 
     my $avg = ($r + $g + $b) / 3;
@@ -84,13 +81,11 @@ sub colorMaxContrast($r, $g, $b) {
 }
 
 sub colorHexMaxContrast($colorstring) {
-
     return colorRGB2Hex(colorMaxContrast(colorHex2RGB($colorstring)));
 }
 
 my %colorswatchcache;
 sub colorSwatch($color) {
-
     if(defined($colorswatchcache{$color})) {
         return $colorswatchcache{$color};
     }

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -52,13 +52,11 @@ sub initColors {
 
 
 sub registerPlugin($devicetype, $funcref) {
-
     $plugins{$devicetype} = $funcref;
     return;
 }
 
 sub simpleGraph($dbh, $devicetype, $graphname, $hostname, $ctime, $starttime) {
-
     if($starttime eq '-- ::') {
         # Compensate for datetimepicker mask when field is empty
         $starttime = '';
@@ -89,7 +87,6 @@ sub simpleGraph($dbh, $devicetype, $graphname, $hostname, $ctime, $starttime) {
 }
 
 sub genGraph($dbh, $graph, $table, $host, $ctime, $starttime = '') {
-
     # Starttime is the time defining when the graph starts. If it is not defined, and endtime of
     # now() is presumed and starttime is now() - $timeframe
     # starttime is an ISO timestring, as accepted my PostgreSQL.
@@ -415,13 +412,11 @@ sub calcGraph($dbh, $graph, $table, $host, $ctime, $starttime, $coredate, $datar
 }
 
 sub defaultImage {
-
     return $defaultimagedata;
 
 }
 
 sub parseCTime($ctime) {
-
     my $precision; # in seconds
     my $timeframe; # in seconds
     my $numElements; # how many elements do we expect in the graph

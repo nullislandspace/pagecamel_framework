@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -28,7 +28,6 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     # Reset all the counters to zero
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     foreach my $key (qw[websocket redirect unchanged delivered notfound servererror other]) {
@@ -51,7 +50,6 @@ sub crossregister($self) {
 }
 
 sub register($self) {
-
     $self->register_logstart("prefilter");
     $self->register_logend("postfilter");
 
@@ -59,7 +57,6 @@ sub register($self) {
 }
 
 sub prefilter($self, $ua) {
-
     my $webpath = $ua->{url} || '--unknown--';
 
     my $paramlist = "";
@@ -112,7 +109,6 @@ sub prefilter($self, $ua) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     return if(!defined($self->{requestdata}));
 
     my %requestdata = %{$self->{requestdata}};
@@ -179,7 +175,6 @@ sub postfilter($self, $ua, $header, $result) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     $webdata->{__do_not_log_to_accesslog} = 0;
     return;
 }

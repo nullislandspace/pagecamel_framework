@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -47,7 +47,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get_register");
     $self->register_public_url($self->{webpath});
     $self->register_defaultwebdata("defaultwebdata");
@@ -55,15 +54,12 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     # Nothing to do
 
     return;
 }
 
 sub get_register($self, $ua) {
-
-
     my $mode = $ua->{postparams}->{'mode'} || 'view';
     my $pwresetid = $ua->{url};
 
@@ -89,7 +85,6 @@ sub get_register($self, $ua) {
 }
 
 sub get_checkuser($self, $ua) {
-
     my $user = $ua->{postparams}->{'username'} || '';
 
     my $state = $self->validateUsername($user);
@@ -101,7 +96,6 @@ sub get_checkuser($self, $ua) {
 }
 
 sub validateUsername($self, $user) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if($user ne lc($user) || $user !~ /^[a-z0-9]+$/) {
@@ -135,7 +129,6 @@ sub validateUsername($self, $user) {
 }
 
 sub get_checkemail($self, $ua) {
-
     my $email = $ua->{postparams}->{'email'} || '';
 
     my $state = $self->validateEmail($email);
@@ -147,7 +140,6 @@ sub get_checkemail($self, $ua) {
 }
 
 sub validateEmail($self, $email) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $safeemail = webSafeString($email);
@@ -186,7 +178,6 @@ sub validateEmail($self, $email) {
 }
 
 sub get_request($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -302,7 +293,6 @@ END
 
 
 sub get_execute($self, $ua, $registerkey) {
-
     my $mode = $ua->{postparams}->{'mode'} || 'view';
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -356,8 +346,8 @@ sub get_execute($self, $ua, $registerkey) {
                                               WHERE registerkey = ?")
                     or croak($dbh->errstr);
 
-            my $createsth = $dbh->prepare_cached("INSERT INTO users (username, email_addr, first_name, last_name, company_name, next_password_change)
-                                                 VALUES (?, ?, ?, ?, ?, now() + interval '3 months')")
+            my $createsth = $dbh->prepare_cached("INSERT INTO users (username, email_addr, first_name, last_name, company_name)
+                                                 VALUES (?, ?, ?, ?, ?)")
                     or croak($dbh->errstr);
 
             if($createsth->execute($user, $email, $firstname, $lastname, $self->{company}) &&
@@ -385,7 +375,6 @@ sub get_execute($self, $ua, $registerkey) {
 }
 
 sub addUserRights($self, $user) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $insth = $dbh->prepare_cached("INSERT INTO users_permissions (username, permission_name, has_access)
@@ -402,7 +391,6 @@ sub addUserRights($self, $user) {
 }
 
 sub defaultwebdata($self, $webdata) {
-
     # Just allow the "register" menu item
     $webdata->{canRegisterUsers} = 1;
     return;

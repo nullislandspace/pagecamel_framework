@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -35,7 +35,6 @@ sub register($self) {
 }
 
 sub prefilter($self, $ua) {
-
     # Remember host for prerender call (no access to $ua there)
     if(defined($self->{domain})) {
         delete $self->{domain};
@@ -87,7 +86,6 @@ sub prefilter($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     if(!defined($webdata->{showads})) {
         $webdata->{showads} = 0;
     }

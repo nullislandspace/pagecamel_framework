@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -41,7 +41,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createEnum(modulename => $self->{modname},
@@ -65,7 +64,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
 
@@ -98,7 +96,6 @@ sub get($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     my $userTheme = $self->{default_theme};
 
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -154,7 +151,6 @@ sub prerender($self, $webdata) {
 # Just rewrite the URL internally
 # FIXME: Somehow fix the theme support so jQuery always goes to the correct path...
 sub redirect_themed_images($self, $ua) {
-
     if($ua->{url} !~ /css\/themes/ && $ua->{url} =~ /^\/static\/images\/(ui\-.*\.png)$/) {
         my $oldfname = $1;
 
@@ -197,9 +193,9 @@ sub redirect_themed_images($self, $ua) {
         }
 
         my $newfname = "/static/jquery/css/themes/$userTheme/images/$oldfname";
-        if($self->{isDebugging}) {
-            print STDERR "THEME SUPPORT: Redirecting " . $ua->{url} . " to $newfname\n";
-        }
+        #if($self->{isDebugging}) {
+        #    print STDERR "THEME SUPPORT: Redirecting " . $ua->{url} . " to $newfname\n";
+        #}
         $ua->{url} = $newfname;
     }
 

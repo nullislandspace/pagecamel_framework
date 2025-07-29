@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -38,7 +38,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     if(!defined($self->{readonlydb})) {
         $self->{readonlydb} = $self->{db};
     }
@@ -46,7 +45,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     if(defined($self->{reportedit})) {
         $self->register_webpath($self->{reportedit}->{webpath}, "get_edit");
     }
@@ -73,7 +71,6 @@ sub register($self) {
 }
 
 sub on_login($self, $username, $sessionid) {
-
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
     # Select Reportreader as default
@@ -83,7 +80,6 @@ sub on_login($self, $username, $sessionid) {
 }
 
 sub on_logout($self, $sessionid) {
-
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
     # delete our items
@@ -93,7 +89,6 @@ sub on_logout($self, $sessionid) {
 }
 
 sub get_view($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
@@ -247,7 +242,6 @@ sub get_view($self, $ua) {
 }
 
 sub get_edit($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
@@ -485,7 +479,6 @@ sub get_edit($self, $ua) {
 # "get_select" actually only displays the available report list, POST
 # is done to the main mask to have a smoother workflow without redirects
 sub get_select($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
@@ -533,7 +526,6 @@ sub get_select($self, $ua) {
 }
 
 sub get_create($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
@@ -567,7 +559,6 @@ sub get_create($self, $ua) {
 }
 
 sub get_graph($self, $ua) {
-
     #my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $rodbh = $self->{server}->{modules}->{$self->{readonlydb}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};

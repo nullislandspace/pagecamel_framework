@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -33,7 +33,6 @@ sub new($proto, $baseurl) {
 }
 
 sub nextcommand($self, $command) {
-
     my $result = $self->{mech}->get($self->{url} . "/getnext/$command");
     if(!$result->is_success) {
         return;
@@ -51,7 +50,6 @@ sub nextcommand($self, $command) {
 }
 
 sub finished($self, $commandid, $status) {
-
     my $result = $self->{mech}->get($self->{url} . "/markdone/$commandid/status");
     if(!$result->is_success) {
         return 0;

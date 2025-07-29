@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -44,7 +44,6 @@ sub initDB($self) {
 }
 
 sub createNumber($self, %setting) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # Check for required fields
@@ -81,7 +80,6 @@ sub createNumber($self, %setting) {
 }
 
 sub createText($self, %setting) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # Check for required fields
@@ -116,7 +114,6 @@ sub createText($self, %setting) {
 }
 
 sub createBool($self, %setting) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # Check for required fields
@@ -153,7 +150,6 @@ sub createBool($self, %setting) {
 }
 
 sub createEnum($self, %setting) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # Check for required fields
@@ -234,8 +230,18 @@ sub get($self, $modulename, $settingname, $forcedb = false) {
     $dbh->rollback;
 
     if(defined($settingref)) {
-        $settingref->{settingvalue} = decode_utf8($settingref->{settingvalue});
+        my $ok = 0;
+        eval {
+            my $tmp = decode_utf8($settingref->{settingvalue});
+            $settingref->{settingvalue} = $tmp;
+            $ok = 1;
+        };
+        if(!$ok) {
+            # Something went wrong with decoding UTF8
+            #print STDERR Dumper($settingref);
+        }
         return (1, $settingref);
+
     } else {
         return 0;
     }
@@ -244,7 +250,6 @@ sub get($self, $modulename, $settingname, $forcedb = false) {
 # For backwards compatibility and data integrity, default is to ALWAYS write to the database
 # Clients can enable "soft" updates by either setting config "soft_updates" to true or setting $forcedb to false
 sub set($self, $modulename, $settingname, $value, $forcedb = 1) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $memhname = "SystemSettings::" . $modulename . "::" . $settingname;
@@ -311,7 +316,6 @@ sub set($self, $modulename, $settingname, $value, $forcedb = 1) {
 }
 
 sub delete($self, $modulename, $settingname) {
-
     my $settingref;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -334,7 +338,6 @@ sub delete($self, $modulename, $settingname) {
 }
 
 sub list($self, $modulename) {
-
     my @settingnames;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -356,7 +359,6 @@ sub list($self, $modulename) {
 }
 
 sub updateProcessinghints($self, $modulename, $settingname, $hints) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $memhname = "SystemSettings::" . $modulename . "::" . $settingname;
@@ -396,7 +398,6 @@ sub updateProcessinghints($self, $modulename, $settingname, $hints) {
 }
 
 sub updateEnumValues($self, $modulename, $settingname, $values) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $memhname = "SystemSettings::" . $modulename . "::" . $settingname;
@@ -434,7 +435,6 @@ sub updateEnumValues($self, $modulename, $settingname, $values) {
 }
 
 sub updateMinMax($self, $modulename, $settingname, $min, $max) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $memhname = "SystemSettings::" . $modulename . "::" . $settingname;
@@ -492,7 +492,6 @@ sub updateMinMax($self, $modulename, $settingname, $min, $max) {
 }
 
 sub _getColumnType($self, $dbh, $xtable, $xcolumn) {
-
     my $table = '' . $xtable;
     my $column = '' . $xcolumn;
 

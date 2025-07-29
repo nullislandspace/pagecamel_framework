@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -29,7 +29,6 @@ Readonly my $SAMPLERATE => 8000.0;
 Readonly my $CFACTOR => 2048.0 / 44_100.0; # Original timing in browser (most likely) 44100 Sample/s in 2048 samples "batches"
 
 sub new($class, $isDebugging, $configfile) {
-    
     my $self = bless {}, $class;
 
     $self->{isDebugging} = $isDebugging;
@@ -39,7 +38,6 @@ sub new($class, $isDebugging, $configfile) {
 }
 
 sub init($self) {
-    
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => ['file' ],);
@@ -63,7 +61,7 @@ sub init($self) {
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
     $PROGRAM_NAME = $ps_appname;
         
-    print Dumper($self);
+    #print Dumper($self);
     my $vserv = PageCamel::Helpers::VoiceClient->new($self->{config}->{ip}, $self->{config}->{port}, $self->{config}->{username});
     $vserv->setmike(1);
     $vserv->setspeaker(0);
@@ -79,7 +77,6 @@ sub init($self) {
 }
 
 sub run($self) {
-    
     # Let STDOUT/STDERR settle down first
     sleep(0.1);
 

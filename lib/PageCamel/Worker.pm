@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -87,10 +87,22 @@ use PageCamel::Worker::SerialCommands;
 use PageCamel::Worker::SystemSettings;
 use PageCamel::Worker::TableStatistics;
 use PageCamel::Worker::TemplateCache;
+use PageCamel::Worker::Tests::Forking;
 use PageCamel::Worker::Userlevels;
 use PageCamel::Worker::Wansview::Stream;
 #=!=END-AUTO-INCLUDES
 
+# === GLOBAL SIGCHLD HANDLING ===
+use POSIX ":sys_wait_h";
+my @deadchildren;
+
+$SIG{CHLD} = sub {
+    while((my $child = waitpid( -1, &WNOHANG )) > 0) {
+        #print "SIGNAL CHLD $child\n";
+        push @deadchildren, $child;
+    }
+};
+# ===============================
 
 sub new($class) {
     my $self = bless {}, $class;
@@ -106,6 +118,9 @@ sub startconfig($self, $isDebug = false) {
 
     my @cleanup;
     $self->{cleanup} = \@cleanup;
+
+    my @sigchld;
+    $self->{sigchld} = \@sigchld;
 
     my %tmpModules;
     $self->{modules} = \%tmpModules;
@@ -135,7 +150,6 @@ sub load_base_project($self, $projectname) {
 
 
 sub configure($self, $modname, $perlmodulename, %config) {
-
     # Let the module know its configured module name...
     $config{modname} = $modname;
 
@@ -172,7 +186,6 @@ sub configure($self, $modname, $perlmodulename, %config) {
 }
 
 sub endconfig($self) {
-
     #$self->{modules}->{$modname}->reload;   # (Re)load module's data
     print "Guidance is internal!\n"; # We REQUIRE an Apollo reference here!!1!
     print "Cross registering modules...\n";
@@ -208,7 +221,6 @@ sub endconfig($self) {
 }
 
 sub run($self) {
-
     my $workCount = 0;
 
     # Run cleanup functions in case the last cycle bailed out with croak
@@ -218,6 +230,17 @@ sub run($self) {
 
         #$workCount += $module->$funcname();
         $module->$funcname();
+    }
+
+    # Notify all registered workers about dead children
+    while((my $child = shift @deadchildren)) {
+        foreach my $worker (@{$self->{sigchld}}) {
+            my $module = $worker->{Module};
+            my $funcname = $worker->{Function} ;
+
+            $workCount++;
+            $module->$funcname($child);
+        }
     }
 
     # Run all worker functions
@@ -241,7 +264,6 @@ sub run($self) {
 }
 
 sub add_worker($self, $module, $funcname) {
-
     my %conf = (
         Module  => $module,
         Function=> $funcname
@@ -252,7 +274,6 @@ sub add_worker($self, $module, $funcname) {
 }
 
 sub add_cleanup($self, $module, $funcname) {
-
     my %conf = (
         Module  => $module,
         Function=> $funcname
@@ -262,6 +283,15 @@ sub add_cleanup($self, $module, $funcname) {
     return;
 }
 
+sub add_sigchld($self, $module, $funcname) {
+    my %conf = (
+        Module  => $module,
+        Function=> $funcname
+    );
+
+    push @{$self->{sigchld}}, \%conf;
+    return;
+}
 1;
 __END__
 

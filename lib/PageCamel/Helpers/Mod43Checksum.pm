@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -70,7 +70,6 @@ sub new($class) {
 }
 
 sub keytonum($self, $val) {
-
     $val = lc $val;
     my $num = 0;
     my $count = scalar @{$self->{keycodes}};
@@ -84,7 +83,6 @@ sub keytonum($self, $val) {
 }
 
 sub numtokey($self, $val) {
-
     my $key = '';
     my $count = scalar @{$self->{keycodes}};
     if($val < 0 || $val >= $count) {
@@ -95,7 +93,6 @@ sub numtokey($self, $val) {
 }
 
 sub genChecksum($self, $val) {
-
     $val = uc $val;
     my $sum = 0;
     my @parts = split//, $val;

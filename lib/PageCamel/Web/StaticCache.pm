@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -33,7 +33,7 @@ BEGIN {
 };
 
 use base qw(PageCamel::Web::BaseModule);
-use PageCamel::Helpers::FileSlurp qw(slurpBinFile);
+use PageCamel::Helpers::FileSlurp qw(slurpBinFile slurpTextFile);
 use XML::Simple;
 use IO::Compress::Gzip qw(gzip $GzipError);
 use Digest::SHA1  qw(sha1_hex);
@@ -52,6 +52,12 @@ sub new($proto, %config) {
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
+
+    if(defined($ENV{PC_DISABLE_HTTPCOMPRESSION}) && $ENV{PC_DISABLE_HTTPCOMPRESSION}) {
+        $self->{enableCompression} = 0;
+    } else {
+        $self->{enableCompression} = 1;
+    }
 
     my @tmp;
     if(!defined($self->{EXTRAINC})) {
@@ -79,7 +85,6 @@ sub new($proto, %config) {
 }
 
 sub addPath($self, $basePath) {
-
     push @{$self->{EXTRAINC}}, $basePath;
 
     return 1;
@@ -159,7 +164,7 @@ sub reload($self) {
 
 }
 
-sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
+sub load_dir($self, $basedir, $basewebpath, $dynamic=0, $relinkjs = 0) {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $fcount = 0;
     my $ft = File::Type->new();
@@ -172,7 +177,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
     if(-f $basedir . '/pagecamel.xml') {
         # Special directives for static loading
         my $signore;
-        ($signore, $dynamic) = $self->process_special_directives($basedir);
+        ($signore, $dynamic, $relinkjs) = $self->process_special_directives($basedir);
         push @ignore, @{$signore};
         push @ignore, 'pagecamel.xml';
     }
@@ -193,7 +198,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
         my $nfname = $basedir . "/" . $fname;
         if(-d $nfname) {
             # Got ourself a directory, go recursive
-            $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $dynamic);
+            $fcount += $self->load_dir($nfname, $basewebpath . $fname . "/", $dynamic, $relinkjs);
             next;
         }
 
@@ -209,7 +214,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
             next;
         }
 
-        my $data = slurpBinFile($nfname);
+        my $data = $self->slurpFile($nfname, $relinkjs);
 
         # Fill with default mime type (not always correct!)
         my $mtype = $ft->checktype_contents($data);
@@ -261,6 +266,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
                     etag    => sha1_hex($self->{reloadTime} . sha1_hex($data)), # Force browser reload after pagecamel reload with timestamp
                     "Last-Modified" => $lastmodified,
                     dynamic => $dynamic,
+                    relinkjs => $relinkjs,
                     );
 
         # !!! only store the data itself in RAM if the file is small enough !!!
@@ -276,7 +282,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
             $entry{data} = $data;
 
             #print STDERR "Compressing $nfname\n";
-            { # Try GZIP compression
+            if($self->{enableCompression}) { # Try GZIP compression
                 my $ldata = $data . '';
                 my $gzipped;
                 if(gzip(\$ldata => \$gzipped, '-Level' => 9)) {
@@ -288,7 +294,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0) {
                 }
             }
 
-            if($brotliavailable) { # Try BROTLI compression
+            if($self->{enableCompression} && $brotliavailable) { # Try BROTLI compression
                 #print STDERR "Compressing $nfname\n";
                 my $ldata = $data . '';
                 my $brotli = bro($ldata, 9); # Best compression (11) is way too slow, use a slghtly lower level
@@ -334,8 +340,17 @@ sub process_special_directives($self, $basedir) {
     }
 
     my $dynamic = 0;
-    if($self->{isDebugging} && defined($directives->{dynamic}) && $directives->{dynamic}) {
+    if(defined($directives->{dynamic}) && $directives->{dynamic}) {
         $dynamic = 1;
+    }
+    if(!$self->{isDebugging}) {
+        # Always load as static files when not debugging (for speed)
+        $dynamic = 0;
+    }
+
+    my $relinkjs = 0;
+    if(defined($directives->{relinkjs}) && $directives->{relinkjs}) {
+        $relinkjs = 1;
     }
 
     if(defined($directives->{ignore}->{item})) {
@@ -368,7 +383,7 @@ sub process_special_directives($self, $basedir) {
     }
 
 
-    return \@ignore, $dynamic;
+    return \@ignore, $dynamic, $relinkjs;
 
 }
 
@@ -416,7 +431,6 @@ sub execute_external_command($self, $cmd) {
 }
 
 sub register($self) {
-
     # Also need to register the webpaths during addview() call, because we can get additional paths during
     # the crossregister loop
     foreach my $view (@{$self->{view}}) {
@@ -433,7 +447,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $name = $ua->{url};
 
     return (status  =>  404) unless defined($self->{cache}->{$name});
@@ -452,7 +465,7 @@ sub get($self, $ua) {
 
         if($self->{cache}->{$name}->{"Last-Modified"} ne $newlastmodified) {
             #print STDERR "------ $name is a dynamic file and has a newer version available, reloading metadata\n";
-            my $data = slurpBinFile($self->{cache}->{$name}->{fullname});
+            my $data = $self->slurpFile($self->{cache}->{$name}->{fullname}, $self->{cache}->{$name}->{relinkjs});
             $self->{cache}->{$name}->{size} = length($data);
             $self->{cache}->{$name}->{"Last-Modified"} = $newlastmodified;
             $self->{cache}->{$name}->{etag} = sha1_hex($newlastmodified) . sha1_hex($data);
@@ -495,11 +508,11 @@ sub get($self, $ua) {
         my $compressed = 0;
         if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
             # Prefer brotli over gzip
-            if(!$compressed && contains('br', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{brotlidata})) {
+            if($self->{enableCompression} && !$compressed && contains('br', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{brotlidata})) {
                 $retpage{data} = $self->{cache}->{$name}->{brotlidata};
                 $retpage{"Content-Encoding"} = "br";
                 $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
-            } elsif(contains('gzip', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{gzipdata})) {
+            } elsif($self->{enableCompression} && contains('gzip', $ua->{headers}->{'Accept-Encoding-Array'}) && defined($self->{cache}->{$name}->{gzipdata})) {
                 $retpage{data} = $self->{cache}->{$name}->{gzipdata};
                 $retpage{"Content-Encoding"} = "gzip";
                 $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
@@ -511,7 +524,7 @@ sub get($self, $ua) {
     } else {
         # Bigger file. No RAM caching. Just load, send and forget
         $retpage{disable_compression} = 0;
-        $retpage{data} = slurpBinFile($self->{cache}->{$name}->{fullname});
+        $retpage{data} = $self->slurpFile($self->{cache}->{$name}->{fullname}, $self->{cache}->{$name}->{relinkjs});
     }
 
     if(defined($self->{cache}->{$name}->{etag})) {
@@ -534,10 +547,41 @@ sub getFilename($self, $uri) {
 }
 
 sub sitemap($self, $sitemap) {
-
     push @{$sitemap}, keys %{$self->{cache}};
 
     return;
+}
+
+sub slurpFile($self, $fname, $relinkjs) {
+    if($fname !~ /\.js$/ || !$relinkjs) {
+        return slurpBinFile($fname);
+    }
+
+    if(!defined($self->{URLReloadPostfix})) {
+        $self->{LastReloadDate} = getFileDate();
+    }
+
+    my @lines = slurpTextFile($fname);
+
+    my $data = '';
+    foreach my $line (@lines) {
+        $line =~ s/\r//g;
+        chomp $line;
+        $line =~ s/\t//g;
+        $line =~ s/^\ +//g;
+        $line =~ s/\ +$//g;
+
+        if($line =~ /^import\ (.*)\.js(.)\;$/) {
+            my ($tmp1, $tmp2) = ($1, $2);
+            #print STDERR "\n< ", $line, "\n";
+            $line = 'import ' . $tmp1 . '.js*' . $self->{LastReloadDate}  . $tmp2 . ";";
+            #print STDERR '> ', $line, "\n";
+        }
+
+        $data .= $line . "\n";
+    }
+
+    return $data;
 }
 
 1;

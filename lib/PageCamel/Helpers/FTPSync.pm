@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -20,7 +20,6 @@ use Net::FTP;
 my $MAXFILES = 500;
 
 sub new($class, $url, $localdir, $mode, $filetype = '', $reph = undef, $isDebug = undef) {
-
     if($mode ne "copy" && $mode ne "move") {
         return;
     }
@@ -61,7 +60,6 @@ sub new($class, $url, $localdir, $mode, $filetype = '', $reph = undef, $isDebug 
 }
 
 sub connectRemote($self) {
-
     my $ftp = Net::FTP->new($self->{server}, Debug => 0, Timeout => 10, Passive => 1)
         or return;
         #or croak "Cannot connect to $server: $EVAL_ERROR";
@@ -87,7 +85,6 @@ sub connectRemote($self) {
 }
 
 sub toLocal($self) {
-
     $self->{reph}->debuglog("  Reading remote dir...") if($self->{debug});
 
     my @files = $self->{ftp}->ls;
@@ -137,7 +134,6 @@ sub toLocal($self) {
 }
 
 sub toRemote($self) {
-
     my $globname = $self->{localdir} . "/*";
     if($self->{type} ne "") {
         $globname .= "." . $self->{type};
@@ -185,7 +181,6 @@ sub toRemote($self) {
 }
 
 sub quit($self) {
-
     if($self->{ftp}) {
         $self->{ftp}->quit;
         delete $self->{ftp};

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -34,13 +34,11 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get");
     return;
 }
 
 sub crossregister($self) {
-    
     if(defined($self->{public}) && $self->{public}) {
         $self->register_public_url($self->{webpath});
     }

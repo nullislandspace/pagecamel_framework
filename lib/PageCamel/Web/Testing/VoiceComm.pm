@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -46,7 +46,6 @@ sub wsregister($self) {
 }
 
 sub wsreload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     $sysh->createNumber(modulename => $self->{modname},
@@ -77,7 +76,6 @@ sub wsreload($self) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-    
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
     );
@@ -100,7 +98,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-    
     delete $self->{audio};
     
     if(defined($self->{ofh})) {
@@ -112,7 +109,6 @@ sub wscleanup($self) {
 }
 
 sub wscyclic($self, $ua) {
-    
     $self->{audio}->{vserv}->doNetwork();
     my %outmsg;
     while((my $msg = $self->{audio}->{vserv}->getNext())) {
@@ -143,7 +139,6 @@ sub wscyclic($self, $ua) {
 }
 
 sub wshandlemessage($self, $message) {
-
     if($message->{type} eq 'DATA') {
 
         $self->{audio}->{vserv}->sendvoice($message->{sample});

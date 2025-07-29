@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -44,7 +44,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     if(defined($self->{public}->{webpath})) {
         $self->register_webpath($self->{public}->{webpath}, "get_public");
     }
@@ -67,7 +66,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-    
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
     if(defined($self->{public}->{webpath})) {
@@ -91,7 +89,6 @@ sub crossregister($self) {
 }
 
 sub clean_fname($self, $filename) {
-
     my $safe_filename_characters = "a-zA-Z0-9_.-";
     $filename =~ s/\\/\//go;
     my ( $name, $path, $extension ) = fileparse ( $filename, '\..*' );
@@ -102,7 +99,6 @@ sub clean_fname($self, $filename) {
 }
 
 sub get_manage($self, $ua) {
-
     my $webpath = $ua->{url};
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
@@ -177,7 +173,6 @@ sub get_manage($self, $ua) {
 }
 
 sub get_public($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
 
@@ -210,7 +205,6 @@ sub get_public($self, $ua) {
 # ------------------------------------
 
 sub get_download($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $uamethod = $ua->{method};
     my @headkeys = sort keys %{$ua->{headers}};
@@ -523,7 +517,6 @@ sub get_download($self, $ua) {
 }
 
 sub file_get_multipart_contentlength($self, $ua) {
-
     # Add up all data block sizes and corresponding headers
 
     my $len = 0;
@@ -542,7 +535,6 @@ sub file_get_multipart_contentlength($self, $ua) {
 }
 
 sub file_get_multipart($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if(!defined($self->{file}->{fh})) {
@@ -607,7 +599,6 @@ sub file_get_multipart($self, $ua) {
 }
 
 sub file_get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     if(!defined($self->{file}->{fh})) {
@@ -648,7 +639,6 @@ sub file_get($self, $ua) {
 
 
 sub get_fname($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $filename = $ua->{postparams}->{'fname'} || '';
@@ -688,7 +678,6 @@ sub get_fname($self, $ua) {
 
 
 sub get_defaultwebdata($self, $webdata) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     
     $webdata->{PIMenuPublicUrl} = $self->{public}->{webpath};
@@ -706,7 +695,6 @@ sub get_defaultwebdata($self, $webdata) {
 }
 
 sub sitemap($self, $sitemap) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     push @{$sitemap}, $self->{public}->{webpath};

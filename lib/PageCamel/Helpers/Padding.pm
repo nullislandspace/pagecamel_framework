@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -45,7 +45,6 @@ sub doLeftSpacePad($val, $len) {
 }
 
 sub doCenterPad($val, $len) {
-    
     while(length($val) < $len) {
         $val = " $val";
         
@@ -64,7 +63,6 @@ sub trimLine($string) {
 }
 
 sub forceByteLength($string, $len) {
-    
     if(length($string) > $len) {
         $string = substr $string, 0, $len;
     } else {

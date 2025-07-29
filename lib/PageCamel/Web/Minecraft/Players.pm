@@ -8,7 +8,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -51,7 +51,6 @@ sub register($self) {
 }
 
 sub get_index($self, $ua) {
-    
     my @lines = slurpTextFile($self->{basedir} . 'index.html');
 
     if(!@lines) {
@@ -80,7 +79,6 @@ sub get_index($self, $ua) {
 }
 
 sub get_js($self, $ua) {
-    
     my $th = $self->{server}->{modules}->{templates};
     
     my %webdata = (
@@ -97,7 +95,6 @@ sub get_js($self, $ua) {
 }
 
 sub get_json($self, $ua) {
-
     my $jsonfile;    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
@@ -179,7 +176,6 @@ sub get_json($self, $ua) {
 }
 
 sub makeDragon($self, $world, $x, $z) {
-    
     my $dname = 'border' . $self->{dragoncount};
     $self->{dragoncount}++;
     
@@ -210,7 +206,6 @@ sub makeDragon($self, $world, $x, $z) {
 }
 
 sub get_playericon($self, $ua) {
-
     my $playerskin;    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
@@ -256,7 +251,6 @@ sub get_playericon($self, $ua) {
 }
 
 sub decodeEnderDragon($self) {
-
     $self->{enderdragongif} = decode_base64("
         R0lGODlhQABAAPcvAAMDAwgKBwwMDAcECA4RDhINEw8QEBMTExgYFxcUGBsbGyQkJCsrKzMzMzw8
         PERERExMTFNTU1tbW2NjY2xsbHR0dHx8fIODg+zs7A8MENvb28vLy5OTk7Ozsx8bIKurqwUJBeTk

@@ -1,4 +1,15 @@
 [% IF ExtraLoginHTML != "" %][% ExtraLoginHTML %][% END %]
+
+[% IF MandantsEnabled == 1 %]
+    <table border="1"><tr>
+        [% FOREACH Mandant IN Mandants %]
+            <td>
+                <input type="button" value="[% Mandant %]" buttontype="mandant">
+            </td>
+        [% END %]
+    </table>
+[% END %]
+
 <form name="login" method="post" action="[% PostLink %]" onsubmit="return submitMe();">
     <p>
         <table class="data" align="center" id="MainDataTable">
@@ -90,9 +101,11 @@
     </p>
    
     [% IF statustext == "" OR statuscolor != "oktext" %]
+        <!--
         <p align="center">
             <a href="#" onclick="return showBrowserInfo();">[% tr.trquote("Does my browser support HTML5?") %]</a>
         </p>
+        -->
         <div id="dialog-browserinfo" title="[% tr.trquote("HTML5 support") %]">
             <p align="center">
                 <table align="center" id="HelperTable1">
@@ -168,7 +181,7 @@
 <script>
 
     function submitMe() {
-        $.blockUI({ message: '<h1>' + ttvars.trquote.Checkingpassword + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+        $.blockUI({ message: '<h1>' + ttvars.trquote.Checkingpassword + '<br/><img src="/pics/loading.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
         return true;
     }
 
@@ -237,7 +250,7 @@
                     console.log("Starting FOB login...");
                     fobloginrunning = 1;
                     $('#fobid').val(newfob);
-                    $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+                    $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
                     $('#fobloginform').trigger("submit");
                 }
             }
@@ -250,7 +263,7 @@
         if(newfob != '' && newfob != '00 00 00 00 00 00') {
             fobloginrunning = 1;
             $('#fobid').val(newfob);
-            $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading_bar_large.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
+            $.blockUI({ message: '<h1>' + ttvars.trquote.Keyfoblogin + '<br/><img src="/pics/loading.gif' + ttvars.urlreloadpostfix + '" /></h1>' });
             $('#fobloginform').trigger("submit");
         }
     }
@@ -258,6 +271,7 @@
     function extraOnLoad() {
         if(ttvars.statustext === "" || ttvars.statuscolor != "oktext") {
             maskExtraOnLoad();
+            tryAppLogin();
         }
         if(ttvars.foblogin != '') {
             if(ttvars.fobmode == 'ajax') {
@@ -265,6 +279,28 @@
                 setInterval(runFobReader, 100);
             }
         }
+
+        $("input[buttontype=mandant]").each(function() {
+            $(this).on('click', function() {
+                var mandant = $(this).val();
+                console.log("Mandant: " + mandant);
+                document.cookie = 'Mandant=' + mandant + '; path=/';
+                window.location.reload();
+            });
+        });
+    }
+
+    function tryAppLogin() {
+        try {
+            if(Bridge && Bridge.interfaces && Bridge.interfaces.Android && Bridge.interfaces.Android.reloadWebView) {
+                Bridge.interfaces.Android.reloadWebView();
+            } else {
+                //console.log("Not running in the APP");
+            }
+        } catch(error) {
+            //console.log("Not running in the APP");
+        }
+
     }
 
     function maskExtraOnLoad() {

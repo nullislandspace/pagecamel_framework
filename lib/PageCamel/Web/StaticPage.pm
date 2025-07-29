@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -47,7 +47,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if(defined($self->{public}) && $self->{public} == 1) {
         $self->register_public_url($self->{webpath});
     }
@@ -57,7 +56,6 @@ sub crossregister($self) {
 
 
 sub get($self, $ua) {
-
     my $th = $self->{server}->{modules}->{templates};
 
     my %webdata = (
@@ -77,7 +75,6 @@ sub get($self, $ua) {
 }
 
 sub sitemap($self, $sitemap) {
-
     push @{$sitemap}, $self->{webpath};
 
     return;

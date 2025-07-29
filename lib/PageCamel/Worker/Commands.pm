@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -31,11 +31,12 @@ sub new($proto, %config) {
 
     $self->{firstrun} = 1;
 
+    $self->{starttime} = time;
+
     return $self;
 }
 
 sub reload($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     # Reset queued commands that have been interrupted due to crash or debugging
@@ -56,7 +57,6 @@ sub register($self) {
 }
 
 sub register_extcommand($self, $command, $modul) {
-
     $self->{extcommand}->{$command} = $modul;
 
     my @cmdlist;
@@ -71,7 +71,6 @@ sub register_extcommand($self, $command, $modul) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -91,6 +90,18 @@ sub work($self) {
     do {
         $did_some_work = 0;
 
+        my $extrawhere = '';
+        if(time < $self->{starttime} + 600) {
+            if($self->{isDebugging}) {
+                $reph->debuglog("Would ignore BACKUP commands for 10 minutes after start, but we are in debugging mode");
+                $self->{starttime} = 0;
+            } else {
+                # Don't start backups right after worker start, wait at least 10 minutes
+                $extrawhere .= "AND command != 'BACKUP' ";
+                $reph->debuglog("Ignoring BACKUP commands until 10 after worker start");
+            }
+        }
+
         # We LOCK the command we're working on and update it with the name of
         # our worker
         my $sth = $dbh->prepare_cached("SELECT id, command, arguments " .
@@ -98,6 +109,7 @@ sub work($self) {
                                     "WHERE starttime <= now() " .
                                     "AND command IN (" . $self->{commandlist} . ") " .
                                     "AND current_worker IS NULL " .
+                                    $extrawhere .
                                     "ORDER BY starttime, id " .
                                     "LIMIT 1 ".
                                     "FOR UPDATE NOWAIT")

@@ -8,7 +8,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -47,7 +47,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, 'get', "GET");
     $self->register_webpath($self->{wspath}, 'socketstart', "GET", "CONNECT");
     $self->register_protocolupgrade($self->{wspath}, 'sockethandler', "websocket");
@@ -56,7 +55,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
 
@@ -100,7 +98,6 @@ sub reload($self) {
 }
 
 sub get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -153,7 +150,6 @@ sub get($self, $ua) {
 
 
 sub socketstart($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -197,11 +193,12 @@ sub socketstart($self, $ua) {
 }
 
 sub sockethandler($self, $ua) {
-
     my $session = $self->{sessiondata};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
 
     my %settings;
     foreach my $setname (qw[websocket_encryption client_connect_timeout client_disconnect_timeout]) {
@@ -312,7 +309,7 @@ sub sockethandler($self, $ua) {
                     my %msg = (
                         type => 'PING',
                     );
-                    if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
+                    if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
                         print STDERR "Write to socket failed, closing connection!\n";
                         $socketclosed = 1;
                         last;
@@ -340,7 +337,7 @@ sub sockethandler($self, $ua) {
             if($frame->is_close) {
                 print STDERR "CLOSE FRAME RECIEVED!\n";
                 $socketclosed = 1;
-                if(!webPrint($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
                     print STDERR "Write to socket failed, failed to properly close connection!\n";
                 }
             }
@@ -362,7 +359,7 @@ sub sockethandler($self, $ua) {
                         varname => $webname,
                         varval => $cmsg->{data},
                     );
-                    if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
+                    if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
                         print STDERR "Write to socket failed, closing connection!\n";
                         $socketclosed = 1;
                         last;

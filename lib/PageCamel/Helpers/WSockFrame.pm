@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -105,7 +105,6 @@ sub fin {
       :                         1;
 }
 sub rsv { @_ > 1 ? $_[0]->{rsv} = $_[1] : $_[0]->{rsv} }
-
 sub opcode {
     @_ > 1 ? $_[0]->{opcode} =
         $_[1]
@@ -113,14 +112,12 @@ sub opcode {
       :                            1;
 }
 sub masked { @_ > 1 ? $_[0]->{masked} = $_[1] : $_[0]->{masked} }
-
 sub is_ping         { $_[0]->opcode == 9 }
 sub is_pong         { $_[0]->opcode == 10 }
 sub is_close        { $_[0]->opcode == 8 }
 sub is_continuation { $_[0]->opcode == 0 }
 sub is_text         { $_[0]->opcode == 1 }
 sub is_binary       { $_[0]->opcode == 2 }
-
 sub next_bytes {
     my $self = shift;
 

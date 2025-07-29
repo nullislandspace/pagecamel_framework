@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -27,13 +27,11 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_firewall("firewall");
     return;
 }
 
 sub firewall($self, $client) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $selsth = $dbh->prepare_cached("SELECT * FROM accesslog_blocklist
                                       WHERE ip_address = ?")

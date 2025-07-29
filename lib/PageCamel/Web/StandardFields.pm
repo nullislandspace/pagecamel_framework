@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -48,11 +48,39 @@ sub new($proto, %config) {
     $self->{lastUpdate} = 0;
     $self->{valueCache} = {};
 
+    $self->{versioninfo} = [
+        'Framework: ' . $VERSION,
+    ];
+
+    #print STDERR "\n\n";
+    if(defined($ENV{PC_LINUXUSER})) {
+        my $fname = '/home/' . $ENV{PC_LINUXUSER} . '/versions.txt';
+        if(-f $fname) {
+            my $ifh;
+            if(open($ifh, '<', $fname)) {
+                my @lines = <$ifh>;
+                close $ifh;
+
+                foreach my $line (@lines) {
+                    chomp $line;
+                    my ($name, $val) = split/\=/, $line, 2;
+                    push @{$self->{versioninfo}}, $name . ': ' . $val;
+                }
+            }
+        } else {
+            #print STDERR "File $fname not found\n";
+        }
+    } else {
+        #print STDERR "No PC_LINUXUSER env found\n";
+    }
+
+    #print STDERR Dumper($self->{versioninfo});
+    #print STDERR "\n\n";
+
     return $self;
 }
 
 sub reload($self) {
-
     # Create fields in system settings (if not existing)
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     foreach my $keyname (keys %{$self->{fields}}) {
@@ -127,7 +155,6 @@ sub crossregister($self) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
@@ -199,6 +226,8 @@ sub get_defaultwebdata($self, $webdata) {
     $webdata->{URLReloadPostfix} = '*' . $self->{LastReloadDate};
 
     $webdata->{isDebugging} = $self->{isDebugging};
+
+    $webdata->{VersionInfos} = $self->{versioninfo};
 
     return;
 }

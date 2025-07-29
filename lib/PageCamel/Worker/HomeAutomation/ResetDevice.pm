@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -42,7 +42,6 @@ sub register($self) {
 }
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

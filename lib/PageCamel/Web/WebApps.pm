@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -33,7 +33,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # make sure the relevant system settings exist
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -68,12 +67,10 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     return;
 }
 
 sub get_settings($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
 
@@ -144,7 +141,6 @@ sub get_settings($self, $ua) {
 }
 
 sub prerender($self, $webdata) {
-
     my $publicpage = 0;
 
     if(!defined($webdata->{userData}->{user})) {

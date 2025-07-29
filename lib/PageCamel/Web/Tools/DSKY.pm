@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -34,7 +34,6 @@ sub new($proto, %config) {
 }
 
 sub wsmaskget($self, $ua, $settings, $webdata) {
-    
     if(!defined($webdata->{HeadExtraScript})) {
         $webdata->{HeadExtraScript} = [];
     }
@@ -52,7 +51,6 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-
     $self->{nextping} = time + 10;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -74,7 +72,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wshandlemessage($self, $message) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -94,7 +91,6 @@ sub wshandlemessage($self, $message) {
 }
 
 sub wscleanup($self) {
-
     delete $self->{nextping};
     delete $self->{clacks};
 
@@ -102,7 +98,6 @@ sub wscleanup($self) {
 }
 
 sub wscyclic($self, $ua) {
-
     my $now = time;
     if($now > $self->{nextping}) {
         $self->{clacks}->ping();

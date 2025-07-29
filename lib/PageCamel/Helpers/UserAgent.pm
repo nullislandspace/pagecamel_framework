@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -21,7 +21,6 @@ our @EXPORT_OK = qw(simplifyUA);
 use HTTP::BrowserDetect;
 
 sub simplifyUA($useragentname) {
-
     my $simpleUserAgent = '';
     my $denyAccess = 0;
 
@@ -272,6 +271,10 @@ sub simplifyUA($useragentname) {
     } elsif($useragentname =~ /datenbutler\.de/io) {
         # Seems to sell access for searching webshops and blogs. Block it.
         $simpleUserAgent = "Webspider_bad/datenbutler.de";
+        $denyAccess = 1;
+    } elsif($useragentname =~ /openai\.com/io) {
+        # ShitGPT aka ChatGPT
+        $simpleUserAgent = "Webspider_bad/openai-chatgpt";
         $denyAccess = 1;
     } elsif($useragentname =~ /nlpproject\.info/io) {
         # Crawler that doesn't provide ANY info (website down)

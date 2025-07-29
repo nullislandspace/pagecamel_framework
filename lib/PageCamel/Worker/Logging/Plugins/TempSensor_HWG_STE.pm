@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -34,14 +34,12 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     $self->register_plugin('work', 'TEMPSENSOR', 'HWG-STE snmp');
     $self->register_plugin('work', 'TEMPSENSOR', 'HWG-STE http');
     return;
 }
 
 sub loadMiniMIB($self) {
-
     my @MIBS = $self->loadMIB();
 
     my %mibdef;
@@ -57,7 +55,6 @@ sub loadMiniMIB($self) {
 }
 
 sub loadMIB($self) {
-
     my $MIB =<<"MINIMIB";
 ID;ColName;Description
 1.3.6.1.4.1.21796.4.1.3.1.7.n;type;1 = Temp, 4 = Humidity
@@ -71,7 +68,6 @@ MINIMIB
 }
 
 sub work($self, $device, $dbh, $reph, $memh) {
-
     my $workCount = 0;
 
     $reph->debuglog("Logging TempSensor HWG-STE for " . $device->{hostname} . " at " . $device->{ip_addr});
@@ -140,7 +136,6 @@ sub work($self, $device, $dbh, $reph, $memh) {
 # ************************************************************************************
 
 sub getSNMPValues($self, $reph, $ip, $port) {
-
     $reph->debuglog("  Connecting to $ip:$port");
 
     my ($session,$error) = Net::SNMP->session(Hostname => $ip,
@@ -229,7 +224,6 @@ sub getSNMPValues($self, $reph, $ip, $port) {
 # ************************************************************************************
 
 sub getXMLValues($self, $reph, $ip, $port) {
-
     $reph->debuglog("  XML-Connecting to $ip:$port");
 
 

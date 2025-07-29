@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -53,12 +53,10 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     return;
 }
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -179,7 +177,6 @@ sub work($self) {
 }
 
 sub runCommand($self, $command, $option = undef) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     my $url = 'http://' . $self->{hostname} . '/cm?user=' . $self->{username} . '&password=' . $self->{password} . '&cmnd=' . $command;
@@ -209,7 +206,6 @@ sub runCommand($self, $command, $option = undef) {
 }
 
 sub switch_on($self, $switch) {
-
     my $tasmotaname = $self->{switches}->{$switch}->{switch};
     
     my $state = $self->runCommand($tasmotaname, 'ON');
@@ -224,7 +220,6 @@ sub switch_on($self, $switch) {
 }
 
 sub switch_off($self, $switch) {
-
     my $tasmotaname = $self->{switches}->{$switch}->{switch};
     
     my $state = $self->runCommand($tasmotaname, 'OFF');
@@ -238,7 +233,6 @@ sub switch_off($self, $switch) {
 }
 
 sub switch_state($self, $switch) {
-
     my $tasmotaname = $self->{switches}->{$switch}->{switch};
     
     my $state = $self->runCommand($tasmotaname);

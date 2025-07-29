@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -55,6 +55,12 @@ sub new($proto, %config) {
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
+
+    if(defined($ENV{PC_DISABLE_HTTPCOMPRESSION}) && $ENV{PC_DISABLE_HTTPCOMPRESSION}) {
+        $self->{enableCompression} = 0;
+    } else {
+        $self->{enableCompression} = 1;
+    }
 
     $self->{sessionname} = "ListView::" . $self->{modname};
 
@@ -172,7 +178,7 @@ sub new($proto, %config) {
         $self->{extraeditscript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
         $self->{extraeditscript_webdate} = getWebdate();
 
-        {
+        if($self->{enableCompression}) {
             my $gzipped;
             if(gzip(\$extrajavascript => \$gzipped, '-Level' => 9)) {
                 if(length($gzipped) < length($extrajavascript)) {
@@ -180,7 +186,7 @@ sub new($proto, %config) {
                 }
             }
         }
-        if($brotliavailable) {
+        if($self->{enableCompression} && $brotliavailable) {
             my $brotli = bro($extrajavascript, 9);;
             if(length($brotli) < length($extrajavascript)) {
                 $self->{extraeditscript_brotli} = $brotli;
@@ -206,7 +212,7 @@ sub new($proto, %config) {
         $self->{extralistscript_etag} = sha1_hex(getFileDate() . sha1_hex($extrajavascript));
         $self->{extralistscript_webdate} = getWebdate();
 
-        {
+        if($self->{enableCompression}) {
             my $gzipped;
             if(gzip(\$extrajavascript => \$gzipped, '-Level' => 9)) {
                 if(length($gzipped) < length($extrajavascript)) {
@@ -214,7 +220,7 @@ sub new($proto, %config) {
                 }
             }
         }
-        if($brotliavailable) {
+        if($self->{enableCompression} && $brotliavailable) {
             my $brotli = bro($extrajavascript, 9);;
             if(length($brotli) < length($extrajavascript)) {
                 $self->{extralistscript_brotli} = $brotli;
@@ -228,7 +234,6 @@ sub new($proto, %config) {
 
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get");
 
     if($self->{iframemode} ne '') {
@@ -240,7 +245,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     # Run sanity checks on configuration
     my $ok = 1;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -816,7 +820,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
     }
 
     if(!defined($item->{default})) {
-        my $default = $dbh->getDefaultValue($self->{table}, $item->{column});
+        my $default = $dbh->getDefaultValue($self->{table}, $item->{column}, 1);
         if(defined($default)) {
             #print "    EDIT: Attribute \"default\" not set, using database default: $default\n";
             $item->{default} = $default;
@@ -1081,13 +1085,19 @@ sub validateEditItem($self, $item, $multiarraymode) {
         }
     }
 
+    if($item->{type} eq 'dateonly' || $item->{type} eq 'date') {
+        if(!defined($item->{nullable})) {
+            print "    EDIT: type $item->{type} does not define nullable, defaulting to 0\n";
+            $item->{nullable} = 0;
+        }
+    }
+
     $self->{editcolumntypes}->{$self->columnBasename($item->{column})} = $item->{type};
 }
 
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning
 # of Perl::Critic
 sub get($self, $ua) {
-
     my $mode = $ua->{postparams}->{'mode'} || 'list';
     my $primarykey = '';
     if(defined($ua->{postparams}->{'primary_key'})) {
@@ -1177,7 +1187,6 @@ sub get($self, $ua) {
 }
 
 sub send_csv($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
 
@@ -1232,7 +1241,6 @@ sub send_csv($self, $ua) {
 }
 
 sub download_csv($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $mailh = $self->{server}->{modules}->{$self->{sendmail}};
 
@@ -1277,7 +1285,6 @@ sub download_csv($self, $ua) {
 
 
 sub get_pagescript($self, $ua, $mode) {
-
     my $lastetag = $ua->{headers}->{'If-None-Match'} || '';
     
     my $prefix = 'extra' . $mode . 'script';
@@ -1313,13 +1320,13 @@ sub get_pagescript($self, $ua, $mode) {
 
     if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
         my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
-        if($brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{$prefix . '_brotli'})) {
+        if($self->{enableCompression} && $brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{$prefix . '_brotli'})) {
             $retpage{data} = $self->{$prefix . '_brotli'};
             $retpage{"Content-Encoding"} = "br";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
             $compressed = 1;
         }
-        if(!$compressed && contains('gzip', $supportedcompress) && defined($self->{$prefix . '_gzip'})) {
+        if($self->{enableCompression} && !$compressed && contains('gzip', $supportedcompress) && defined($self->{$prefix . '_gzip'})) {
             $retpage{data} = $self->{$prefix . '_gzip'};
             $retpage{"Content-Encoding"} = "gzip";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
@@ -1460,7 +1467,7 @@ sub get_list($self, $ua, $usemasterlayout = true) {
         push @headextrascripts, $self->{webpath} . '/pagelistscript.js';
     }
     
-    $webdata{HeadExtraScripts} = \@headextrascripts;
+    push @{$webdata{HeadExtraScripts}}, @headextrascripts;
 
     if($self->{mastertemplate} ne '') {
         $usemasterlayout = $self->{mastertemplate};
@@ -1482,8 +1489,6 @@ sub get_list($self, $ua, $usemasterlayout = true) {
 }
 
 sub get_lines($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
     my $method = $ua->{method};
@@ -1531,8 +1536,9 @@ sub get_lines($self, $ua) {
                 next;
             }
             my $vtmp = $clauseitem->{value};
+            my $username = $self->_getUsername(\%webdata);
             if($vtmp =~ /USER/) {
-                $vtmp =~ s/USER/$webdata{userData}->{user}/g;
+                $vtmp =~ s/USER/$username/g;
             }
             if($self->{use_urlid} && $vtmp =~ /URLID/) {
                 $vtmp =~ s/URLID/$urlid/g;
@@ -1898,7 +1904,6 @@ sub get_lines($self, $ua) {
 }
 
 sub get_prevnext($self, $ua, $currentprimkey) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sesh = $self->{server}->{modules}->{$self->{session}};
 
@@ -1962,7 +1967,6 @@ sub get_prevnext($self, $ua, $currentprimkey) {
 }
 
 sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
-
     if($self->{listonly}) {
         return (status => 403); # Forbidden
     }
@@ -2055,6 +2059,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         TextualCopyPrimaryKey => 0,
         AskOnCopy => '',
     );
+    my $username = $self->_getUsername(\%webdata);
 
     if($self->{cancopy} && !$self->{useserial}) {
         $webdata{TextualCopyPrimaryKey} = 1;
@@ -2097,7 +2102,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                 next if($clauseitem->{column} ne $pkcols[$i]);
                 $pkparts[$i] = $clauseitem->{value};
                 if($pkparts[$i] =~ /USER/) {
-                    $pkparts[$i] =~ s/USER/$webdata{userData}->{user}/g;
+                    $pkparts[$i] =~ s/USER/$username/g;
                 }
             }
         }
@@ -2107,7 +2112,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             foreach my $clauseitem (@{$self->{restrict}->{item}}) {
                 $forceFields->{$clauseitem->{column}} = $clauseitem->{value};
                 if($forceFields->{$clauseitem->{column}} =~ /USER/) {
-                    $forceFields->{$clauseitem->{column}} =~ s/USER/$webdata{userData}->{user}/g;
+                    $forceFields->{$clauseitem->{column}} =~ s/USER/$username/g;
                 }
             }
         }
@@ -2178,7 +2183,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                         next if($clauseitem->{column} ne $column);
                         $tmp = $clauseitem->{value};
                         if($tmp =~ /USER/) {
-                            $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                            $tmp =~ s/USER/$username/g;
                         }
                     }
                 }
@@ -2199,20 +2204,28 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     }
 
                     # Check if this column defines a default value
+                    my $usenull = 0;
                     if($tmp eq 'now') {
                         foreach my $item (@{$self->{edit}->{item}}) {
                             if(defined($item->{column}) && $item->{column} eq $column) {
                                 if(defined($item->{default}) && $item->{default} ne '') {
-                                    $tmp = $item->{default};
+                                    $tmp = $self->_expandDefault($item->{default});
+                                }
+                                if($item->{nullable}) {
+                                    $usenull = 1;
                                 }
                                 last;
                             }
                         }
                     }
 
-                    $tmp = parseNaturalDate($tmp);
-                    if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
-                        $tmp =~ s/\ .*//;
+                    if($usenull && $tmp eq 'now') {
+                        $tmp = undef;
+                    } else {
+                        $tmp = parseNaturalDate($tmp);
+                        if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
+                            $tmp =~ s/\ .*//;
+                        }
                     }
                 } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
@@ -2266,7 +2279,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     }
                 }
 
-                if($self->{editcolumnnullable}->{$column} && $tmp eq '') {
+                if($self->{editcolumnnullable}->{$column} && defined($tmp) && $tmp eq '') {
                     $tmp = undef;
                 }
                 
@@ -2376,7 +2389,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                         next if($clauseitem->{column} ne $column);
                         $tmp = $clauseitem->{value};
                         if($tmp =~ /USER/) {
-                            $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                            $tmp =~ s/USER/$username/g;
                         }
                     }
                 }
@@ -2387,7 +2400,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     } else {
                         $tmp = 0;
                     }
-                } elsif ($self->{editcolumntypes}->{$column} eq 'date') {
+                } elsif($self->{editcolumntypes}->{$column} eq 'date' || $self->{editcolumntypes}->{$column} eq 'dateonly') {
                     if($tmp eq '-- ::' || $tmp !~ /\d+/) {
                         # Compensate for datetimepicker empty template or when field is empty
                         $tmp = 'now';
@@ -2397,22 +2410,29 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     }
                     
                     # Check if this column defines a default value
+                    my $usenull = 0;
                     if($tmp eq 'now') {
                         foreach my $item (@{$self->{edit}->{item}}) {
                             if(defined($item->{column}) && $item->{column} eq $column) {
                                 if(defined($item->{default}) && $item->{default} ne '') {
-                                    $tmp = $item->{default};
+                                    $tmp = $self->_expandDefault($item->{default});
+                                }
+                                if($item->{nullable}) {
+                                    $usenull = 1;
                                 }
                                 last;
                             }
                         }
                     }
-
-                    $tmp = parseNaturalDate($tmp);
-                    if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
-                        $tmp =~ s/\ .*//;
+                    if($usenull && $tmp eq 'now') {
+                        $tmp = undef;
+                    } else {
+                        $tmp = parseNaturalDate($tmp);
+                        if( $self->{editcolumntypes}->{$column} eq 'dateonly') {
+                            $tmp =~ s/\ .*//;
+                        }
                     }
-                } elsif ($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
+                } elsif($self->{editcolumntypes}->{$column} eq 'number' || $self->{editcolumntypes}->{$column} eq 'slider') {
                     # make sure we always use the dot as a comma
                     $tmp =~ s/\,/./g;
                     if($tmp eq '') {
@@ -2559,7 +2579,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                         next if($clauseitem->{column} ne $pkcol);
                         $tmp = $clauseitem->{value};
                         if($tmp =~ /USER/) {
-                            $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                            $tmp =~ s/USER/$username/g;
                         }
                     }
                 }
@@ -2633,7 +2653,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     next if($clauseitem->{column} ne $column);
                     $tmp = $clauseitem->{value};
                     if($tmp =~ /USER/) {
-                        $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                        $tmp =~ s/USER/$username/g;
                     }
                 }
             }
@@ -2645,7 +2665,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
             if($tmp eq '') {
                 foreach my $tmpitem (@{$self->{edit}->{item}}) {
                     if(defined($tmpitem->{column}) && $tmpitem->{column} eq $column && defined($tmpitem->{default})) {
-                        $tmp = $tmpitem->{default};
+                        $tmp = $self->_expandDefault($tmpitem->{default});
                         last;
                     }
                 }
@@ -2662,7 +2682,7 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
                     next if($clauseitem->{column} ne $column);
                     $tmp = $clauseitem->{value};
                     if($tmp =~ /USER/) {
-                        $tmp =~ s/USER/$webdata{userData}->{user}/g;
+                        $tmp =~ s/USER/$username/g;
                     }
                 }
             }
@@ -2747,8 +2767,8 @@ sub get_edit($self, $ua, $forcePrimaryKey = undef, $forceFields = undef) {
         push @headextrascripts, $self->{webpath} . '/pageeditscript.js';
     }
 
-    $webdata{HeadExtraScripts} = \@headextrascripts;
-    $webdata{HeadExtraCSS} = \@headextracss;
+    push @{$webdata{HeadExtraScripts}}, @headextrascripts;
+    push @{$webdata{HeadExtraCSS}}, @headextracss;
 
     my $usemasterlayout = 1;
     if($self->{mastertemplate} ne '') {
@@ -2819,6 +2839,9 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             displaytype  => $item->{type},
             header  => $item->{header},
         );
+        if(defined($item->{id})) {
+            $column{tableid} = $item->{id};
+        }
         return \%column;
     }
     if($item->{type} eq 'endsubtable') {
@@ -2867,6 +2890,9 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
                 displaytype  => 'startsubtable',
                 header  => $item->{header},
             );
+            if(defined($item->{id})) {
+                $column{tableid} = $item->{id};
+            }
 
             push @edititems, \%column;
         }
@@ -2940,8 +2966,13 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         }
     }
 
+    if(!defined($item->{hint})) {
+        $item->{hint} = '';
+    }
+
     my %column = (
         displayname  => $item->{header},
+        hint         => $item->{hint},
         displaytype  => $item->{type},
         columnname   => $colname,
         columnvalue  => $realvalue,
@@ -2983,7 +3014,7 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             $column{columnvalue} =~ s/\:\d\d$//;
         }
     }
-    
+
     if($column{displaytype} eq 'image') {
         #$column{displaytype} = 'text';
         if($column{columnvalue} ne '') {
@@ -3078,11 +3109,16 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             $where = ' WHERE ' . $item->{enumwhere} . ' ';
         }
 
+        my $orderby = $item->{enumcolumn};
+        if(defined($item->{enumsortcolumn})) {
+            $orderby = $item->{enumsortcolumn};
+        }
+
         my $eselstmt = 'SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
                         $extracolumn .
                         ' FROM ' . $item->{enumtable} .
                         $where .
-                        ' ORDER BY ' . $item->{enumcolumn};
+                        ' ORDER BY ' . $orderby;
 
         my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
         if(!defined($cache->{$cachekey})) {
@@ -3102,7 +3138,8 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
         if($item->{nullable}) {
             my %emptyval = (
                 selectorenumvalue   => '',
-                hasdescription      => 0,
+                hasdescription      => 1,
+                selectorenumdescription => '❌',
             );
             unshift @enum_values, \%emptyval;
         }
@@ -3195,11 +3232,16 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             $where = ' WHERE ' . $item->{enumwhere} . ' ';
         }
 
+        my $orderby = $item->{enumcolumn};
+        if(defined($item->{enumsortcolumn})) {
+            $orderby = $item->{enumsortcolumn};
+        }
+
         my $eselstmt = 'SELECT ' . $item->{enumcolumn} . ' AS selectorenumvalue ' .
                        $extracolumn .
                        ' FROM ' . $item->{enumtable} .
                        $where .
-                       ' ORDER BY ' . $item->{enumcolumn};
+                       ' ORDER BY ' . $orderby;
 
         my $cachekey = $self->makeCacheKey($hasdescription, $eselstmt);
         if(!defined($cache->{$cachekey})) {
@@ -3221,7 +3263,8 @@ sub formatEditColumn($self, $primarykey, $item, $colvalues, $multiarrayindex, $c
             # enum array ALWAYS has a "nullable" row"
             my %emptyval = (
                 selectorenumvalue   => '',
-                hasdescription      => 0,
+                hasdescription      => 1,
+                selectorenumdescription => '❌',
             );
             unshift @enum_values, \%emptyval;
         }
@@ -3271,7 +3314,6 @@ sub makeCacheKey($self, $hasdescription, $stmt) {
 
 
 sub get_autosave($self, $ua) {
-
     if($self->{listonly}) {
         return (status => 403); # Forbidden
     }
@@ -3335,7 +3377,6 @@ sub keyvalueIntermix($self, $keys, $values) {
 
 
 sub write_auditlog($self, $username, $mode, @data) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $insth = $dbh->prepare_cached("INSERT INTO auditlog (worker_name, module_name, username, logtext, extrainfo)
@@ -3344,7 +3385,7 @@ sub write_auditlog($self, $username, $mode, @data) {
     my @newdata;
     foreach my $field (@data) {
         if(ref $field eq 'ARRAY') {
-            print STDERR Dumper($field);
+            #print STDERR Dumper($field);
             my $parsedfield = $self->parseArray($field);
             print STDERR "Parsedfield:\n", $parsedfield;
             push @newdata, $parsedfield;
@@ -3388,7 +3429,6 @@ sub columnBasename($self, $colname) {
 
 # Only called in iframe mode!!!
 sub get_defaultwebdata($self, $webdata) {
-
     if($self->{iframemode} eq 'list') {
         $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{mode} = 'list';
         $webdata->{ConfigObject}->{iframes}->{$self->{modname}}->{webpath} = $self->{webpath};
@@ -3429,6 +3469,46 @@ sub _makeThumbnail($self, $rawimg, $size) {
     $newtmp = encode_base64($newtmp, '');
 
     return $newtmp;
+}
+
+sub _getUsername($self, $webdata) {
+    my $username = '';
+
+    if(defined($webdata->{userData}) && defined($webdata->{userData}->{user}) && $webdata->{userData}->{user} ne '') {
+        $username = $webdata->{userData}->{user};
+    }
+
+    if(defined($webdata->{userData}) && defined($webdata->{userData}->{secondaryuser}) && $webdata->{userData}->{secondaryuser} ne '') {
+        $username = $webdata->{userData}->{secondaryuser};
+        #print STDERR "\nSecondary user $username selected for USER filtering\n";
+    }
+
+    return $username;
+}
+
+sub _expandDefault($self, $defaultvalue) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my $newval = '' . $defaultvalue;
+    #print "ORIG DEFAULT VALUE: ", $newval, "\n";
+    if($newval =~ /^XXAUTOEXPANDXX\_/) {
+        $newval =~ s/^XXAUTOEXPANDXX\_//;
+        my $selsth = $dbh->prepare_cached("SELECT " . $newval . " AS xxfielddefaultvaluexx ")
+                or croak($dbh->errstr);
+        if(!$selsth->execute) {
+            croak($dbh->errstr);
+        }
+        my $line = $selsth->fetchrow_hashref;
+        $selsth->finish;
+        $dbh->commit;
+
+        if(defined($line) && defined($line->{xxfielddefaultvaluexx})) {
+            $newval = $line->{xxfielddefaultvaluexx};
+            #print "   Expanded: ", $newval, "\n";
+        }
+    }
+
+    return $newval;
 }
 
 1;

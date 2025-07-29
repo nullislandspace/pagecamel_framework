@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -44,11 +44,14 @@ sub new($proto, %config) {
     $self->{Themes} = \@themes;
     $self->{firstReload} = 1;
 
+    if(!defined($self->{defaultlanguage})) {
+        $self->{defaultlanguage} = 'eng'; # Default to english if not set in config file
+    }
+
     return $self;
 }
 
 sub reload($self) {
-
     # Update the handles for the template plugin
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -59,6 +62,18 @@ sub reload($self) {
     }
     tr_reload();
 
+    if(defined($ENV{PC_IMPORT_TRANSLATIONS}) && $ENV{PC_IMPORT_TRANSLATIONS}) {
+        my $fname = $ENV{PC_IMPORT_TRANSLATIONS};
+        print STDERR "Importing translations from ", $fname, "\n";
+        if(!-f $fname) {
+            print STDERR "   FILE NOT FOUND!\n";
+        } else {
+            my $data = slurpBinFile($fname);
+            tr_import($data);
+            print "Translations imported!\n";
+        }
+    }
+
     return;
 }
 
@@ -68,7 +83,8 @@ sub register($self) {
     $self->register_webpath($self->{translations}->{webpath}, "get_translations");
     $self->register_webpath($self->{export}->{webpath}, "get_export");
     $self->register_webpath($self->{exportfile}->{webpath}, "get_file");
-    $self->register_prerender("prerender");
+    $self->register_late_defaultwebdata("prerender_and_late_defaultwebdata");
+    $self->register_prerender("prerender_and_late_defaultwebdata");
     $self->register_postfilter("postfilter");
 
     $self->register_preconnect("check_translationupdates");
@@ -76,7 +92,6 @@ sub register($self) {
 }
 
 sub get_settings($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -127,7 +142,6 @@ sub get_settings($self, $ua) {
 }
 
 sub get_languages($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -204,7 +218,6 @@ sub get_languages($self, $ua) {
 }
 
 sub get_translations($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -312,7 +325,6 @@ sub get_translations($self, $ua) {
 }
 
 sub get_export($self, $ua) {
-
     my $webpath = $ua->{url};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -357,7 +369,6 @@ sub get_export($self, $ua) {
 
 
 sub get_file($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $exp = tr_export();
@@ -370,25 +381,23 @@ sub get_file($self, $ua) {
 }
 
 
-sub prerender($self, $webdata) {
+sub prerender_and_late_defaultwebdata($self, $webdata) {
     # Unless the user is logged in, we don't have set a user selected Language, use English
     if(!defined($webdata->{userData}) ||
               !defined($webdata->{userData}->{user}) ||
               $webdata->{userData}->{user} eq "") {
-              $webdata->{UserLanguage} = "eng";
-              PageCamel::Helpers::TemplateEngine::Translate->setLang("eng");
+              $webdata->{UserLanguage} = $self->{defaultlanguage};
+              PageCamel::Helpers::TemplateEngine::Translate->setLang($self->{defaultlanguage});
     }
 
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my ($ok, $langname) = $seth->get($webdata->{userData}->{user}, "UserLanguage");
 
-    my $lang = "eng"; # Use english as default
+    my $lang = $self->{defaultlanguage};
     if(defined($langname)) {
         $langname = dbderef($langname);
     }
     if($ok && defined($langname) && $langname ne "") {
-        # Now, we have to check if this theme is still available
-
         # FIXME: Check if language still available!
         if(tr_checklang($langname)) {
             $lang = $langname;
@@ -397,6 +406,7 @@ sub prerender($self, $webdata) {
     }
 
     $webdata->{UserLanguage} = $lang;
+    $webdata->{ConfigObject}->{defaults}->{language} = $lang;
     PageCamel::Helpers::TemplateEngine::Translate->setLang($lang);
 
     # Remember for postfilter
@@ -406,14 +416,15 @@ sub prerender($self, $webdata) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     return if(!defined($self->{lastuserlanguage}));
 
     ### FIXME: This should come from the translation database
     if($self->{lastuserlanguage} eq "eng") {
-        $result->{"Content-Language"} = "en";
+        $header->{"-Content-Language"} = "en";
     } elsif($self->{lastuserlanguage} eq "ger") {
-        $result->{"Content-Language"} = "de";
+        $header->{"-Content-Language"} = "de";
+    } else {
+        $header->{"-Content-Language"} = $self->{lastuserlanguage};
     }
 
     return;
@@ -421,7 +432,6 @@ sub postfilter($self, $ua, $header, $result) {
 
 # Translation
 sub check_translationupdates($self) {
-
     tr_checkreload();
 
     return;

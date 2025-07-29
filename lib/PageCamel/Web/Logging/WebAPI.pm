@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -33,7 +33,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Nothing to do.. in here, we only use the template and database module
     return;
 }
@@ -45,7 +44,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     $self->register_public_url($self->{webpath});
 
     return;
@@ -53,7 +51,6 @@ sub crossregister($self) {
 
 # Get supervisor cards
 sub get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 

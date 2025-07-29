@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -37,7 +37,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $oldlog = $memh->get($self->{APPNAME});
     my $restart = 0;
@@ -58,7 +57,6 @@ sub reload($self) {
 }
 
 sub dblog($self, $error_type, $description) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $sth = $dbh->prepare("INSERT INTO errors (error_type, description)" .
@@ -72,7 +70,6 @@ sub dblog($self, $error_type, $description) {
 }
 
 sub auditlog($self, $modulename, $logtext) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $worker = $self->{PSAPPNAME};
 
@@ -87,7 +84,6 @@ sub auditlog($self, $modulename, $logtext) {
 }
 
 sub debuglog($self, @parts) {
-
     my $line = '';
     foreach my $part (@parts) {
         next unless(defined($part));
@@ -113,7 +109,6 @@ sub debuglog($self, @parts) {
 }
 
 sub debuglog_overwrite($self, @parts) {
-
     my $line = '';
     foreach my $part (@parts) {
         chomp $part;

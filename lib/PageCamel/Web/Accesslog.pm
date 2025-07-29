@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -32,7 +32,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_logstart("logstart");
     $self->register_logend("logend");
     $self->register_defaultwebdata("get_defaultwebdata");
@@ -41,7 +40,6 @@ sub register($self) {
 }
 
 sub logstart($self, $ua) {
-
     my $webpath = $ua->{url} || '--unknown--';
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
@@ -126,7 +124,6 @@ sub logstart($self, $ua) {
 }
 
 sub logend($self, $ua, $header, $result) {
-
     return if(!defined($self->{requestdata}));
 
     if(defined($result->{__do_not_log_to_accesslog}) && $result->{__do_not_log_to_accesslog} == 1) {
@@ -215,7 +212,6 @@ sub logend($self, $ua, $header, $result) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     $webdata->{__do_not_log_to_accesslog} = 0;
     return;
 }

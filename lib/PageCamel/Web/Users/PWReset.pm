@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -55,7 +55,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get_pwreset");
     $self->register_public_url($self->{webpath});
     $self->register_defaultwebdata("defaultwebdata");
@@ -63,15 +62,12 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     # Nothing to do
 
     return;
 }
 
 sub get_pwreset($self, $ua) {
-
-
     my $mode = $ua->{postparams}->{'mode'} || 'view';
     my $pwresetid = $ua->{url};
     my $remove = $self->{webpath};
@@ -88,7 +84,6 @@ sub get_pwreset($self, $ua) {
 
 
 sub get_request($self, $ua) {
-
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
@@ -203,7 +198,6 @@ END
 
 
 sub get_execute($self, $ua, $resetkey) {
-
     my %webdata = (
         $self->{server}->get_defaultwebdata(),
         PageTitle   =>  $self->{pagetitle},
@@ -279,7 +273,6 @@ sub get_execute($self, $ua, $resetkey) {
 }
 
 sub defaultwebdata($self, $webdata) {
-
     # Just allow the "password reset" menu item
     $webdata->{canResetPassword} = 1;
     return;

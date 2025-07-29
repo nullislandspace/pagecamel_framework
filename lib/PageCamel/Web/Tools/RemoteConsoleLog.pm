@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -32,7 +32,6 @@ sub new($proto, %config) {
 }
 
 sub wsmaskget($self, $ua, $settings, $webdata) {
-
     foreach my $key (qw[HeadExtraScripts HeadExtraCSS]) {
         if(!defined($webdata->{$key})) {
             my @temp;
@@ -64,7 +63,6 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
 }
 
 sub wscrossregister($self) {
-
     $self->register_webpath($self->{beacon}->{webpath}, 'beaconhandler', 'POST');
     $self->register_public_url($self->{beacon}->{webpath});
     $self->register_defaultwebdata("get_defaultwebdata");
@@ -73,7 +71,6 @@ sub wscrossregister($self) {
 }
 
 sub wshandlerstart($self, $ua, $settings) {
-
     $self->{nextping} = time + 10;
 
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
@@ -86,7 +83,6 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-
     delete $self->{nextping};
     delete $self->{clacks};
 
@@ -94,7 +90,6 @@ sub wscleanup($self) {
 }
 
 sub wscyclic($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -142,14 +137,12 @@ sub wscyclic($self, $ua) {
 
 
 sub get_defaultwebdata($self, $webdata) {
-
     $webdata->{EnableRemoteConsoleLog} = 1;
     return;
 }
 
 
 sub beaconhandler($self, $ua) {
-    
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -36,18 +36,20 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     if($self->{readwrite}) {
         $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
     } else {
         $self->register_webpath($self->{webpath}, "get", 'GET');
     }
+
+    # Register the callbacks for upstream handling and actually finishing the page
+    $self->register_uploadstreamwebpath($self->{webpath}, "handlePOST", "finishPage");
+
     $self->register_postfilter("postfilter");
     return;
 }
 
 sub crossregister($self) {
-
     if(defined($self->{auth_realm})) {
         $self->register_basic_auth($self->{webpath}, $self->{auth_realm});
     }
@@ -55,7 +57,6 @@ sub crossregister($self) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     my $clientpath = $ua->{url};
     my $mypath = $self->{webpath};
 
@@ -72,7 +73,7 @@ sub postfilter($self, $ua, $header, $result) {
 }
 
 sub get($self, $ua) {
-
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     if(!$self->{readwrite} && $ua->{method} ne 'GET' && $ua->{method} ne 'HEAD') {
         # Readonly proxy does not accept POST
         # Should be handled by WebBase anyway, this is just to be sure
@@ -128,9 +129,27 @@ sub get($self, $ua) {
     }
     $socket->send("\r\n");
 
-    if($ua->{method} eq 'POST') {
-        $socket->send($ua->{postdata});
+    $self->{socket} = $socket;
+
+    return(status => 100); # Continue
+}
+
+sub handlePOST($self, $ua, $data) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $socket = $self->{socket};
+    if($ua->{method} ne 'POST') {
+        return 0;
     }
+
+    $socket->send($data);
+
+    return 1;
+}
+
+sub finishPage($self, $ua) {
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $socket = $self->{socket};
+
     my %retpage;
     my $statusline = $self->readsocketline($socket, 90);
     if(!defined($statusline)) {
@@ -209,11 +228,12 @@ sub get($self, $ua) {
 
     $retpage{data} = $content;
 
+    delete $self->{socket};
+
     return %retpage;
 }
 
 sub readsocketline($self, $socket, $timeout = 30) {
-
     if(!defined($timeout) || !$timeout) {
         $timeout = 30;
     };
@@ -238,7 +258,6 @@ sub readsocketline($self, $socket, $timeout = 30) {
 }
 
 sub streamChunked($self, $ua) {
-
     my $content = '';
 
     my $chunklen = $self->readsocketline($self->{socket}, 600);
@@ -278,7 +297,6 @@ sub streamChunked($self, $ua) {
 }
 
 sub readChunked($self, $socket) {
-
     my $content = '';
     while(1) {
         my $chunklen = $self->readsocketline($socket, 60);
@@ -298,7 +316,6 @@ sub readChunked($self, $socket) {
 }
 
 sub readPlain($self, $socket, $clength, $timeout = 30) {
-
     if(!defined($timeout) || !$timeout) {
         $timeout = 30;
     };

@@ -51,7 +51,7 @@ div.webgui_headermessage_right {
 /* Projectlogo, Motto and Login/Register/logout buttons */
 div.webgui_projectbar {
 	padding-top: 5px;
-	padding-bottom: 5px;
+	padding-bottom: 25px;
 	padding-left: 0px;
 	padding-right: 0px;
     width: 100%;
@@ -74,6 +74,14 @@ div.webgui_projectbar {
 
 div.webgui_projectname {
 	color: [% ProjectNameColor %];
+	font-size: [% ProjectNameSize %];
+	float: left;
+	height: [% ProjectHeaderSize %];
+	padding-left: [% ProjectHeaderLeftMargin %];
+}
+
+div.webgui_projectcentertext {
+	color: "#ffffff";
 	font-size: [% ProjectNameSize %];
 	float: left;
 	height: [% ProjectHeaderSize %];
@@ -151,4 +159,20 @@ div.pagecamelmobiledesktopselectorbox {
     background: lightgray;
     color: black;
     border: 1px;
+}
+
+div.pagecamel_listandedit_infobox {
+    background: lightgray;
+    color: black;
+    border: 3px;
+    border-style: ridge;
+    border-color: black;
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
+    display: none;
 }

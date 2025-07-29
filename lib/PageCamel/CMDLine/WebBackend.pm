@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -52,7 +52,6 @@ sub new($class, $isDebugging, $configfile) {
 }
 
 sub init($self) {
-    
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => [ 'module', 'redirect', 'menu', 'view', 'userlevel', 'rootfile', 'item', 'header' ],);
@@ -155,7 +154,6 @@ sub init($self) {
 }
 
 sub run($self) {
-
     while(1) {
         my @connections = $self->{select}->can_read();
         foreach my $connection (@connections) {
@@ -194,7 +192,6 @@ sub run($self) {
 }
 
 sub handleClient($self, $client) {
-
     my $ok = 0;
 
     my $header = $self->readFrontendheader($client);
@@ -274,7 +271,6 @@ sub handleClient($self, $client) {
 }
 
 sub endprogram($self, $header, $debugmessage) {
-
     if($debugmessage !~ /exit\(0\)/) {
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
     }
@@ -291,13 +287,12 @@ sub endprogram($self, $header, $debugmessage) {
 }
 
 sub readFrontendheader($self, $client) {
-
     my $line = '';
     while(1) {
         my $temp;
         $client->sysread($temp, 1);
         if(!defined($temp) || !length($temp)) {
-            sleep(0.05);
+            sleep(0.01);
             next;
         }
         if($temp eq "\r") {

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -36,8 +36,13 @@ sub new($proto, %config) {
     return $self;
 }
 
-sub crossregister($self) {
+sub register($self) {
+    $self->register_debuglog('debuglog');
 
+    return;
+}
+
+sub crossregister($self) {
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $type = ref $memh;
 
@@ -49,7 +54,6 @@ sub crossregister($self) {
 }
 
 sub dblog($self, $error_type, $description) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $sth = $dbh->prepare("INSERT INTO errors (error_type, description)" .
@@ -63,7 +67,6 @@ sub dblog($self, $error_type, $description) {
 }
 
 sub auditlog($self, $modulename, $logtext, $username, @extrainfo) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $worker = $self->{PSAPPNAME};
 
@@ -78,7 +81,6 @@ sub auditlog($self, $modulename, $logtext, $username, @extrainfo) {
 }
 
 sub debuglog($self, @parts) {
-
     my $line = '';
     foreach my $part (@parts) {
         next unless(defined($part));
@@ -104,7 +106,6 @@ sub debuglog($self, @parts) {
 }
 
 sub debuglog_overwrite($self, @parts) {
-
     my $line = '';
     foreach my $part (@parts) {
         chomp $part;

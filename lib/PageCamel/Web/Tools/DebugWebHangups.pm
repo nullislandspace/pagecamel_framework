@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -30,7 +30,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_logstart("logstart");
     $self->register_logend("logend");
     $self->register_logrequestfinished("logrequestfinished");
@@ -42,7 +41,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     my $clacks = $self->newClacksFromConfig($clconf);
     for(my $id = 0; $id <= 65_535; $id++) {
@@ -55,7 +53,6 @@ sub crossregister($self) {
 }
 
 sub handle_child_start($self) {
-
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
     $self->{clacks} = $self->newClacksFromConfig($clconf);
     $self->{clackskey} = 'PageCamel::WebHangups::' . $PID;
@@ -67,7 +64,6 @@ sub handle_child_start($self) {
 }
 
 sub handle_child_stop($self) {
-
     $self->{clacks}->remove($self->{clackskey});
     $self->{clacks}->doNetwork();
 
@@ -76,7 +72,6 @@ sub handle_child_stop($self) {
 
 
 sub logstart($self, $ua) {
-
     my $webpath = $ua->{url} || '--unknown--';
 
     my $method = $ua->{method} || '--unknown--';
@@ -94,7 +89,6 @@ sub logstart($self, $ua) {
 }
 
 sub logend($self, $ua) {
-
     $self->{clacks}->store($self->{clackskey}, 'LOGEND ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
 
@@ -103,7 +97,6 @@ sub logend($self, $ua) {
 
 
 sub logdatadelivery($self, $ua) {
-
     $self->{clacks}->store($self->{clackskey}, 'LOGDATADELIVERY ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
 
@@ -111,7 +104,6 @@ sub logdatadelivery($self, $ua) {
 }
 
 sub logwebsocket($self, $ua) {
-
     $self->{clacks}->store($self->{clackskey}, 'LOGWEBSOCKET ' . $self->{debuginfo});
     $self->{clacks}->doNetwork();
 
@@ -119,7 +111,6 @@ sub logwebsocket($self, $ua) {
 }
 
 sub logrequestfinished($self, $ua, $header, $result) {
-
     $self->{clacks}->store($self->{clackskey}, 'IDLE');
     $self->{clacks}->doNetwork();
     delete $self->{debuginfo};
@@ -128,7 +119,6 @@ sub logrequestfinished($self, $ua, $header, $result) {
 }
 
 sub logstacktrace($self, $message) {
-
     my $key = 'DEBUG::STACKTRACE::' . $PID;
     print STDERR "############################# KEY $key\n";
     print STDERR "############################# MESSAGE $message\n";

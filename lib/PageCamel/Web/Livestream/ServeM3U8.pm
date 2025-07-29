@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -49,7 +49,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if(defined($self->{public}) && $self->{public} == 1) {
         $self->register_public_url($self->{webpath});
     }
@@ -58,7 +57,6 @@ sub crossregister($self) {
 }
 
 sub get_download($self, $ua) {
-
     my $filename = $ua->{url};
     my $remove = $self->{webpath};
     $filename =~ s/^$remove//;
@@ -108,7 +106,6 @@ sub get_download($self, $ua) {
 }
 
 sub get_index($self, $ua) {
-
     my $data = '';
     my $filecount = 0;
     my $loopcount = 0;

@@ -16,6 +16,7 @@ WriteMakefile(
         'CPAN::Mini::Inject' => 0,
         'Crypt::Digest::SHA256' => 0,
         'Crypt::LE' => 0,
+        'Crypt::OpenSSL::RSA' => 0.99, # Workaround for Crypt::LE
         'CSS::Minifier::XS' => 0,
         'Data::Dumper' => 0,
         'Data::Entropy::Algorithms' => 0,
@@ -62,6 +63,7 @@ WriteMakefile(
         'IO::Socket::INET' => 0,
         'IO::Socket::INET6' => 0,
         'IO::Socket::IP' => 0,
+        'IO::Pty::Easy' => 0,
         'JavaScript::Embedded' => '2.7.2',
         'JavaScript::Minifier' => 0,
         'JSON::RPC::Legacy::Client' => 0,
@@ -77,7 +79,7 @@ WriteMakefile(
         'Minecraft::RCON' => 0,
         'Module::Load' => 0,
         'Module::Load::Conditional' => 0,
-        'Net::Clacks::Client' => 29,
+        'Net::Clacks::Client' => 30,
         'Net::CUPS2' => 0,
         'Net::DNS' => 0,
         'Net::DNS::Packet' => 0,
@@ -123,6 +125,8 @@ WriteMakefile(
         'XML::RPC' => 2.1,
         'XML::Simple' => 0,
         'YAML::Syck' => 0,
+
+        "forks" => 0,
     },
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/PageCamel/Framework.pm', # retrieve abstract from module

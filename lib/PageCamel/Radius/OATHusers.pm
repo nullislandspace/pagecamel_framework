@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -27,7 +27,6 @@ sub new($class) {
 }
 
 sub validate($self, $database, $username, $password, $service) {
-
     # Missing fields
     if(!defined($username) || !defined($password) || !defined($service) ||
        $username eq '' || $password eq '' || $service eq '') {

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -42,7 +42,6 @@ sub register($self) {
 }
 
 sub get_admin($self, $ua) {
-
     my $webpath = $ua->{url};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -124,8 +123,8 @@ sub get_admin($self, $ua) {
         $backupsth->finish;
     }
     $webdata{Backups} = \@backups;
-    print STDERR Dumper(\@pagecameltables);
-    print STDERR Dumper($webdata{Backups});
+    #print STDERR Dumper(\@pagecameltables);
+    #print STDERR Dumper($webdata{Backups});
 
     my @computers;
     if(contains('pagecamel.computers', \@pagecameltables)) {
@@ -151,7 +150,6 @@ sub get_admin($self, $ua) {
 
             if($mode eq "schedulecommand") {
                 my $isodate = $ua->{postparams}->{'starttime'} || '';
-                print "Fucking datestring: ->", $isodate, "<-\n";
                 if($isodate eq '-- ::' || $isodate eq '____-__-__ __:__:__') {
                     # Compensate for datetimepicker mask when field is empty
                     $isodate = '';

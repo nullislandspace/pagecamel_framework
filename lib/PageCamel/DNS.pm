@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -38,7 +38,7 @@ our @ISA; ## no critic (ClassHierarchies::ProhibitExplicitISA)
 sub setThreadingMode {
     my($isDebugging) = @_;
 
-    if($isDebugging) {
+    if(0 && $isDebugging) {
         print "************ SINGLE THREAD MODE ********\n";
         push @ISA, 'Net::Server::Single'; ## no critic (ClassHierarchies::ProhibitExplicitISA)
     } else {
@@ -51,7 +51,6 @@ sub setThreadingMode {
 
 
 sub doConfig($self, $isDebugging, $isVerbose, $dbconf, $config) {
-
     $self->{isDebugging} = $isDebugging;
     $self->{isVerbose} = $isVerbose;
     $self->{dbconf} = $dbconf;
@@ -65,7 +64,6 @@ sub doConfig($self, $isDebugging, $isVerbose, $dbconf, $config) {
 }
 
 sub child_init_hook($self) {
-
     if(!defined($self->{config}->{remotelookup})) {
         $self->{config}->{remotelookup} = 0;
     }
@@ -106,7 +104,7 @@ sub child_init_hook($self) {
     }
     $self->{debuglogpid} = $childpid;
 
-    $self->debuglog("******************** CHILD START *********************");
+    #$self->debuglog("******************** CHILD START *********************");
 
     my $dbconf = $self->{dbconf};
     $self->{dbh} = DBI->connect($dbconf->{dburl}, $dbconf->{dbuser}, $dbconf->{dbpassword}, {AutoCommit => 0, RaiseError => 0})
@@ -151,8 +149,9 @@ sub child_init_hook($self) {
             or croak($dbh->errstr);
 
     $self->{domainexistssth} = $dbh->prepare_cached("SELECT true FROM nameserver_domain_entry
-                                      WHERE host_fqdn = ?
-                                      OR domain_fqdn = ?
+                                      WHERE (host_fqdn = ?
+                                      OR domain_fqdn = ?)
+                                      AND is_disabled = false
                                       LIMIT 1")
             or croak($dbh->errstr);
 
@@ -249,8 +248,7 @@ sub child_init_hook($self) {
 }
 
 sub child_finish_hook($self) {
-
-    $self->debuglog("******************** CHILD STOP *********************");
+    #$self->debuglog("******************** CHILD STOP *********************");
     delete $self->{clacks};
     if(defined($self->{dbh})) {
         $self->{dbh}->disconnect;
@@ -261,7 +259,6 @@ sub child_finish_hook($self) {
 }
 
 sub isownip($self, $ip, $dbh) {
-
     $ip =~ s/\/.*//;
 
     foreach my $ownip (@{$self->{config}->{server}->{bind_adresses}->{item}}) {
@@ -321,7 +318,6 @@ sub isownip($self, $ip, $dbh) {
 }
 
 sub ignorerequest($self, $hostname) {
-
     my $found = 0;
 
     if(!$self->{ignoreselsth}->execute($hostname)) {
@@ -368,7 +364,6 @@ sub debuglog($self, @loglineparts) {
 }
 
 sub countRequest($self) {
-
     if(!defined($self->{clacks})) {
         return;
     }
@@ -380,7 +375,6 @@ sub countRequest($self) {
     
 
 sub process_request($self, $realsocket) {
-
     if(!defined($self->{dbh})) {
         $self->child_init_hook;
     }
@@ -401,16 +395,12 @@ sub process_request($self, $realsocket) {
 }
 
 sub handleUDP($self, $peerhost) {
-
     eval {  ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $prop = $self->{'server'};
 
         my $indata = $prop->{udp_data};
         my $inpacket = Net::DNS::Packet->new(\$indata, 0);
         my ($question) = $inpacket->question;
-
-        # Count request
-        $self->countRequest();
 
         if($self->ignorerequest($question->qname)) {
             return;
@@ -486,13 +476,17 @@ sub handleUDP($self, $peerhost) {
         #$self->debuglog("Max len: $max_len, packet len: ", length($outdata));
 
         $prop->{client}->send($outdata);
+        
+        # Count request
+        $self->countRequest();
+
     };
 
     return;
 }
 
 sub handleTCP($self, $peerhost, $realsocket) {
-
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $self);
 
     binmode($realsocket);
     $realsocket->blocking(0);
@@ -551,9 +545,6 @@ sub handleTCP($self, $peerhost, $realsocket) {
 
             my $inpacket = Net::DNS::Packet->new(\$indata, 0);
             my ($question) = $inpacket->question;
-
-            # Count request
-            $self->countRequest();
 
             if($self->ignorerequest($question->qname)) {
                 return;
@@ -619,12 +610,15 @@ sub handleTCP($self, $peerhost, $realsocket) {
             my $outdata = $reply->data();
             my $outlenheader = pack('n', length($outdata));
 
-            if(!webPrint($realsocket, $outlenheader, $outdata)) {
+            if(!$webprint->write($realsocket, $outlenheader, $outdata)) {
                 if($self->{isVerbose}) {
                     print STDERR "webPrint failed, closing connection!\n";
                 }
                 return;
             }
+            
+            # Count request
+            $self->countRequest();
 
             # Loop/keep-alive
             # Reset Idle timeout
@@ -647,7 +641,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
     my $remotelookup = 0;
     if($peerhost ne $RECURSIVELOOKUP) {
-        $self->debuglog("Requested: $qtype OF $qname by $peerhost");
+        if(1 || $self->{isDebugging}) {
+            $self->debuglog("Requested: $qtype OF $qname by $peerhost");
+        }
     }
 
     # IP floodcheck (DNS DDOS to IP target), don't check for recursive lookups and whenever the client is localhost
@@ -669,7 +665,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
             $self->{ipblockchecksth}->finish;
             $dbh->commit;
             if(defined($isblocked) && $isblocked) {
-                $self->debuglog("Blocking request from $peerhost (IP)BLOCK");
+                if($self->{isDebugging}) {
+                    $self->debuglog("Blocking request from $peerhost (IP)BLOCK");
+                }
                 return;
             }
         }
@@ -693,7 +691,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
             $self->{hostblockchecksth}->finish;
             $dbh->commit;
             if(defined($isblocked) && $isblocked > 0) {
-                $self->debuglog("Blocking request from $peerhost (HOSTBLOCK)");
+                if($self->{isDebugging}) {
+                    $self->debuglog("Blocking request from $peerhost (HOSTBLOCK)");
+                }
                 return;
             }
         }
@@ -807,9 +807,9 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
         # to somehow signify the end of the AXFR zone transfer....?!?!?!?
         push @lines, $lines[0];
 
-        open(my $ofh, '>', '/home/cavac/temp/axfr.txt') or croak("$ERRNO");
-        print $ofh Dumper(\@lines);
-        close $ofh;
+        #open(my $ofh, '>', '/home/cavac/temp/axfr.txt') or croak("$ERRNO");
+        #print $ofh Dumper(\@lines);
+        #close $ofh;
     } elsif($qtype eq 'SOA') {
         # Need to find the SOA entry for the DOMAIN not the host
         $self->{soaselsth}->execute($qname) or croak($dbh->errstr);
@@ -1236,7 +1236,6 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
 
 sub resolve_extern($self, $qname, $qtype) {
-
     my $dbh = $self->{dbh};
 
     my $reply;
@@ -1396,7 +1395,6 @@ if(1) {
 }
 
 sub fixDestination($domain, $host) {
-
     my $destination;
     if($host =~ /\./ || $host =~ /\:/) {
         $destination = $host;

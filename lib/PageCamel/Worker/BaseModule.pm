@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -51,14 +51,17 @@ sub crossregister {
 }
 
 sub register_worker($self, $funcname) {
-
     $self->{server}->add_worker($self, $funcname);
     return;
 }
 
 sub register_cleanup($self, $funcname) {
-
     $self->{server}->add_cleanup($self, $funcname);
+    return;
+}
+
+sub register_sigchld($self, $funcname) {
+    $self->{server}->add_sigchld($self, $funcname);
     return;
 }
 
@@ -73,7 +76,6 @@ sub endconfig($self) {
 }
 
 sub newClacksFromConfig($self, $clconf) {
-
     my $socket = $clconf->get('socket');
     my $clacks;
     if(defined($socket) && $socket ne '') {
@@ -84,6 +86,16 @@ sub newClacksFromConfig($self, $clconf) {
 
     return $clacks;
 }
+
+# Kill the process without running any of the DESTROY callbacks
+# This is rather useful for forked childs
+sub suicide($self) {
+    while(1) {
+        kill 9, $PID;
+        sleep(1);
+    }
+}
+
 
 1;
 __END__

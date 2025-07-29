@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -34,7 +34,6 @@ sub new($class, $isDebugging, $isVerbose, $configfile) {
 }
 
 sub init($self) {
-
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => [ 'module', 'redirect', 'menu', 'view', 'userlevel', 'rootfile', 'item', 'columnprefix', ],);
@@ -101,7 +100,6 @@ sub init($self) {
 }
 
 sub run($self) {
-
     # Let STDOUT/STDERR settle down first
     sleep(0.1);
 

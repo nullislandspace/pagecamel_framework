@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -22,8 +22,11 @@ use IO::Socket::UNIX;
 use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
+use PageCamel::Helpers::WebPrint;
+use PageCamel::Helpers::Mandant;
 use Sys::Hostname;
 use POSIX;
+use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 # For turning off SSL session cache
 use Readonly;
@@ -52,6 +55,8 @@ sub new($class, $isDebugging, $configfile) {
     
     $self->{isDebugging} = $isDebugging;
     $self->{configfile} = $configfile;
+
+    $self->{mandanth} = PageCamel::Helpers::Mandant->new();
     
     if(0 && $isDebugging) {
         my @lines = `/usr/bin/who`;
@@ -64,6 +69,7 @@ sub new($class, $isDebugging, $configfile) {
             }
         }
     }
+
 
     $self->init();
     
@@ -128,14 +134,17 @@ sub init($self) {
             delete $self->{config}->{sslconfig}->{ssldomains}->{$host};
         }
     }
-
-
     
     my $APPNAME = $config->{appname};
     PageCamelLogo($APPNAME, $VERSION);
     print "Changing application name to '$APPNAME'\n\n";
     my $ps_appname = lc($APPNAME);
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
+
+    if(!defined($self->{config}->{headertimeout})) {
+        print STDERR "headertimeout not defined, setting it to 30 seconds\n";
+        $self->{config}->{headertimeout} = 30;
+    }
     
     if(!-d '/run/lock/pagecamel') {
         mkdir '/run/lock/pagecamel';
@@ -181,7 +190,7 @@ sub init($self) {
 
     if($hasssl) {
         if(!defined($self->{config}->{sslconfig}->{ssldefaultdomain})) {
-            print Dumper($self->{config}->{sslconfig});
+            #print Dumper($self->{config}->{sslconfig});
             croak("ssldefaultdomain not set!");
         }
         my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
@@ -243,16 +252,22 @@ sub init($self) {
 }
 
 sub run($self) {
-
     while(1) {
         while((my @connections = $self->{select}->can_read(1))) {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
 
-                #print "**** Connection from ", $client->peerhost(), "   \n";
+                my $peerhost = $client->peerhost();
+                my $peerport = $client->peerport();
+                my $hostip = $client->sockhost();
+                my $hostport = $client->sockport();
+                print "**** Connection from ", $peerhost, ":", $peerport, " to ", $hostip, ":", $hostport, "   \n";
+                #if(0 && $peerhost ne '94.130.141.212') {
+                #    $client->close;
+                #    next;
+                #}
 
                 if(defined($self->{debugip})) {
-                    my $peerhost = $client->peerhost();
                     if($peerhost ne $self->{debugip}) {
                         $client->close;
                         next;
@@ -302,7 +317,6 @@ sub run($self) {
 }
 
 sub handleClient($self, $client) {
-
     my $sigpipeseen = 0;
     my $sigpipehandled = 0;
 
@@ -351,12 +365,16 @@ sub handleClient($self, $client) {
             }
         }
 
+        my $headertimeout = $self->{config}->{headertimeout};
+        my $endtime = time + $headertimeout;
         if($usessl) {
             my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
             my $encrypted;
             my $ok = 0;
             eval {
+                #print STDERR "SSL connecting\n";
                 $encrypted = IO::Socket::SSL->start_SSL($client,
+                    Timeout => $headertimeout,
                     SSL_server => 1,
                     SSL_key_file=>  $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey},
                     SSL_cert_file=> $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert},
@@ -429,6 +447,7 @@ sub handleClient($self, $client) {
                 );
                 $ok = 1;
             };
+            #print STDERR "SSL connected\n";
 
             if(!$ok) {
                 print STDERR "EVAL ERROR: ", $EVAL_ERROR, "\n";
@@ -438,19 +457,122 @@ sub handleClient($self, $client) {
                 $self->endprogram();
             }
         }
+        binmode($client);
 
-        my $backend = IO::Socket::UNIX->new(
-                Peer => $selectedbackend,
-                Type => SOCK_STREAM,
-                Timeout => 3,
-            );
+        # Read all HTTP headers of the first request on this connection.
+        # We don't do a full parsing and validation here (that's the duty of the backend).
+        # We only grab them to
+        #    a) make sure that the user agent is actually sending a request over the connection before starting a backend
+        #    b) check if a certain cookie is set if "mandant" capability is enabled and re-select the backend
+
+
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #      WARNING: IO::Socket::SSL does not work if you sysread single bytes - you always have to read blocks
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        my @headers;
+        my $headererrors = 0;
+        local $INPUT_RECORD_SEPARATOR = undef;
+        my $select = IO::Select->new($client);
+        my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
+        my $headerevalok = 0;
+
+        my $readtimeout = $endtime - time;
+        if($readtimeout < 2) {
+            $readtimeout = 2;
+        }
+
+        eval {
+            #print STDERR "Start header reading...\n";
+            alarm($readtimeout);
+
+            while($overhead !~ /\r\n\r\n/) {
+                my $buf = undef;
+                my @connections = $select->can_read(1);
+                foreach my $socket (@connections) {
+                    sysread($socket, $buf, 10_000_000);
+                }
+                if(!defined($buf) || !length($buf)) {
+                    sleep(0.01);
+                    next;
+                }
+                $overhead .= $buf;
+
+                if($endtime < time) {
+                    $headererrors = 1;
+                    last;
+                }
+            }
+            $headerevalok = 1;
+        };
+        alarm(0);
+
+        if(!$headerevalok) {
+            #print STDERR "Header read timeout!\n";
+            $headererrors = 1;
+        }
+
+        my $rawheaders = '' . $overhead;
+
+        if(!$headererrors) {
+            @headers = $self->parseheaders($rawheaders);
+        }
+
+        if(!$headererrors && $self->{mandanth}->isActive()) {
+            # Check for Mandant cookie
+            my %cookies;
+            foreach my $header (@headers) {
+                if($header =~ /^Cookie\:\ (.+)$/i) {
+                    my @parts = split/\;/, $1;
+                    foreach my $part (@parts) {
+                        $part =~ s/^\s+//g;
+                        $part =~ s/\s+$//g;
+                        next if($part !~ /\=/);
+                        my ($cname, $cval) = split/\=/, $part;
+                        if(defined($cname) && $cname ne '' && defined($cval) && $cval ne '') {
+                            $cookies{$cname} = $cval;
+                        }
+                    }
+                }
+            }
+
+            if(defined($cookies{Mandant}) && $cookies{Mandant} ne '') {
+                my $shortname = $cookies{Mandant};
+                if(!$self->{mandanth}->isValidMandant($shortname)) {
+                    my $defaultmandant = $self->{mandanth}->getDefaultMandant();
+                    print STDERR "Unknown Mandant ", $shortname, ", using default mandant ", $defaultmandant, " instead\n";
+                    $shortname = $defaultmandant;
+                }
+                my $newselectedbackend = $self->{mandanth}->getBackend($shortname);
+                if(defined($newselectedbackend)) {
+                    print STDERR "Using backend ", $newselectedbackend, " for mandant ", $shortname, "\n";
+                    $selectedbackend = $newselectedbackend;
+                } else {
+                    print STDERR "Mandant config error? Ignoring Mandant config!\n";
+                }
+            }
+        }
+
+        my $backend;
+        if(!$headererrors) {
+            $backend = IO::Socket::UNIX->new(
+                    Peer => $selectedbackend,
+                    Type => SOCK_STREAM,
+                    Timeout => 15,
+                );
+        }
                 
         # Try to send error message to client that we couldn't reach the backend webserver
         if(!defined($backend)) {
             my $error = $ERRNO;
-            my $reply = $self->get590();
+            my $reply;
+            if($headererrors) {
+                $reply = $self->get408();
+            } else {
+                $reply = $self->get590();
+            }
 
-            my $timeout = time + 5;
+            my $timeout = time + 10;
             while(length($reply) && time < $timeout) {
                 my $written = 0;
                 eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -465,39 +587,19 @@ sub handleClient($self, $client) {
                 }
             }
             sleep(2);
-            close $client;
+            eval {
+                close $client;
+            };
             print STDERR "Failed to connect to backend $selectedbackend: $error\n";
             $self->endprogram();
         }
-                
 
-        binmode($client);
         binmode($backend);
-
-        my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
-        my $overheadwritten;
-        eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-            $overheadwritten = syswrite($backend, $overhead);
-        };
-        if($EVAL_ERROR) {
-            print STDERR "EVAL ERROR on writing overhead to backend: $EVAL_ERROR\n";
-            $self->endprogram();
-        } elsif($overheadwritten != length($overhead)) {
-            print STDERR "Could not write overheadline to backend!\n";
-            $self->endprogram();
-        }
-
-        #sleep(0.01);
-        if($sigpipeseen) {
-            print STDERR "SIGPIPE ON FIRST WRITE TO BACKEND - Bailing out\n";
-            $self->endprogram();
-        }
-
-        my $select = IO::Select->new($client, $backend);
+        $select->add($backend);
 
         my $done = 0;
         my $toclientbuffer = '';
-        my $tobackendbuffer = '';
+        my $tobackendbuffer = $overhead;
         my $debugincapture = '';
         my $debugoutcapture = '';
         my $clientdisconnect = 0;
@@ -511,7 +613,7 @@ sub handleClient($self, $client) {
             }
             if($sigpipehandled > 200) {
                 print STDERR "Too many SIGPIPEs, bailing out.\n";
-                print STDERR "*** Debug IN data: \n", $debugincapture, "\n";
+                #print STDERR "*** Debug IN data: \n", $debugincapture, "\n";
                 #print STDERR "*** Debug OUT data: \n", $debugoutcapture, "\n";
                 $done = 1;
             }
@@ -522,10 +624,15 @@ sub handleClient($self, $client) {
             # something in out output buffers
             my $waittime = 0.1;
             if(length($toclientbuffer) || length($tobackendbuffer)) {
-                $waittime = 0.01;
+                $waittime = 0.001;
             }
             
+            $! = 0;
             my @connections = $select->can_read($waittime);
+            my $err = '' . $!;
+            if($err ne '') {
+                print STDERR $!, "\n";
+            }
             foreach my $connection (@connections) {
                 sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
                 if(!length($rawbuffer)) {
@@ -674,7 +781,6 @@ sub handleClient($self, $client) {
 }
 
 sub endprogram($self) {
-
     sleep(1);
     while(1) {
         kill 9, $PID;
@@ -703,7 +809,54 @@ sub get590($self) {
     return $reply;
 }
 
+sub get408($self) {
+    my $html = '<html><head><title>408 Request Timeout</title></head><body onload="starttimer();">';
 
+    $html .= '<script>function starttimer() { setTimeout(() => {doreload();}, 15000); };function doreload() {window.location.reload();};</script>';
+
+    my $b64 = $self->_Image590();
+    $html .= '<p align="center"><img src="data:image/png;base64, ' . $b64 . '" onclick="doreload();" title="Net cat"></p>';
+    $html .= '<p align="center">Your browser did not send a full set of request headers within the alotted time.</p>';
+    $html .= '<p align="center">Click on the cat to reload the page.</p>';
+
+    $html .= "</body></html>";
+
+    my $reply = "HTTP/1.1 408 Request Timeout\r\n";
+    $reply .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $reply .= "Content-Length: " . length($html) . "\r\n";
+    $reply .= "\r\n";
+    $reply .= $html;
+
+    return $reply;
+}
+
+sub parseheaders($self, $rawheaders) {
+    my @headers;
+
+    local $INPUT_RECORD_SEPARATOR = undef;
+
+    my @bytes = split//, $rawheaders;
+    my $line = '';
+
+    while(scalar @bytes) {
+        my $char = shift @bytes;
+        
+        next if($char eq "\r");
+
+        if($char eq "\n") {
+            if($line eq '') {
+                last;
+            }
+            push @headers, '' . $line;
+            $line = '';
+            next;
+        }
+
+        $line .= $char;
+    }
+
+    return @headers;
+}
 
 sub _getLocalIPs($self) {
     my $starttime = time;
@@ -712,13 +865,19 @@ sub _getLocalIPs($self) {
     my @ips;
 
     my $ignorenext = 0;
+    my $backupip;
+    my $isbackupip = 0;
     foreach my $line (@lines) {
         chomp $line;
-        if($line =~ /^docker\d\:/ || $line =~ /^lo\:/ || $line =~ /^wlo\d\:/) {
+        if($line =~ /^docker\d\:/ || $line =~ /^lo\:/) {
             $ignorenext = 1;
+        }
+        if($line =~ /^wlo\d\:/) {
+            $isbackupip = 1;
         }
         if($ignorenext && $line eq '') {
             $ignorenext = 0;
+            $isbackupip = 0;
         }
         if($ignorenext) {
             #print "Ignoring $line\n";
@@ -729,9 +888,17 @@ sub _getLocalIPs($self) {
             $ip =~ s/^\ +//g;
             $ip =~ s/\ +$//g;
             if($ip !~ /127\./) {
-                push @ips, $ip;
+                if(!$isbackupip) {
+                    push @ips, $ip;
+                } else {
+                    $backupip = $ip;
+                }
             }
         }
+    }
+
+    if(!scalar @ips && defined($backupip)) {
+        push @ips, $backupip;
     }
 
     my $allips = join(',', sort @ips);

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -43,7 +43,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_worker("work_minute");
     $self->register_worker("work_shift");
     $self->register_worker("work_hour");
@@ -54,7 +53,6 @@ sub register($self) {
 
 
 sub work_shift($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -100,7 +98,6 @@ sub work_shift($self) {
 }
 
 sub work_hour($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -114,7 +111,6 @@ sub work_hour($self) {
     } else {
         $lastRun = dbderef($lastRun);
     }
-
 
     if($lastRun eq $now) {
         return $workCount;
@@ -173,7 +169,6 @@ sub work_hour($self) {
 }
 
 sub work_day($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -187,7 +182,6 @@ sub work_day($self) {
     } else {
         $lastRun = dbderef($lastRun);
     }
-
 
     if($lastRun eq $now) {
         return $workCount;
@@ -232,33 +226,48 @@ sub work_day($self) {
     }
 
     { # Schedule Backups
-        my $selsth = $dbh->prepare_cached("SELECT * FROM backup_schedule
-                                           WHERE is_enabled = true
-                                           ORDER BY backup_name")
-                or croak("$dbh->errsttr");
-        my @backups;
-        if($selsth->execute) {
-            while((my $line = $selsth->fetchrow_hashref)) {
-                push @backups, $line;
-            }
-            $selsth->finish;
-        } else {
+        my $delsth = $dbh->prepare_cached("DELETE FROM commandqueue
+                                            WHERE command = 'BACKUP'")
+                or croak($dbh->errstr);
+
+        if(!$delsth->execute) {
+            $reph->debuglog($dbh->errstr);
             $dbh->rollback;
-            $reph->debuglog("Reading BACKUP lines for scheduling FAILED!");
-        }
-
-        my ($ndate, $ntime) = getDateAndTime();
-
-        foreach my $backup (@backups) {
-            $reph->debuglog("Scheduling daily BACKUP for " . $backup->{backup_name});
-            my $starttime = $ndate . ' ' . $backup->{backup_time};
-            my @args = ($backup->{backup_name});
-            if($csth->execute('BACKUP', \@args, $starttime)) {
-                $workCount++;
-                $dbh->commit;
+        } else {
+            my $selsth = $dbh->prepare_cached("SELECT *,now()::time without time zone as currenttime,
+                                                CASE WHEN now()::time < backup_time THEN true ELSE false END as is_in_future
+                                                FROM backup_schedule WHERE is_enabled = true
+                                                ORDER BY backup_name")
+                                               
+                    or croak("$dbh->errsttr");
+            my @backups;
+            if($selsth->execute) {
+                while((my $line = $selsth->fetchrow_hashref)) {
+                    push @backups, $line;
+                }
+                $selsth->finish;
             } else {
                 $dbh->rollback;
-                $reph->debuglog("Scheduling daily BACKUP FAILED!");
+                $reph->debuglog("Reading BACKUP lines for scheduling FAILED!");
+            }
+
+            my ($ndate, $ntime) = getDateAndTime();
+
+            foreach my $backup (@backups) {
+                if(!$backup->{is_in_future}) {
+                    $reph->debuglog("Backup time for ", $backup->{backup_name}, " is in the past (", $backup->{backup_time}, "), because it's already ", $backup->{currenttime});
+                    next;
+                }
+                $reph->debuglog("Scheduling daily BACKUP for " . $backup->{backup_name});
+                my $starttime = $ndate . ' ' . $backup->{backup_time};
+                my @args = ($backup->{backup_name});
+                if($csth->execute('BACKUP', \@args, $starttime)) {
+                    $workCount++;
+                    $dbh->commit;
+                } else {
+                    $dbh->rollback;
+                    $reph->debuglog("Scheduling daily BACKUP FAILED!");
+                }
             }
         }
     }
@@ -290,7 +299,6 @@ sub work_day($self) {
 }
 
 sub work_minute($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};

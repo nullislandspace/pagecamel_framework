@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -50,6 +50,12 @@ my $templatemodulecount = 0;
 my @knowntemplatemodules;
 
 sub init($self) {
+    if(defined($ENV{PC_DISABLE_HTTPCOMPRESSION}) && $ENV{PC_DISABLE_HTTPCOMPRESSION}) {
+        $self->{enableCompression} = 0;
+    } else {
+        $self->{enableCompression} = 1;
+    }
+
     $self->_initTT();
     foreach my $key (qw[uninlineJavascript preventCSS prerenderCallback db reporting]) {
         if(!defined($self->{$key})) {
@@ -85,14 +91,12 @@ sub init($self) {
 }
 
 sub addPath($self, $basePath) {
-
     push @{$self->{EXTRAINC}}, $basePath;
 
     return 1;
 }
 
 sub addView($self, $path, $base) {
-    
     foreach my $v (@{$self->{view}}) {
         if($v->{base} eq $base) {
             croak("Can't addView for $base / $path because base $base is already configured!");
@@ -192,7 +196,6 @@ sub reloadFiles($self, $reph) {
 }
 
 sub load_dir($self, $dir, $base, $files, $reph) {
-
     $base =~ s/^\///o;
     $base =~ s/\/$//o;
 
@@ -227,6 +230,7 @@ sub runFinalcheck($self) {
     foreach my $key (@{$self->{translatekeys}}) {
         tr_rememberkey($key);
     }
+    $self->{finalcheckdone} = 1;
 
     #print "\nTemplates available:\n";
     #foreach my $name (sort keys %{$self->{cache}}) {
@@ -237,8 +241,7 @@ sub runFinalcheck($self) {
 }
 
 sub addTranslations($self, $webdata) {
-
-    my $lang = 'engi';
+    my $lang = 'eng';
     if(defined($webdata->{UserLanguage})) {
         $lang = $webdata->{UserLanguage};
     }
@@ -258,6 +261,13 @@ sub addTranslations($self, $webdata) {
     return;
 }
 
+sub translateTextDirect($self, $lang, $key) {
+    return tr_translate($lang, $key);
+}
+sub translateAddKeyDirect($self, $key) {
+    #print STDERR "  Adding translate key: ", $key, "\n";
+    return tr_rememberkey($key);
+}
 
 sub get($self, $name, $uselayout, %webdata) {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -377,7 +387,6 @@ sub render_partials($self, $name, %webdata) {
 
 
 sub do_uninline($self, $data, $kname, $fname) {
-        
     my @newlines;
     
     my ($preparseddata, $autodialogjs, $autodialoghtml) = $self->parseAutoDialogs($fname, $data);
@@ -603,7 +612,7 @@ sub do_uninline($self, $data, $kname, $fname) {
         }
         
         my $jsdata = join("\n", @jslines);
-        if(!$dynamicmode && !$self->{isDebugging}) {
+        if(!$dynamicmode && !$self->{isDebugging} && $self->{enableCompression}) {
             my $minified = minify(input => $jsdata);
             if(length($minified) < length($jsdata)) {
                 print "   Minified $jsname_static, saved ", length($jsdata) - length($minified), " bytes\n";
@@ -628,7 +637,7 @@ sub do_uninline($self, $data, $kname, $fname) {
             $filedata{uncompresseddata} = '[% USE tr %]' . $filedata{uncompresseddata} . "\n";
             $self->{uninlinefiles}->{$jsname_dynamic}= \%filedata;
         } else {
-            {
+            if($self->{enableCompression}) {
                 my $gzipped;
                 if(gzip(\$jsdata => \$gzipped, '-Level' => 9)) { # Use best available gzip compression for static stuff
                     if(length($gzipped) < length($jsdata)) {
@@ -636,7 +645,7 @@ sub do_uninline($self, $data, $kname, $fname) {
                     }
                 }
             }
-            if($brotliavailable) {
+            if($self->{enableCompression} && $brotliavailable) {
                 my $brotli = bro($jsdata, 9);
                 if(length($brotli) < length($jsdata)) {
                     $filedata{brotlidata} = $brotli
@@ -662,7 +671,6 @@ sub do_uninline($self, $data, $kname, $fname) {
 }
 
 sub get_uninline_static($self, $ua) {
-    
     my $fname = $ua->{url};
     
     if(!defined($self->{uninlinefiles}->{$fname})) {
@@ -703,13 +711,13 @@ sub get_uninline_static($self, $ua) {
 
     if(defined($ua->{headers}->{'Accept-Encoding-Array'})) {
         my $supportedcompress = $ua->{headers}->{'Accept-Encoding-Array'};
-        if($brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{brotlidata})) {
+        if($self->{enableCompression} && $brotliavailable && !$compressed && contains('br', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{brotlidata})) {
             $retpage{data} = $self->{uninlinefiles}->{$fname}->{brotlidata};
             $retpage{"Content-Encoding"} = "br";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
             $compressed = 1;
         }
-        if(!$compressed && contains('gzip', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{gzipdata})) {
+        if($self->{enableCompression} && !$compressed && contains('gzip', $supportedcompress) && defined($self->{uninlinefiles}->{$fname}->{gzipdata})) {
             $retpage{data} = $self->{uninlinefiles}->{$fname}->{gzipdata};
             $retpage{"Content-Encoding"} = "gzip";
             $self->extend_header(\%retpage, "Vary", "Accept-Encoding");
@@ -732,7 +740,6 @@ sub get_uninline_static($self, $ua) {
 }
 
 sub get_uninline_dynamic($self, $ua) {
-    
     my $fname = $ua->{url};
     
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -772,7 +779,6 @@ sub get_uninline_dynamic($self, $ua) {
 }
 
 sub makeDynamicScript($self, $page, $webdata, $templatename) {
-    
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     
     my $dynsource;
@@ -819,7 +825,6 @@ sub makeDynamicScript($self, $page, $webdata, $templatename) {
 }
 
 sub gen_dynjsname($self) {
-    
     my $namebase = 'abcdefghijklmnopqrstuvwxyz';
 
     my $name = '';
@@ -834,7 +839,6 @@ sub gen_dynjsname($self) {
 }
 
 sub gen_eventhandlername($self) {
-    
     my $namebase = 'abcdefghijklmnopqrstuvwxyz';
 
     my $name = '';
@@ -852,7 +856,6 @@ sub gen_eventhandlername($self) {
 #my @oldlines = split/\n/, $data;
 
 sub parseAutoDialogs($self, $fname, $data) {
-    
     my @oldlines = split/\n/, $data;
     my @newlines;
     my $generator = PageCamel::Helpers::AutoDialogs->new();

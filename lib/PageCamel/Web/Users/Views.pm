@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -34,14 +34,12 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_late_defaultwebdata("get_late_defaultwebdata");
 
     return;
 }
 
 sub crossregister($self) {
-
     $self->iterateCheckViews($self->{views}->{view});
 
     return;
@@ -157,7 +155,6 @@ sub iterateCheckViews($self, $checkview, $dblevel = '') {
 }
 
 sub getURL($self, $path) {
-
     my ($locmodname, $subvarname, $subsubvarname) = split/\//, $path;
     $subvarname = "" if(!defined($subvarname));
     $subsubvarname = "" if(!defined($subsubvarname));
@@ -196,7 +193,6 @@ sub getURL($self, $path) {
 }
 
 sub getstarturl($self, $rights) {
-
     my $starturl;
 
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -238,7 +234,6 @@ sub getstarturl($self, $rights) {
 }
 
 sub get_late_defaultwebdata($self, $webdata) {
-
     if(!defined($webdata->{userData})) {
         return;
     }
@@ -270,7 +265,6 @@ sub get_late_defaultwebdata($self, $webdata) {
 }
 
 sub iterateViews($self, $webdata, $dropdownmenu, $activeview, $rights, $activeURL, $viewlist) {
-
     foreach my $view (@{$viewlist}) {
         next if(defined($view->{level}) && !contains($view->{level}, $rights));
 

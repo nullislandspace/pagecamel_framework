@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -77,7 +77,10 @@ sub LoadConfig {
         my @modules = @{$config->{module}};
         my @newmodules;
         foreach my $module (@modules) {
-            if($module->{modname} ne "include") {
+            #if(!defined($module->{modname})) {
+            #    print STDERR "\nModule is missing modname:\n", Dumper($module), "\n";
+            #}
+            if(!defined($module->{modname}) || $module->{modname} ne "include") {
                 push @newmodules, $module;
             } else {
                 # Lets do some recursion

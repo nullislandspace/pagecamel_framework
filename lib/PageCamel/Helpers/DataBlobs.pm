@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -56,7 +56,6 @@ sub new($class, $dbh, $datablobid = undef, $metaonly = undef) {
 }
 
 sub blobOpen($self) {
-
     if(defined($self->{blobfd}) && !$self->blobClose()) {
         return 0;
     }
@@ -97,7 +96,6 @@ sub blobOpen($self) {
 }
 
 sub blobClose($self) {
-
     if($self->{metaonly}) {
         delete $self->{blobfd};
         return 1;
@@ -127,12 +125,10 @@ sub blobClose($self) {
 }
 
 sub blobID($self) {
-
     return $self->{datablob_id};
 }
 
 sub blobWrite($self, $data, $offset = 0) {
-
     if($self->{metaonly}) {
         croak("Can't write to metaonly blob fh!")
     }
@@ -176,7 +172,6 @@ sub blobWrite($self, $data, $offset = 0) {
 }
 
 sub blobRead($self, $data, $offset = 0, $len = undef) {
-
     if($self->{metaonly}) {
         croak("Can't read from metaonly blob fh!")
     }
@@ -223,7 +218,6 @@ sub blobRead($self, $data, $offset = 0, $len = undef) {
 }
 
 sub blobDelete($self) {
-
     if(defined($self->{blobfd})) {
         $self->blobClose;
     }
@@ -265,7 +259,6 @@ sub blobDelete($self) {
 #}
 
 sub blobUpdateETag($self, $force = false) {
-
     if($self->{metaonly}) {
         return;
     }
@@ -297,7 +290,6 @@ sub blobUpdateETag($self, $force = false) {
 }
 
 sub getLastUpdate($self) {
-
     if(!defined($self->{blobfd})) {
         $self->blobOpen();
     }
@@ -306,7 +298,6 @@ sub getLastUpdate($self) {
 }
 
 sub getETag($self) {
-
     if(!defined($self->{blobfd})) {
         $self->blobOpen();
     }
@@ -317,7 +308,6 @@ sub getETag($self) {
 }
 
 sub getLength($self) {
-
     if(!defined($self->{blobfd})) {
         $self->blobOpen();
     }

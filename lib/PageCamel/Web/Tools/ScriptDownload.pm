@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -33,13 +33,11 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get_file");
     return;
 }
 
 sub get_file($self, $ua) {
-
     my $webpath = '' . $ua->{url};
     $webpath =~ s/^$self->{webpath}//;
     $webpath =~ s/^\///;

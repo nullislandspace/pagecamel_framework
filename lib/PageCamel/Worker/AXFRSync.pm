@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -40,7 +40,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_worker("work_hour");
 
     return;
@@ -48,7 +47,6 @@ sub register($self) {
 
 
 sub work_hour($self) {
-
     my $workCount = 0;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -118,7 +116,6 @@ sub work_hour($self) {
 }
 
 sub syncDomain($self, $domain, $times) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $workCount = 0;
@@ -229,7 +226,6 @@ sub syncDomain($self, $domain, $times) {
 }
 
 sub maptime($self, $value, $times) {
-
     if(defined($times->{$value})) {
         return $value;
     }

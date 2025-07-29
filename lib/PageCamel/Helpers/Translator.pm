@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -42,7 +42,6 @@ BEGIN {
 
 
 sub tr_init($dbh, $memh, $debugflag) {
-
     $globalmemh = $memh;
     $globaldbh = $dbh;
     $isDebugging = $debugflag;
@@ -57,7 +56,7 @@ sub tr_checkreload {
 
     my $remotechecksum = $memh->get("LanguageCache");
     $remotechecksum = dbderef($remotechecksum);
-    if($cachechecksum ne $remotechecksum) {
+    if(!defined($remotechecksum) || $cachechecksum ne $remotechecksum) {
         tr_reload();
     }
 
@@ -112,7 +111,6 @@ sub tr_reload() {
 }
 
 sub makeCacheChecksum($cache) {
-    
     my $cachestring = '';
     $cachestring .= join('', sort @{$cache->{keys}});
     
@@ -132,7 +130,6 @@ sub makeCacheChecksum($cache) {
 }
 
 sub tr_checklang($lang) {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
@@ -145,7 +142,6 @@ sub tr_checklang($lang) {
 }
 
 sub tr_rememberkey($key) {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
@@ -166,7 +162,6 @@ sub tr_rememberkey($key) {
 }
 
 sub tr_translate($lang, $key) {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
@@ -204,41 +199,77 @@ sub tr_translate($lang, $key) {
 }
 
 sub tr_export() {
-
     croak("Not initialized!") unless($is_init);
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
 
     tr_reload();
 
     my %exportdata = (
-        ExportVersion   => 3,
-        Translations    => encode_base64(freeze($localcache), ''),
+        ExportVersion   => 4,
+        Translations    => $localcache,
     );
-
-
-    my $exp = dbfreeze(\%exportdata);
+    
+    my $rawexp = encode_utf8 JSON::XS->new->pretty(1)->canonical(1)->encode(\%exportdata);
+    #my $rawexp = encode_utf8 encode_json(\%exportdata);
+    my @parts = split/\n/, $rawexp;
+    my $exp = "#V4\n";
+    foreach my $part (@parts) {
+        $exp .= encode_base64($part, '');
+        $exp .= "\n";
+    }
 
     return $exp;
 }
 
 sub tr_import($impraw) {
-
     croak("Not initialized!") unless($is_init);
+
     my ($dbh, $memh) = ($globaldbh, $globalmemh);
+
+    print STDERR "\n\nTRANSLATION IMPORT\n";
 
     tr_reload();
 
-
-    my $imp = dbthaw($impraw);
-    $imp = dbderef($imp);
+    my $imp = '';
     my $impversion = 1;
-    if(defined($imp->{ExportVersion})) {
-        $impversion = $imp->{ExportVersion};
-        delete $imp->{ExportVersion};
+
+    if($impraw =~ /^\-\-\-/) {
+        # Old format
+        print STDERR "FREEZE FORMAT\n";
+        $imp = dbthaw($impraw);
+        $imp = dbderef($imp);
+    } elsif($impraw =~ /^\#V/) {
+        # New format
+        print STDERR "JSON FORMAT\n";
+
+        # Remove file leader
+        my @parts = split/\n/, $impraw;
+        shift @parts;
+
+        while(@parts) {
+            my $line = shift @parts;
+            $imp .= decode_base64 $line;
+            $imp .= "\n";
+        }
+
+        $imp = decode_json $imp;
+
+    } else {
+        # UNKNOWN
+        print STDERR "UNKNOWN FILE FORMAT!\n";
+        return;
     }
 
-    if($impversion >= 3) {
+
+    if(defined($imp->{ExportVersion})) {
+        $impversion = $imp->{ExportVersion};
+    }
+
+
+    if($impversion == 3) {
         $imp = thaw(decode_base64($imp->{Translations}));
+    } elsif($impversion > 3) {
+        $imp = $imp->{Translations};
     }
 
     my $delsth = $dbh->prepare("DELETE FROM translate_languages")

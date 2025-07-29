@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -24,7 +24,6 @@ use Readonly;
 Readonly::Scalar my $BLOBMODE => 0x00020000; ## no critic (ValuesAndExpressions::RequireNumberSeparators)
 
 sub updateConfig($self) {
-    
     # This must be done *AFTER* new in SUPER (to handle host specific cases)
     if(defined($self->{include})) {
         print "    Using PostgreSQL connection info from ", $self->{include}, "\n";
@@ -81,6 +80,8 @@ sub checkDBH($self, $hasforked = false) {
                                {
                                    AutoCommit => 0,
                                    RaiseError => 0,
+                                   PrintError => 0,
+                                   PrintWarn  => 0,
                                    AutoInactiveDestroy => 1,
                                }) or croak("$EVAL_ERROR");
     $self->{mdbh} = $dbh;
@@ -97,7 +98,6 @@ sub checkDBH($self, $hasforked = false) {
 }
 
 sub getColumnType($self, $xtable, $xcolumn) {
-
     my $table = '' . $xtable;
     my $column = '' . $xcolumn;
 
@@ -176,14 +176,13 @@ sub getColumnType($self, $xtable, $xcolumn) {
     return $type;
 }
 
-sub getDefaultValue($self, $xtable, $xcolumn) {
-
+sub getDefaultValue($self, $xtable, $xcolumn, $dateexpander=0) {
     my $table = '' . $xtable;
     my $column = '' . $xcolumn;
 
     $self->checkDBH();
 
-    my $sth = $self->{mdbh}->prepare_cached("SELECT column_name, column_default
+    my $sth = $self->{mdbh}->prepare_cached("SELECT column_name, column_default, data_type
                                                 FROM information_schema.columns
                                                 WHERE table_schema = ?
                                                 AND table_name = ?
@@ -207,7 +206,11 @@ sub getDefaultValue($self, $xtable, $xcolumn) {
         return;
     }
 
-    if($line->{column_default} =~ /^nextval/ || $line->{column_default} eq 'now()') {
+    if($dateexpander && $line->{data_type} =~ /(date|time)/ && $line->{column_default} =~ /now\(\)/) {
+        return 'XXAUTOEXPANDXX_' . $line->{column_default};
+    }
+
+    if($line->{column_default} =~ /^nextval/) {
         return;
     }
 
@@ -233,14 +236,12 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_cleanup("cleanup");
 
     return;
 }
 
 sub cleanup($self) {
-
     $self->checkDBH();
     $self->{mdbh}->rollback;
 
@@ -358,19 +359,16 @@ BEGIN {
 }
 
 sub decode_hstore($self, $val) {
-
     # return hashref
     return Pg::hstore::decode($val);
 }
 
 sub encode_hstore($self, $hashref) {
-
     # return string
     return Pg::hstore::encode($hashref);
 }
 
 sub pg_notifies($self) {
-
     $self->checkDBH();
     my $notify = $self->{mdbh}->pg_notifies;
     return $notify;

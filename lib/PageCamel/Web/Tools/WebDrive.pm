@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -46,7 +46,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, 'get', "GET");
     $self->register_webpath($self->{downloadwebpath}, 'get_download', "GET");
     $self->register_webpath($self->{wspath}, 'socketstart', "GET", "CONNECT");
@@ -60,7 +59,6 @@ sub register($self) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
 
@@ -116,7 +114,6 @@ sub reload($self) {
 }
 
 sub get($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -186,18 +183,15 @@ sub get($self, $ua) {
 }
 
 sub get_hashingworker($self, $ua) {
-    
     return $self->get_workerscript($ua, 'tools/webdrive_hashingworker.js');
 }
 
 sub get_uploadworker($self, $ua) {
-    
     return $self->get_workerscript($ua, 'tools/webdrive_uploadworker.js');
 }
 
 
 sub get_workerscript($self, $ua, $templatename) {
-
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -225,7 +219,6 @@ sub get_workerscript($self, $ua, $templatename) {
 }
     
 sub socketstart($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
@@ -269,10 +262,11 @@ sub socketstart($self, $ua) {
 }
 
 sub sockethandler($self, $ua) {
-
     my $session = $self->{sessiondata};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
 
     my %settings;
     foreach my $setname (qw[websocket_encryption client_connect_timeout client_disconnect_timeout chunk_size]) {
@@ -312,7 +306,7 @@ sub sockethandler($self, $ua) {
                 if(!$ua->{realsocket}) {
                 #if(0 && defined($status) && $status == 0) {
                     if($self->{isDebugging}) {
-                        print STDERR "Websocket closed\n";
+                        $reph->debuglog("Websocket closed");
                     }
                     $socketclosed = 1;
                     last;
@@ -349,7 +343,7 @@ sub sockethandler($self, $ua) {
                     my %msg = (
                         type => 'PING',
                     );
-                    if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
+                    if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
                         #print STDERR "Write to socket failed, closing connection!\n";
                         $socketclosed = 1;
                         last;
@@ -419,7 +413,7 @@ sub sockethandler($self, $ua) {
                             type => 'FILEDONE',
                             filename => $updata{remotename},
                         );
-                        if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
+                        if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
                             #print STDERR "Write to socket failed, closing connection!\n";
                             $socketclosed = 1;
                             last;
@@ -462,7 +456,7 @@ sub sockethandler($self, $ua) {
                                 type => 'FILEDONE',
                                 filename => $upfiles[0]->{remotename},
                             );
-                            if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
+                            if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
                                 #print STDERR "Write to socket failed, closing connection!\n";
                                 $socketclosed = 1;
                                 last;
@@ -491,7 +485,7 @@ sub sockethandler($self, $ua) {
                      my %donemsg = (
                          type => 'RELOADTABLE',
                      );
-                     if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
+                     if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
                          #print STDERR "Write to socket failed, closing connection!\n";
                          $socketclosed = 1;
                          last;
@@ -504,7 +498,7 @@ sub sockethandler($self, $ua) {
             if($frame->is_close) {
                 #print STDERR "CLOSE FRAME RECIEVED!\n";
                 $socketclosed = 1;
-                if(!webPrint($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
                     #print STDERR "Write to socket failed, failed to properly close connection!\n";
                 }
             }
@@ -519,7 +513,7 @@ sub sockethandler($self, $ua) {
                     chunk => $upfiles[0]->{missingchunks}->[0],
                     percentage => $percentage,
                 );
-                if(!webPrint($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
                     #print STDERR "Write to socket failed, closing connection!\n";
                     $socketclosed = 1;
                     last;
@@ -549,7 +543,6 @@ sub sockethandler($self, $ua) {
 }
 
 sub get_files($self, $ua) {
-    
     my @files;
     my $total = 0;
     my $count = 0;
@@ -695,7 +688,6 @@ sub get_files($self, $ua) {
 }
 
 sub clean_fname($self, $filename) {
-
     my $safe_filename_characters = "a-zA-Z0-9_.-";
     $filename =~ s/\\/\//go;
     my ( $name, $path, $extension ) = fileparse ( $filename, '\..*' );
@@ -706,7 +698,6 @@ sub clean_fname($self, $filename) {
 }
 
 sub clean_searchstring($self, $searchstring) {
-
     $searchstring =~ s/^\s+//;
     $searchstring =~ s/\s+$//;
     $searchstring =~ s/\s+/\ /g;
@@ -722,7 +713,6 @@ sub clean_searchstring($self, $searchstring) {
 
 
 sub get_download($self, $ua) {
-
     my $uamethod = $ua->{method};
     my @headkeys = sort keys %{$ua->{headers}};
     my %rheaders;
@@ -1039,7 +1029,6 @@ sub get_download($self, $ua) {
 }
 
 sub file_get_multipart_contentlength($self, $ua) {
-
     my $len = 0;
     foreach my $okrange (@{$self->{file}->{ranges}}) {
 
@@ -1056,7 +1045,6 @@ sub file_get_multipart_contentlength($self, $ua) {
 }
 
 sub file_get_multipart($self, $ua) {
-
     if(!defined($self->{file}->{fh})) {
         $self->{file}->{fh} = File::Binary->new($self->{file}->{fname});
         $self->{file}->{len} = 0;
@@ -1117,7 +1105,6 @@ sub file_get_multipart($self, $ua) {
 }
 
 sub file_get($self, $ua) {
-
     my $ok = 0;
 
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)

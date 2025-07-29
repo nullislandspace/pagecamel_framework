@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -21,7 +21,6 @@ use PageCamel::Helpers::Padding qw(doFPad);
 our @EXPORT_OK = qw(decode_uri decode_uri_part decode_uri_path encode_uri encode_uri_part encode_uri_path);
 
 sub encode_uri($orig) {
-
     my @oparts = split/\//, $orig;
     my @eparts;
     foreach my $opart (@oparts) {
@@ -32,7 +31,6 @@ sub encode_uri($orig) {
 }
 
 sub encode_uri_part($orig) {
-
     $orig = encode_utf8($orig);
 
     my $encoded = '';
@@ -52,7 +50,6 @@ sub encode_uri_part($orig) {
 }
 
 sub encode_uri_path($orig, $encodeslashes = 0) {
-
     my $encoded = '';
 
     my @parts = split//, $orig;
@@ -74,7 +71,6 @@ sub encode_uri_path($orig, $encodeslashes = 0) {
 }
 
 sub decode_uri($orig) {
-
     my @oparts = split/\//, $orig;
     my @dparts;
     foreach my $opart (@oparts) {
@@ -85,7 +81,6 @@ sub decode_uri($orig) {
 }
 
 sub decode_uri_part($orig) {
-
     my $decoded = '';
     return $decoded unless defined($orig);
     my @parts = split//, $orig;
@@ -105,7 +100,6 @@ sub decode_uri_part($orig) {
 
 # This is similar to decode_uri_part, but treats the plus sign literally instead of as space
 sub decode_uri_path($orig) {
-
     my $decoded = '';
     return $decoded unless defined($orig);
     my @parts = split//, $orig;

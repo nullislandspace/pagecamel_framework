@@ -8,7 +8,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -42,7 +42,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $clconf = $self->{server}->{modules}->{$self->{clacksconfig}};
 
@@ -70,14 +69,12 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     $self->register_worker("work_cycle");
 
     return;
 }
 
 sub work_cycle($self) {
-
     my $workCount = 0;
     my ($ok, $sval, $mode);
     my $now = time;
@@ -130,7 +127,6 @@ sub work_cycle($self) {
 }
 
 sub updateCoords($self, $data) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -225,7 +221,6 @@ sub updateCoords($self, $data) {
 }
 
 sub updateSkins($self) {
-
     my $workCount = 0;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -332,7 +327,6 @@ sub updateSkins($self) {
 }
 
 sub recordCoords($self) {
-
     my $workCount = 0;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -387,7 +381,6 @@ sub recordCoords($self) {
 }
 
 sub playbackCoords($self) {
-
     my $workCount = 0;
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -480,7 +473,6 @@ sub playbackCoords($self) {
 
 
 sub getNameFromUUID($self, $uuid) {
-
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $mech = WWW::Mechanize::GZip->new();
     my $url = "https://api.mojang.com/user/profiles/" . $uuid . "/names";
@@ -516,7 +508,6 @@ sub getNameFromUUID($self, $uuid) {
 }
 
 sub getIcons($self, $playername) {
-
     my $skindata = $self->loadRawSkin($playername);
     my $alive = $self->renderIcon($playername, $skindata, 0);
     my $dead = $self->renderIcon($playername, $skindata, 1);
@@ -525,7 +516,6 @@ sub getIcons($self, $playername) {
 }
 
 sub loadRawSkin($self, $playername) {
-
     my $skindata;
 
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -557,7 +547,6 @@ sub loadRawSkin($self, $playername) {
 }
 
 sub renderIcon($self, $playername, $skindata, $isdead) {
-
     my $src = GD::Image->newFromPngData($skindata, 1);
     my $wings = GD::Image->newFromPngData(getAngelWings(), 1);
     my $dst = GD::Image->newTrueColor(64, 64);
@@ -666,7 +655,6 @@ sub getAngelWings {
 }
 
 sub parseUserdata($raw) {
-
     $raw =~ s/\[//g;
     $raw =~ s/\]//g;
     $raw =~ s/\"//g;

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -34,13 +34,11 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_worker("work");
     return;
 }
 
 sub add_plugin($self, $device, $subdevice, $module, $func) {
-
     if(defined($self->{loggers}->{$device}->{$subdevice})) {
         croak("Logging plugin for $device / $subdevice already registered!");
     }
@@ -52,7 +50,6 @@ sub add_plugin($self, $device, $subdevice, $module, $func) {
 
 
 sub work($self) {
-
     my $workCount = 0;
 
     my $scanspeeddate = getScanspeedDate($self->{scanspeed});

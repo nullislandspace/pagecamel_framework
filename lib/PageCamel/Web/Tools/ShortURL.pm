@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -55,7 +55,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-    
     if(0) {
         my $rickroll = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
         return (
@@ -216,7 +215,6 @@ sub get($self, $ua) {
 }
 
 sub createID($self) {
-    
     my @validchars = split//, '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
     my $shortid = '';
     for(1..6) {
@@ -227,7 +225,6 @@ sub createID($self) {
 }
 
 sub getInputForm($self, $result) {
-    
     if(!defined($result)) {
         $result = '';
     }
@@ -247,8 +244,6 @@ sub getInputForm($self, $result) {
 }
 
 sub custom_LONG($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $urls = '';
 
@@ -287,8 +282,6 @@ sub custom_LONG($self, $ua) {
 
 
 sub custom_SHORT($self, $ua) {
-
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $urls = '';
 

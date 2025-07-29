@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -37,7 +37,6 @@ sub register($self) {
 }
 
 sub get($self, $ua) {
-
     my $webpath = $ua->{url};
     my $seth = $self->{server}->{modules}->{$self->{usersettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -87,7 +86,6 @@ sub get($self, $ua) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     if(!defined($webdata->{userData}) ||
               !defined($webdata->{userData}->{user}) ||
               $webdata->{userData}->{user} eq "") {

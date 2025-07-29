@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -32,13 +32,11 @@ sub new($proto, %config) {
 }
 
 sub crossregister($self) {
-
     $self->register_plugin('work', 'WEBGUI', 'ACCESS');
     return;
 }
 
 sub work($self, $device, $dbh, $reph, $memh) {
-
     my $workCount;
 
     $workCount += $self->workWebgui($device, $dbh, $reph, $memh);
@@ -51,7 +49,6 @@ sub work($self, $device, $dbh, $reph, $memh) {
 }
 
 sub workWebgui($self, $device, $dbh, $reph, $memh) {
-
     my $workCount = 0;
 
     $reph->debuglog("Logging webclicks status for " . $device->{hostname});
@@ -130,8 +127,6 @@ sub workWebgui($self, $device, $dbh, $reph, $memh) {
 }
 
 sub workFirewall($self, $device, $dbh, $reph, $memh) {
-
-
     $reph->debuglog("Updating CAVACDISPLAY for Firewall");
     $memh->refresh_lifetick;
 

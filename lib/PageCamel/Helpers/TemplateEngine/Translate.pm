@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -58,7 +58,6 @@ sub tr($self, $data) {
 }
 
 sub quote($self, $data) {
-
     my $quoted = encode_entities($data, "'<>&\"\n");
     $quoted =~ s/ä/&auml;/;
     $quoted =~ s/ö/&ouml;/;
@@ -72,12 +71,10 @@ sub quote($self, $data) {
 }
 
 sub trquote($self, $data) {
-
     return $self->quote($self->tr($data));
 }
 
 sub fixdate($self, $data) {
-
     return $self->quote(fixDateField($data));
 }
 

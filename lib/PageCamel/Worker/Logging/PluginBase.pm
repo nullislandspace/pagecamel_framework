@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -27,7 +27,6 @@ sub new($proto, %config) {
 }
 
 sub register_plugin($self, $funcname, $type, $subtype) {
-
     print "  $self->{modname} will handle logging for $type / $subtype\n";
 
     $self->{server}->{modules}->{$self->{scheduler}}->add_plugin($type, $subtype, $self, $funcname);

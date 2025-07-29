@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -28,7 +28,6 @@ sub new($proto, %config) {
 }
 
 sub reload($self) {
-
     # Can load files only once due to register(),
     # and we ain't doing it here
 
@@ -36,7 +35,6 @@ sub reload($self) {
 }
 
 sub load_files($self) {
-
     # Empty cache
     my %files;
     $self->{cache} = \%files;
@@ -76,7 +74,6 @@ sub load_files($self) {
 }
 
 sub load_dir($self, $basedir) {
-
     my $fcount = 0;
 
     opendir(my $dfh, $basedir) or croak("$ERRNO");
@@ -125,7 +122,6 @@ sub load_dir($self, $basedir) {
 }
 
 sub register($self) {
-
     $self->load_files;
 
     return;
@@ -133,7 +129,6 @@ sub register($self) {
 
 
 sub crossregister($self) {
-
     # Register every file on its own
     foreach my $url (keys %{$self->{cache}}) {
         $self->register_webpath($url, "get");
@@ -144,7 +139,6 @@ sub crossregister($self) {
 }
 
 sub get($self, $ua) {
-
     my $name = $ua->{url};
 
     return (status  =>  404) unless defined($self->{cache}->{$name});

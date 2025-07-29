@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -41,7 +41,6 @@ sub register($self) {
 }
 
 sub get($self, $username, $settingname) {
-
     if(!defined($username) || !defined($settingname)) {
         return 0;
     }
@@ -78,7 +77,6 @@ sub get($self, $username, $settingname) {
 }
 
 sub set($self, $username, $settingname, $settingref) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $memhname = "UserSettings::" . $username . "::" . $settingname;
@@ -95,7 +93,6 @@ sub set($self, $username, $settingname, $settingref) {
 }
 
 sub delete($self, $username, $settingname) {
-
     my $settingref;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -116,7 +113,6 @@ sub delete($self, $username, $settingname) {
 }
 
 sub list($self, $username) {
-
     my @settingnames;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 

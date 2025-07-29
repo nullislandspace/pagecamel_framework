@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -111,9 +111,11 @@ use PageCamel::Web::Tools::PIMenu;
 use PageCamel::Web::Tools::RemoteConsoleLog;
 use PageCamel::Web::Tools::RemoteLog;
 use PageCamel::Web::Tools::SQLJS;
+use PageCamel::Web::Tools::SSH;
 use PageCamel::Web::Tools::ScriptDownload;
 use PageCamel::Web::Tools::ShortURL;
 use PageCamel::Web::Tools::Sitemap;
+use PageCamel::Web::Tools::SleepTest;
 use PageCamel::Web::Tools::WebDrive;
 use PageCamel::Web::Tools::WorkerControl;
 use PageCamel::Web::Translate;
@@ -140,6 +142,7 @@ use Socket;
 use Module::Load;
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::URI qw(decode_uri_part decode_uri_path);
+use PageCamel::Helpers::Mandant;
 
 use Time::HiRes qw[time sleep alarm];
 
@@ -337,16 +340,15 @@ sub processing_error_hook($self, @errors) {
 
 
 sub allow_deny_hook($self, $peerhost) {
-
     $self->{last_accepted_client} = '0.0.0.0';
 
     if(!defined($peerhost)) {
-        print STDERR "Undefined \$peerhost in allow_deny_hook\n";
+        $self->printdebuglog("Undefined \$peerhost in allow_deny_hook");
         return 0;
     }
 
     if (!(defined $peerhost)) {
-        print STDERR "Couldn't get peer name!\n";
+        $self->printdebuglog("Couldn't get peer name!");
         return 0;
     }
 
@@ -361,7 +363,6 @@ sub allow_deny_hook($self, $peerhost) {
 };
 
 sub post_process_request_hook($self) {
-
     #print STDERR "Closing connection to ", $self->{last_accepted_client}, "\n";
     $self->{last_accepted_client} = '0.0.0.0';
 
@@ -369,7 +370,6 @@ sub post_process_request_hook($self) {
 }
 
 sub set_usessl($self, $usessl) {
-
     $self->{usessl} = $usessl;
     foreach my $modname (keys %{$self->{modules}}) {
         $self->{modules}->{$modname}->{usessl} = $usessl;
@@ -379,7 +379,6 @@ sub set_usessl($self, $usessl) {
 }
 
 sub child_init_hook($self) {
-
     if(0 && $self->{isDebugging}) {
         print STDERR "******************** CHILD START *********************\n";
     }
@@ -392,7 +391,6 @@ sub child_init_hook($self) {
 }
 
 sub child_finish_hook($self) {
-
     if(0 && $self->{isDebugging}) {
         print STDERR "******************** CHILD STOP *********************\n";
     }
@@ -404,7 +402,6 @@ sub child_finish_hook($self) {
 }
 
 sub readheader($self, $timeout, $socket) {
-
     my $line;
     my $ok = 0;
     my $buf;
@@ -451,12 +448,11 @@ sub readheader($self, $timeout, $socket) {
 }
 
 sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
-
     # Note: Timeout is set per datablock
 
     my $line;
     my $datalen = 0;
-    my $postdata;
+    my $postdata = '';
     my $ok = 0;
     my $unread = $ua->{headers}->{'Content-Length'};
     my $tempdata;
@@ -495,21 +491,71 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
     };
 
     if(!$ok) {
-        print STDERR "POST data recieve timeout\n";
+        $self->printdebuglog("POST data recieve timeout");
+        $self->printdebuglog("Got ", length($postdata), " but should have gotten ", $ua->{headers}->{'Content-Length'});
         return 0;
     } elsif($datalen != $ua->{headers}->{'Content-Length'}) {
-        print STDERR "Failed to read postdata\n";
+        $self->printdebuglog("Failed to read postdata");
         return 0;
     } elsif($datalen != length($postdata)) {
-        print STDERR "INTERNAL ERROR: read() reported wrong number of bytes read\n";
+        $self->printdebuglog("INTERNAL ERROR: read() reported wrong number of bytes read");
         return 0;
     }
     $ua->{postdata} = $postdata;
     return 1;
 }
 
-sub parse_request_line($self, $ua, $header) {
+sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xfuncname) {
+    # Note: Timeout is set per datablock
 
+    my $line;
+    my $datalen = 0;
+    my $ok = 0;
+    my $unread = $ua->{headers}->{'Content-Length'};
+    my $tempdata;
+    #print STDERR Dumper($ua->{headers});
+    eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        my $endtime = time + $timeout;
+        while($unread) {
+            my $thisblocksize = $blocksize;
+            if($unread < $thisblocksize) {
+                $thisblocksize = $unread;
+            }
+            $tempdata = undef;
+            my $lastread = sysread($socket, $tempdata, $thisblocksize);
+            if(!defined($tempdata) || !length($tempdata)) {
+                if(time > $endtime) {
+                    last;
+                }
+                sleep(0.01);
+                next;
+            }
+
+            # Got data, move timeout window
+            $endtime = time + $timeout;
+           
+            $unread -= $lastread;
+            $datalen += $lastread;
+            print STDERR "---------> STREAMING $lastread bytes\n";
+            if(!$xmodule->$xfuncname($ua, $tempdata)) {
+                print STDERR "--------- STREAMING FAILED\n";
+                return 0;
+            }
+
+            #print STDERR "Getting POST data ($unread to go)....\n";
+
+        }
+
+        if(!$unread) {
+            $ok = 1;
+        }
+    };
+
+    print STDERR "--------- STREAMING DONE: $ok\n";
+    return $ok;
+}
+
+sub parse_request_line($self, $ua, $header) {
     if($header =~ /^([A-Z]+)\ (\S+)\ HTTP\/(.*)$/) {
         ($ua->{method}, $ua->{url}, $ua->{httpversion}) = ($1, $2, $3);
     } else {
@@ -547,7 +593,6 @@ sub parse_request_line($self, $ua, $header) {
 }
 
 sub parse_header_line($self, $ua, $header) {
-
     if($header =~ /^(\S+)\:\ (.+)$/) {
         my ($name, $value) = ($1, $2);
         if(defined($httpheadersmapping{lc $name})) {
@@ -564,6 +609,11 @@ sub parse_header_line($self, $ua, $header) {
             $ua->{headers}->{'Accept-Encoding-Array'} = \@parts;
         }
 
+        if($name eq 'Host') {
+            # Remove port number from host
+            $value =~ s/\:\d+$//g;
+        }
+
         $ua->{headers}->{$name} = $value;
         if($name eq 'Cookie') {
             my @parts = split/\;/, $value;
@@ -578,7 +628,7 @@ sub parse_header_line($self, $ua, $header) {
             }
         }
     } else {
-        print STDERR "Illegal header line!\n";
+        $self->printdebuglog("Illegal header line!");
         return 0;
     }
 
@@ -586,10 +636,11 @@ sub parse_header_line($self, $ua, $header) {
 }
 
 sub parse_post_data($self, $ua) {
-
     my $ok = 1;
 
-    if($ua->{headers}->{'Content-Type'} =~ /application\/x\-www\-form\-urlencoded/ && $ua->{method} eq 'POST') {
+    if(!defined($ua->{headers}->{'Content-Type'})) {
+        # Do nothing
+    } elsif($ua->{headers}->{'Content-Type'} =~ /application\/x\-www\-form\-urlencoded/ && $ua->{method} eq 'POST') {
         #print STDERR Dumper($ua);
         my %postparams;
         my @parts = split/\&/, $ua->{postdata};
@@ -602,14 +653,14 @@ sub parse_post_data($self, $ua) {
                 $dkey = $temp;
             };
             if($EVAL_ERROR) {
-                print STDERR "Warning: $EVAL_ERROR\n";
+                $self->printdebuglog("Warning: $EVAL_ERROR");
             }
             eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                 my $temp = decode_utf8($dval);
                 $dval = $temp;
             };
             if($EVAL_ERROR) {
-                print STDERR "Warning: $EVAL_ERROR\n";
+                $self->printdebuglog("Warning: $EVAL_ERROR");
             }
             if(!defined($postparams{$dkey})) {
                 $postparams{$dkey} = $dval;
@@ -714,7 +765,6 @@ sub parse_post_data($self, $ua) {
 }
 
 sub process_request($self, $realsocket, $frontendheader) {
-
 #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
 #    my $alpnversion = 'http/1.1';
 #    if(ref $realsocket eq 'PageCamel::Net::Server::Proto::SSL') {
@@ -724,12 +774,15 @@ sub process_request($self, $realsocket, $frontendheader) {
 #        }
 #    }
 
+    my $mandanth = PageCamel::Helpers::Mandant->new();
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $self, rephfunc => 'printdebuglog');
+
     local $INPUT_RECORD_SEPARATOR = undef;
     binmode($realsocket, ':bytes');
     $realsocket->blocking(0);
 
     local $SIG{USR2} = sub {
-        print STDERR "******************   SIGNAL USR2 DETECTED ****************\n";
+        $self->printdebuglog("******************   SIGNAL USR2 DETECTED ****************");
         eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             confess();
         };
@@ -750,6 +803,13 @@ sub process_request($self, $realsocket, $frontendheader) {
         my $funcname = $worker->{Function} ;
 
         $module->$funcname();
+    }
+
+    my $currentmandant = '';
+
+    if($mandanth->isActive()) {
+        $currentmandant = $mandanth->getName();
+        #print STDERR "Current Mandant is ", $currentmandant, "\n";
     }
 
 nextrequest:
@@ -798,7 +858,7 @@ nextrequest:
             if(!$ok) {
                 #print STDERR "BLOCKING CLIENT " . $ua->{remote_addr} . "!!!\n";
                 my $message = "Attack or server policy violation detected. Client " . $ua->{remote_addr} . " blocked for some time.";
-                webPrint($realsocket, "HTTP/1.1 403 Policy violation\r\n" .
+                $webprint->write($realsocket, "HTTP/1.1 403 Policy violation\r\n" .
                                     "Content-Type: text/plain\r\n".
                                     "Content-Length: " . length($message) . "\r\n" .
                                     "Connection: close\r\n" .
@@ -816,7 +876,7 @@ nextrequest:
     if(!defined($requestline)) {
         #print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
         $ua->{keepalive} = 0;
-        webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+        $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
 
         goto cleanup;
     }
@@ -834,7 +894,7 @@ nextrequest:
         if(!defined($header)) {
             #print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
         }
         $hcount++;
@@ -842,14 +902,14 @@ nextrequest:
             # too many headers, may be an attack
             #print STDERR "Too many headers!\n";
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
             goto cleanup;
         }
         last if($header eq "");
         if(!$self->parse_header_line($ua, $header)) {
             #print STDERR "Error parsing header!\n";
             $ua->{keepalive} = 0;
-            webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
+            $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
             goto cleanup;
         }
     }
@@ -880,6 +940,15 @@ nextrequest:
     }
     $ua->{url} = $webpath;
 
+    my $useuploadstream = 0;
+    foreach my $dpath (keys %{$self->{uploadstreamwebpaths}}) {
+        if($webpath =~ /^$dpath/) {
+            $useuploadstream = 1;
+            $self->printdebuglog("*** UPLOADSTREAM MODE FOR ", $webpath);
+        }
+    }
+
+
     if($self->{isDebugging} && $webpath eq '/crashme' && $ua->{remote_addr} eq '127.0.0.1') {
         croak("/crashme triggered!");
     }
@@ -907,27 +976,63 @@ nextrequest:
     my %fallbackresult = %result; # Just in case
     my $head_automagic = 0;
 
+    if(defined($ua->{cookies}->{'Mandant'}) && $mandanth->isActive() && $currentmandant ne '') {
+        my $selectedmandant = $ua->{cookies}->{'Mandant'};
+        if(!$mandanth->isValidMandant($selectedmandant)) {
+            $selectedmandant = $mandanth->getDefaultMandant();
+        }
+        if($currentmandant ne '' && $currentmandant ne $selectedmandant) {
+            # Mismatch, need to reload the page on a new connection
+
+            
+            if(1) {
+                # Works better!
+                $ua->{keepalive} = 0;
+                goto cleanup;
+            } else {
+                my %result = (status    => 200, # Default result
+                              type      => "text/plain",
+                              data      => "<html><head><title>Mandant change detected</title></head>" .
+                                            "<body onload=\"reloadPage()\">Reloading page because mandant changed.\n" .
+                                            "<script>function reloadPage() {\n" .
+                                            "window.location.reload();\n" .
+                                            "}\n" .
+                                            "</script></body></html>",
+                              pagedone => 1,
+                              keepalive => 0,
+                              );
+                $ua->{keepalive} = 0;
+            }
+        }
+    }
+
+
+
     # This starts logging with basic information before ANY filtering
-    foreach my $filtermodule (@{$self->{logstart}}) {
-        my $module = $filtermodule->{Module};
-        my $funcname = $filtermodule->{Function};
-        my %preresult = $module->$funcname($ua);
-        if(%preresult) {
-            %result = %preresult;
-            $result{pagedone} = 1;
-            last;
+    if(!$result{pagedone}) {
+        foreach my $filtermodule (@{$self->{logstart}}) {
+            my $module = $filtermodule->{Module};
+            my $funcname = $filtermodule->{Function};
+            my %preresult = $module->$funcname($ua);
+            if(%preresult) {
+                %result = %preresult;
+                $result{pagedone} = 1;
+                last;
+            }
         }
     }
 
     # See, if we can do any short circuit fast redirecting
-    foreach my $filtermodule (@{$self->{fastredirect}}) {
-        my $module = $filtermodule->{Module};
-        my $funcname = $filtermodule->{Function};
-        my %preresult = $module->$funcname($ua);
-        if(%preresult) {
-            %result = %preresult;
-            $result{pagedone} = 1;
-            last;
+    if(!$result{pagedone}) {
+        foreach my $filtermodule (@{$self->{fastredirect}}) {
+            my $module = $filtermodule->{Module};
+            my $funcname = $filtermodule->{Function};
+            my %preresult = $module->$funcname($ua);
+            if(%preresult) {
+                %result = %preresult;
+                $result{pagedone} = 1;
+                last;
+            }
         }
     }
 
@@ -1169,24 +1274,27 @@ nextrequest:
 
                 if(!$expectok) {
                     $ua->{keepalive} = 0;
-                    webPrint($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
+                    $webprint->write($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
                     #print STDERR "      Expectation failed\n";
                     goto cleanup;
                 }
                 #print STDERR "      Expectation matched\n";
-                webPrint($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
+                $webprint->write($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
             }
 
-            if(!$self->get_request_body($realsocket, $ua, 15, 1024)) {
-                $ua->{keepalive} = 0;
-                webPrint($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
-                goto cleanup;
-            }
+            if(!$useuploadstream) {
+                #$self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
+                if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
+                    $ua->{keepalive} = 0;
+                    $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
+                    goto cleanup;
+                }
 
-            if(!$self->parse_post_data($ua)) {
-                $ua->{keepalive} = 0;
-                webPrint($realsocket, "HTTP/1.1 400 Bad Request\r\n");
-                goto cleanup;
+                if(!$self->parse_post_data($ua)) {
+                    $ua->{keepalive} = 0;
+                    $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
+                    goto cleanup;
+                }
             }
         }
     }
@@ -1263,6 +1371,28 @@ nextrequest:
                 my $module = $pathmodule->{Module};
                 my $funcname = $pathmodule->{Function};
                 %result = $module->$funcname($ua);
+                if($useuploadstream && $result{status} == 100) {
+                    # We need to do more stuff for upload streaming
+                    {
+                        #goto cleanup;
+                        #print STDERR "################# ", Dumper($dpath), "\n";
+                        #print STDERR Dumper($self->{uploadstreamwebpaths}->{$dpath});
+                        my $xmodule = $self->{uploadstreamwebpaths}->{$dpath}->{Module};
+                        my $xfuncnamestream = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{stream};
+                        my $xfuncnamefinish = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{finish};
+                        my $ok = 1;
+                        if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
+                            $ok = $self->stream_request_body($realsocket, $ua, 30, 1024, $xmodule, $xfuncnamestream);
+                            #$ok = $xmodule->$xfuncnamestream($ua, $ua->{postdata});
+                        }
+
+                        if(!$ok) {
+                            $result{status} = 500;
+                        } else {
+                            %result = $xmodule->$xfuncnamefinish($ua);
+                        }
+                    }
+                }
                 $result{pagedone} = 1;
                 last;
             }
@@ -1307,7 +1437,7 @@ nextrequest:
         }
     }
 
-    if(!webPrint($realsocket, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
+    if(!$webprint->write($realsocket, "HTTP/1.1 " . $result{status} . " " . $result{statustext} . "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
@@ -1400,13 +1530,13 @@ nextrequest:
     if(defined($header{'-cookie'})) {
         if(ref $header{'-cookie'} eq 'ARRAY') {
             foreach my $cookie (@{$header{'-cookie'}}) {
-                if(!webPrint($realsocket, "Set-Cookie: ", $cookie, "\r\n")) {
+                if(!$webprint->write($realsocket, "Set-Cookie: ", $cookie, "\r\n")) {
                     $ua->{keepalive} = 0;
                     goto cleanup;
                 }
             }
         } else {
-            if(!webPrint($realsocket, "Set-Cookie: ", $header{'-cookie'}, "\r\n")) {
+            if(!$webprint->write($realsocket, "Set-Cookie: ", $header{'-cookie'}, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1479,19 +1609,19 @@ nextrequest:
             } elsif($val =~ /^[\+\-]/) {
                 $val = getWebdate(undef, $val);
             }
-            if(!webPrint($realsocket, $printkey, ": ", $val, "\r\n")) {
+            if(!$webprint->write($realsocket, $printkey, ": ", $val, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
         } elsif(ref $header{$header_key} eq 'ARRAY') {
             foreach my $headerval (@{$header{$header_key}}) {
-                if(!webPrint($realsocket, $printkey, ": ", $headerval, "\r\n")) {
+                if(!$webprint->write($realsocket, $printkey, ": ", $headerval, "\r\n")) {
                     $ua->{keepalive} = 0;
                     goto cleanup;
                 }
             }
         } else {
-            if(!webPrint($realsocket, $printkey, ": ", $header{$header_key}, "\r\n")) {
+            if(!$webprint->write($realsocket, $printkey, ": ", $header{$header_key}, "\r\n")) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
@@ -1501,30 +1631,35 @@ nextrequest:
 
     # Force printing current time as "Date" header
     if(!$dateprinted) {
-        if(!webPrint($realsocket, "Date: " . getWebdate(). "\r\n")) {
+        if(!$webprint->write($realsocket, "Date: " . getWebdate(). "\r\n")) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
     }
 
     # Removing this header may break things, don't touch!
-    if(!webPrint($realsocket, "X-Clacks-Overhead: GNU Terry Pratchett\r\n")) {
+    if(!$webprint->write($realsocket, "X-Clacks-Overhead: GNU Terry Pratchett\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
-    if(!webPrint($realsocket, "\r\n")) {
+    if(!$webprint->write($realsocket, "\r\n")) {
         $ua->{keepalive} = 0;
         goto cleanup;
     }
 
     if(defined($result{data})) {
         # Some results do not have a body
-        if(!webPrint($realsocket, $result{data})) {
+        if(!$webprint->write($realsocket, $result{data})) {
             $ua->{keepalive} = 0;
             goto cleanup;
         }
     }   
+
+    # Allow webmasks to decide they want the connection to close after fulfilling a request. This is to allow (among other things) the frontend server to re-evaluate which backend to select
+    if(defined($result{keepalive}) && !$result{keepalive}) {
+        $ua->{keepalive} = 0;
+    }
 
     # handle protocol upgrades like WebSockets
     if($result{status} eq "101") {
@@ -1550,17 +1685,17 @@ nextrequest:
                     }
                 }
                 next unless $upgradetofound;
-                print STDERR getISODate() . " Upgrading connection to $upgradeTo in PID $PID\n";
+                $self->printdebuglog(" Upgrading connection to $upgradeTo in PID $PID");
                 my $evalok = 0;
-                my $conok;
+                my $conok = 0;
                 eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
                     $conok = $module->$funcname($ua);
                     $evalok = 1;
                 };
                 if(!$evalok) {
-                    print STDERR getISODate(), " Eval error in connection upgrade: $EVAL_ERROR\n";
+                    $self->printdebuglog(" Eval error in connection upgrade: $EVAL_ERROR");
                 }
-                print STDERR getISODate() . " Connection for $upgradeTo closed in PID $PID, status $conok\n";
+                $self->printdebuglog(" Connection for $upgradeTo closed in PID $PID, status $conok");
                 last;
             }
         }
@@ -1580,13 +1715,13 @@ nextrequest:
             $partcount++;
             $totallength += length($dpart{data});
             #print STDERR getISODate() . "     Data part, length ", length($dpart{data}), " bytes\n";
-            if(!webPrint($realsocket, $dpart{data})) {
+            if(!$webprint->write($realsocket, $dpart{data})) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
             }
             last if($dpart{done});
         }
-        print STDERR getISODate() . "     Send $totallength bytes in $partcount datagenerator parts.\n";
+        $self->printdebuglog("     Send $totallength bytes in $partcount datagenerator parts.");
     }
     
     # run some logging callbacks
@@ -1650,15 +1785,32 @@ cleanup:
     return;
 }
 
-sub startconfig($self) {
+sub printdebuglog($self, @args) {
+    my $found = 0;
+    foreach my $worker (@{$self->{debuglog}}) {
+        my $module = $worker->{Module};
+        my $funcname = $worker->{Function} ;
 
+        #$workCount += $module->$funcname();
+        $module->$funcname(@args);
+        $found = 1;
+    }
+    if(!$found) {
+        print STDERR "Fallback: ", getISODate(), " ", join('', @args), "\n";
+    }
+
+    return;
+
+}
+
+sub startconfig($self) {
     # Pre-create empty lists and hashes
     foreach my $anonhash (qw[paths modules custom_methods protocolupgrade cors basic_auth continueheaders]) {
         $self->{$anonhash} = {};
     }
     foreach my $anonarrays (qw[logstart logend logdatadelivery logwebsocket logrequestfinished logstacktrace authcheck prefilter postauthfilter prerender lateprerender tasks postfilter
                                 default_webdata late_default_webdata loginitems logoutitems sessionrefresh cleanup
-                                public_urls remotelog sitemap firewall fastredirect
+                                public_urls remotelog sitemap firewall fastredirect debuglog
                                 ]) {
         $self->{$anonarrays} = [];
     }
@@ -1687,7 +1839,6 @@ sub load_base_project($self, $projectname) {
 }
 
 sub endconfig($self) {
-
     print "For great justice...\n"; # We REQUIRE an all-your-base reference here!!1!
     print "Cross registering modules...\n";
     foreach my $modname (keys %{$self->{modules}}) {
@@ -1803,7 +1954,6 @@ sub endconfig($self) {
 }
 
 sub configure_module($self, $modname, $perlmodulename, %config) {
-
     # Let the module know its configured module name...
     $config{modname} = $modname;
 
@@ -1844,7 +1994,6 @@ sub configure_module($self, $modname, $perlmodulename, %config) {
 }
 
 sub reload($self) {
-
     foreach my $modname (keys %{$self->{modules}}) {
         $self->{modules}->{$modname}->reload;   # Reload module's data
     }
@@ -1852,8 +2001,6 @@ sub reload($self) {
 }
 
 sub run_task($self) {
-
-
     # only run tasks if there was no connection (there might be a browser just loading more files)
     my $taskCount = 0;
     foreach my $task (@{$self->{tasks}}) {
@@ -1866,7 +2013,6 @@ sub run_task($self) {
 
 # Multi-Module calls: Called from one module to run multiple other module functions
 sub get_defaultwebdata($self) {
-
     my %webdata = ();
     foreach my $item (@{$self->{default_webdata}}) {
         my $module = $item->{Module};
@@ -1884,7 +2030,6 @@ sub get_defaultwebdata($self) {
 }
 
 sub get_sitemap($self) {
-
     my @sitemap;
     foreach my $item (@{$self->{sitemap}}) {
         my $module = $item->{Module};
@@ -1899,7 +2044,6 @@ sub get_sitemap($self) {
 # just before rendering webdata with a template into a webpage
 # Takes a reference to webdata
 sub prerender($self, $webdata) {
-
     foreach my $item (@{$self->{prerender}}) {
         my $module = $item->{Module};
         my $funcname = $item->{Function};
@@ -1908,7 +2052,6 @@ sub prerender($self, $webdata) {
     return;
 }
 sub lateprerender($self, $webdata) {
-
     foreach my $item (@{$self->{lateprerender}}) {
         my $module = $item->{Module};
         my $funcname = $item->{Function};
@@ -1919,7 +2062,6 @@ sub lateprerender($self, $webdata) {
 
 
 sub user_login($self, $username, $sessionid) {
-
     foreach my $item (@{$self->{loginitems}}) {
         my $module = $item->{Module};
         my $funcname = $item->{Function};
@@ -1929,7 +2071,6 @@ sub user_login($self, $username, $sessionid) {
 }
 
 sub user_logout($self, $sessionid) {
-
     print STDERR "\n\n";
     foreach my $item (@{$self->{logoutitems}}) {
         my $module = $item->{Module};
@@ -1944,7 +2085,6 @@ sub user_logout($self, $sessionid) {
 }
 
 sub sessionrefresh($self, $sessionid) {
-
     foreach my $item (@{$self->{sessionrefresh}}) {
         my $module = $item->{Module};
         my $funcname = $item->{Function};
@@ -1964,7 +2104,6 @@ sub sessionrefresh($self, $sessionid) {
 # PageCamel can only automagically assume HEAD if the function provides GET because of the required
 # idempotency of GET and HEAD.
 sub add_webpath($self, $path, $module, $funcname, @methods) {
-
     if(!@methods) {
         @methods = qw[GET POST];
     }
@@ -1983,8 +2122,25 @@ sub add_webpath($self, $path, $module, $funcname, @methods) {
     return;
 }
 
-sub add_overridewebpath($self, $path, $module, $funcname, @methods) {
+sub add_uploadstream_webpath($self, $path, $module, $funcnamestream, $funcnamefinish) {
+    if(defined($self->{uploadstreamwebpaths}->{$path})) {
+        croak($module->{modname} . " error: $path already registered as uploadstreampath, previously registered in " . $self->{uploadstreamwebpaths}->{$path}->{Module}->{modname});
+    }
 
+    my %conf = (
+        Module  => $module,
+        Functions => {
+            stream => $funcnamestream,
+            finish => $funcnamefinish,
+        },
+    );
+
+    $self->{uploadstreamwebpaths}->{$path} = \%conf;
+    return;
+}
+
+
+sub add_overridewebpath($self, $path, $module, $funcname, @methods) {
     if(!@methods) {
         @methods = qw[GET POST];
     }
@@ -2018,18 +2174,15 @@ sub add_continueheader($self, $path, $module, $funcname) {
 }
 
 sub get_webpaths($self) {
-
     return $self->{webpaths};
 }
 
 sub get_overridewebpaths($self) {
-
     return $self->{overridewebpaths};
 }
 
 # Add a custom method handler
 sub add_custom_method($self, $method, $module, $funcname) {
-
     $method = uc($method);
 
     if($method eq '') {
@@ -2050,7 +2203,6 @@ sub add_custom_method($self, $method, $module, $funcname) {
 }
 
 sub add_protocolupgrade($self, $path, $module, $funcname, @protocols) {
-
     if(!@protocols) {
         croak("add_protocolupgrade requires protocols to be defined!");
     }
@@ -2067,7 +2219,6 @@ sub add_protocolupgrade($self, $path, $module, $funcname, @protocols) {
 }
 
 sub add_basic_auth($self, $url, $realm) {
-
     if(!defined($url) || $url eq '') {
         croak("Undefined URL in add_basic_auth()");
     }
@@ -2086,12 +2237,10 @@ sub add_basic_auth($self, $url, $realm) {
 }
 
 sub get_basic_auths($self) {
-
     return $self->{basic_auth};
 }
 
 sub add_public_url($self, $url) {
-
     if(!defined($url) || $url eq '') {
         croak("Undefined URL in add_public_url()");
     }
@@ -2106,14 +2255,12 @@ sub add_public_url($self, $url) {
 }
 
 sub get_public_urls($self) {
-
     return $self->{public_urls};
 
 }
 
 # Cross Origin Resource requests
 sub add_cors($self, $path, $module, $origin, @methods) {
-
     if(defined($self->{cors}->{$path}->{$origin})) {
         croak($module->{modname} . " error: $path for $origin already registered, previously registered in " . $self->{cors}->{$path}->{$origin}->{Module}->{modname});
     }
@@ -2128,7 +2275,6 @@ sub add_cors($self, $path, $module, $origin, @methods) {
 }
 
 sub get_cors_config($self, $path, $origin) {
-
     if($origin eq '*') {
         # Origin can not be a wildcard star
         return;
@@ -2171,6 +2317,7 @@ BEGIN {
 
     # -- Deep magic begins here...
     my %varsubs = (
+        debuglog       => "debuglog",
         prefilter       => "prefilter",
         postauthfilter       => "postauthfilter",
         postfilter      => "postfilter",

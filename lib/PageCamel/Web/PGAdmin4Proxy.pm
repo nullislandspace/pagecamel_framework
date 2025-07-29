@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -33,14 +33,12 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{webpath}, "get", 'GET', 'POST');
     $self->register_postfilter("postfilter");
     return;
 }
 
 sub crossregister($self) {
-
     if(defined($self->{auth_realm})) {
         $self->register_basic_auth($self->{webpath}, $self->{auth_realm});
     }
@@ -48,7 +46,6 @@ sub crossregister($self) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     my $clientpath = $ua->{url};
     my $mypath = $self->{webpath};
 
@@ -74,7 +71,6 @@ sub postfilter($self, $ua, $header, $result) {
 }
 
 sub get($self, $ua) {
-
     my $pgadmin4path = $ua->{url};
 
     my $remove = $self->{webpath};
@@ -313,7 +309,6 @@ sub get($self, $ua) {
 }
 
 sub readsocketline($self, $socket, $timeout = 30) {
-
     if(!defined($timeout) || !$timeout) {
         $timeout = 30;
     };
@@ -335,7 +330,6 @@ sub readsocketline($self, $socket, $timeout = 30) {
 }
 
 sub readChunked($self, $socket) {
-
     my $content = '';
     while(1) {
         my $chunklen = $self->readsocketline($socket, 30);
@@ -351,7 +345,6 @@ sub readChunked($self, $socket) {
 }
 
 sub readPlain($self, $socket, $clength) {
-
     my $content = '';
     my $reallength = 0;
     while($reallength < $clength) {

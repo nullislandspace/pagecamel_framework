@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -48,7 +48,6 @@ sub reload($self) {
 }
 
 sub register($self) {
-
     # Register ourselfs in the pagecamel commands module with additional commands
     my $comh = $self->{server}->{modules}->{$self->{commands}};
 
@@ -59,7 +58,6 @@ sub register($self) {
 }
 
 sub execute($self, $command, $arguments) {
-
     if(defined($self->{extcommands}->{$command})) {
         my $cmdfunc = $self->{extcommands}->{$command};
         return $self->$cmdfunc($arguments);
@@ -68,8 +66,6 @@ sub execute($self, $command, $arguments) {
 }
 
 sub do_backup($self, $arguments) {
-    my $ok = 1;
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -150,14 +146,21 @@ sub do_backup($self, $arguments) {
     # This may take quite long, so disable the lifetick
     $memh->disable_lifetick;
 
-    # Backticks seem just right in this case, ignore perl::Critic
+    $fullcommand .= ' && echo PAGECAMEL_CALL_OK';
     my @lines = `$fullcommand`;
 
-    my $retval = ($CHILD_ERROR >> 8);
-    $reph->debuglog("RETVAL: ", $retval);
+    my $ok = 0;
 
-    if($retval != 0) {
-        $ok = 0;
+    foreach my $line (@lines) {
+        if($line =~ /PAGECAMEL\_CALL\_OK/) {
+            $ok = 1;
+        }
+    }
+
+    if($ok) {
+        $reph->debuglog("Backup OK");
+    } else {
+        $reph->debuglog("Backup FAILED");
     }
 
     my $inssth = $dbh->prepare("INSERT INTO pgbackup_log (backuptype, is_ok) VALUES ('BACKUP', ?)")
@@ -178,14 +181,20 @@ sub do_backup($self, $arguments) {
     }
 
     if($backupdata->{external_backup_directory} ne '') {
-        if(!$self->_dirsync($backupdata->{backup_directory}, $backupdata->{external_backup_directory}, $backupdata->{external_max_age_days})) {
-            $ok = 0;
-        }
-
         if($ok) {
             if(!$self->_dircleaner($backupdata->{external_backup_directory}, $backupdata->{external_max_age_days})) {
                 $ok = 0;
             }
+        }
+
+        if($ok) {
+            if(!$self->_dirsync($backupdata->{backup_directory}, $backupdata->{external_backup_directory}, $backupdata->{external_max_age_days})) {
+                $ok = 0;
+            }
+        }
+    } else {
+        if(!$self->_simulate_dirsync()) {
+            $ok = 0;
         }
     }
 
@@ -358,6 +367,26 @@ finished:
     return $ok;
 }
 
+sub _simulate_dirsync($self) {
+    my $memh = $self->{server}->{modules}->{$self->{memcache}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    $reph->debuglog("USB Backup dir not configured, marking dirsync as complete");
+
+    my $inssth = $dbh->prepare("INSERT INTO pgbackup_log (backuptype, is_ok) VALUES ('DIRSYNC', ?)")
+            or croak($dbh->errstr);
+
+    if(!$inssth->execute(1)) {
+        $reph->debuglog($dbh->errstr);
+        $dbh->rollback;
+        return 0;
+    }
+
+    $dbh->commit;
+    return 1;
+
+}
 
 1;
 __END__

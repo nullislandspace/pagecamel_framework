@@ -72,7 +72,7 @@
         <script type="text/javascript">
             function eventHandlerInitialization() {
                 // auto-uninline onfoo html tags to JS file
-                console.log("eventHandlerInitialization");
+                //console.log("eventHandlerInitialization");
                 // add test eventlistener for keydown
                 window.addEventListener("message", receiveMessage, false);
                 // window.addEventListener("keydown", (event)=>{
@@ -94,15 +94,15 @@
             }
             function receiveMessage(event) {
 
-                console.log("receiveMessage", event);
+                //console.log("receiveMessage", event);
                 const message = event.data;
                 if (message.type == "keydown") {
                     
                     
                     const target = $(document.activeElement);
                     // const target = $("#article_name_id");
-                    console.log("keydown message received");
-                    console.log("target", target);
+                    //console.log("keydown message received");
+                    //console.log("target", target);
                     if(target.is("input") || target.is("textarea")) {
                         // simulate keydown event
                         target.trigger($.Event('keydown'));
@@ -116,7 +116,7 @@
             
 
             function defaultlayoutExtraOnLoad() {
-                console.log("defaultlayoutExtraOnLoad()");
+                //console.log("defaultlayoutExtraOnLoad()");
                 // handle iFrame virtual keypresses if used on touch screen
 
             }

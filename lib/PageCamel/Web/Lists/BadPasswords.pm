@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -39,7 +39,6 @@ sub register($self) {
 }
 
 sub get_users($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my @lines = ('# ' . $self->{prefixline_users});
@@ -72,7 +71,6 @@ sub get_users($self, $ua) {
 }
 
 sub get_passwords($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my @lines = ('# ' . $self->{prefixline_passwords});
@@ -105,7 +103,6 @@ sub get_passwords($self, $ua) {
 }
 
 sub sitemap($self, $sitemap) {
-
     push @{$sitemap}, $self->{webpath};
 
     return;

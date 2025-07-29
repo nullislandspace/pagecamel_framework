@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -23,7 +23,6 @@ use PageCamel::Helpers::URI qw(encode_uri_path);
 use PageCamel::Helpers::APPQRCode;
 
 sub register($self) {
-    
     my $ok = 1;
     # Required settings
     foreach my $key (qw[systemsettings db reporting]) {
@@ -31,10 +30,6 @@ sub register($self) {
             print STDERR "UserEdit.pm: Setting $key is required but not set!\n";
             $ok = 0;
         }
-    }
-
-    if(!$ok) {
-        croak("Failed to load " . $self->{modname} . " due to config errors!");
     }
 
     if(!defined($self->{forcelowercase})) {
@@ -45,6 +40,28 @@ sub register($self) {
         $self->{switchtouser} = '';
     }
 
+    if(!defined($self->{textpermissions}->{item})) {
+        $self->{textpermissions}->{item} = [];
+    } else {
+        foreach my $textpermission (@{$self->{textpermissions}->{item}}) {
+            if(!defined($textpermission->{column})) {
+                print STDERR "Textpermission has no column name\n";
+                $ok = 0;
+                next;
+            }
+            foreach my $key (qw[displaytext table enumcolumn]) {
+                if(!defined($textpermission->{$key})) {
+                    print STDERR "Textpermission for column ", $textpermission->{column}, " has no setting for ", $key, "\n";
+                    $ok = 0;
+                }
+            }
+        }
+    }
+
+    if(!$ok) {
+        croak("Failed to load " . $self->{modname} . " due to config errors!");
+    }
+
     $self->{qrcode} = PageCamel::Helpers::APPQRCode->new(scale => 5);
 
     $self->register_webpath($self->{list}->{webpath}, "get_list");
@@ -53,13 +70,12 @@ sub register($self) {
 }
 
 sub reload($self) {
-    
     return;
 }
 
 sub get_list($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $th = $self->{server}->{modules}->{templates};
 
     my %webdata = (
@@ -69,10 +85,20 @@ sub get_list($self, $ua) {
         PostLink    =>  $self->{edit}->{webpath},
         showads => $self->{showads},
     );
+    $webdata{userData}->{keyfob_softlogout} = '1'; # Do NOT logout if keyfob is removed, since we may need to "program" new keyfobs here
     
     my $extrawhere = '';
     if($webdata{userData}->{user} ne 'admin') {
         $extrawhere = " WHERE username != 'admin'";
+    }
+
+    if(!contains('has_developer', $webdata{userData}->{rights})) {
+        if($extrawhere eq '') {
+            $extrawhere = ' WHERE ';
+        } else {
+            $extrawhere .= ' AND ';
+        }
+        $extrawhere .= "(is_internal = false OR username = 'applogin') ";
     }
 
     my $selsth = $dbh->prepare_cached("SELECT * FROM users $extrawhere ORDER BY username")
@@ -99,7 +125,6 @@ sub get_list($self, $ua) {
 }
 
 sub get_edit($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $th = $self->{server}->{modules}->{templates};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -108,6 +133,10 @@ sub get_edit($self, $ua) {
     my $pwh = PageCamel::Helpers::Passwords->new({dbh => $dbh, reph => $reph, sysh => $sysh});
 
     my $mode = $ua->{postparams}->{'mode'} || 'view';
+
+    if($mode eq 'close') {
+        return $self->get_list($ua);
+    }
 
     # Handle calls from external module (select username to edit by url)
     my $forceUsername;
@@ -130,12 +159,18 @@ sub get_edit($self, $ua) {
         PostLink    =>  $self->{edit}->{webpath},
         showads => $self->{showads},
     );
+    $webdata{userData}->{keyfob_softlogout} = '1'; # Do NOT logout if keyfob is removed, since we may need to "program" new keyfobs here
 
     my @textpermissions;
     foreach my $item (@{$self->{textpermissions}->{item}}) {
-        push @textpermissions, 'textpermission_' . $item->{column};
+        push @textpermissions, $item->{column};
 
-        my $enumsth = $dbh->prepare("SELECT permission_name, permission_text FROM " . $item->{table} . " ORDER BY permission_name")
+        my $aliasname = '';
+        if($item->{enumcolumn} ne 'permission_name') {
+            $aliasname = ' AS permission_name ';
+        }
+
+        my $enumsth = $dbh->prepare("SELECT " . $item->{enumcolumn} . $aliasname . " FROM " . $item->{table} . " ORDER BY " . $item->{enumcolumn})
                 or croak($dbh->errstr);
         if(!$enumsth->execute) {
             $reph->debuglog($dbh->errstr);
@@ -152,7 +187,7 @@ sub get_edit($self, $ua) {
         }
         $enumsth->finish;
         my %txtpermission = (
-            column => 'textpermission_' . $item->{column},
+            column => $item->{column},
             displaytext => $item->{displaytext}, 
             data => \@enumvals,
         );
@@ -161,7 +196,7 @@ sub get_edit($self, $ua) {
 
     
     # Prepare empty user structure
-    my @fieldnames = qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name hardware_fob];
+    my @fieldnames = qw[username oldusername email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name hardware_fob];
     push @fieldnames, @textpermissions;
     foreach my $fieldname (@fieldnames) {
         $webdata{$fieldname} = "";
@@ -260,7 +295,7 @@ sub get_edit($self, $ua) {
             push @auditdata, "New password set";
         }
 
-        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire hardware_fob];
+        my @upfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name force_password_change hardware_fob];
         push @upfieldnames, @textpermissions;
         foreach my $fieldname (@upfieldnames) {
             my $dbfield = $fieldname;
@@ -272,7 +307,7 @@ sub get_edit($self, $ua) {
                                              WHERE username = ?")
                     or croak($dbh->errstr);
             my $fielddata = $ua->{postparams}->{$fieldname} || '';
-            if($fieldname eq 'account_locked' || $fieldname eq 'password_can_expire') {
+            if($fieldname eq 'account_locked' || $fieldname eq 'force_password_change') {
                 if($fielddata =~ /(on|1)/i) {
                     $fielddata = 'true';
                 } else {
@@ -293,24 +328,10 @@ sub get_edit($self, $ua) {
                 $webdata{statuscolor} = "errortext";
                 goto reloaddata 
             }
-            push @auditdata, "$fieldname: $fielddata";
-        }
-
-        {
-            my $fielddata = $ua->{postparams}->{force_password_change} || '';
-            if($fielddata =~ /(on|1)/i) {
-                my $upsth = $dbh->prepare_cached("UPDATE users
-                                             SET next_password_change = now(),
-                                             password_can_expire = true
-                                             WHERE username = ?")
-                        or croak($dbh->errstr);
-                if(!$upsth->execute($username)) {
-                    $dbh->rollback;
-                    $webdata{statustext} = "Can't set user to forced password change!";
-                    $webdata{statuscolor} = "errortext";
-                    goto reloaddata 
-                }
+            if(!defined($fielddata)) {
+                $fielddata = '';
             }
+            push @auditdata, "$fieldname: $fielddata";
         }
 
         my $rdelsth = $dbh->prepare_cached("DELETE FROM pagecamel.users_permissiongroups
@@ -373,7 +394,7 @@ sub get_edit($self, $ua) {
             }
         }
 
-        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials password_can_expire hardware_fob];
+        my @createfieldnames = qw[email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode force_password_change hardware_fob];
         push @createfieldnames, @textpermissions;
         foreach my $fieldname (@createfieldnames) {
             my $upsth = $dbh->prepare_cached("UPDATE users
@@ -381,7 +402,7 @@ sub get_edit($self, $ua) {
                                              WHERE username = ?")
                     or croak($dbh->errstr);
             my $fielddata = $ua->{postparams}->{$fieldname} || '';
-            if($fieldname eq 'account_locked' || $fieldname eq 'password_can_expire') {
+            if($fieldname eq 'account_locked' || $fieldname eq 'force_password_change') {
                 if($fielddata =~ /(on|1)/i) {
                     $fielddata = 'true';
                 } else {
@@ -401,6 +422,9 @@ sub get_edit($self, $ua) {
                 $webdata{statustext} = "Can't update $fieldname!";
                 $webdata{statuscolor} = "errortext";
                 goto reloaddata 
+            }
+            if(!defined($fielddata)) {
+                $fielddata = '';
             }
             push @auditdata, "$fieldname: $fielddata";
         }
@@ -453,11 +477,11 @@ reloaddata:
 
     # When in edit mode, reload data from database
     if($mode eq "edit") {
-        my $selsth = $dbh->prepare_cached("SELECT *, (next_password_change <= now() AND password_can_expire = true) AS force_password_change FROM users
+        my $selsth = $dbh->prepare_cached("SELECT * FROM users
                                           WHERE username = ?")
                 or croak($dbh->errstr);
         $selsth->execute($username) or croak($dbh->errstr);
-        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials organisation_name password_can_expire force_password_change hardware_fob appkey];
+        my @selectfieldnames = qw[username email_addr account_locked account_lock_reason first_name last_name name_initials applogin_usercode organisation_name force_password_change hardware_fob appkey];
         push @selectfieldnames, @textpermissions;
         while((my $user = $selsth->fetchrow_hashref)) {
             foreach my $fieldname (@selectfieldnames) {
@@ -486,10 +510,16 @@ reloaddata:
         }
         $selsth->finish;
         $webdata{oldusername} = $webdata{username};
-    }
 
-    if($mode eq 'edit') {
-        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey});
+        my $projectname = 'Demo';
+        my ($ok, $sysval) = $sysh->get('defaultwebdata', 'ProjectName');
+        if($ok && $sysval->{settingvalue} ne '') {
+            $projectname = $sysval->{settingvalue};
+        } else {
+            #$reph->debuglog("### ", $ok, " / ", Dumper($sysval));
+        }
+
+        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
         $webdata{appqrcodeserver} = $ua->{headers}->{Host};
         $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
     }
@@ -510,8 +540,7 @@ reloaddata:
 
     if($mode eq "view") {
         $mode = "create";
-        $webdata{password_can_expire} = 1; # Default to expiring passwords
-        $webdata{force_password_change} = 1; # Default to expiring passwords
+        $webdata{force_password_change} = 0; # Default to NOT expiring passwords
         if(defined($self->{default_organisation})) {
             $webdata{organisation_name} = $self->{default_organisation};
         }

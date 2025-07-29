@@ -23,15 +23,15 @@
     
 ></span>
 
-<!--<div id="logtext" align="left"><p>Logtext:</p></div>-->
-
 <script>
     var ws;
     var wsconnected = 0;
     var wsfailed = 0;
     var lastPing = -1;
+    var wsconnecting = 0;
 
     var stayoffline = 0;
+    var wsreopennow = 0;
     
     function extraOnLoad() {
 
@@ -43,7 +43,39 @@
                 
         //console.log("Opening websocket.");
         openWebsocket();
+
+        document.addEventListener('visibilitychange', function() {
+            //console.log("VISIBILITY CHANGE");
+            if(document.visibilityState === 'hidden') {
+                // Do nothing
+            } else {
+                //console.log("Browser window now active again");
+                setTimeout(openWebsocket, 1000);
+            }
+        });
+
             
+    }
+
+    function wsOnAppReactivate() {
+        console.log("~~~~ wsOnAppReactivate()");
+        if(wsconnecting) {
+            // Already trying to reconnect
+            return;
+        }
+
+        if(!wsconnected) {
+            // We are not connected, try again immediately
+            //console.log("Socket already closed");
+            openWebsocket();
+            return;
+        }
+
+        // We are still connected, but me *might* be in the process of tearing down the connection, so check again in 100ms 
+        //console.log("Closing socket");
+        wsreopennow = 1;
+        //closeSocket();
+        setTimeout(openWebsocket, 1000);
     }
 
     function setoffline(newstate) {
@@ -56,8 +88,16 @@
     }
 
     function openWebsocket() {
-        if(ttvars.blockui == "1") {
-            $('#dataarea').block({ message: ttvars.trquote.Wsconnecting });
+        if(wsconnecting == 1) {
+            // We are currently trying to connect
+            //console.log("We are already trying to connect");
+            return;
+        }
+
+        if(wsconnected == 1) {
+            // We are already connected
+            //console.log("We are already connected");
+            return;
         }
 
         if(stayoffline == 1) {
@@ -65,8 +105,15 @@
             setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
             return;
         }
+
+        if(ttvars.blockui == "1") {
+            $('#dataarea').block({ message: ttvars.trquote.Wsconnecting });
+        }
+
+        wsconnecting = 1;
     
         // Second argument is the custom protocol name. It must match $proto in socketstart() in BaseWebSocket.pm
+        //console.log(" OPENING WEBSOCKET");
         ws = new WebSocket(ttvars.websocketurl, 'pagecamel');
 
         // When receiving a BINARY frame, make sure we get it as ArrayBuffer instead of Blob
@@ -77,6 +124,7 @@
                 $('#dataarea').unblock();
             }
             wsconnected = 1;
+            wsconnecting = 0;
             window.pcws.isconnected = !!wsconnected;
             wsfailed = 0;
             lastPing = -1;
@@ -91,28 +139,43 @@
         ws.onmessage = handleServerRequests;
         
         ws.onclose = function(ev) {
-            //console.log("Websocket disconnected");
-            if(ttvars.blockui == "1") {
-                if(ttvars.reconnect == "1") {
-                    $('#dataarea').block({ message: ttvars.trquote.Wsreconnecting });
-                } else {
-                    $('#dataarea').block({ message: ttvars.trquote.Wsclosed });
-                }
-            }
-            wsconnected = 0;
-            window.pcws.isconnected = !!wsconnected;
-            if(window.websocketmaskOnSocketClose) {
-                websocketmaskOnSocketClose();
-            }
-            if(ttvars.reconnect == "1") {
-                //console.log("Trying to reconnect in " + ttvars.client_connect_timeout + " seconds");
-                setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
-            }
+            wsOnCloseOrError(ev);
+        }
+
+        ws.onerror = function(ev) {
+            wsOnCloseOrError(ev);
         }
         
         return;
     }
-    
+
+    function wsOnCloseOrError(ev) {
+        wsconnecting = 0;
+        if(ttvars.blockui == "1") {
+            if(ttvars.reconnect == "1") {
+                $('#dataarea').block({ message: ttvars.trquote.Wsreconnecting });
+            } else {
+                $('#dataarea').block({ message: ttvars.trquote.Wsclosed });
+            }
+        }
+        wsconnected = 0;
+        window.pcws.isconnected = !!wsconnected;
+        if(window.websocketmaskOnSocketClose) {
+            websocketmaskOnSocketClose();
+        }
+
+        if(wsreopennow == 1) {
+            wsreopennow = 0;
+            openWebsocket();
+            return;
+        }
+
+        if(ttvars.reconnect == "1") {
+            //console.log("Trying to reconnect in " + ttvars.client_connect_timeout + " seconds");
+            setTimeout(openWebsocket, ttvars.client_connect_timeout * 1000);
+        }
+    }
+
     var lastprintid = 0;
     function handleServerRequests(ev) {
         //console.log(ev);
@@ -167,41 +230,32 @@
             };
 
             var printdoc = JSON.stringify(printobj);
+            lastprintid = msg.printid;
 
-            var retval = "";
-            if(window.onPrintStart) {
-                debuglog("Printing locally via window.onPrintStart");
-                retval = window.onPrintStart(printdoc);
-                debuglog("retval: " + retval);
-            } else if(document.onPrintStart) {
-                debuglog("Printing locally via document.onPrintStart");
-                retval = document.onPrintStart(printdoc);
-                debuglog("retval: " + retval);
-            } else if(window.flutter_inappwebview) {
-                debuglog("Printing via flutter app");
-                lastprintid = msg.printid;
-                retval = window.flutter_inappwebview.callHandler("onPrintStart", printdoc);
-                debuglog("Got promise");
-                retval.then(
-                    function(value) {
-                        sendPrintStatus(value.result, lastprintid);
-                        debuglog("Got: <code>" + JSON.stringify(value) + "</code>");
-                        //sendPrintStatus(value, lastprintid);
-                    },
-                    function(error) {
-                        debuglog("Promise failed");
-                        sendPrintStatus("error promise failed", lastprintid);
-                    }
-                );
-
-            } else {
-                debuglog("onPrintStart not available");
-                retval = "error onPrintStart not available";
+            try {
+                if(Bridge && Bridge.interfaces && Bridge.interfaces.Android && Bridge.interfaces.Android.onPrintStart) {
+                    debuglog("Spooling document");
+                    Bridge.interfaces.Android.onPrintStart(printdoc).then(
+                        function(result) {
+                            debuglog("Print OK");
+                            debuglog(JSON.stringify(result));
+                            sendPrintStatus('printed', lastprintid);
+                        },
+                        function(result) {
+                            debuglog("Print FAILED");
+                            debuglog(JSON.stringify(result));
+                            sendPrintStatus('Bridge.interfaces.Android.onPrintStart returned error', lastprintid);
+                        }
+                    );
+                } else {
+                    debuglog("Bridge.interfaces.Android.onPrintStart not available");
+                    sendPrintStatus('Bridge.interfaces.Android.onPrintStart not available', lastprintid);
+                }
+            } catch(error) {
+                debuglog("Printing: Bridge interface not available, not running in the App?");
+                sendPrintStatus('Bridge interface not available, not running the App?', lastprintid);
             }
 
-            if(retval != "") {
-                sendPrintStatus(retval, msg.printid);
-            }
         } else {
             if(window.handleMessage) {
                 var starttime = Date.now();
@@ -233,6 +287,8 @@
     }
 
     function debuglog(textline) {
+        console.log(textline);
+        wstransmit('DEBUGLOG', textline, lastprintid);
         //$('<p>' + textline + '</p>').appendTo('#logtext');
     }
 
@@ -313,6 +369,7 @@
     }
     
     function closeSocket() {
+        //console.trace();
         lastPing = -1;
         ws.close();
     }

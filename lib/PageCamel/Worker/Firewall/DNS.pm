@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -41,7 +41,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     $dbh->{disconnectIsFatal} = 1; # Don't automatically reconnect but exit instead!
@@ -97,7 +96,6 @@ sub crossregister($self) {
 
 
 sub work($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 

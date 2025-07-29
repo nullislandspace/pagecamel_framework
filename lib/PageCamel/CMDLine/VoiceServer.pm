@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -30,7 +30,6 @@ Readonly my $BUFFERTARGET => int($SAMPLERATE * 0.75); # Try to hold about 3/4 of
 Readonly my $BIASFACTOR => $BUFFERTARGET / 0.16;
 
 sub new($class, $isDebugging, $configfile) {
-    
     my $self = bless {}, $class;
 
     $self->{isDebugging} = $isDebugging;
@@ -40,7 +39,6 @@ sub new($class, $isDebugging, $configfile) {
 }
 
 sub init($self) {
-    
     print "Loading config file ", $self->{configfile}, "\n";
     my $config = LoadConfig($self->{configfile},
                         ForceArray => ['ip' ],);
@@ -90,7 +88,6 @@ sub init($self) {
 }
 
 sub run($self) {
-    
     # Let STDOUT/STDERR settle down first
     sleep(0.1);
 

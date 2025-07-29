@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -46,7 +46,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     $dbh->{disconnectIsFatal} = 1; # Don't automatically reconnect but exit instead!
@@ -66,7 +65,6 @@ sub crossregister($self) {
 
 
 sub work($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -119,7 +117,6 @@ sub work($self) {
 }
 
 sub updateIPTables($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -527,9 +524,13 @@ sub updateIPTables($self) {
     }
 
     $reph->debuglog("Loading ip4 rules into kernel");
-    `/usr/bin/updateiptables iptables-restore < /home/cavac/src/pagecamel_cavac/server/iptables/ip4tables.rules`;
+    #`/usr/bin/updateiptables iptables-restore < /home/cavac/src/pagecamel_cavac/server/iptables/ip4tables.rules`;
+    #`/usr/bin/updateiptables --ipv4 /home/cavac/src/pagecamel_cavac/server/iptables/ip4tables.rules`;
+    `/usr/bin/updateiptables restore4 /home/cavac/src/pagecamel_cavac/server/iptables/ip4tables.rules`;
     $reph->debuglog("Loading ip6 rules into kernel");
-    `/usr/bin/updateiptables ip6tables-restore < /home/cavac/src/pagecamel_cavac/server/iptables/ip6tables.rules`;
+    #`/usr/bin/updateiptables ip6tables-restore < /home/cavac/src/pagecamel_cavac/server/iptables/ip6tables.rules`;
+    #`/usr/bin/updateiptables -- ipv6 /home/cavac/src/pagecamel_cavac/server/iptables/ip6tables.rules`;
+    `/usr/bin/updateiptables restore6 /home/cavac/src/pagecamel_cavac/server/iptables/ip6tables.rules`;
     $reph->debuglog("Firewall updated");
 
 

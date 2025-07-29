@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -29,7 +29,6 @@ sub new($proto, %config) {
     return $self;
 }
 sub handle_child_start($self) {
-
     # Make sure we get a database handle directly after forking in PreFork mode. With a properly
     # set *SpareServers config, this should minimize the slow start problem when the number
     # of connections spiked
@@ -40,7 +39,6 @@ sub handle_child_start($self) {
 }
 
 sub endconfig($self) {
-
     if($self->{forking}) {
         # forking server: disconnect from database, generate new connection
         # after the fork on demand

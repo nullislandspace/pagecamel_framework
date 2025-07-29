@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -102,7 +102,7 @@ sub getPermissionForUser($self, $username) {
 
 }
 
-sub getUsersForPermission($self, $permission, $negate = 0) {
+sub getUsersForPermission($self, $permission, $negate = 0, $allowdevelopers = 0) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -110,8 +110,13 @@ sub getUsersForPermission($self, $permission, $negate = 0) {
 
     my @usernames;
 
+    my $extrawhere = '';
+    if(!$allowdevelopers) {
+        $extrawhere = 'WHERE is_internal = false';
+    }
+
     my @users;
-    my $selsth = $dbh->prepare_cached("SELECT username FROM users")
+    my $selsth = $dbh->prepare_cached("SELECT username FROM users $extrawhere")
             or croak($dbh->errstr);
     if(!$selsth->execute) {
         $reph->debuglog($dbh->errstr);

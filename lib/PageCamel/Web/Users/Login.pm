@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -22,6 +22,7 @@ use Crypt::Digest::SHA256 qw[sha256_hex];
 use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::DBSerialize;
 use PageCamel::Helpers::Passwords;
+use PageCamel::Helpers::Mandant;
 use PageCamel::Helpers::UserAgent qw[simplifyUA];
 use PageCamel::Helpers::URI qw[decode_uri_path];
 use MIME::Base64;
@@ -35,6 +36,8 @@ sub new($proto, %config) {
 
     #$self->{password_prefix} = "CARNIVORE::";
     #$self->{password_postfix} = "# or 1984";
+
+    $self->{mandanth} = PageCamel::Helpers::Mandant->new();
 
 
     my %paths;
@@ -79,6 +82,10 @@ sub new($proto, %config) {
         $self->{forcelowercase} = 1;
     }
 
+    if(!defined($self->{calyx_allow_invalid_ip_adresses_in_cookies})) {
+        $self->{calyx_allow_invalid_ip_adresses_in_cookies} = 0;
+    }
+
     if(defined($self->{foblogin})) {
         if(!defined($self->{foblogin}->{mode}) || $self->{foblogin}->{mode} ne 'websocket') {
             $self->{foblogin}->{mode} = 'ajax';
@@ -89,7 +96,6 @@ sub new($proto, %config) {
 }
 
 sub register($self) {
-
     $self->register_webpath($self->{login}->{webpath}, "get_login");
 
     $self->register_webpath($self->{logout}->{webpath}, "get_logout");
@@ -114,16 +120,23 @@ sub register($self) {
         $self->register_webpath($self->{foblogin}->{webpath} . '/form', "get_keyfoblogin", 'POST');
     }
 
+    if(defined($self->{applogin}->{webpath})) {
+        $self->register_webpath($self->{applogin}->{webpath}, "get_appuserlogin", 'GET', 'POST');
+    }
+
     return;
 }
 
 sub crossregister($self) {
-
     $self->register_public_url($self->{login}->{webpath});
     $self->register_public_url($self->{logout}->{webpath});
 
     if(defined($self->{register}->{webpath})) {
         $self->register_public_url($self->{register}->{webpath});
+    }
+
+    if(defined($self->{applogin}->{webpath})) {
+        $self->register_public_url($self->{applogin}->{webpath});
     }
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -137,7 +150,6 @@ sub crossregister($self) {
 }
 
 sub reload($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -274,8 +286,11 @@ sub reload($self) {
 }
 
 sub get_logout($self, $ua) {
-
     my $session = $ua->{cookies}->{"pagecamel-session"};
+
+    my %oldwebdata = (
+        $self->{server}->get_defaultwebdata(),
+    );
 
     if(!$self->validateSession($session, $ua)) {
         return (status      => 303,
@@ -305,16 +320,20 @@ sub get_logout($self, $ua) {
         showads => $self->{showads},
     );
 
+    my $nextlocation = '/'; # Automatically restart everything as if user just called up the domain (handle all the guest user stuff)
+    if(defined($oldwebdata{userData}->{appkeylogin}) && $oldwebdata{userData}->{appkeylogin} && defined($oldwebdata{userData}->{fullappkey}) && $oldwebdata{userData}->{fullappkey} ne '') {
+        $nextlocation = $self->{login}->{webpath} . '/' . $oldwebdata{userData}->{fullappkey};
+    }
+
     my $template = $self->{server}->{modules}->{templates}->get("users/logout", 1, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  303,
-            location => '/', # Automatically restart everything as if user just called up the domain (handle all the guest user stuff)
+            location => $nextlocation,
             type    => "text/html",
             data    => $template);
 }
 
 sub get_forcelogout($self, $ua) {
-
     # This is called by session manager
     my $session = $ua->{cookies}->{"pagecamel-session"};
     if(!$self->validateSession($session, $ua)) {
@@ -344,6 +363,13 @@ sub get_login($self, $ua) {
         showads => $self->{showads},
     );
 
+    if($self->{mandanth}->isActive()) {
+        my @mandants = $self->{mandanth}->getList();
+        $webdata{Mandants} = \@mandants;
+        $webdata{MandantsEnabled} = 1;
+    }
+
+
     # Force lowercase username
     if($self->{forcelowercase}) {
         $webdata{username} = lc $webdata{username};
@@ -364,6 +390,7 @@ sub get_login($self, $ua) {
     $appkey =~ s/^$remove//;
     $appkey =~ s/^\///;
     $appkey =~ s/\/$//;
+    my $fullappkey = '' . $appkey;
 
     #print STDERR "URI: ", $ua->{url}, "  Appkey: ", $appkey, "\n";
 
@@ -372,8 +399,6 @@ sub get_login($self, $ua) {
         if(scalar @appkeyparts == 2) {
             $webdata{username} = $appkeyparts[0];
             $appkey = $appkeyparts[1];
-
-            #print STDERR "USER: ", $webdata{username}, "  APPKEY: ", $appkey, "\n";
         } else {
             $appkey = '';
         }
@@ -383,7 +408,6 @@ sub get_login($self, $ua) {
 
         my $pwok;
         if(length($appkey)) {
-            print STDERR "APPKEY LOGIN for user ", $webdata{username}, " with APPKEY ", $appkey, "\n";
             $pwok = $pwh->verify_appkey($webdata{username}, $appkey);
 
             if($pwok) {
@@ -396,7 +420,7 @@ sub get_login($self, $ua) {
 
         my $clidmsg = '';
 
-        if(!$self->{disable_mousecheck}) {
+        if(!$self->{disable_mousecheck} && !length($appkey)) {
             my $tempsessionid = $ua->{postparams}->{'tempsessionid'} || '';
             my $tempclientid = $ua->{postparams}->{'tempclientid'} || '';
             for(my $i = 1; $i < 20; $i++) {
@@ -459,7 +483,7 @@ sub get_login($self, $ua) {
 
         my $sth = $dbh->prepare_cached("SELECT username, email_addr,
                                        first_name, last_name, name_initials,
-                                       (next_password_change < now() AND password_can_expire = true) as require_password_change,
+                                       force_password_change,
                                        organisation, user_id
                                        FROM users
                                 WHERE username = ?")
@@ -477,7 +501,7 @@ sub get_login($self, $ua) {
             $user{name_initials} = $line->{name_initials};
             $user{organisation} = $line->{organisation};
             $user{user_id} = $line->{user_id};
-            $user{require_password_change} = $line->{require_password_change};
+            $user{require_password_change} = $line->{force_password_change};
             $user{keyfob_logout} = 0;
             $user{keyfob_id} = '';
             last;
@@ -525,13 +549,30 @@ sub get_login($self, $ua) {
         }
 
 
-        if($user{require_password_change}) {
+        if($user{username} eq 'applogin' && defined($self->{applogin}->{webpath})) {
+            $user{startpage} = $self->{applogin}->{webpath};
+            $user{realstartpage} = $user{startpage};
+        } elsif($user{require_password_change}) {
             $user{startpage} = $self->{pwchange};
             $user{realstartpage} = $viewh->getstarturl($rights);
         } else {
             $user{startpage} = $viewh->getstarturl($rights);
             $user{realstartpage} = $user{startpage};
         }
+
+        #print STDERR "Startpage: ", $user{startpage}, "  realstartpage: ", $user{realstartpage}, "\n";
+
+        $user{appuserlogin} = 0;
+        if($user{username} eq 'applogin' && defined($self->{applogin}->{webpath})) {
+            $user{appuserlogin} = 1;
+        }
+
+        $user{appkeylogin} = 0;
+        if(length($appkey)) {
+            $user{appkeylogin} = 1;
+        }
+
+        $user{fullappkey} = $fullappkey;
 
         $self->{server}->{modules}->{$self->{memcache}}->set($session, \%user);
         $webdata{statustext} = "Login ok, please wait...!";
@@ -624,7 +665,6 @@ sub get_login($self, $ua) {
 
 
 sub get_keyfoblogin($self, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
@@ -706,6 +746,86 @@ sub get_keyfoblogin($self, $ua) {
             data    => $template);
 }
 
+sub get_appuserlogin($self, $ua) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+
+    my $userid = $ua->{postparams}->{'userid'} || '';
+
+    my %webdata = (
+        $self->{server}->get_defaultwebdata(),
+    );
+
+    if($userid ne '') {
+        my $selsth = $dbh->prepare_cached("SELECT * FROM pagecamel.users WHERE applogin_usercode = ?")
+                or croak($dbh->errstr);
+
+        if(!$selsth->execute($userid)) {
+            $reph->debuglog($dbh->errstr);
+            $dbh->rollback;
+            return (status => 500);
+        }
+        my $line = $selsth->fetchrow_hashref;
+        $selsth->finish;
+
+        if(defined($line) && defined($line->{username})) {
+            my ($session, $expires, $startpage) = $self->getAutologin($ua, $line->{username});
+
+
+            if($session eq '') {
+                return (
+                    status => 500,
+                );
+            } elsif($session eq 'LICENSEPOINTSERROR') {
+                return (status      => 200,
+                        location    => $self->{login}->{webpath},
+                        type        => "text/html",
+                        data         => "<html><body><h1>Not enough license points</h1><br>" .
+                                        "<a href=\"" . $self->{login}->{webpath} . "\">Click here to try again</a></body></html>",
+                );
+            }
+
+            $reph->auditlog($self->{modname}, "Sub-login success for user " . $line->{username}, $line->{username});
+
+            $self->{cookie} = $self->create_cookie($ua,
+                                    "name" => "pagecamel-session",
+                                    "value" => "$session",
+                                    "expires" => $expires,
+                                    "httponly" => 1,
+                                    "secure" => $self->{httpsonlycookies},
+                                    "location" => '/',
+                                    "samesite" => 'strict',
+                                    );
+            $self->{currentSessionID} = $session;
+
+            %webdata = (
+                $self->{server}->get_defaultwebdata(),
+                PageTitle   =>  $self->{switchtouser}->{pagetitle},
+            );
+            my $template = $self->{server}->{modules}->{templates}->get("users/switchinguser", 1, %webdata);
+            return (status  =>  404) unless $template;
+            return (status  =>  303,
+                    location => $startpage,
+                    type    => "text/html",
+                    data    => $template);
+        }
+    }
+
+    my $size = "makemebig";
+    if($webdata{BrowserData}->{UserAgent} =~ /Mobile/i) {
+        $size = 'makemehuge';
+    }
+    $webdata{ButtonSize} = $size;
+
+    my $template = $self->{server}->{modules}->{templates}->get("users/appuserlogin", 1, %webdata);
+    return (status  =>  404) unless $template;
+    return (status  =>  200,
+            type    => "text/html",
+            data    => $template);
+
+}
+
+
 sub getAutologin($self, $ua, $username, $keyfobid = '') {
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -716,6 +836,25 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
     my $isGuestUser = 0;
     if($self->{autologin}->{username} eq $username) {
         $isGuestUser = 1;
+    }
+
+    my %oldwebdata = (
+        $self->{server}->get_defaultwebdata(),
+    );
+
+    my $appuserlogin = 0;
+    if(defined($oldwebdata{userData}->{appuserlogin}) && $oldwebdata{userData}->{appuserlogin}) {
+        $appuserlogin = 1;
+    }
+
+    my $appkeylogin = 0;
+    if(defined($oldwebdata{userData}->{appkeylogin}) && $oldwebdata{userData}->{appkeylogin}) {
+        $appkeylogin = 1;
+    }
+
+    my $fullappkey = '';
+    if(defined($oldwebdata{userData}->{fullappkey}) && $oldwebdata{userData}->{fullappkey} ne '') {
+        $fullappkey = $oldwebdata{userData}->{fullappkey};
     }
 
     # Delete the old session if any
@@ -768,12 +907,22 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
     $sth->finish;
     $user{html5} = \%html5;
 
+    $user{appuserlogin} = $appuserlogin;
+    $user{appkeylogin} = $appkeylogin;
+    $user{fullappkey} = $fullappkey;
+
     if($isGuestUser) {
         $user{keyfob_logout} = 0;
     } else {
         $user{keyfob_logout} = 1;
     }
     $user{keyfob_id} = $keyfobid;
+
+    if($appuserlogin || $appkeylogin) {
+        # Force keyfob to OFF
+        $user{keyfob_logout} = 0;
+        $user{keyfob_id} = '';
+    }
 
     my @dbRights;
     my $rights = $ulh->getPermissionForUser($user{username}) or croak("Failed to read permissions");
@@ -828,7 +977,6 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
 }
 
 sub get_switchtouser($self, $ua) {
-
     my $remove = $self->{switchtouser}->{webpath};
     my $targetuser = $ua->{url};
     substr($targetuser, 0, length($remove), '');
@@ -855,7 +1003,6 @@ sub get_switchtouser($self, $ua) {
 }
 
 sub get_switchfromuser($self, $ua) {
-
     my $startpage = $self->adminSwitchFromUser($ua);
     if(!defined($startpage)) {
         return (status => 403); # Forbidden
@@ -977,7 +1124,6 @@ sub adminSwitchToUser($self, $username, $ua) {
 }
 
 sub adminSwitchFromUser($self, $ua) {
-
     my $host_addr = $ua->{remote_addr};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
@@ -1024,9 +1170,7 @@ sub adminSwitchFromUser($self, $ua) {
     return $user->{startpage};
 }
 
-
 sub preauthcleanup($self, $ua) {
-
     delete $self->{cookie};
     delete $self->{currentData};
     delete $self->{currentSessionID};
@@ -1040,7 +1184,6 @@ sub preauthcleanup($self, $ua) {
 }
 
 sub authcheck($self, $ua) {
-
     my $webpath = $ua->{url};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
     #warn "User requested path $webpath\n";
@@ -1060,6 +1203,12 @@ sub authcheck($self, $ua) {
     if($webpath =~ /^\/public\//) {
         $self->{isPublicUrl} = 1;
     }
+
+    if(defined($self->{applogin}->{webpath}) && $webpath eq $self->{applogin}->{webpath}) {
+        print STDERR "Forcing PUBLIC URL\n";
+        $self->{isPublicUrl} = 1;
+    }
+
 
     if(!$self->{isPublicUrl}) {
         my $basicauths = $self->get_basic_auths;
@@ -1117,7 +1266,7 @@ sub authcheck($self, $ua) {
             if(!$self->{isPublicUrl}) {
                 my $hasAccess = $ulh->checkAccess($webpath, $user->{rights});
                 if(!$hasAccess) {
-                    return (status      => 403,
+                    return (status      => 307,
                             location    => $self->{login}->{webpath},
                             type        => "text/html",
                             data         => "<html><body><h1>Permission denied.</h1><br>" .
@@ -1135,6 +1284,16 @@ sub authcheck($self, $ua) {
                                                    "location" => '/',
                                                    "samesite" => 'strict',
                                                 );
+            if(!defined($user->{appuserlogin})) {
+                $user->{appuserlogin} = 0;
+            }
+            if(!defined($user->{appkeylogin})) {
+                $user->{appkeylogin} = 0;
+            }
+            if(!defined($user->{fullappkey})) {
+                $user->{fullappkey} = 0;
+            }
+
             my %currentData = (sessionid    =>  $session,
                                user         =>  $user->{username},
                                email_addr    =>    $user->{email_addr},
@@ -1150,6 +1309,9 @@ sub authcheck($self, $ua) {
                                expires      => $user->{expires},
                                keyfob_logout => $user->{keyfob_logout},
                                keyfob_id => $user->{keyfob_id},
+                               appuserlogin => $user->{appuserlogin},
+                               appkeylogin => $user->{appkeylogin},
+                               fullappkey => $user->{fullappkey},
                               );
 
             if(defined($user->{realuser})) {
@@ -1210,7 +1372,6 @@ sub authcheck($self, $ua) {
 }
 
 sub genBasicAuthRequest($self, $realm) {
-
     return (
         status  => 401,
         "WWW-Authenticate"  => 'Basic realm="' . $realm . '"',
@@ -1218,7 +1379,6 @@ sub genBasicAuthRequest($self, $realm) {
 }
 
 sub do_basic_auth($self, $ua, $realm) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $ulh = $self->{server}->{modules}->{$self->{userlevels}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -1294,7 +1454,6 @@ sub do_basic_auth($self, $ua, $realm) {
 }
 
 sub password_changed($self, $ua) {
-
     my $session = $ua->{cookies}->{"pagecamel-session"};
     my $user;
     if(defined($session) && $self->validateSession($session, $ua)) {
@@ -1318,7 +1477,6 @@ sub password_changed($self, $ua) {
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     # Just add the cookie to the header
     if(defined($self->{cookie})) {
         if(!defined($header->{-cookie})) {
@@ -1341,7 +1499,6 @@ sub postfilter($self, $ua, $header, $result) {
 }
 
 sub get_defaultwebdata($self, $webdata) {
-
     if(defined($self->{currentData})) {
         my $clone = dclone $self->{currentData}; # Make sure we clone first
         foreach my $key (qw[first_name last_name]) {
@@ -1379,7 +1536,6 @@ sub get_defaultwebdata($self, $webdata) {
 }
 
 sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $settings = $self->getSettings();
 
@@ -1472,7 +1628,6 @@ sub deleteSession($self, $session) {
 }
 
 sub updateSessionUsername($self, $session, $username) {
-
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -1491,7 +1646,6 @@ sub updateSessionUsername($self, $session, $username) {
 }
 
 sub deleteStaleSessions($self) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my @stales;
@@ -1519,8 +1673,11 @@ sub deleteStaleSessions($self) {
 }
 
 sub validateSession($self, $session, $ua) {
-
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    if($self->{calyx_allow_invalid_ip_adresses_in_cookies}) {
+        return $self->validateSessionINSECURE($session, $ua);
+    }
 
     if(!defined($session) || $session eq "NONE") {
         #warn "No session cookie: $session\n";
@@ -1528,7 +1685,6 @@ sub validateSession($self, $session, $ua) {
     }
 
     my $host_addr = $ua->{remote_addr};
-    my $userAgent = $ua->{headers}->{'User-Agent'} || '--unknown--';
 
     my $countsth = $dbh->prepare_cached("SELECT count(*) FROM sessions
                                         WHERE sid = ?
@@ -1554,8 +1710,40 @@ sub validateSession($self, $session, $ua) {
 
 }
 
-sub refreshSession($self, $session, $ua) {
+# Requested by daniel
+# Technically, this risks copying the session cookie to another device!
+sub validateSessionINSECURE($self, $session, $ua) {
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
 
+    if(!defined($session) || $session eq "NONE") {
+        #warn "No session cookie: $session\n";
+        return 0; # Invalid session
+    }
+
+    my $countsth = $dbh->prepare_cached("SELECT count(*) FROM sessions
+                                        WHERE sid = ?")
+            or croak($dbh->errstr);
+
+    $countsth->execute($session)
+            or croak($dbh->errstr); # if we can not check if the session is
+                                    # valid, we are really, really screwed!
+
+
+
+    my ($count) = $countsth->fetchrow_array;
+    $countsth->finish;
+    $dbh->commit;
+
+    if(!defined($count) || $count != 1) {
+        return 0;
+    }
+
+    $self->refreshSession($session, $ua);
+    return 1;
+
+}
+
+sub refreshSession($self, $session, $ua) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -1566,7 +1754,6 @@ sub refreshSession($self, $session, $ua) {
 }
 
 sub get_sessionid($self) {
-
     if(defined($self->{forcedSessionID})) {
         return $self->{forcedSessionID};
     }
@@ -1575,7 +1762,6 @@ sub get_sessionid($self) {
 }
 
 sub get_sessionrefresh($self, $ua) {
-
     if($ua->{method} eq 'POST') {
         # Beacon
         return (
@@ -1597,7 +1783,6 @@ sub get_sessionrefresh($self, $ua) {
 }
 
 sub firewall_log_loginfailure($self, $ua) {
-
     if($self->{disable_firewall}) {
         return;
     }
@@ -1616,7 +1801,6 @@ sub firewall_log_loginfailure($self, $ua) {
 }
 
 sub firewall_check_loginfailure($self, $ua) {
-
     if($self->{disable_firewall}) {
         return 1;
     }
@@ -1653,7 +1837,6 @@ sub firewall_check_loginfailure($self, $ua) {
 }
 
 sub getSettings($self) {
-
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
@@ -1703,8 +1886,6 @@ sub getSettings($self) {
 
     return \%settings;
 }
-
-
    
 1;
 __END__

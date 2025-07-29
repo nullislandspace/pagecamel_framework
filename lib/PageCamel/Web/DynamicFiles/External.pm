@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -63,7 +63,6 @@ sub register($self) {
 }
 
 sub crossregister($self) {
-
     if($self->{public}) {
         $self->register_public_url($self->{download}->{webpath});
     }
@@ -405,7 +404,6 @@ sub get_download($self, $ua, $isErrorMode = false) {
 }
 
 sub file_get_multipart_contentlength($self, $ua) {
-
     my $len = 0;
     foreach my $okrange (@{$self->{file}->{ranges}}) {
 
@@ -422,7 +420,6 @@ sub file_get_multipart_contentlength($self, $ua) {
 }
 
 sub file_get_multipart($self, $ua) {
-
     if(!defined($self->{file}->{fh})) {
         $self->{file}->{fh} = File::Binary->new($self->{file}->{fname});
         $self->{file}->{len} = 0;
@@ -483,7 +480,6 @@ sub file_get_multipart($self, $ua) {
 }
 
 sub file_get($self, $ua) {
-
     my $ok = 0;
 
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
@@ -527,7 +523,6 @@ sub file_get($self, $ua) {
 
 
 sub getDirectory($self, $ua, $filename) {
-
     return (status => 404) unless defined($self->{server}->{modules}->{templates});
 
     if($ua->{method} eq 'POST' && defined($ua->{postparams}->{mode}) &&
@@ -656,7 +651,6 @@ sub getDirectory($self, $ua, $filename) {
 }
 
 sub getDirectorySearch($self, $ua, $filename) {
-
     return (status => 404) unless defined($self->{server}->{modules}->{templates});
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};
@@ -749,7 +743,6 @@ sub getDirectorySearch($self, $ua, $filename) {
 
 
 sub get_wastedspace($self, $ua) {
-    
     return (status => 404) unless defined($self->{server}->{modules}->{templates});
 
     my $dbh = $self->{server}->{modules}->{$self->{db}};

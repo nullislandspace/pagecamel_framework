@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.5;
+our $VERSION = 4.7;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -42,6 +42,13 @@ sub new($proto, %config) {
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
 
+    if(defined($ENV{PC_DISABLE_HTTPCOMPRESSION}) && $ENV{PC_DISABLE_HTTPCOMPRESSION}) {
+        $self->{enableCompression} = 0;
+    } else {
+        $self->{enableCompression} = 1;
+    }
+
+
     if(!defined($self->{gzip})) {
         $self->{gzip} = 0;
     }
@@ -63,16 +70,18 @@ sub reload($self) {
 }
 
 sub register($self) {
+    if(!$self->{enableCompression}) {
+        return;
+    }
 
     # only register if we actually have at least ONE compression type enabled
-    if($self->{gzip}) {
+    if($self->{gzip} || $self->{brotli}) {
         $self->register_postfilter("postfilter");
     }
     return;
 }
 
 sub postfilter($self, $ua, $header, $result) {
-
     # Ignore replies without content
     return if(!(defined($result->{data})));
 
