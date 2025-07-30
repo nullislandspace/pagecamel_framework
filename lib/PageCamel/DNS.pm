@@ -126,6 +126,12 @@ sub child_init_hook($self) {
                                       ORDER BY record_type, mxpriority')
             or croak($dbh->errstr);
 
+    $self->{owndomainsth} = $dbh->prepare_cached('SELECT * FROM nameserver_domain_entry
+                                      WHERE host_fqdn = ?
+                                      AND is_disabled = false
+                                      LIMIT 1')
+            or croak($dbh->errstr);
+
     $self->{spfselsth} = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry
                                       WHERE host_fqdn = ?
                                       AND record_type = 'TXT'
@@ -261,6 +267,10 @@ sub child_finish_hook($self) {
 sub isownip($self, $ip, $dbh) {
     $ip =~ s/\/.*//;
 
+    if($ip eq $RECURSIVELOOKUP) {
+        return 1;
+    }
+
     foreach my $ownip (@{$self->{config}->{server}->{bind_adresses}->{item}}) {
         $ownip =~ s/\[//;
         $ownip =~ s/\]//;
@@ -277,6 +287,7 @@ sub isownip($self, $ip, $dbh) {
             return 1;
         }
     }
+
 
     # Check if IP is in your ComputerDB. If so, consider it as ownip, since it might be one of the DynDNS IPs.
     # We can only do this if we have defined columnprefixes
@@ -315,6 +326,30 @@ sub isownip($self, $ip, $dbh) {
     }
 
     return $ismyown;
+}
+
+sub isowndomain($self, $qtype, $qname, $dbh) {
+    if($qtype eq 'PTR') {
+        return 1; # TODO: Check for IP adresses
+    }
+
+    $dbh->pg_savepoint('owndomain');
+    if(!$self->{owndomainsth}->execute($qname)) {
+        $dbh->pg_rollback_to('owndomain');
+        return 0;
+    }
+
+    my $line = $self->{owndomainsth}->fetchrow_hashref;
+    $self->{owndomainsth}->finish;
+    $dbh->pg_release('owndomain');
+
+    if(defined($line) && defined($line->{host_fqdn}) && $line->{host_fqdn} eq $qname) {
+        #$self->debuglog("****** OWN DOMAIN ****");
+        return 1;
+    }
+
+
+    return 0;
 }
 
 sub ignorerequest($self, $hostname) {
@@ -641,13 +676,28 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
 
     my $remotelookup = 0;
     if($peerhost ne $RECURSIVELOOKUP) {
-        if(1 || $self->{isDebugging}) {
-            $self->debuglog("Requested: $qtype OF $qname by $peerhost");
+        if(0 || $self->{isDebugging}) {
+            #$self->debuglog("Requested: $qtype OF $qname by $peerhost");
         }
     }
 
+    my $ownip = $self->isownip($peerhost, $dbh);
+    my $owndomain = $self->isowndomain($qtype, $qname, $dbh);
+
+    if(!$self->{config}->{public_server} && !$ownip && !$owndomain) {
+        # We don't serve recursively to the public
+        if(0 && $self->{isDebugging}) {
+            $self->debuglog("We don't serve the public anymore as a recursive loopup $qtype OF $qname by $peerhost ($ownip / $owndomain)");
+        }
+        return;
+    }
+
+    if($peerhost ne $RECURSIVELOOKUP) {
+        $self->debuglog("Requested: $qtype OF $qname by $peerhost");
+    }
+
     # IP floodcheck (DNS DDOS to IP target), don't check for recursive lookups and whenever the client is localhost
-    if($peerhost ne $RECURSIVELOOKUP && !$self->isownip($peerhost, $dbh)) {
+    if(!$ownip && $peerhost ne $RECURSIVELOOKUP) {
         # localhost doesn't have limitations
         if(!$self->{ipfloodinssth}->execute($peerhost)) {
             $self->debuglog("Can't log $qname from $peerhost");
@@ -674,7 +724,7 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
     }
 
     # Hostname floodcheck (DNS DDOS to DNS Server), don't check for recursive lookups and whenever the client is localhost
-    if($peerhost ne $RECURSIVELOOKUP && !$self->isownip($peerhost, $dbh)) {
+    if(!$ownip && $peerhost ne $RECURSIVELOOKUP) {
         if(!$self->{hostfloodinssth}->execute($qname)) {
             $self->debuglog("Can't log $qname from $peerhost");
             $dbh->rollback;
