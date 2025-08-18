@@ -102,7 +102,7 @@ sub work($self) {
     my $workCount = 0;
     my $now = time;
     if($now > $self->{nextrun}) {
-        $self->{nextrun} = time + 10;
+        $self->{nextrun} = time + 5;
     } else {
         return $workCount;
     }
