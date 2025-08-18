@@ -142,7 +142,7 @@ sub _generateEscPos($self, $img = undef) {
         $self->{printerExtraFeed} = 0;
     }
 
-    if($self->{printerType} eq 'TMT88') {
+    if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags') {
         $reph->debuglog("    Type: TMT88");
         return $self->_escpos_tmt88($self->{printerExtraFeed}, 0);
     } elsif($self->{printerType} eq 'ORDERMAN') {
@@ -629,7 +629,7 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     }
 
     my $raw = '';
-    if($self->{printerType} eq 'TMT88') {
+    if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags') {
         $reph->debuglog("    Type: TMT88");
 
         # Kick drawer 1
