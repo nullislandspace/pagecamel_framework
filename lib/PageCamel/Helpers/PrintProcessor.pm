@@ -301,8 +301,8 @@ sub _escpos_tmp20($self, $extrafeed) {
 
     # Bluetooth belt printer
     # This is largely compatible to the Epson TM-T88 models. Of course, it doesn't have a cash drawer and it only has 384 pixels width, so we need to downscale the image
-    my $img = $self->_resize_for_tmp20($self->{img});
 
+    my $img = GD::Image->newFromPngData($self->_resize_for_tmp20($self->{img}));
 
     # Reset printer
     $raw .= chr(0x1B) . chr(0x40);
@@ -741,6 +741,9 @@ sub printSetColorRed($self, $val) {
 }
 
 sub _getPrintColor($self, $isfont = 0) {
+    if(!defined($self->{printcolor})) {
+        croak("BLA");
+    }
     if($isfont && $self->{$self->{printcolor}} > 0) {
         # return the NEGATIVE number of the print color, this disables Font Aliasing
         return -1 * $self->{$self->{printcolor}};
