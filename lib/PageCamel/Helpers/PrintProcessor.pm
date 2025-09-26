@@ -142,27 +142,31 @@ sub _generateEscPos($self, $img = undef) {
         $self->{printerExtraFeed} = 0;
     }
 
+    if(!defined($self->{printerBeep})) {
+        $self->{printerBeep} = 0;
+    }
+
     if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags') {
         $reph->debuglog("    Type: TMT88");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, 0);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0);
     } elsif($self->{printerType} eq 'ORDERMAN') {
         $reph->debuglog("    Type: TMT88 in ORDERMAN mode");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, 1);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 1);
     } elsif($self->{printerType} eq 'TMP20') {
         $reph->debuglog("    Type: TMP20");
-        return $self->_escpos_tmp20($self->{printerExtraFeed});
+        return $self->_escpos_tmp20($self->{printerExtraFeed}, $self->{printerBeep});
     } elsif($self->{printerType} eq 'CTS801') {
         $reph->debuglog("    Type: CTS801");
-        return $self->_escpos_cts801($self->{printerExtraFeed});
+        return $self->_escpos_cts801($self->{printerExtraFeed}, $self->{printerBeep});
     } elsif($self->{printerType} eq 'SGT116') {
         $reph->debuglog("    Type: SGT116");
-        return $self->_escpos_sgt116($self->{printerExtraFeed});
+        return $self->_escpos_sgt116($self->{printerExtraFeed}, $self->{printerBeep});
     } elsif($self->{printerType} eq 'JWS360') {
         $reph->debuglog("    Type: JWS360");
-        return $self->_escpos_jws360($self->{printerExtraFeed});
+        return $self->_escpos_jws360($self->{printerExtraFeed}, $self->{printerBeep});
     } elsif($self->{printerType} eq 'JAW500') {
         $reph->debuglog("    Type: JAW500");
-        return $self->_escpos_jws360($self->{printerExtraFeed});
+        return $self->_escpos_jws360($self->{printerExtraFeed}, $self->{printerBeep});
     }
 
     $reph->debuglog("   UNSUPPORTED PRINTER TYPE, TRYING TMT88 compatible");
@@ -170,7 +174,7 @@ sub _generateEscPos($self, $img = undef) {
 }
     
 
-sub _escpos_tmt88($self, $extrafeed, $ordermanprinter = 0) {
+sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -250,6 +254,12 @@ sub _escpos_tmt88($self, $extrafeed, $ordermanprinter = 0) {
         }
     }
 
+    if($beep) {
+        # ESC ( A FUNCTION97 BeepPatterA 3times
+        #          ESC         (           A             FUNCTION             97          TypeA         3
+        $raw .= chr(0x1B) . chr(0x28) . chr(0x41) . chr(0x03) . chr(0x00) . chr(0x61) . chr(0x01) . chr(0x03);
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
@@ -294,7 +304,7 @@ sub _resize_for_tmp20($self, $inputimg) {
     return $outimg;
 }
 
-sub _escpos_tmp20($self, $extrafeed) {
+sub _escpos_tmp20($self, $extrafeed, $beep) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -371,7 +381,7 @@ sub _escpos_tmp20($self, $extrafeed) {
 }
 
 
-sub _escpos_cts801($self, $extrafeed) {
+sub _escpos_cts801($self, $extrafeed, $beep) {
     my $reph = $self->{reph};
 
     # Citizen CTS801 is *mostly* compatible with Epson TM-T88V but has a wider print head that print right to (and sometimes over) the edge of the paper.
@@ -461,7 +471,7 @@ sub _escpos_cts801($self, $extrafeed) {
     return;
 }
 
-sub _escpos_sgt116($self, $extrafeed) {
+sub _escpos_sgt116($self, $extrafeed, $beep) {
     my $raw = '';
     my $img = $self->{img};
 
@@ -532,7 +542,7 @@ sub _escpos_sgt116($self, $extrafeed) {
     return;
 }
 
-sub _escpos_jws360($self, $extrafeed) {
+sub _escpos_jws360($self, $extrafeed, $beep) {
     my $raw = '';
     my $img = $self->{img};
 
