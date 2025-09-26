@@ -255,9 +255,16 @@ sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
     }
 
     if($beep) {
-        # ESC ( A FUNCTION97 BeepPatterA 3times
-        #          ESC         (           A             FUNCTION             97          TypeA         3
-        $raw .= chr(0x1B) . chr(0x28) . chr(0x41) . chr(0x03) . chr(0x00) . chr(0x61) . chr(0x01) . chr(0x03);
+
+        # New'ish beep function (might ot might not need external buzzer)
+        ## ESC ( A FUNCTION97 BeepPatterA 3times
+        ##          ESC         (           A             FUNCTION             97          TypeA         3
+        #$raw .= chr(0x1B) . chr(0x28) . chr(0x41) . chr(0x03) . chr(0x00) . chr(0x61) . chr(0x01) . chr(0x05);
+
+        # Basic beep command, may or may not work
+        #          ESC          A        count(1-9)  length(1-9)
+        $raw .= chr(0x1B) .  chr(0x42) . chr(0x04) . chr(0x05);
+        $reph->debuglog("#### BEEEEEP ####");
     }
 
     $self->{escposimagedata} = $raw;
