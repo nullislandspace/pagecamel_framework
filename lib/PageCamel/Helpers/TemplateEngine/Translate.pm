@@ -70,6 +70,19 @@ sub quote($self, $data) {
     return $quoted;
 }
 
+sub linebreakquote($self, $data) {
+    my $quoted = '' . $data;
+    #print STDERR Dumper("BLI: ", $quoted, "\n");
+
+    $quoted =~ s/\n/XXXLINEBREAKXXX/;
+    my $quoted = $self->quote($quoted);
+    $quoted =~ s/XXXLINEBREAKXXX/\<br\/\>/;
+
+    #print STDERR Dumper("BLA: ", $quoted, "\n");
+
+    return $quoted;
+}
+
 sub trquote($self, $data) {
     return $self->quote($self->tr($data));
 }

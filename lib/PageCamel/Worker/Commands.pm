@@ -76,6 +76,7 @@ sub work($self) {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
 
+    
     # Check if there are actually any registered ext_commands. If not, just write a debug message
     # and finish cycle
     if($self->{commandlist} eq '') {
@@ -86,21 +87,27 @@ sub work($self) {
         return 0;
     }
 
+    if($self->{firstrun}) {
+        $reph->debuglog("Ignoring BACKUP commands until 10 after worker start");
+        $self->{firstrun} = 0;
+    }
+
+
     my $did_some_work;
     do {
         $did_some_work = 0;
 
         my $extrawhere = '';
-        if(time < $self->{starttime} + 600) {
-            if($self->{isDebugging}) {
-                $reph->debuglog("Would ignore BACKUP commands for 10 minutes after start, but we are in debugging mode");
-                $self->{starttime} = 0;
-            } else {
-                # Don't start backups right after worker start, wait at least 10 minutes
-                $extrawhere .= "AND command != 'BACKUP' ";
-                $reph->debuglog("Ignoring BACKUP commands until 10 after worker start");
-            }
-        }
+        #if(time < $self->{starttime} + 600) {
+        #    if($self->{isDebugging}) {
+        #        $reph->debuglog("Would ignore BACKUP commands for 10 minutes after start, but we are in debugging mode");
+        #        $self->{starttime} = 0;
+        #    } else {
+        #        # Don't start backups right after worker start, wait at least 10 minutes
+        #        #$extrawhere .= "AND command != 'BACKUP' ";
+        #        $reph->debuglog("Ignoring BACKUP commands until 10 after worker start");
+        #    }
+        #}
 
         # We LOCK the command we're working on and update it with the name of
         # our worker
@@ -136,6 +143,21 @@ sub work($self) {
         foreach my $command (@commands) {
             # For every command, refresh lifetick
             $memh->refresh_lifetick;
+
+            if(time < $self->{starttime} + 600 && $command->{command} eq 'BACKUP' && defined($command->{arguments})) {
+                my $forced = 0;
+                my @temp = @{$command->{arguments}};
+                if(defined($temp[1]) && $temp[1]) {
+                    # "Forced" backup via commandqueue mask
+                    $forced = 1;
+                }
+                if(!$forced) {
+                    next;
+                }
+
+                $reph->debuglog("Forced BACKUP command via commandqueue webmask, ignoring startup timer");
+            }
+
 
             # Lock this command -> make it ours
             my $workername = $self->{APPNAME};

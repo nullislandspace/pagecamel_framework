@@ -181,6 +181,7 @@ sub get_admin($self, $ua) {
                     $isodate = getISODate();
                 } elsif($allcommands{$command} eq "backup") {
                     push @arglist, ($ua->{postparams}->{'backup_name'} || '');
+                    push @arglist, (1); # Mark it as "forced" command that skips the 10 minute admworker startup timer
                 }
 
                 if(!$sth->execute($command, $isodate, \@arglist)) {

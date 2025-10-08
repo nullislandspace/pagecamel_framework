@@ -20,7 +20,7 @@
                         <td>
                     [% END %]
                         [% tr.trquote(command.name) %]</td>
-                    <td>[% tr.quote(command.args) %]</td>
+                    <td>[% tr.linebreakquote(command.args) %]</td>
                     <td>[% tr.fixdate(command.time) %]</td>
                     <td>[% tr.quote(command.worker) %]</td>
                     <td valign="center">
