@@ -75,7 +75,7 @@ sub linebreakquote($self, $data) {
     #print STDERR Dumper("BLI: ", $quoted, "\n");
 
     $quoted =~ s/\n/XXXLINEBREAKXXX/;
-    my $quoted = $self->quote($quoted);
+    $quoted = $self->quote($quoted);
     $quoted =~ s/XXXLINEBREAKXXX/\<br\/\>/;
 
     #print STDERR Dumper("BLA: ", $quoted, "\n");
