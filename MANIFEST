@@ -64,6 +64,7 @@ lib/PageCamel/Helpers/DateStrings.pm
 lib/PageCamel/Helpers/DBSerialize.pm
 lib/PageCamel/Helpers/ENVResetHelper.pm
 lib/PageCamel/Helpers/FileSlurp.pm
+lib/PageCamel/Helpers/Format.pm
 lib/PageCamel/Helpers/FTPSync.pm
 lib/PageCamel/Helpers/JavaScript.pm
 lib/PageCamel/Helpers/JavaScriptDB.pm
