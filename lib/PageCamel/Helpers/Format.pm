@@ -240,14 +240,18 @@ sub linebreakText($val, $len, $nextlen = undef) {
             # Current line is only less than half filled. Aggresively linewrap the current part into the current line no matter what. This is much more space effective
             my $partlen = $thislen - length($line);
             $line .= substr($part, 0, $partlen);
-            push @lines, $line;
+            if(length($line)) {
+                push @lines, $line;
+            }
             $line = '';
             $thislen = $nextlen; # Reset to default line length
             $part = substr $part, $partlen;
         }
 
         if((length($line) + length($part)) > $thislen) {
-            push @lines, $line;
+            if(length($line)) {
+                push @lines, $line;
+            }
             $thislen = $nextlen; # Reset to default line length
             if(length($part) < $thislen) {
                 $line = $part;
@@ -272,17 +276,6 @@ sub linebreakText($val, $len, $nextlen = undef) {
     }
     if(length($line)) {
         push @lines, $line;
-    }
-
-    for(my $i = 0; $i < scalar @lines; $i++) {
-        $lines[$i] = stripString($lines[$i]);
-    }
-
-    while(defined($lines[0]) && $lines[0] eq '') {
-        shift @lines;
-    }
-    while(defined($lines[-1]) && $lines[-1] eq '') {
-        pop @lines;
     }
 
     return \@lines;
