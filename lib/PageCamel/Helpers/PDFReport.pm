@@ -21,6 +21,7 @@ use JSON::XS;
 use MIME::Base64 qw(encode_base64 decode_base64);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 use PageCamel::Helpers::DateStrings;
+use PageCamel::Helpers::Format qw(linebreakText);
 use GD;
 use PDF::Report;
 BEGIN {
@@ -330,8 +331,12 @@ sub addTable($self, $data, $table) {
             my @parts = split/\n/, $val;
             my @dest;
             foreach my $part (@parts) {
-                my $newval = $self->{pdf}->wrapText($part, $table->{columns}->[$i]->{pixelwidth});
-                my @newparts = split/\n/, $newval;
+                #my $newval = $self->{pdf}->wrapText($part, $table->{columns}->[$i]->{pixelwidth});
+                #my @newparts = split/\n/, $newval;
+
+                my $newval = linebreakText($part, $table->{columns}->[$i]->{width});
+                my @newparts = @{$newval};
+
                 foreach my $newpart (@newparts) {
                     if($table->{columns}->[$i]->{align} eq 'right') {
                         $newpart = doLeftSpacePad($newpart, $table->{columns}->[$i]->{width});
@@ -340,6 +345,7 @@ sub addTable($self, $data, $table) {
                     push @dest, $newpart;
                 }
             }
+
             if(scalar @dest > $maxlines) {
                 $maxlines = scalar @dest;
             }

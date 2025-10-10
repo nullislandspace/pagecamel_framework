@@ -35,6 +35,7 @@ use PageCamel::Helpers::DateStrings;
 use PageCamel::Helpers::ENVResetHelper;
 use PageCamel::Helpers::FTPSync;
 use PageCamel::Helpers::FileSlurp;
+use PageCamel::Helpers::Format;
 use PageCamel::Helpers::JavaScript;
 use PageCamel::Helpers::JavaScriptDB;
 use PageCamel::Helpers::Logging::Graphs;
