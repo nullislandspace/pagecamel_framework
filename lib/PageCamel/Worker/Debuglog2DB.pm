@@ -115,14 +115,14 @@ sub rollingwindow($self) {
     $tsth->finish;
     $dbh->rollback;
 
-    # Remove first 15 entries (which we want to keep), then reverse order
-    for(1..15) {
+    # Remove first 4 entries (which we want to keep), then reverse order
+    for(1..4) {
         shift @oldtables;
     }
     @oldtables = reverse @oldtables;
 
     if(scalar @oldtables) {
-        $reph->debuglog("Dropping old accesslog tables");
+        $reph->debuglog("Dropping old debuglog tables");
         $dbh->AutoCommit(1);
         $memh->disable_lifetick;
 
