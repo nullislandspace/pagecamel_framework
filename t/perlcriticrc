@@ -129,4 +129,9 @@ max_elsif = 20
 # Sometimes, a "brief open" is not possible
 [-InputOutput::RequireBriefOpen]
 
+# make unless() more flexible
+[-ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions]
+
+# due to inheritance ("use base"), there MAY be private subs that are not used in that particular pm file
+[-Subroutines::ProhibitUnusedPrivateSubroutines]
 
