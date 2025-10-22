@@ -23,32 +23,26 @@ our @EXPORT= qw(ENVReset); ## no critic (Modules::ProhibitAutomaticExportation)
 sub ENVReset {
     warn("ENVReset helper is deprecated and disabled");
     return;
-    #if(!defined($ENV{HOME})) {
-    #    print STDERR "HOME environment variable not set!\n";
-    #    return;
-    #}
-    #
-    #my $fname = $ENV{HOME} . '/.perl_env';
-    my $fname = '/home/cavac/.perl_env';
-
-    if(!(-f $fname)) {
-        print STDERR "$fname does not exist!\n";
-        return;
-    }
-
-    open(my $ifh, '<', $fname) or croak("$ERRNO");
-    while((my $line = <$ifh>)) {
-        chomp $line;
-        if($line =~ /^([A-Za-z0-9_]+)=(.*)/) {
-            my ($key, $val) = ($1, $2);
-            #print STDERR "Setting $key = $val\n";
-            $ENV{$key} = $val;
-        } else {
-            print STDERR "Unparsable line $line\n";
-        }
-    }
-    close $ifh;
-    return;
+#   my $fname = '/home/cavac/.perl_env';
+#
+#   if(!(-f $fname)) {
+#       print STDERR "$fname does not exist!\n";
+#       return;
+#   }
+#
+#   open(my $ifh, '<', $fname) or croak("$ERRNO");
+#   while((my $line = <$ifh>)) {
+#       chomp $line;
+#       if($line =~ /^([A-Za-z0-9_]+)=(.*)/) {
+#           my ($key, $val) = ($1, $2);
+#           #print STDERR "Setting $key = $val\n";
+#           $ENV{$key} = $val;
+#       } else {
+#           print STDERR "Unparsable line $line\n";
+#       }
+#   }
+#   close $ifh;
+#   return;
 
 }
 

@@ -152,6 +152,7 @@ sub dumpString($self, $val) {
         print STDERR ord($part), " ";
     };
     print STDERR "\n";
+    return;
 }
 
 

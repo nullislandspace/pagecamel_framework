@@ -52,8 +52,10 @@ sub finalcheck($self) {
         croak("File not found for URI " . $self->{favicon});
     }
 
-    $fname =~ /^(.*)\//;
-    my $dirname = $1 . '/';
+    my $dirname = '';
+    if($fname =~ /^(.*)\//) {
+        $dirname = $1 . '/';
+    }
 
     my $uridir = '' . $self->{favicon};
     $uridir =~ s/favicon\.ico$//;

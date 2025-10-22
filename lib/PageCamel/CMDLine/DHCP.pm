@@ -28,6 +28,7 @@ my $keepRunning = 1;
 # generic signal handler to cause daemon to stop
 sub signal_handler {
     $keepRunning = 0;
+    return;
 }
 $SIG{INT} = $SIG{TERM} = $SIG{HUP} = \&signal_handler;
 
@@ -41,6 +42,7 @@ $SIG{PIPE} = 'IGNORE';
 sub logger($str) {
     #print STDOUT strftime "[%d/%b/%Y:%H:%M:%S] ", localtime;
     print STDOUT "$str\n";
+    return;
 }
 
 
@@ -70,8 +72,6 @@ sub init($self) {
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
 
     $0 = $ps_appname;
-
-    my @runargs;
 
     # Debugging on port 6700
     if(0 && $self->{isDebugging}) {
@@ -127,7 +127,6 @@ sub init($self) {
 sub run($self) {
     my $buf = undef;
     my $fromaddr;       # address & port from which packet was received
-    my $dhcpreq;
     my $transaction = 0;    # report transaction number
 
     while($keepRunning) {

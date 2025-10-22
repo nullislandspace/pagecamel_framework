@@ -43,6 +43,7 @@ sub reload($self) {
     $self->{clacks} = $self->newClacksFromConfig($clconf);
     $self->{clacks}->ping();
     $self->{clacks}->doNetwork();
+    return;
 }
 
 

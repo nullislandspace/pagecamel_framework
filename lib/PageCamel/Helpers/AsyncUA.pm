@@ -247,7 +247,6 @@ sub _readBody($self) {
             $self->{state} = 'finished';
             delete $self->{socket};
             return;
-            $self->{reph}->debuglog("Body read");
         }
     }
 

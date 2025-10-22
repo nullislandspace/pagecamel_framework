@@ -24,11 +24,12 @@ use Lingua::EN::Numbers::Ordinate;
 use Time::Local qw(timelocal_modern);
 
 use base qw(Exporter);
-our @EXPORT = qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime
+our @EXPORT = ## no critic (Modules::ProhibitAutomaticExportation)
+              qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime
                  getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute 
                  getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime
                  getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash 
-                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC dateToTimestamp timestampToDate); ## no critic (Modules::ProhibitAutomaticExportation)
+                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC dateToTimestamp timestampToDate);
 
 
 Readonly my $YEARBASEOFFSET => 1900;

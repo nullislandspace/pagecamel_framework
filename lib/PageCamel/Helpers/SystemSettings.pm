@@ -41,6 +41,7 @@ sub initDB($self) {
         $self->{soft_updates} = 0;
     }
 
+    return;
 }
 
 sub createNumber($self, %setting) {

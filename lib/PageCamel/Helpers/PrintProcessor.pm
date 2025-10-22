@@ -747,6 +747,7 @@ sub printGetImagedata($self) {
 
 sub printMoveOffset($self, $offset) {
     $self->{imgoffs} += $offset;
+    return;
 }
 
 sub printSetColorRed($self, $val) {
@@ -755,6 +756,7 @@ sub printSetColorRed($self, $val) {
     } else {
         $self->{printcolor} = 'imgblack';
     }
+    return;
 }
 
 sub _getPrintColor($self, $isfont = 0) {

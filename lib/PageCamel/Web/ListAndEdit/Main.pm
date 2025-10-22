@@ -1093,6 +1093,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
     }
 
     $self->{editcolumntypes}->{$self->columnBasename($item->{column})} = $item->{type};
+    return;
 }
 
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning

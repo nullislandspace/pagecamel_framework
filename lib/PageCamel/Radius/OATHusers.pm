@@ -23,7 +23,7 @@ sub new($class) {
 
     croak("This module needs a rewrite for new Passwords handling code (see Helpers::Passwords)");
 
-    return $self;
+    return $self; ## no critic (ControlStructures::ProhibitUnreachableCode)
 }
 
 sub validate($self, $database, $username, $password, $service) {

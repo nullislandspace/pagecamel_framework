@@ -328,7 +328,7 @@ sub readPlain($self, $socket, $clength, $timeout = 30) {
             return;
         }
         my $partial;
-        my $readlen = 100000;
+        my $readlen = 100_000;
         my $remainlen = $clength - $reallength;
         if($readlen > $remainlen) {
             $readlen = $remainlen;

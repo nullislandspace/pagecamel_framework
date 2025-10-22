@@ -990,7 +990,7 @@ nextrequest:
                 $ua->{keepalive} = 0;
                 goto cleanup;
             } else {
-                my %result = (status    => 200, # Default result
+                %result = (status    => 200, # Default result
                               type      => "text/plain",
                               data      => "<html><head><title>Mandant change detected</title></head>" .
                                             "<body onload=\"reloadPage()\">Reloading page because mandant changed.\n" .

@@ -495,7 +495,6 @@ reloaddata:
             my $rightssth = $dbh->prepare_cached("SELECT * FROM pagecamel.users_permissiongroups
                                                  WHERE username = ?")
                     or croak($dbh->errstr);
-            my %dbrights;
             $rightssth->execute($username) or corak($dbh->errstr);
             while((my $rline = $rightssth->fetchrow_hashref)) {
                 foreach my $group (@groups) {

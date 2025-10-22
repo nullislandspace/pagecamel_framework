@@ -394,8 +394,8 @@ sub handleClient($self, $client) {
                         Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
 
                         # Load certificate chain
-                        my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-                        Net::SSLeay::CTX_use_certificate_chain_file($ctx, $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert});
+                        my $ssldefaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+                        Net::SSLeay::CTX_use_certificate_chain_file($ctx, $self->{config}->{sslconfig}->{ssldomains}->{$ssldefaultdomain}->{sslcert});
 
                         # Check requested server name
                         Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
@@ -660,8 +660,8 @@ sub handleClient($self, $client) {
             }
 
 
-            my $blocksize = 16384; # Blocksize limit of SSL/TLS lib, it seems
-            my $loopcount = int(10_000_000 / 16384); # Write at max ~10MB in one loop
+            my $blocksize = 16_384; # Blocksize limit of SSL/TLS lib, it seems
+            my $loopcount = int(10_000_000 / 16_384); # Write at max ~10MB in one loop
 
             my $sendcount = $loopcount;
             while($sendcount) {
@@ -780,7 +780,7 @@ sub handleClient($self, $client) {
 
 }
 
-sub endprogram($self) {
+sub endprogram($self) { ## no critic (Subroutines::RequireFinalReturn)
     sleep(1);
     while(1) {
         kill 9, $PID;

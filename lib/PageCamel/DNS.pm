@@ -1163,7 +1163,7 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
         }
         # Check if this is one of our own domains after all
         my $lookupname = '' . $qname;
-        my $owndomain = 0;
+        $owndomain = 0;
         while($lookupname =~ /\./ && !$owndomain) {
             if($self->{isVerbose}) {
                 $self->debuglog(" testing $lookupname");

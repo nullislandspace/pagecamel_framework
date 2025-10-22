@@ -191,7 +191,7 @@ sub run($self) {
     return;
 }
 
-sub handleClient($self, $client) {
+sub handleClient($self, $client) { ## no critic (Subroutines::RequireFinalReturn)
     my $ok = 0;
 
     my $header = $self->readFrontendheader($client);
@@ -270,7 +270,7 @@ sub handleClient($self, $client) {
     $self->endprogram($header, "exit(0)");
 }
 
-sub endprogram($self, $header, $debugmessage) {
+sub endprogram($self, $header, $debugmessage) { ## no critic (Subroutines::RequireFinalReturn)
     if($debugmessage !~ /exit\(0\)/) {
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
     }

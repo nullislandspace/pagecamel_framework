@@ -209,7 +209,7 @@ sub tr_export() {
         Translations    => $localcache,
     );
     
-    my $rawexp = encode_utf8 JSON::XS->new->pretty(1)->canonical(1)->encode(\%exportdata);
+    my $rawexp = encode_utf8 JSON::XS->new->pretty(1)->canonical(1)->encode(\%exportdata); ## no critic (ValuesAndExpressions::ProhibitLongChainsOfMethodCalls)
     #my $rawexp = encode_utf8 encode_json(\%exportdata);
     my @parts = split/\n/, $rawexp;
     my $exp = "#V4\n";
