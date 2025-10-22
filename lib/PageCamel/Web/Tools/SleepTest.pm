@@ -86,3 +86,4 @@ sub handlePost($self, $ua) {
     );
 }
 
+1;

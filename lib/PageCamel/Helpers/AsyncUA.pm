@@ -81,7 +81,7 @@ sub _start_request($self, $method, $path, $contenttype = undef, $body = undef) {
     if($self->{use_ssl}) {
         $socket = IO::Socket::SSL->new($self->{host} . ':443');
         if(!defined($socket)) {
-            $self->{reph}->debuglog("Connection failed! error=", $!, ", ssl_error=", $SSL_ERROR);
+            $self->{reph}->debuglog("Connection failed! error=", $ERRNO, ", ssl_error=", $SSL_ERROR);
             return 0;
         }
     } else {

@@ -142,3 +142,4 @@ sub getUsersForPermission($self, $permission, $negate = 0, $allowdevelopers = 0)
     return \@usernames;
 }
 
+1;

@@ -168,3 +168,5 @@ sub getClacks($self, $shortname) {
 
     return $clacks;
 }
+
+1;

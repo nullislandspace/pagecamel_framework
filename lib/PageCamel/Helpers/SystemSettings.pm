@@ -512,7 +512,6 @@ sub _getColumnType($self, $dbh, $xtable, $xcolumn) {
     }
 
     my $type;
-    my $backuptype;
 
     my $sth = $dbh->prepare_cached("SELECT pg_catalog.format_type(c.atttypid, NULL) AS data_type
                                                 FROM pg_attribute c

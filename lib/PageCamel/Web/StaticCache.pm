@@ -203,7 +203,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0, $relinkjs = 0) {
         }
 
         if($fname eq 'gettranslatekeys.dat') {
-            open(my $ifh, '<', $nfname) or croak("$!");
+            open(my $ifh, '<', $nfname) or croak("$ERRNO");
             while((my $line = <$ifh>)) {
                 chomp $line;
                 if(length($line)) {

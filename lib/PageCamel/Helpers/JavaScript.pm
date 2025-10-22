@@ -46,7 +46,7 @@ sub new($class, %config) {
 
     $self->{rawlines} = [];
 
-    my $basecode = <<~ENDJSBASECODE;
+    my $basecode = <<~'ENDJSBASECODE';
         // START JavaScript.pm
         var memory = new Object;
         function __encode(obj) {

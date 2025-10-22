@@ -21,7 +21,7 @@ our @EXPORT= qw(ENVReset); ## no critic (Modules::ProhibitAutomaticExportation)
 
 
 sub ENVReset {
-    warn("ENVReset helper is deprecated and disabled");
+    carp("ENVReset helper is deprecated and disabled");
     return;
 #   my $fname = '/home/cavac/.perl_env';
 #

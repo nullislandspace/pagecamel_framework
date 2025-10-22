@@ -627,11 +627,11 @@ sub handleClient($self, $client) {
                 $waittime = 0.001;
             }
             
-            $! = 0;
+            $ERRNO = 0;
             my @connections = $select->can_read($waittime);
-            my $err = '' . $!;
+            my $err = '' . $ERRNO;
             if($err ne '') {
-                print STDERR $!, "\n";
+                print STDERR $ERRNO, "\n";
             }
             foreach my $connection (@connections) {
                 sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
