@@ -119,3 +119,7 @@ max_elsif = 20
 
 # We NEED to "use v5.36"
 [-ValuesAndExpressions::ProhibitVersionStrings]
+
+# For backward compatibility, we ignore that certain function names conflict with perl buildins
+[-[Subroutines::ProhibitBuiltinHomonyms]
+
