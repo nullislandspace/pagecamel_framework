@@ -68,7 +68,7 @@ sub backup($self) {
     return 0;
 }
 
-sub say($self, $text) {
+sub say($self, $text) { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     my $reply = $self->run_command("say $text");
     if(defined($reply)) {
         return 1;

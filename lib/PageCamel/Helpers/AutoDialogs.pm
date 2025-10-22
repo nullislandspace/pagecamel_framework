@@ -346,7 +346,7 @@ sub getJS($self) {
             $self->{forms}->{js} . "\n";
 }
 
-sub tr($self, $data) {
+sub tr($self, $data) { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     return $data if($data eq '');
 
     my $lang = $self->getLang;

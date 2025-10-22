@@ -89,7 +89,7 @@ sub newClacksFromConfig($self, $clconf) {
 
 # Kill the process without running any of the DESTROY callbacks
 # This is rather useful for forked childs
-sub suicide($self) {
+sub suicide($self) { ## no critic (Subroutines::RequireFinalReturn)
     while(1) {
         kill 9, $PID;
         sleep(1);

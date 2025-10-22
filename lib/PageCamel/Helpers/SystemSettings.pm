@@ -315,7 +315,7 @@ sub set($self, $modulename, $settingname, $value, $forcedb = 1) {
     return 0;
 }
 
-sub delete($self, $modulename, $settingname) {
+sub delete($self, $modulename, $settingname) { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     my $settingref;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
