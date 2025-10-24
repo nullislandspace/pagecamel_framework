@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -154,13 +154,14 @@ sub sendMail($self, $recievers, $subject, $message, $contenttype) {
     my $fullmail = $email->as_string();
     $fullmail = dbfreeze($fullmail);
 
-    if($sth->execute($subject, $fullmail, $self->{sender}, $recievers, $spooler)) {
-        $dbh->commit;
-        return 1;
+    if(!$sth->execute($subject, $fullmail, $self->{sender}, $recievers, $spooler)) {
+        print STDERR "BLA: " . $dbh->errstr;
+        $dbh->rollback;
+        return 0;
     }
 
-    $dbh->rollback;
-    return 0;
+    $dbh->commit;
+    return 1;
 }
 
 sub sendToPrinter{
@@ -281,7 +282,35 @@ sub sendFiles{
     }
     $message .= "--$boundary--\n";
     #$message = dbfreeze($message);
+    
+    return $self->sendMail($recievers, $subject, $message, $contenttype);
+}
 
+sub sendPDF{
+    my ($self, $recievers, $subject, $body, $pdfname, $pdfdata) = @_;
+
+    my $boundary = "====" . time() . "====";
+    my $contenttype = "multipart/mixed; boundary=\"$boundary\"";
+    my $message = "--$boundary\n" .
+                "Content-Type: text/plain; charset=\"iso-8859-1\"\n" .
+                "Content-Transfer-Encoding: quoted-printable\n" .
+                "\n" .
+                encode_qp($body) . "\n" .
+                "\n";
+
+    my $fdata = encode_base64($pdfdata);
+    my $shortname = $pdfname;
+    $shortname =~ s/^.*\///go;
+    $shortname =~ s/^.*\\//go;
+    my $longtype = "application/pdf";
+    $message .= "--$boundary\n" .
+                "Content-Type: application/zip; name=\"$shortname\"\n" .
+                "Content-Transfer-Encoding: base64\n" .
+                "Content-Disposition: attachment; filename=\"$shortname\"\n" .
+                "\n" .
+                "$fdata\n";
+    $message .= "--$boundary--\n";
+    
     return $self->sendMail($recievers, $subject, $message, $contenttype);
 }
 

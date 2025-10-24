@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -394,8 +394,8 @@ sub handleClient($self, $client) {
                         Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
 
                         # Load certificate chain
-                        my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-                        Net::SSLeay::CTX_use_certificate_chain_file($ctx, $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert});
+                        my $ssldefaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+                        Net::SSLeay::CTX_use_certificate_chain_file($ctx, $self->{config}->{sslconfig}->{ssldomains}->{$ssldefaultdomain}->{sslcert});
 
                         # Check requested server name
                         Net::SSLeay::CTX_set_tlsext_servername_callback($ctx, sub {
@@ -627,11 +627,11 @@ sub handleClient($self, $client) {
                 $waittime = 0.001;
             }
             
-            $! = 0;
+            $ERRNO = 0;
             my @connections = $select->can_read($waittime);
-            my $err = '' . $!;
+            my $err = '' . $ERRNO;
             if($err ne '') {
-                print STDERR $!, "\n";
+                print STDERR $ERRNO, "\n";
             }
             foreach my $connection (@connections) {
                 sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
@@ -660,8 +660,8 @@ sub handleClient($self, $client) {
             }
 
 
-            my $blocksize = 16384; # Blocksize limit of SSL/TLS lib, it seems
-            my $loopcount = int(10_000_000 / 16384); # Write at max ~10MB in one loop
+            my $blocksize = 16_384; # Blocksize limit of SSL/TLS lib, it seems
+            my $loopcount = int(10_000_000 / 16_384); # Write at max ~10MB in one loop
 
             my $sendcount = $loopcount;
             while($sendcount) {
@@ -780,7 +780,7 @@ sub handleClient($self, $client) {
 
 }
 
-sub endprogram($self) {
+sub endprogram($self) { ## no critic (Subroutines::RequireFinalReturn)
     sleep(1);
     while(1) {
         kill 9, $PID;

@@ -24,7 +24,7 @@ if ( $EVAL_ERROR ) {
 my @modules = all_modules();
 my $tests = 0;
 my @fnames;
-foreach my $module (@modules) {
+foreach my $module (sort @modules) {
     next if($module =~ /PageCamel::Net::Server/);
     next if($module =~ /LetsEncrypt/);
     next if($module =~ /WSockFrame/);

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -28,6 +28,7 @@ my $keepRunning = 1;
 # generic signal handler to cause daemon to stop
 sub signal_handler {
     $keepRunning = 0;
+    return;
 }
 $SIG{INT} = $SIG{TERM} = $SIG{HUP} = \&signal_handler;
 
@@ -41,6 +42,7 @@ $SIG{PIPE} = 'IGNORE';
 sub logger($str) {
     #print STDOUT strftime "[%d/%b/%Y:%H:%M:%S] ", localtime;
     print STDOUT "$str\n";
+    return;
 }
 
 
@@ -69,9 +71,7 @@ sub init($self) {
     my $ps_appname = lc($APPNAME);
     $ps_appname =~ s/[^a-z0-9]+/_/gio;
 
-    $0 = $ps_appname;
-
-    my @runargs;
+    $PROGRAM_NAME = $ps_appname;
 
     # Debugging on port 6700
     if(0 && $self->{isDebugging}) {
@@ -82,7 +82,7 @@ sub init($self) {
 
     my $hname = hostname();
     if(!defined($config->{$hname})) {
-        die("Config has no config for " . hostname());
+        croak("Config has no config for " . hostname());
     }
 
     # Copy host specific config to root
@@ -91,7 +91,7 @@ sub init($self) {
     }
 
     my $dbh = DBI->connect($config->{dburl}, $config->{dbuser}, $config->{dbpassword}, {AutoCommit => 0, RaiseError => 0})
-            or croak("Can't connect to database: $!");
+            or croak("Can't connect to database: $ERRNO");
     $self->{dbh} = $dbh;
 
     my $selstmt = 'SELECT ' . $config->{dbhostname} . ' AS hname, ' . $config->{dbip} . ' AS dbip ' .
@@ -114,7 +114,7 @@ sub init($self) {
         Proto     => 'udp',
         ReuseAddr => 1,
         Broadcast => 1,
-    ) || die "Socket creation error: $@\n";
+    ) || croak("Socket creation error: $EVAL_ERROR");
 
     $self->{socket} = $socket;
 
@@ -127,7 +127,6 @@ sub init($self) {
 sub run($self) {
     my $buf = undef;
     my $fromaddr;       # address & port from which packet was received
-    my $dhcpreq;
     my $transaction = 0;    # report transaction number
 
     while($keepRunning) {
@@ -136,8 +135,8 @@ sub run($self) {
             logger("Waiting for incoming packet");
 
             # receive packet
-            $fromaddr = $self->{socket}->recv( $buf, 4096 ) || logger("recv:$!");
-            next if ($!);    # continue loop if an error occured
+            $fromaddr = $self->{socket}->recv( $buf, 4096 ) || logger("recv:$ERRNO");
+            next if ($ERRNO);    # continue loop if an error occured
             $transaction++;  # transaction counter
 
             {
@@ -168,8 +167,8 @@ sub run($self) {
                 logger("Packet dropped");
             }
         };    # end of 'eval' blocks
-        if ($@) {
-            logger("Caught error in main loop:$@");
+        if ($EVAL_ERROR) {
+            logger("Caught error in main loop:$EVAL_ERROR");
         }
     }
     return;
@@ -218,7 +217,7 @@ sub do_discover($self, $dhcpreq) {
     # Socket object keeps track of whom sent last packet
     # so we don't need to specify target address
     logger( "Sending OFFER tr=" . $dhcpresp->comment() );
-    $self->{socket}->send( $dhcpresp->serialize() ) || die "Error sending OFFER:$!\n";
+    $self->{socket}->send( $dhcpresp->serialize() ) || croak("Error sending OFFER:$ERRNO");
     return;
 }
 
@@ -291,7 +290,7 @@ sub do_request($self, $dhcpreq) {
     # Socket object keeps track of whom sent last packet
     # so we don't need to specify target address
     logger( "Sending ACK/NACK tr=" . $dhcpresp->comment() );
-    $self->{socket}->send( $dhcpresp->serialize() ) || die "Error sending OFFER:$!\n";
+    $self->{socket}->send( $dhcpresp->serialize() ) || croak("Error sending OFFER:$ERRNO");
     return;
 }
 

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -1093,6 +1093,7 @@ sub validateEditItem($self, $item, $multiarraymode) {
     }
 
     $self->{editcolumntypes}->{$self->columnBasename($item->{column})} = $item->{type};
+    return 1;
 }
 
 # This is a quite complex tool. Until i have found a better way, disable the ExcessComplexity warning

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -66,6 +66,19 @@ sub quote($self, $data) {
     $quoted =~ s/Ö/&Ouml;/;
     $quoted =~ s/Ü/&Uuml;/;
     $quoted =~ s/ß/&szlig;/;
+
+    return $quoted;
+}
+
+sub linebreakquote($self, $data) {
+    my $quoted = '' . $data;
+    #print STDERR Dumper("BLI: ", $quoted, "\n");
+
+    $quoted =~ s/\n/XXXLINEBREAKXXX/;
+    $quoted = $self->quote($quoted);
+    $quoted =~ s/XXXLINEBREAKXXX/\<br\/\>/;
+
+    #print STDERR Dumper("BLA: ", $quoted, "\n");
 
     return $quoted;
 }

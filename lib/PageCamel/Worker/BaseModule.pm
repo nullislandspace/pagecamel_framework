@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -89,7 +89,7 @@ sub newClacksFromConfig($self, $clconf) {
 
 # Kill the process without running any of the DESTROY callbacks
 # This is rather useful for forked childs
-sub suicide($self) {
+sub suicide($self) { ## no critic (Subroutines::RequireFinalReturn)
     while(1) {
         kill 9, $PID;
         sleep(1);

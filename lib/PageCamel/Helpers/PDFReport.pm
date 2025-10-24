@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -21,6 +21,7 @@ use JSON::XS;
 use MIME::Base64 qw(encode_base64 decode_base64);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 use PageCamel::Helpers::DateStrings;
+use PageCamel::Helpers::Format qw(linebreakText);
 use GD;
 use PDF::Report;
 BEGIN {
@@ -196,7 +197,7 @@ sub generateReport($self, $data) {
 
 
 sub addText($self, $fontname, $x, $y, $size, $color, $text) {
-    my $nbsp = "\xA0";
+    my $nbsp = chr(0xA0);
     $text =~ s/\ /$nbsp/g;
 
     $self->{pdf}->setSize($size);
@@ -287,7 +288,7 @@ sub addTable($self, $data, $table) {
 
     my $needheader = 1;
     my $evenodd = 1;
-    my $nbsp = "\xA0";
+    my $nbsp = chr(0xA0);
     foreach my $line (@{$table->{data}}) {
         if($self->{y} < 100) {
             $self->newPage($data);
@@ -330,8 +331,12 @@ sub addTable($self, $data, $table) {
             my @parts = split/\n/, $val;
             my @dest;
             foreach my $part (@parts) {
-                my $newval = $self->{pdf}->wrapText($part, $table->{columns}->[$i]->{pixelwidth});
-                my @newparts = split/\n/, $newval;
+                #my $newval = $self->{pdf}->wrapText($part, $table->{columns}->[$i]->{pixelwidth});
+                #my @newparts = split/\n/, $newval;
+
+                my $newval = linebreakText($part, $table->{columns}->[$i]->{width});
+                my @newparts = @{$newval};
+
                 foreach my $newpart (@newparts) {
                     if($table->{columns}->[$i]->{align} eq 'right') {
                         $newpart = doLeftSpacePad($newpart, $table->{columns}->[$i]->{width});
@@ -340,6 +345,7 @@ sub addTable($self, $data, $table) {
                     push @dest, $newpart;
                 }
             }
+
             if(scalar @dest > $maxlines) {
                 $maxlines = scalar @dest;
             }

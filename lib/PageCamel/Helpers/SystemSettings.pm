@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -41,6 +41,7 @@ sub initDB($self) {
         $self->{soft_updates} = 0;
     }
 
+    return;
 }
 
 sub createNumber($self, %setting) {
@@ -315,7 +316,7 @@ sub set($self, $modulename, $settingname, $value, $forcedb = 1) {
     return 0;
 }
 
-sub delete($self, $modulename, $settingname) {
+sub delete($self, $modulename, $settingname) { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     my $settingref;
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
@@ -511,7 +512,6 @@ sub _getColumnType($self, $dbh, $xtable, $xcolumn) {
     }
 
     my $type;
-    my $backuptype;
 
     my $sth = $dbh->prepare_cached("SELECT pg_catalog.format_type(c.atttypid, NULL) AS data_type
                                                 FROM pg_attribute c

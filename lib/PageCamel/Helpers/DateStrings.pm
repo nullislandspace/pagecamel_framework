@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -24,11 +24,12 @@ use Lingua::EN::Numbers::Ordinate;
 use Time::Local qw(timelocal_modern);
 
 use base qw(Exporter);
-our @EXPORT = qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime
+our @EXPORT = ## no critic (Modules::ProhibitAutomaticExportation)
+              qw(getISODate getUTCISODate getFileDate getUniqueFileDate getLabelDate getDateAndTime
                  getWindowsDateAndTime fixDateField parseNaturalDate getShortFiledate getCurrentMinute 
                  getCurrentHour getCurrentDay getCurrentYear getISODate_nDaysOffset offsetISODate setmylocaltime
                  getLastModifiedWebdate isAprilFoolsDay getWebdate parseWebdate getScanspeedDate getDatetimeHash 
-                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC dateToTimestamp timestampToDate); ## no critic (Modules::ProhibitAutomaticExportation)
+                 timeToSeconds eternalseptemberize secondsToInterval calcDateAgeUTC dateToTimestamp timestampToDate);
 
 
 Readonly my $YEARBASEOFFSET => 1900;

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -181,6 +181,7 @@ sub get_admin($self, $ua) {
                     $isodate = getISODate();
                 } elsif($allcommands{$command} eq "backup") {
                     push @arglist, ($ua->{postparams}->{'backup_name'} || '');
+                    push @arglist, (1); # Mark it as "forced" command that skips the 10 minute admworker startup timer
                 }
 
                 if(!$sth->execute($command, $isodate, \@arglist)) {

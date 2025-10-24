@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -142,27 +142,31 @@ sub _generateEscPos($self, $img = undef) {
         $self->{printerExtraFeed} = 0;
     }
 
+    if(!defined($self->{printerBeep})) {
+        $self->{printerBeep} = 0;
+    }
+
     if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags') {
         $reph->debuglog("    Type: TMT88");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, 0);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0);
     } elsif($self->{printerType} eq 'ORDERMAN') {
         $reph->debuglog("    Type: TMT88 in ORDERMAN mode");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, 1);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 1);
     } elsif($self->{printerType} eq 'TMP20') {
         $reph->debuglog("    Type: TMP20");
-        return $self->_escpos_tmp20($self->{printerExtraFeed});
+        return $self->_escpos_tmp20($self->{printerExtraFeed}, $self->{printerBeep});
     } elsif($self->{printerType} eq 'CTS801') {
         $reph->debuglog("    Type: CTS801");
-        return $self->_escpos_cts801($self->{printerExtraFeed});
+        return $self->_escpos_cts801($self->{printerExtraFeed}, $self->{printerBeep});
     } elsif($self->{printerType} eq 'SGT116') {
         $reph->debuglog("    Type: SGT116");
-        return $self->_escpos_sgt116($self->{printerExtraFeed});
+        return $self->_escpos_sgt116($self->{printerExtraFeed}, $self->{printerBeep});
     } elsif($self->{printerType} eq 'JWS360') {
         $reph->debuglog("    Type: JWS360");
-        return $self->_escpos_jws360($self->{printerExtraFeed});
+        return $self->_escpos_jws360($self->{printerExtraFeed}, $self->{printerBeep});
     } elsif($self->{printerType} eq 'JAW500') {
         $reph->debuglog("    Type: JAW500");
-        return $self->_escpos_jws360($self->{printerExtraFeed});
+        return $self->_escpos_jws360($self->{printerExtraFeed}, $self->{printerBeep});
     }
 
     $reph->debuglog("   UNSUPPORTED PRINTER TYPE, TRYING TMT88 compatible");
@@ -170,7 +174,7 @@ sub _generateEscPos($self, $img = undef) {
 }
     
 
-sub _escpos_tmt88($self, $extrafeed, $ordermanprinter = 0) {
+sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -250,6 +254,19 @@ sub _escpos_tmt88($self, $extrafeed, $ordermanprinter = 0) {
         }
     }
 
+    if($beep) {
+
+        # New'ish beep function (might ot might not need external buzzer)
+        ## ESC ( A FUNCTION97 BeepPatterA 3times
+        ##          ESC         (           A             FUNCTION             97          TypeA         3
+        #$raw .= chr(0x1B) . chr(0x28) . chr(0x41) . chr(0x03) . chr(0x00) . chr(0x61) . chr(0x01) . chr(0x05);
+
+        # Basic beep command, may or may not work
+        #          ESC          A        count(1-9)  length(1-9)
+        $raw .= chr(0x1B) .  chr(0x42) . chr(0x04) . chr(0x05);
+        $reph->debuglog("#### BEEEEEP ####");
+    }
+
     $self->{escposimagedata} = $raw;
 
     return;
@@ -294,15 +311,15 @@ sub _resize_for_tmp20($self, $inputimg) {
     return $outimg;
 }
 
-sub _escpos_tmp20($self, $extrafeed) {
+sub _escpos_tmp20($self, $extrafeed, $beep) {
     my $reph = $self->{reph};
 
     my $raw = '';
 
     # Bluetooth belt printer
     # This is largely compatible to the Epson TM-T88 models. Of course, it doesn't have a cash drawer and it only has 384 pixels width, so we need to downscale the image
-    my $img = $self->_resize_for_tmp20($self->{img});
 
+    my $img = GD::Image->newFromPngData($self->_resize_for_tmp20($self->{img}));
 
     # Reset printer
     $raw .= chr(0x1B) . chr(0x40);
@@ -371,7 +388,7 @@ sub _escpos_tmp20($self, $extrafeed) {
 }
 
 
-sub _escpos_cts801($self, $extrafeed) {
+sub _escpos_cts801($self, $extrafeed, $beep) {
     my $reph = $self->{reph};
 
     # Citizen CTS801 is *mostly* compatible with Epson TM-T88V but has a wider print head that print right to (and sometimes over) the edge of the paper.
@@ -461,7 +478,7 @@ sub _escpos_cts801($self, $extrafeed) {
     return;
 }
 
-sub _escpos_sgt116($self, $extrafeed) {
+sub _escpos_sgt116($self, $extrafeed, $beep) {
     my $raw = '';
     my $img = $self->{img};
 
@@ -532,7 +549,7 @@ sub _escpos_sgt116($self, $extrafeed) {
     return;
 }
 
-sub _escpos_jws360($self, $extrafeed) {
+sub _escpos_jws360($self, $extrafeed, $beep) {
     my $raw = '';
     my $img = $self->{img};
 
@@ -730,6 +747,7 @@ sub printGetImagedata($self) {
 
 sub printMoveOffset($self, $offset) {
     $self->{imgoffs} += $offset;
+    return;
 }
 
 sub printSetColorRed($self, $val) {
@@ -738,9 +756,13 @@ sub printSetColorRed($self, $val) {
     } else {
         $self->{printcolor} = 'imgblack';
     }
+    return;
 }
 
 sub _getPrintColor($self, $isfont = 0) {
+    if(!defined($self->{printcolor})) {
+        croak("BLA");
+    }
     if($isfont && $self->{$self->{printcolor}} > 0) {
         # return the NEGATIVE number of the print color, this disables Font Aliasing
         return -1 * $self->{$self->{printcolor}};
