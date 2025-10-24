@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -747,6 +747,7 @@ sub printGetImagedata($self) {
 
 sub printMoveOffset($self, $offset) {
     $self->{imgoffs} += $offset;
+    return;
 }
 
 sub printSetColorRed($self, $val) {
@@ -755,6 +756,7 @@ sub printSetColorRed($self, $val) {
     } else {
         $self->{printcolor} = 'imgblack';
     }
+    return;
 }
 
 sub _getPrintColor($self, $isfont = 0) {

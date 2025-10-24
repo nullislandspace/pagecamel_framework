@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -191,7 +191,7 @@ sub run($self) {
     return;
 }
 
-sub handleClient($self, $client) {
+sub handleClient($self, $client) { ## no critic (Subroutines::RequireFinalReturn)
     my $ok = 0;
 
     my $header = $self->readFrontendheader($client);
@@ -270,7 +270,7 @@ sub handleClient($self, $client) {
     $self->endprogram($header, "exit(0)");
 }
 
-sub endprogram($self, $header, $debugmessage) {
+sub endprogram($self, $header, $debugmessage) { ## no critic (Subroutines::RequireFinalReturn)
     if($debugmessage !~ /exit\(0\)/) {
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
     }

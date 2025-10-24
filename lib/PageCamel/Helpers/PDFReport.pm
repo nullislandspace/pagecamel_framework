@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -197,7 +197,7 @@ sub generateReport($self, $data) {
 
 
 sub addText($self, $fontname, $x, $y, $size, $color, $text) {
-    my $nbsp = "\xA0";
+    my $nbsp = chr(0xA0);
     $text =~ s/\ /$nbsp/g;
 
     $self->{pdf}->setSize($size);
@@ -288,7 +288,7 @@ sub addTable($self, $data, $table) {
 
     my $needheader = 1;
     my $evenodd = 1;
-    my $nbsp = "\xA0";
+    my $nbsp = chr(0xA0);
     foreach my $line (@{$table->{data}}) {
         if($self->{y} < 100) {
             $self->newPage($data);

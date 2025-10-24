@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -346,7 +346,7 @@ sub getJS($self) {
             $self->{forms}->{js} . "\n";
 }
 
-sub tr($self, $data) {
+sub tr($self, $data) { ## no critic (Subroutines::ProhibitBuiltinHomonyms)
     return $data if($data eq '');
 
     my $lang = $self->getLang;
