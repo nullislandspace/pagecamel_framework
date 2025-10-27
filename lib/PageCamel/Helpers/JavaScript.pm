@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -46,7 +46,7 @@ sub new($class, %config) {
 
     $self->{rawlines} = [];
 
-    my $basecode = <<~ENDJSBASECODE;
+    my $basecode = <<~'ENDJSBASECODE';
         // START JavaScript.pm
         var memory = new Object;
         function __encode(obj) {

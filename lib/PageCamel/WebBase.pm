@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -990,7 +990,7 @@ nextrequest:
                 $ua->{keepalive} = 0;
                 goto cleanup;
             } else {
-                my %result = (status    => 200, # Default result
+                %result = (status    => 200, # Default result
                               type      => "text/plain",
                               data      => "<html><head><title>Mandant change detected</title></head>" .
                                             "<body onload=\"reloadPage()\">Reloading page because mandant changed.\n" .

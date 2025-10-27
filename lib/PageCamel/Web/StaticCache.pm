@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -174,7 +174,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0, $relinkjs = 0) {
 
     my @ignore;
 
-    if(-f $basedir . '/pagecamel.xml') {
+    if(-f $basedir . '/pagecamel.xml') { ## no critic (ValuesAndExpressions::ProhibitMismatchedOperators)
         # Special directives for static loading
         my $signore;
         ($signore, $dynamic, $relinkjs) = $self->process_special_directives($basedir);
@@ -203,7 +203,7 @@ sub load_dir($self, $basedir, $basewebpath, $dynamic=0, $relinkjs = 0) {
         }
 
         if($fname eq 'gettranslatekeys.dat') {
-            open(my $ifh, '<', $nfname) or croak("$!");
+            open(my $ifh, '<', $nfname) or croak("$ERRNO");
             while((my $line = <$ifh>)) {
                 chomp $line;
                 if(length($line)) {
@@ -395,8 +395,8 @@ sub execute_external_command($self, $cmd) {
     my ($child_pid, $child_rc);
 
     my $ofh;
-    unless ($child_pid = open($ofh, '-|')) {
-      open(STDERR, ">&STDOUT");
+    unless ($child_pid = open($ofh, '-|')) { ## no critic (ControlStructures::ProhibitUnlessBlocks)
+      open(STDERR, ">&STDOUT"); ## no critic (InputOutput::ProhibitTwoArgOpen InputOutput::RequireCheckedOpen)
       {
           exec('/bin/true | ' . $cmd . ' || echo "PAGECAMEL_EXECUTE_ERROR"');
       }

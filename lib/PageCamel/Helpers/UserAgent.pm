@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -69,7 +69,7 @@ sub simplifyUA($useragentname) {
     } elsif($useragentname =~ /(ZmEu|Morfeus|Comodo\ ssl\ checker)/io) {
         $simpleUserAgent = "Virus/" . lc($1);
         $denyAccess = 1;
-    } elsif($useragentname =~ /(bingbot|googlebot|pagesinventory|feedfetcher\-google|plukkie|msnbot|yandex|google\-desktop|seznambot|turnitinbot|baidu|yahoo\!\ slurp|nerdybot|orangebot|twitterbot|paperlibot|duckduckgo|qwantify|xforce\-security\.com)/io) {
+    } elsif($useragentname =~ /(bingbot|googlebot|pagesinventory|feedfetcher\-google|plukkie|msnbot|yandex|google\-desktop|seznambot|turnitinbot|baidu|yahoo\!\ slurp|nerdybot|orangebot|twitterbot|paperlibot|duckduckgo|qwantify|xforce\-security\.com)/io) { ## no critic (RegularExpressions::ProhibitComplexRegexes RegularExpressions::RequireExtendedFormatting)
         $simpleUserAgent = "Webspider_good/" . lc($1);
     } elsif($useragentname =~ /(netcraft.*survey|synapse|phpcrawl|wotbox|yacybot|zend_http_client|mail.ru\_bot|spbot|crazywebcrawler|go.*package\ http)/io) {
         $simpleUserAgent = "Webspider_undecided/" . lc($1);

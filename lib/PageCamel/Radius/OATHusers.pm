@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -23,7 +23,7 @@ sub new($class) {
 
     croak("This module needs a rewrite for new Passwords handling code (see Helpers::Passwords)");
 
-    return $self;
+    return $self; ## no critic (ControlStructures::ProhibitUnreachableCode)
 }
 
 sub validate($self, $database, $username, $password, $service) {

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -48,7 +48,7 @@ sub new($proto, %config) {
     }
 
     if(defined($self->{moduletable}) && $self->{moduletable} ne '') {
-        my $modulecode = <<~ENDJSMODULECODE;
+        my $modulecode = <<~'ENDJSMODULECODE';
             Duktape.modSearch = function (id) {
                 var jscode = _loadJSModule(id);
                 if(jscode != '') {
@@ -64,7 +64,7 @@ sub new($proto, %config) {
             return $self->_loadJSModule($_[0]);
         });
     } else {
-        my $modulecode = <<~ENDJSNOMODULECODE;
+        my $modulecode = <<~'ENDJSNOMODULECODE';
             Duktape.modSearch = function (id) {
                 throw new Error('Module loading not implemented');
             };

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -328,7 +328,7 @@ sub readPlain($self, $socket, $clength, $timeout = 30) {
             return;
         }
         my $partial;
-        my $readlen = 100000;
+        my $readlen = 100_000;
         my $remainlen = $clength - $reallength;
         if($readlen > $remainlen) {
             $readlen = $remainlen;

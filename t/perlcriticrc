@@ -8,16 +8,15 @@ verbose = 8
 severity = 4
 forbid = create destroy connect
 
-# Stop gap measure - FIXME
-[RegularExpressions::RequireExtendedFormatting]
-minimum_regex_length_to_complain_about = 200
-[RegularExpressions::ProhibitComplexRegexes]
-max_characters = 200
+# We decide on a case-by-case basis what are considered complex regex
+[-RegularExpressions::ProhibitComplexRegexes]
+[-RegularExpressions::RequireExtendedFormatting]
 
 # PageCamel is a highly complex project. Splitting
 # everything into multiple subroutines just makes matters worse
-[Subroutines::ProhibitExcessComplexity]
-max_mccabe = 67
+#[Subroutines::ProhibitExcessComplexity]
+#max_mccabe = 67
+[-Subroutines::ProhibitExcessComplexity]
 
 # When writing commercial applications, the default is somewhat conservative
 [Subroutines::ProhibitManyArgs]
@@ -27,11 +26,6 @@ max_arguments = 8
 # from a basket of bad possibilities
 [ControlStructures::ProhibitDeepNests]
 max_nests = 9
-
-# Too brief open forces memory slurping. Not nice for files
-# where the size isn't known in advance
-[InputOutput::RequireBriefOpen]
-lines = 20
 
 # RCS Keywords are outdated. They mess up patch-files (see "Updating 
 # FreeBSD from Source" as a prime example why NOT to use them these days)
@@ -119,3 +113,25 @@ max_elsif = 20
 
 # We NEED to "use v5.36"
 [-ValuesAndExpressions::ProhibitVersionStrings]
+
+# For backward compatibility, we ignore that certain function names conflict with perl buildins
+[-Subroutines::ProhibitBuiltinHomonyms]
+
+# We handle eval "returns" a bit differently, usually by manually setting a status variable "$ok = 1" at the end of the eval block.
+[-ErrorHandling::RequireCheckingReturnValueOfEval]
+
+# Ignore the "useless use of no critic" for now
+[-Miscellanea::ProhibitUselessNoCritic]
+
+# Don't f*ck with my naming conventions
+[-NamingConventions::ProhibitAmbiguousNames]
+
+# Sometimes, a "brief open" is not possible
+[-InputOutput::RequireBriefOpen]
+
+# make unless() more flexible
+[-ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions]
+
+# due to inheritance ("use base"), there MAY be private subs that are not used in that particular pm file
+[-Subroutines::ProhibitUnusedPrivateSubroutines]
+

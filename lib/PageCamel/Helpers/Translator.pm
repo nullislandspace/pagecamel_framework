@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -209,7 +209,7 @@ sub tr_export() {
         Translations    => $localcache,
     );
     
-    my $rawexp = encode_utf8 JSON::XS->new->pretty(1)->canonical(1)->encode(\%exportdata);
+    my $rawexp = encode_utf8 JSON::XS->new->pretty(1)->canonical(1)->encode(\%exportdata); ## no critic (ValuesAndExpressions::ProhibitLongChainsOfMethodCalls)
     #my $rawexp = encode_utf8 encode_json(\%exportdata);
     my @parts = split/\n/, $rawexp;
     my $exp = "#V4\n";

@@ -6,7 +6,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.7;
+our $VERSION = 4.8;
 use autodie qw( close );
 use Array::Contains;
 use utf8;
@@ -81,7 +81,7 @@ sub _start_request($self, $method, $path, $contenttype = undef, $body = undef) {
     if($self->{use_ssl}) {
         $socket = IO::Socket::SSL->new($self->{host} . ':443');
         if(!defined($socket)) {
-            $self->{reph}->debuglog("Connection failed! error=", $!, ", ssl_error=", $SSL_ERROR);
+            $self->{reph}->debuglog("Connection failed! error=", $ERRNO, ", ssl_error=", $SSL_ERROR);
             return 0;
         }
     } else {
@@ -247,7 +247,6 @@ sub _readBody($self) {
             $self->{state} = 'finished';
             delete $self->{socket};
             return;
-            $self->{reph}->debuglog("Body read");
         }
     }
 
