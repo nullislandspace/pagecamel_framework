@@ -130,6 +130,8 @@ sub do_backup($self, $arguments) {
 #                ' --oids ' .
 #                ' --verbose ' .
                 ' --exclude-table=wikipedia.cavacopedia_articles ' .
+                ' --exclude-table=wikipedia.xmldump_segments ' .
+                ' --exclude-table=wikipedia.xmldump_articles ' .
                 ' --file ' . $fname .
                 ' ' . $self->{database};
     if(defined($self->{password}) && $self->{password} ne '') {

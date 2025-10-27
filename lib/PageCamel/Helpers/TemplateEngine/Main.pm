@@ -157,18 +157,23 @@ sub reloadFiles($self, $reph) {
 
     $self->{cache} = \%files;
 
-    $reph->debuglog("Running final render test on loaded templates");
-    $reph->debuglog("Template: ");
-    $PageCamel::Helpers::TemplateEngine::Translate::TESTMODE = 1; # Don't actually translate
-    foreach my $tname (sort keys %{$self->{cache}}) {
-        $reph->debuglog_overwrite("Template: ", $tname);
-        my %tmpwebdata;
-        my $tmptemplate = $self->get($tname, 0, %tmpwebdata);
-        if(!defined($tmptemplate)) {
-            push @{$self->{reloaderrors}}, "Template $tname failed to render";
+    if($self->{isDebugging}) {
+        $reph->debuglog("DEBUGMODE: Running final render test on loaded templates");
+        $reph->debuglog("Template: ");
+        $PageCamel::Helpers::TemplateEngine::Translate::TESTMODE = 1; # Don't actually translate
+        my $templatecount = 0;
+        foreach my $tname (sort keys %{$self->{cache}}) {
+            $templatecount++;
+            $reph->debuglog_overwrite("Template: ", $tname);
+            my %tmpwebdata;
+            my $tmptemplate = $self->get($tname, 0, %tmpwebdata);
+            if(!defined($tmptemplate)) {
+                push @{$self->{reloaderrors}}, "Template $tname failed to render";
+            }
         }
+        $reph->debuglog("Tested ", $templatecount, " templates");
+        $PageCamel::Helpers::TemplateEngine::Translate::TESTMODE = 0;
     }
-    $PageCamel::Helpers::TemplateEngine::Translate::TESTMODE = 0;
 
     
     if(@{$self->{reloadwarnings}} || @{$self->{reloaderrors}}) {
