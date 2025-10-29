@@ -714,7 +714,7 @@ sub printFile($self, $raw, $cupsip, $cupsprinters = []) {
     $cups->setServer($cupsip);
 
     foreach my $printername (@{$cupsprinters}) {
-        if($self->{printcommand} =~ /^\/bin\/true/) {
+        if(defined($self->{printcommand}) && $self->{printcommand} =~ /^\/bin\/true/) {
             $reph->debuglog("Print command disabled");
             next;
         }
