@@ -631,9 +631,9 @@ sub printSendToPrinter($self, $cupsprinters = []) {
         $self->_generateEscPos();
         #writeBinFile($ofname, $self->{escposimagedata});
         #writeBinFile('/home/cavac/lastprint.dat', $self->{escposimagedata});
-        return $self->_printFile($self->{escposimagedata}, '0.0.0.0', $cupsprinters);
+        return $self->printFile($self->{escposimagedata}, '0.0.0.0', $cupsprinters);
     } else {
-        return $self->_printFile($self->{imagedata}, '0.0.0.0', $cupsprinters);
+        return $self->printFile($self->{imagedata}, '0.0.0.0', $cupsprinters);
     }
 }
 
@@ -672,7 +672,7 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     return $raw;
 }
 
-sub _printFile($self, $raw, $cupsip, $cupsprinters = []) {
+sub printFile($self, $raw, $cupsip, $cupsprinters = []) {
     my $reph = $self->{reph};
 
     my $ispdf = 0;
@@ -714,7 +714,7 @@ sub _printFile($self, $raw, $cupsip, $cupsprinters = []) {
     $cups->setServer($cupsip);
 
     foreach my $printername (@{$cupsprinters}) {
-        if($self->{printcommand} =~ /^\/bin\/true/) {
+        if(defined($self->{printcommand}) && $self->{printcommand} =~ /^\/bin\/true/) {
             $reph->debuglog("Print command disabled");
             next;
         }
