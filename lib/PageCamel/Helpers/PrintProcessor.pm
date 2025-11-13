@@ -151,7 +151,7 @@ sub _generateEscPos($self, $img = undef) {
         return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0, 0);
     } elsif($self->{printerType} eq 'TMM30' || $self->{printerType} eq 'TMM30NoStatusFlags') {
         $reph->debuglog("    Type: TMT88 in TM-M30 mode (add white pixels on the left for centering)");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0, 0);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0, 1);
     } elsif($self->{printerType} eq 'ORDERMAN' || $self->{printerType} eq 'BixolonSRP330II') {
         $reph->debuglog("    Type: TMT88 in ORDERMAN mode");
         return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 1, 0);
