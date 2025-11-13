@@ -9,7 +9,7 @@ WriteMakefile(
     PREREQ_PM         => {
         'AHA' => 0.6, # AVM Home Automation (Fritz!Box)
         'Archive::Zip' => 0,
-        'Array::Contains' => 2.7,
+        'Array::Contains' => 3.1,
         'Carp' => 0,
         'CGI' => 0,
         'Config' => 0,
@@ -79,7 +79,7 @@ WriteMakefile(
         'Minecraft::RCON' => 0,
         'Module::Load' => 0,
         'Module::Load::Conditional' => 0,
-        'Net::Clacks::Client' => 30,
+        'Net::Clacks::Client' => 31,
         'Net::CUPS2' => 0,
         'Net::DNS' => 0,
         'Net::DNS::Packet' => 0,
