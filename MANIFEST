@@ -1,5 +1,6 @@
 .hgsub
 Changes
+codingstyle.md
 database/0001_remoteconsolelog.sql
 database/0002_database_tuning.sql
 database/0003_users_app_userkey.sql

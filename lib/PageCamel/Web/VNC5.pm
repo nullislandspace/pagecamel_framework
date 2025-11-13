@@ -242,14 +242,14 @@ sub get_select($self, $ua) {
     );
 
     my @computers;
-    my $selsth = $dbh->prepare_cached("SELECT * FROM computers NATURAL JOIN computers_vnccompany
-                                      WHERE company_name = ?
+    my $selsth = $dbh->prepare_cached("SELECT * FROM computers NATURAL JOIN computers_vncorganisation
+                                      WHERE organisation_name = ?
                                       AND is_enabled = 't'
                                       AND has_vnc = true
                                       AND vnc_password != ''
-                                      ORDER BY line_id, computer_name")
+                                      ORDER BY computer_name")
             or croak($dbh->errstr);
-    if(!$selsth->execute($webdata{userData}->{company})) {
+    if(!$selsth->execute($webdata{userData}->{organisation})) {
         $dbh->rollback;
     } else {
         while((my $computer = $selsth->fetchrow_hashref)) {
@@ -323,15 +323,15 @@ sub get_vnc($self, $ua) {
     my $hostok = 0;
 
     my $hostdata;
-    my $selsth = $dbh->prepare_cached("SELECT * FROM computers NATURAL JOIN computers_vnccompany
-                                      WHERE company_name = ?
+    my $selsth = $dbh->prepare_cached("SELECT * FROM computers NATURAL JOIN computers_vncorganisation
+                                      WHERE organisation_name = ?
                                       AND computer_name = ?
                                       AND is_enabled = 't'
                                       AND has_vnc = true
                                       AND vnc_password != ''
-                                      ORDER BY line_id, computer_name")
+                                      ORDER BY computer_name")
             or croak($dbh->errstr);
-    if(!$selsth->execute($webdata{userData}->{company}, $host)) {
+    if(!$selsth->execute($webdata{userData}->{organisation}, $host)) {
         $dbh->rollback;
     } else {
         while((my $computer = $selsth->fetchrow_hashref)) {
@@ -379,7 +379,7 @@ sub get_vnc($self, $ua) {
         return(status => 500);
     }
     $webdata{vncsessionid} = $sockid;
-    $webdata{vncdestinationip} = $hostdata->{$self->{computer_ip_column}};
+    $webdata{vncdestinationip} = $hostdata->{$self->{vnc_ip}};
 
     my $logsth = $dbh->prepare_cached("INSERT INTO computers_vnclog
                     (logtype, computer_name, client_ip, proxy_port, freelogtext, username, htmlversion)
