@@ -420,7 +420,7 @@ sub readheader($self, $timeout, $socket) {
                 if(time > $endtime) {
                     last;
                 }
-                sleep(0.01);
+                #sleep(0.01);
                 next;
             }
             $line .= $buf;
@@ -828,6 +828,7 @@ nextrequest:
 
     my $starttime = time();
 
+    my $xstart = time;
     if($self->{need_srand_call}) {
         $self->{need_srand_call} = 0;
         srand();
@@ -850,7 +851,7 @@ nextrequest:
     # Run the "firewall" stuff before even looking at the client request. If client
     # if marked as "blocked", just send an HTTP status line and minimalistic body
     # to notify the client, then close the connection
-    {
+    if(1){
         foreach my $item (@{$self->{firewall}}) {
             my $module = $item->{Module};
             my $funcname = $item->{Function};
@@ -886,6 +887,14 @@ nextrequest:
         $ua->{keepalive} = 0;
         goto cleanup;
     }
+
+    if(0 && $ua->{url} =~ /cavacopedia/o) {
+        $webprint->write($realsocket, "HTTP/1.1 402 No cash, no data. Fuck off, silicon valley!\r\n");
+        my $xend = time;
+        print STDERR "\n DISABLE CAVACOPEDIA: ", $xend - $xstart;
+        return;
+    }
+
 
     my $hcount = 0;
 
