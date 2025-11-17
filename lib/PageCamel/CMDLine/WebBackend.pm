@@ -295,7 +295,7 @@ sub readFrontendheader($self, $client) {
         my $temp;
         $client->sysread($temp, 1);
         if(!defined($temp) || !length($temp)) {
-            sleep(0.001);
+            sleep(0.01);
             next;
         }
         if($temp eq "\r") {
