@@ -148,10 +148,13 @@ sub _generateEscPos($self, $img = undef) {
 
     if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags') {
         $reph->debuglog("    Type: TMT88");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0, 0);
+    } elsif($self->{printerType} eq 'TMM30' || $self->{printerType} eq 'TMM30NoStatusFlags') {
+        $reph->debuglog("    Type: TMT88 in TM-M30 mode (add white pixels on the left for centering)");
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0, 1);
     } elsif($self->{printerType} eq 'ORDERMAN' || $self->{printerType} eq 'BixolonSRP330II') {
         $reph->debuglog("    Type: TMT88 in ORDERMAN mode");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 1);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 1, 0);
     } elsif($self->{printerType} eq 'TMP20') {
         $reph->debuglog("    Type: TMP20");
         return $self->_escpos_tmp20($self->{printerExtraFeed}, $self->{printerBeep});
@@ -170,11 +173,11 @@ sub _generateEscPos($self, $img = undef) {
     }
 
     $reph->debuglog("   UNSUPPORTED PRINTER TYPE, TRYING TMT88 compatible");
-    return $self->_escpos_tmt88();
+    return $self->_escpos_tmt88(0, 0, 0, 0);
 }
     
 
-sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
+sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter, $tmm30) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -215,8 +218,14 @@ sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
     }
    
     # Image data
+    
+    my $centerpixels = 0;
+    if($tmm30) {
+        $centerpixels = 5 * 8;
+    }
+    my $centerbytes = $centerpixels / 8;
 
-    my $bytew = $w / 8;
+    my $bytew = ($w + $centerpixels) / 8;
 
     for(my $blockoffs = 0; $blockoffs < $h; $blockoffs += $blocksize) {
         my $blockh = $h - $blockoffs;
@@ -228,6 +237,9 @@ sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
         $raw .= chr(0x1D) . chr(0x76) . chr(0x30) . chr(0) . chr($bytew & 0xff) . chr(($bytew >> 8) & 0xff) . chr($blockh & 0xff) . chr(($blockh >> 8) & 0xff); 
 
         for(my $y = 0; $y < $blockh; $y++) {
+            for(my $x = 0; $x < $centerbytes; $x++) {
+                $raw .= chr(0x00);
+            }
             for(my $x = 0; $x < $w; $x+=8) {
                 my $byte = 0;
                 for(my $xoffs = 0; $xoffs < 8; $xoffs++) {
@@ -646,9 +658,8 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     }
 
     my $raw = '';
-    if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags') {
+    if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags' || $self->{printerType} eq 'TMM30' || $self->{printerType} eq 'TMM30NoStatusFlags') {
         $reph->debuglog("    Type: TMT88");
-
         # Kick drawer 1
         $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
         # Kick drawer 2
