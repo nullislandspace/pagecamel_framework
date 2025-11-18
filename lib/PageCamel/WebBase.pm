@@ -828,6 +828,7 @@ nextrequest:
 
     my $starttime = time();
 
+    my $xstart = time;
     if($self->{need_srand_call}) {
         $self->{need_srand_call} = 0;
         srand();
@@ -850,7 +851,7 @@ nextrequest:
     # Run the "firewall" stuff before even looking at the client request. If client
     # if marked as "blocked", just send an HTTP status line and minimalistic body
     # to notify the client, then close the connection
-    {
+    if(1){
         foreach my $item (@{$self->{firewall}}) {
             my $module = $item->{Module};
             my $funcname = $item->{Function};
@@ -886,6 +887,21 @@ nextrequest:
         $ua->{keepalive} = 0;
         goto cleanup;
     }
+
+    if(1 && $ua->{url} =~ /cavacopedia/o) {
+        $webprint->write($realsocket, "HTTP/1.1 402 No cash, no data. Fuck off, silicon valley!\r\n");
+        my $xend = time;
+        print STDERR "\n DISABLE CAVACOPEDIA: ", $xend - $xstart;
+        return;
+    }
+
+    if(1 && $ua->{url} =~ /public\/mercurial\/streambackup/o) {
+        $webprint->write($realsocket, "HTTP/1.1 410 Gone for good\r\n");
+        my $xend = time;
+        print STDERR "\n DISABLE MERCURIAL STREAMBACKUP ", $xend - $xstart;
+        return;
+    }
+
 
     my $hcount = 0;
 
@@ -944,7 +960,7 @@ nextrequest:
     foreach my $dpath (keys %{$self->{uploadstreamwebpaths}}) {
         if($webpath =~ /^$dpath/) {
             $useuploadstream = 1;
-            $self->printdebuglog("*** UPLOADSTREAM MODE FOR ", $webpath);
+            #$self->printdebuglog("*** UPLOADSTREAM MODE FOR ", $webpath);
         }
     }
 
@@ -2071,7 +2087,6 @@ sub user_login($self, $username, $sessionid) {
 }
 
 sub user_logout($self, $sessionid) {
-    print STDERR "\n\n";
     foreach my $item (@{$self->{logoutitems}}) {
         my $module = $item->{Module};
         my $funcname = $item->{Function};
