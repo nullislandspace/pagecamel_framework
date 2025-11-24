@@ -112,7 +112,7 @@ sub do_backup($self, $arguments) {
     }
 
     my $projectname = '';
-    {
+    if(defined($sysh)) {
         my ($ok, $data) = $sysh->get('defaultwebdata', 'ProjectName');
         if($ok) {
             $projectname = $data->{settingvalue};
