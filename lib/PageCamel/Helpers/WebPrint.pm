@@ -85,7 +85,9 @@ sub write($self, $ofh, @parts) {
             $self->debuglog("webPrint write failure: SIGPIPE");
             return 0;
         } elsif($ofh->error || $ERRNO ne '') {
-            $self->debuglog("webPrint write failure: $ERRNO / ", $ofh->opened, " / ", $ofh->error);
+            if($ERRNO !~ /Broken\ pipe/) {
+                $self->debuglog("webPrint write failure: $ERRNO / ", $ofh->opened, " / ", $ofh->error);
+            }
             return 0;
         }
         if($written) {

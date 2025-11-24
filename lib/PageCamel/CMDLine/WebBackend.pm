@@ -18,7 +18,7 @@ use PageCamel::Helpers::UTF;
 use IO::Select;
 use IO::Socket::UNIX;
 use PageCamel::Helpers::ConfigLoader;
-use Time::HiRes qw(sleep usleep);
+use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::DateStrings;
 use Sys::Hostname;
@@ -175,10 +175,12 @@ sub run($self) {
                 next;
             } elsif($childpid == 0) {
                 # Child
+                my $xstart = time;
                 $PROGRAM_NAME = $self->{ps_appname};
-                $self->handleClient($client);
-                print "Child PID $PID is done, exiting...\n";
-                exit(0);
+                my $header = $self->handleClient($client);
+                my $xend = time;
+                #print STDERR "Child PID $PID is done, exiting... ", $xend - $xstart, "\n";
+                $self->endprogram($header, "exit(0)");
             } else {
                 # Parent
                 $childcount++;
@@ -267,7 +269,8 @@ sub handleClient($self, $client) { ## no critic (Subroutines::RequireFinalReturn
     }
 
 
-    $self->endprogram($header, "exit(0)");
+    #$self->endprogram($header, "exit(0)");
+    return $header;
 }
 
 sub endprogram($self, $header, $debugmessage) { ## no critic (Subroutines::RequireFinalReturn)
@@ -278,7 +281,7 @@ sub endprogram($self, $header, $debugmessage) { ## no critic (Subroutines::Requi
     kill 'USR1', $header->{pid}; # Notify frontend that we are done
     #exit(0);
 
-    sleep(1);
+    sleep(0.3);
     while(1) {
         kill 9, $PID;
         POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
