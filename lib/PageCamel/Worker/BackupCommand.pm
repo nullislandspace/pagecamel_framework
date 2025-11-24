@@ -69,6 +69,7 @@ sub do_backup($self, $arguments) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $memh = $self->{server}->{modules}->{$self->{memcache}};
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
 
 
     my $logtype = "OTHER"; # make logging visible only to admin user
@@ -110,7 +111,16 @@ sub do_backup($self, $arguments) {
         $backupdata->{$field} = $val;
     }
 
-    my $fname = $backupdata->{backup_directory} . '/' . hostname() . '_' . $self->{database} . '_' . getFileDate() . '.backup';
+    my $projectname = '';
+    {
+        my ($ok, $data) = $sysh->get('defaultwebdata', 'ProjectName');
+        if($ok) {
+            $projectname = $data->{settingvalue};
+            $projectname =~ s/[^a-zA-Z0-9]//g;
+        }
+    }
+
+    my $fname = $backupdata->{backup_directory} . '/' . hostname() . '_' . $projectname . '_' . $self->{database} . '_' . getFileDate() . '.backup';
     $reph->debuglog("Starting database backup to $fname");
     $reph->dblog("COMMAND", "Database backup to $fname");
 
