@@ -48,6 +48,7 @@ sub register($self) {
 
 sub prefilter($self, $ua) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     if(defined($self->{defaultwebdata})) {
         delete $self->{defaultwebdata};
@@ -121,7 +122,7 @@ sub prefilter($self, $ua) {
             if(!$doignore) {
                 $ua->{url} = $item->{pathprefix} . $ua->{url};
                 if(1 || $self->{isDebugging}) {
-                    print STDERR "******************************************    internally rerouting to ", $ua->{url}, "\n";
+                    $reph->debuglog("***    internally rerouting to ", $ua->{url});
                 }
             }
             if(defined($item->{defaultwebdata})) {
@@ -153,9 +154,11 @@ sub prefilter($self, $ua) {
 
 sub get_defaultwebdata($self, $webdata) {
     return unless defined($self->{defaultwebdata});
+
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     foreach my $key (keys %{$self->{defaultwebdata}}) {
         my $val = $self->{defaultwebdata}->{$key};
-        print STDERR "   ADDING DEFAULTWEBDATA: ", $key, " => ", $val, "\n";
+        $reph->debuglog("   ADDING DEFAULTWEBDATA: ", $key, " => ", $val);
         $webdata->{$key} = $val;
     }
     delete $self->{defaultwebdata};
