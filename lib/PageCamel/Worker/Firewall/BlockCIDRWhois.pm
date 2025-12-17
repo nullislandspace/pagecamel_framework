@@ -68,7 +68,7 @@ sub work($self) {
 
     my $delblocksth = $dbh->prepare_cached("DELETE FROM firewall_block_cidr
                                             WHERE is_autoblocked = true
-                                            AND seen_last < (now() - interval '" . $self->{blocktime} . "')")
+                                            AND seen_first < (now() - interval '" . $self->{blocktime} . "')")
             or croak($dbh->errstr);
 
     my $delcansth = $dbh->prepare_cached("DELETE FROM firewall_candidates
@@ -101,8 +101,8 @@ sub work($self) {
 
     my $insth = $dbh->prepare_cached("INSERT INTO firewall_block_cidr
                                         (blocked_network, network_owner_whois,
-                                         is_autoblocked, seen_first, seen_last)
-                                        VALUES (?, ?, true, now(), now())")
+                                         is_autoblocked, seen_first)
+                                        VALUES (?, ?, true, now())")
             or croak($dbh->errstr);
 
     # Clean up stale blocks and candidates

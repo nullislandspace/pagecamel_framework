@@ -35,10 +35,8 @@ sub register($self) {
 
 sub firewall($self, $client) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $selsth = $dbh->prepare_cached("UPDATE firewall_block_cidr
-                                        SET seen_last = now()
-                                      WHERE ? <<= blocked_network
-                                      RETURNING blocked_network")
+    my $selsth = $dbh->prepare_cached("SELECT blocked_network FROM firewall_block_cidr
+                                      WHERE ? <<= blocked_network")
             or croak($dbh->errstr);
     if(!$selsth->execute($client)) {
         $dbh->rollback;
