@@ -52,6 +52,8 @@ sub register($self) {
 sub crossregister($self) {
     if(defined($self->{auth_realm})) {
         $self->register_basic_auth($self->{webpath}, $self->{auth_realm});
+    } elsif(defined($self->{public}) && $self->{public}) {
+        $self->register_public_url($self->{webpath});
     }
     return;
 }
