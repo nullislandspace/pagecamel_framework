@@ -518,8 +518,13 @@ reloaddata:
             #$reph->debuglog("### ", $ok, " / ", Dumper($sysval));
         }
 
-        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
-        $webdata{appqrcodeserver} = $ua->{headers}->{Host};
+        my $serverip = $ua->{headers}->{Host};
+        if($serverip eq '127.0.0.1' && defined($ENV{'PC_EXTERNAL_IP'})) {
+            $serverip = $ENV{'PC_EXTERNAL_IP'};
+        }
+
+        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $serverip, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
+        $webdata{appqrcodeserver} = $serverip;
         $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
     }
     $webdata{Groups} = \@groups;
