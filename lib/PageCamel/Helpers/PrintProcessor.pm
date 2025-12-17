@@ -784,13 +784,16 @@ sub _getPrintColor($self, $isfont = 0) {
 sub printAddTextLine($self, $line, $y = undef) {
     chomp $line;
     
-    $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
+        $line = $self->markWithArrow($line, 20, $self->{imgoffs} - 10);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 27;
     } else {
+        $line = $self->markWithArrow($line, 20, $y - 10);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{font}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
@@ -801,13 +804,16 @@ sub printAddTextLine($self, $line, $y = undef) {
 sub printAddBoldTextLine($self, $line, $y = undef) {
     chomp $line;
     
-    $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
+        $line = $self->markWithArrow($line, 20, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 24;
     } else {
+        $line = $self->markWithArrow($line, 20, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
@@ -819,8 +825,12 @@ sub printAddVerySmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 10, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 10, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 10, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 10, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 14;
     }
@@ -832,8 +842,12 @@ sub printAddBoldVerySmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 10, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 10, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 10, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 10, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 14;
     }
@@ -845,8 +859,12 @@ sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 15, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 15, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 15, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 19;
     }
@@ -858,8 +876,12 @@ sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 15, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 15, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 15, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 19;
     }
@@ -872,8 +894,12 @@ sub printAddSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 18, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 18, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 18, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 18, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 22;
     }
@@ -885,8 +911,12 @@ sub printAddBoldSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 18, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 18, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 18, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 18, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 22;
     }
@@ -897,6 +927,8 @@ sub printAddBoldSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
 sub printAddBigTextLine($self, $line) {
     chomp $line;
     
+    $line = $self->markWithArrow($line, 50, $self->{imgoffs});
+    $line = encode_utf8($line);
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
     
     $self->{imgoffs} += 58;
@@ -907,6 +939,8 @@ sub printAddBigTextLine($self, $line) {
 sub printAddMediumBigTextLine($self, $line) {
     chomp $line;
     
+    $line = $self->markWithArrow($line, 30, $self->{imgoffs} + 10);
+    $line = encode_utf8($line);
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
     
     $self->{imgoffs} += 38;
@@ -998,6 +1032,66 @@ sub printAddCutHereLine($self) {
 
     return;
 }
+
+sub markWithArrow($self, $line, $size, $y = undef) {
+    if(!defined($y)) {
+        croak("BLA");
+        $y = $self->{imgoffs};
+    }
+    if($line =~ /↳/) {
+        $self->printAddArrow($size, $y);
+        $line =~ s/↳/ /g;
+    }
+    return $line;
+}
+
+sub printAddArrow($self, $size, $yoffs) {
+    my $reph = $self->{reph};
+
+    $reph->debuglog("IMAGE OFFSET: $yoffs");
+
+    my $bigpng = "iVBORw0KGgoAAAANSUhEUgAAAAwAAAAUCAMAAACOLiwjAAAABGdBTUEAALGPC/xhBQAAAAFzUkdC
+                  AdnJLH8AAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZQTFRF
+                  AAAA////pdmf3QAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+kMEAosIGe+lMQAAAAoSURB
+                  VBjTY2BgYIQDhkHDAVNwGRCNUAZkMOAGyEYxIBvLgGwFQgaIAV6EAK2s0ft+AAAAAElFTkSuQmCC";
+
+    my $semipng = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAANCAMAAABSF4SHAAAABGdBTUEAALGPC/xhBQAAAAFzUkdC
+                   AdnJLH8AAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZQTFRF
+                   AAAA////pdmf3QAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+kMEAsABGNOcYwAAAAhSURB
+                   VAjXY2BgBAMGEmgGGJ8BJs4ApKGAEcpnhMpDKEYADv8ARiXrBh4AAAAASUVORK5CYII=";
+
+    my $smallpng = "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAMAAABL52QCAAAABGdBTUEAALGPC/xhBQAAAAFzUkdC
+                    AdnJLH8AAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZQTFRF
+                    AAAA////pdmf3QAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+kMEAsDLH3WirUAAAAaSURB
+                    VAjXY2AEAQYGnCQDhA1kQAAjmA0iGAEErwAkhFz/bwAAAABJRU5ErkJggg==";
+
+    my $pngdata;
+    if($size <= 10) {
+        $pngdata = decode_base64 $smallpng;
+    } elsif($size >= 18) {
+        $pngdata = decode_base64 $bigpng;
+    } else {
+        $pngdata = decode_base64 $semipng;
+    }
+
+    my $tmpimg = GD::Image->newFromPngData($pngdata);
+
+    my ($w, $h) = $tmpimg->getBounds();
+
+    for(my $x = 0; $x < $w; $x++) {
+        for(my $y = 0; $y < $h; $y++) {
+            my $index = $tmpimg->getPixel($x, $y);
+            my ($r,$g,$b) = $tmpimg->rgb($index);
+            my $greypixel = int(($r+$g+$b)/3);
+            if($greypixel < 128) {
+                $self->{img}->setPixel(10+$x, $yoffs+$y, $self->_getPrintColor());
+            }
+        }
+    }
+
+    return;
+}
+
 
 sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $doscale = true, $center = false) {
     my $reph = $self->{reph};
