@@ -519,8 +519,8 @@ reloaddata:
         }
 
         my $serverip = $ua->{headers}->{Host};
-        if($serverip eq '127.0.0.1' && defined($ENV{'PC_EXTERNAL_IP'})) {
-            $serverip = $ENV{'PC_EXTERNAL_IP'};
+        if($serverip eq '127.0.0.1' && defined($ENV{'PC_APP_IP'})) {
+            $serverip = $ENV{'PC_APP_IP'};
         }
 
         $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $serverip, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
