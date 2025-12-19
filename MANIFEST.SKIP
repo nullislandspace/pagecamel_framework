@@ -68,3 +68,5 @@ lib/PageCamel/Web/Static/pchelpers/node_modules
 \.map$
 
 \.claude
+
+OPTIMIZATIONS.md
