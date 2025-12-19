@@ -155,7 +155,7 @@ sub init($self) {
 
 sub run($self) {
     while(1) {
-        my @connections = $self->{select}->can_read();
+        my @connections = $self->{select}->can_read(1);  # 1 second timeout for responsiveness
         foreach my $connection (@connections) {
             my $client = $connection->accept;
             
@@ -291,21 +291,30 @@ sub endprogram($self, $header, $debugmessage) { ## no critic (Subroutines::Requi
 
 sub readFrontendheader($self, $client) {
     my $line = '';
-    while(1) {
-        my $temp;
-        $client->sysread($temp, 1);
-        if(!defined($temp) || !length($temp)) {
-            sleep(0.01);
-            next;
-        }
-        if($temp eq "\r") {
-            next;
-        }
+    my $select = IO::Select->new($client);
+    my $timeout = 15;  # 15 second timeout for frontend header
+    my $endtime = time + $timeout;
 
-        if($temp eq "\n") {
+    while(1) {
+        # Calculate remaining timeout
+        my $remaining = $endtime - time;
+        if($remaining <= 0) {
+            # Timeout - return empty header which will fail validation
             last;
         }
-        $line .= $temp;
+
+        # Wait for data using select() instead of busy-wait
+        if($select->can_read($remaining)) {
+            my $temp;
+            $client->sysread($temp, 1);
+            if(!defined($temp) || !length($temp)) {
+                # Connection closed or error
+                last;
+            }
+            next if $temp eq "\r";
+            last if $temp eq "\n";
+            $line .= $temp;
+        }
     }
 
     my @parts = split/\ /, $line;
