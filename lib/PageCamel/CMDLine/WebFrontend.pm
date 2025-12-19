@@ -872,26 +872,11 @@ sub get408($self) {
 sub parseheaders($self, $rawheaders) {
     my @headers;
 
-    local $INPUT_RECORD_SEPARATOR = undef;
-
-    my @bytes = split//, $rawheaders;
-    my $line = '';
-
-    while(scalar @bytes) {
-        my $char = shift @bytes;
-        
-        next if($char eq "\r");
-
-        if($char eq "\n") {
-            if($line eq '') {
-                last;
-            }
-            push @headers, '' . $line;
-            $line = '';
-            next;
-        }
-
-        $line .= $char;
+    # Split on newlines - O(n) instead of O(n²) character-by-character parsing
+    my @lines = split(/\r?\n/, $rawheaders);
+    foreach my $line (@lines) {
+        last if $line eq '';  # Empty line marks end of headers
+        push @headers, $line;
     }
 
     return @headers;
