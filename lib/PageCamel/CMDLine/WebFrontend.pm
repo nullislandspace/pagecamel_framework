@@ -19,6 +19,7 @@ use IO::Socket::INET;
 use IO::Socket::SSL;
 use IO::Select;
 use IO::Socket::UNIX;
+use Socket qw(IPPROTO_TCP TCP_NODELAY SO_KEEPALIVE SOL_SOCKET);
 use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
@@ -176,7 +177,7 @@ sub init($self) {
             my $tcp = IO::Socket::IP->new(
                     LocalHost => $ip,
                     LocalPort => $service->{port},
-                    Listen => 20, # Queue size 20
+                    Listen => ($config->{max_childs} || 128), # Queue size based on max_childs config
                     ReuseAddr => 1,
                     Proto => 'tcp',
             ) or croak("Failed to bind: " . $ERRNO);
@@ -187,6 +188,7 @@ sub init($self) {
     }
     my $select = IO::Select->new(@tcpsockets);
     $self->{select} = $select;
+    $self->{hasssl} = $hasssl;
 
     if($hasssl) {
         if(!defined($self->{config}->{sslconfig}->{ssldefaultdomain})) {
@@ -252,10 +254,23 @@ sub init($self) {
 }
 
 sub run($self) {
+    # Generate SSL session ticket key once (shared by all forked children)
+    # Key format: 16 bytes name + 32 bytes key (16 AES + 16 HMAC)
+    if($self->{hasssl}) {
+        open(my $urandom, '<:raw', '/dev/urandom') or croak("Cannot open /dev/urandom: $!");
+        read($urandom, $self->{ssl_ticket_key_name}, 16) == 16 or croak("Failed to read key name from /dev/urandom");
+        read($urandom, $self->{ssl_ticket_key}, 32) == 32 or croak("Failed to read key from /dev/urandom");
+        close($urandom);
+    }
+
     while(1) {
         while((my @connections = $self->{select}->can_read(1))) {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
+
+                # Set socket options for lower latency and dead connection detection
+                setsockopt($client, IPPROTO_TCP, TCP_NODELAY, 1);  # Disable Nagle's algorithm
+                setsockopt($client, SOL_SOCKET, SO_KEEPALIVE, 1);  # Enable TCP keepalive
 
                 my $peerhost = $client->peerhost();
                 my $peerport = $client->peerport();
@@ -387,11 +402,23 @@ sub handleClient($self, $client) {
                         # Enable workarounds for broken clients
                         Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL);
 
-                        # Disable session resumption completely
-                        Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
+                        # Enable SSL session tickets with shared key (for session resumption across forks)
+                        if(defined($self->{ssl_ticket_key}) && defined($self->{ssl_ticket_key_name})) {
+                            my $ticket_key = $self->{ssl_ticket_key};
+                            my $ticket_key_name = $self->{ssl_ticket_key_name};
+                            Net::SSLeay::CTX_set_tlsext_ticket_getkey_cb($ctx, sub {
+                                my ($data, $name) = @_;
+                                # If no name given, return current key for new ticket
+                                return ($ticket_key, $ticket_key_name) if !defined($name);
+                                # If name matches our key, return it
+                                return ($ticket_key, $ticket_key_name) if $name eq $ticket_key_name;
+                                # Unknown key name - return current key (will trigger ticket renewal)
+                                return ($ticket_key, $ticket_key_name);
+                            });
+                        }
 
-                        # Disable session tickets
-                        Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
+                        # Set session timeout (5 minutes)
+                        eval { Net::SSLeay::CTX_set_timeout($ctx, 300); };
 
                         # Load certificate chain
                         my $ssldefaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
@@ -434,6 +461,18 @@ sub handleClient($self, $client) {
                                                                     $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
                                         or croak("Can't set cert and key file");
                                 Net::SSLeay::CTX_use_certificate_chain_file($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert});
+                                # Set shared ticket key for session resumption
+                                if(defined($self->{ssl_ticket_key}) && defined($self->{ssl_ticket_key_name})) {
+                                    my $ticket_key = $self->{ssl_ticket_key};
+                                    my $ticket_key_name = $self->{ssl_ticket_key_name};
+                                    Net::SSLeay::CTX_set_tlsext_ticket_getkey_cb($newctx, sub {
+                                        my ($data, $name) = @_;
+                                        return ($ticket_key, $ticket_key_name) if !defined($name);
+                                        return ($ticket_key, $ticket_key_name) if $name eq $ticket_key_name;
+                                        return ($ticket_key, $ticket_key_name);
+                                    });
+                                }
+                                eval { Net::SSLeay::CTX_set_timeout($newctx, 300); };
                                 #print STDERR "Cert: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert}, " Key: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey}, "\n";
                                 $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
                             }
