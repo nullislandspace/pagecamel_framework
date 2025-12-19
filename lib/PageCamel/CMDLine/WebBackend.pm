@@ -27,16 +27,13 @@ use PageCamel::WebBase;
 use POSIX;
 
 my $childcount = 0;
-$SIG{CHLD} = \&REAPER;
-sub REAPER {
-    my $stiff;
-    while (($stiff = waitpid(-1, &WNOHANG)) > 0) {
-        #print "Child PID $stiff has gone the way of the Dodo\n";
+$SIG{CHLD} = sub {
+    # Reap all terminated children (loop handles multiple children dying at once)
+    while ((my $pid = waitpid(-1, WNOHANG)) > 0) {
         $childcount--;
     }
-    $SIG{CHLD} = \&REAPER; # install *after* calling waitpid
-    return;
-}
+    # Note: On Perl 5.8+, signal handlers are reliable and don't need reinstalling
+};
 
 sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
@@ -182,7 +179,8 @@ sub run($self) {
                 #print STDERR "Child PID $PID is done, exiting... ", $xend - $xstart, "\n";
                 $self->endprogram($header, "exit(0)");
             } else {
-                # Parent
+                # Parent - close our copy of the client socket to prevent fd leak
+                $client->close;
                 $childcount++;
                 next;
             }
@@ -278,15 +276,13 @@ sub endprogram($self, $header, $debugmessage) { ## no critic (Subroutines::Requi
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
     }
 
-    kill 'USR1', $header->{pid}; # Notify frontend that we are done
-    #exit(0);
-
-    sleep(0.3);
-    while(1) {
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
-        sleep(10);
+    # Notify frontend that we are done
+    if(defined($header->{pid}) && $header->{pid} > 0) {
+        kill 'USR1', $header->{pid};
     }
+
+    # Exit immediately without running END{} / DESTROY{} handlers
+    POSIX::_exit(0);
 }
 
 sub readFrontendheader($self, $client) {
