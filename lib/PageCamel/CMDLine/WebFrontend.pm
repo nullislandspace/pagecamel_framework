@@ -384,10 +384,25 @@ sub handleClient($self, $client) {
         my $headertimeout = $self->{config}->{headertimeout};
         my $endtime = time + $headertimeout;
         if($usessl) {
+            # Pre-check: wait for client to send TLS ClientHello
+            # This filters out port scanners that connect but send nothing
+            my $precheck = IO::Select->new($client);
+            if(!$precheck->can_read(5)) {
+                # No data received within 5 seconds - likely port scanner, close silently
+                $client->close;
+                $self->endprogram();
+            }
+
             my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
             my $encrypted;
             my $ok = 0;
             eval {
+                # Suppress "uninitialized value" warnings from Net::SSLeay during malformed handshakes
+                local $SIG{__WARN__} = sub {
+                    my $msg = shift;
+                    return if $msg =~ /uninitialized.*IO\/Socket\/SSL\.pm/;
+                    warn $msg;
+                };
                 #print STDERR "SSL connecting\n";
                 $encrypted = IO::Socket::SSL->start_SSL($client,
                     Timeout => $headertimeout,
@@ -645,7 +660,7 @@ sub handleClient($self, $client) {
         my $debugoutcapture = '';
         my $clientdisconnect = 0;
         my $backenddisconnect = 0;
-        print STDERR "Handling client...\n";
+        #print STDERR "Handling client...\n";
         while(!$done) {
             if($sigpipeseen > $sigpipehandled) {
                 sleep(0.05);
