@@ -547,7 +547,7 @@ sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xf
                     $endtime = time + $timeout;
                     $unread -= $lastread;
                     $datalen += $lastread;
-                    $self->printdebuglog("---------> STREAMING $lastread bytes");
+                    #$self->printdebuglog("---------> STREAMING $lastread bytes");
                     if(!$xmodule->$xfuncname($ua, $tempdata)) {
                         $self->printdebuglog("--------- STREAMING FAILED");
                         return 0;
@@ -1302,7 +1302,7 @@ nextrequest:
 
             if(!$useuploadstream) {
                 #$self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
-                if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
+                if(!$self->get_request_body($realsocket, $ua, 30, 65536)) {
                     $ua->{keepalive} = 0;
                     $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                     goto cleanup;
@@ -1400,7 +1400,7 @@ nextrequest:
                         my $xfuncnamefinish = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{finish};
                         my $ok = 1;
                         if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
-                            $ok = $self->stream_request_body($realsocket, $ua, 30, 1024, $xmodule, $xfuncnamestream);
+                            $ok = $self->stream_request_body($realsocket, $ua, 30, 65536, $xmodule, $xfuncnamestream);
                             #$ok = $xmodule->$xfuncnamestream($ua, $ua->{postdata});
                         }
 
