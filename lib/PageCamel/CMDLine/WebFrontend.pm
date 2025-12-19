@@ -672,7 +672,15 @@ sub handleClient($self, $client) {
             if($err ne '') {
                 print STDERR $ERRNO, "\n";
             }
+            my $max_buffer_size = 50_000_000;  # 50MB buffer limit to prevent memory exhaustion
             foreach my $connection (@connections) {
+                # Skip reading if destination buffer is already too large (applies back-pressure)
+                if(ref $connection eq 'IO::Socket::UNIX') {
+                    next if length($toclientbuffer) >= $max_buffer_size;
+                } else {
+                    next if length($tobackendbuffer) >= $max_buffer_size;
+                }
+
                 sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
                 if(!length($rawbuffer)) {
                     # can_read active but no data.
@@ -703,13 +711,15 @@ sub handleClient($self, $client) {
             my $loopcount = int(10_000_000 / 16_384); # Write at max ~10MB in one loop
 
             my $sendcount = $loopcount;
+            my $client_offset = 0;  # Track offset to avoid repeated substr copies
             while($sendcount) {
-                if(length($toclientbuffer) && !$clientdisconnect) {
+                my $remaining = length($toclientbuffer) - $client_offset;
+                if($remaining > 0 && !$clientdisconnect) {
                     my $written;
+                    my $towrite = $remaining < $blocksize ? $remaining : $blocksize;
 
-                    my $writebuffer = substr($toclientbuffer, 0, $blocksize); # grab $blocksize chunk of data
                     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                        $written = syswrite($client, $writebuffer);
+                        $written = syswrite($client, $toclientbuffer, $towrite, $client_offset);
                     };
                     if($EVAL_ERROR) {
                         print STDERR "Write error: $EVAL_ERROR\n";
@@ -720,8 +730,8 @@ sub handleClient($self, $client) {
                         }
                     }
                     if(defined($written) && $written) {
-                        #print STDERR "< Clientbuffer ", length($toclientbuffer), " Writebuffer ", length($writebuffer), " written ", $written, "\n";
-                        $toclientbuffer = substr($toclientbuffer, $written);
+                        #print STDERR "< Clientbuffer ", length($toclientbuffer), " written ", $written, "\n";
+                        $client_offset += $written;
                     } else {
                         #print STDERR "No data written to client\n";
                         last;
@@ -731,15 +741,21 @@ sub handleClient($self, $client) {
                 }
                 $sendcount--;
             }
+            # Single substr after loop to remove all written data
+            if($client_offset > 0) {
+                $toclientbuffer = substr($toclientbuffer, $client_offset);
+            }
 
             $sendcount = $loopcount;
+            my $backend_offset = 0;  # Track offset to avoid repeated substr copies
             while($sendcount) {
-                if(length($tobackendbuffer) && !$backenddisconnect) {
+                my $remaining = length($tobackendbuffer) - $backend_offset;
+                if($remaining > 0 && !$backenddisconnect) {
                     my $written;
+                    my $towrite = $remaining < $blocksize ? $remaining : $blocksize;
 
-                    my $writebuffer = substr($tobackendbuffer, 0, $blocksize); # grab $blocksize chunk of data
                     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                        $written = syswrite($backend, $writebuffer);
+                        $written = syswrite($backend, $tobackendbuffer, $towrite, $backend_offset);
                     };
                     if($EVAL_ERROR) {
                         print STDERR "Write error: $EVAL_ERROR\n";
@@ -748,11 +764,10 @@ sub handleClient($self, $client) {
                             # We are in countdown but could still send data to backend. Reset countdown
                             $finishcountdown = time + 20;
                         }
-
                     }
                     if(defined($written) && $written) {
-                        #print STDERR "> Backendbuffer ", length($tobackendbuffer), " Writebuffer ", length($writebuffer), " written ", $written, "\n";
-                        $tobackendbuffer = substr($tobackendbuffer, $written);
+                        #print STDERR "> Backendbuffer ", length($tobackendbuffer), " written ", $written, "\n";
+                        $backend_offset += $written;
 
                         # Reset SIGPIPE counter whenever we have success writing to the backend
                         $sigpipeseen = 0;
@@ -765,6 +780,10 @@ sub handleClient($self, $client) {
                     last;
                 }
                 $sendcount--;
+            }
+            # Single substr after loop to remove all written data
+            if($backend_offset > 0) {
+                $tobackendbuffer = substr($tobackendbuffer, $backend_offset);
             }
 
             if($clientdisconnect) {
