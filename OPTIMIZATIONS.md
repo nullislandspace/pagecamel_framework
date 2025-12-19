@@ -380,6 +380,61 @@ if($select->can_read(0.1)) {
 
 ---
 
+## Phase 10: SSL Handshake Warning Suppression
+
+**File:** `lib/PageCamel/CMDLine/WebFrontend.pm`
+
+### Problem
+
+Frequent warnings in logs:
+```
+Use of uninitialized value in subroutine entry at
+    .../IO/Socket/SSL.pm line 1079
+```
+
+Caused by port scanners, bots, and clients that connect but don't complete the TLS handshake properly.
+
+### Pre-check Before SSL Handshake
+
+**Change:** Added `IO::Select` pre-check to wait for client data before attempting SSL:
+
+```perl
+if($usessl) {
+    # Pre-check: wait for client to send TLS ClientHello
+    my $precheck = IO::Select->new($client);
+    if(!$precheck->can_read(5)) {
+        # No data received within 5 seconds - likely port scanner
+        $client->close;
+        $self->endprogram();
+    }
+    ...
+}
+```
+
+**Why:** Filters out port scanners that connect but send nothing, avoiding problematic SSL accept on empty sockets.
+
+### Warning Handler for Malformed Handshakes
+
+**Change:** Added `$SIG{__WARN__}` handler inside the `start_SSL` eval to suppress the specific warning:
+
+```perl
+eval {
+    local $SIG{__WARN__} = sub {
+        my $msg = shift;
+        return if $msg =~ /uninitialized.*IO\/Socket\/SSL\.pm/;
+        warn $msg;
+    };
+    $encrypted = IO::Socket::SSL->start_SSL($client, ...);
+    $ok = 1;
+};
+```
+
+**Why:** The warning originates from Net::SSLeay XS code during malformed handshakes. Using `no warnings` doesn't work because it only affects the lexical scope, not called modules. The `$SIG{__WARN__}` handler intercepts warnings from all called code.
+
+**Rollback:** Remove the pre-check block and the `$SIG{__WARN__}` handler.
+
+---
+
 ## Performance Verification
 
 1. **SSL handshake:** `time openssl s_client -connect host:443` (should be <100ms)
