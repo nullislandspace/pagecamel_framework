@@ -49,7 +49,9 @@ sub handle_child_start($self) {
     if(defined($self->{clacks})) {
         delete $self->{clacks};
     }
-    $self->reconnect();
+
+    # Will auto-reconnect on first actual use.
+    #$self->reconnect();
 
     return;
 }
