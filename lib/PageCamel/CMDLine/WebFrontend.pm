@@ -27,6 +27,7 @@ use PageCamel::Helpers::WebPrint;
 use PageCamel::Helpers::Mandant;
 use Sys::Hostname;
 use POSIX;
+use Errno qw(:POSIX);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 # For turning off SSL session cache
@@ -516,35 +517,36 @@ sub handleClient($self, $client) {
         my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
         my $headerevalok = 0;
 
-        my $readtimeout = $endtime - time;
-        if($readtimeout < 2) {
-            $readtimeout = 2;
-        }
-
         eval {
             #print STDERR "Start header reading...\n";
-            alarm($readtimeout);
 
             while($overhead !~ /\r\n\r\n/) {
+                # Calculate remaining timeout for this iteration
+                my $remaining = $endtime - time;
+                if($remaining <= 0) {
+                    $headererrors = 1;
+                    last;
+                }
+
                 my $buf = undef;
-                my @connections = $select->can_read(1);
+                my @connections = $select->can_read($remaining);
+
+                # Handle EINTR - signal interrupted the call, just retry
+                if(!@connections && $!{EINTR}) {
+                    next;
+                }
+
                 foreach my $socket (@connections) {
                     sysread($socket, $buf, 10_000_000);
                 }
                 if(!defined($buf) || !length($buf)) {
-                    sleep(0.01);
+                    # No data available yet, loop will retry with updated timeout
                     next;
                 }
                 $overhead .= $buf;
-
-                if($endtime < time) {
-                    $headererrors = 1;
-                    last;
-                }
             }
             $headerevalok = 1;
         };
-        alarm(0);
 
         if(!$headerevalok) {
             #print STDERR "Header read timeout!\n";
@@ -668,9 +670,12 @@ sub handleClient($self, $client) {
             
             $ERRNO = 0;
             my @connections = $select->can_read($waittime);
-            my $err = '' . $ERRNO;
-            if($err ne '') {
-                print STDERR $ERRNO, "\n";
+            # Handle EINTR (signal interrupted call) - just continue, not an error
+            if(!@connections && $!{EINTR}) {
+                next;
+            }
+            if($ERRNO ne '' && !$!{EINTR}) {
+                print STDERR "select error: $ERRNO\n";
             }
             my $max_buffer_size = 50_000_000;  # 50MB buffer limit to prevent memory exhaustion
             foreach my $connection (@connections) {
