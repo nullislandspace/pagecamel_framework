@@ -22,6 +22,7 @@ Multiple performance anti-patterns were identified across the frontend, backend,
 - `lib/PageCamel/WebBase.pm` - HTTP parsing, response generation
 - `lib/PageCamel/Helpers/WebPrint.pm` - Socket write helper
 - `lib/PageCamel/Web/Mercurial/Proxy.pm` - Mercurial HTTP proxy
+- `lib/PageCamel/Web/BaseWebSocket.pm` - WebSocket handler base class
 
 ---
 
@@ -329,6 +330,53 @@ setsockopt($socket, IPPROTO_TCP, TCP_NODELAY, 1);
 **Why:** 64x reduction in syscall overhead for large uploads.
 
 **Rollback:** Change `65536` back to `1024` at lines 1305 and 1403.
+
+---
+
+## Phase 9: WebSocket Handler Optimizations
+
+**File:** `lib/PageCamel/Web/BaseWebSocket.pm`
+
+### Replaced alarm() with IO::Select
+
+**Change:** Replaced `alarm(0.5)` + eval block with `IO::Select->can_read(0.1)`.
+
+**Before:**
+```perl
+eval {
+    local $SIG{ALRM} = sub{croak("alarm")};
+    alarm 0.5;
+    my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
+    # ...
+    alarm 0;
+};
+```
+
+**After:**
+```perl
+my $select = IO::Select->new($ua->{realsocket});  # Created once before loop
+# ...
+if($select->can_read(0.1)) {
+    my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
+    if(!defined($status) || $status == 0) {
+        # Socket closed
+    }
+}
+```
+
+**Why:**
+- `alarm()` is a global resource, can interfere with other code
+- Exception-based timeout adds overhead
+- 0.1s timeout keeps server-to-client pushes responsive
+
+### Removed sleep() Busy-Wait
+
+**Change:** Removed `sleep($self->{sleeptime})` (default 0.01s) when no work done.
+
+**Before:** 100 wake-ups per second when idle
+**After:** Efficient waiting via `can_read(0.1)` timeout
+
+**Rollback:** Restore alarm() block, add back sleep() with sleeptime check.
 
 ---
 
