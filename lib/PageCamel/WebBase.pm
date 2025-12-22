@@ -145,6 +145,7 @@ use PageCamel::Helpers::URI qw(decode_uri_part decode_uri_path);
 use PageCamel::Helpers::Mandant;
 
 use Time::HiRes qw[time sleep alarm];
+use IO::Select;
 
 use Digest::MD5 qw(md5_hex);
 use PageCamel::Helpers::WebPrint;
@@ -405,28 +406,36 @@ sub readheader($self, $timeout, $socket) {
     my $line;
     my $ok = 0;
     my $buf;
+    my $select = IO::Select->new($socket);
 
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $endtime = time + $timeout;
 
         while(1) {
-            $buf = undef;
-            #my $bufstatus = sysread($socket, $buf, 1);
-            my $bufstatus = $socket->sysread($buf, 1);
-            #if(defined($bufstatus) && !$bufstatus) {
-            #    return;
-            #}
-            if(!defined($buf) || !length($buf)) {
-                if(time > $endtime) {
+            # Calculate remaining timeout
+            my $remaining = $endtime - time;
+            if($remaining <= 0) {
+                last;  # Timeout
+            }
+
+            # Wait for data using select() instead of busy-wait
+            if($select->can_read($remaining)) {
+                $buf = undef;
+                my $bufstatus = $socket->sysread($buf, 1);
+                if(!defined($bufstatus)) {
+                    # Error (EAGAIN/EWOULDBLOCK with $! set) - continue waiting
+                    next;
+                }
+                if($bufstatus == 0) {
+                    # EOF - connection closed, stop reading
                     last;
                 }
-                sleep(0.01);
-                next;
+                $line .= $buf;
+                last if($buf eq "\n");
             }
-            $line .= $buf;
-            last if($buf eq "\n");
         }
-        if(time <= $endtime) {
+        # Only mark as OK if we got a complete line (ending with \n) before timeout
+        if(time <= $endtime && defined($line) && $line =~ /\n$/) {
             $ok = 1;
         }
     };
@@ -450,12 +459,12 @@ sub readheader($self, $timeout, $socket) {
 sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
     # Note: Timeout is set per datablock
 
-    my $line;
     my $datalen = 0;
-    my $postdata = '';
+    my @chunks;  # Use array instead of string concat for O(n) instead of O(n²)
     my $ok = 0;
     my $unread = $ua->{headers}->{'Content-Length'};
-    my $tempdata;
+    my $select = IO::Select->new($socket);
+
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $endtime = time + $timeout;
         while($unread) {
@@ -463,28 +472,34 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
             if($unread < $thisblocksize) {
                 $thisblocksize = $unread;
             }
-            $tempdata = undef;
-            my $lastread = sysread($socket, $tempdata, $thisblocksize);
-            if(!defined($tempdata) || !length($tempdata)) {
-                if(time > $endtime) {
-                    last;
-                }
-                sleep(0.01);
-                next;
+
+            # Calculate remaining timeout
+            my $remaining = $endtime - time;
+            if($remaining <= 0) {
+                last;  # Timeout
             }
 
-            # Got data, move timeout window
-            $endtime = time + $timeout;
-           
-            $unread -= $lastread;
-            $datalen += $lastread;
-            $postdata .= $tempdata;
+            # Wait for data using select() instead of busy-wait
+            if($select->can_read($remaining)) {
+                my $tempdata;
+                my $lastread = sysread($socket, $tempdata, $thisblocksize);
+                if(defined($lastread) && $lastread > 0) {
+                    # Got data, move timeout window
+                    $endtime = time + $timeout;
+                    $unread -= $lastread;
+                    $datalen += $lastread;
+                    push @chunks, $tempdata;
+                }
+                # If lastread is undef or 0, could be EAGAIN - continue waiting
+            }
         }
 
         if(!$unread) {
             $ok = 1;
         }
     };
+
+    my $postdata = join('', @chunks);
 
     if(!$ok) {
         $self->printdebuglog("POST data recieve timeout");
@@ -504,11 +519,10 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
 sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xfuncname) {
     # Note: Timeout is set per datablock
 
-    my $line;
     my $datalen = 0;
     my $ok = 0;
     my $unread = $ua->{headers}->{'Content-Length'};
-    my $tempdata;
+    my $select = IO::Select->new($socket);
 
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $endtime = time + $timeout;
@@ -517,25 +531,29 @@ sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xf
             if($unread < $thisblocksize) {
                 $thisblocksize = $unread;
             }
-            $tempdata = undef;
-            my $lastread = sysread($socket, $tempdata, $thisblocksize);
-            if(!defined($tempdata) || !length($tempdata)) {
-                if(time > $endtime) {
-                    last;
-                }
-                sleep(0.01);
-                next;
+
+            # Calculate remaining timeout
+            my $remaining = $endtime - time;
+            if($remaining <= 0) {
+                last;  # Timeout
             }
 
-            # Got data, move timeout window
-            $endtime = time + $timeout;
-           
-            $unread -= $lastread;
-            $datalen += $lastread;
-            $self->printdebuglog("---------> STREAMING $lastread bytes");
-            if(!$xmodule->$xfuncname($ua, $tempdata)) {
-                $self->printdebuglog("--------- STREAMING FAILED");
-                return 0;
+            # Wait for data using select() instead of busy-wait
+            if($select->can_read($remaining)) {
+                my $tempdata;
+                my $lastread = sysread($socket, $tempdata, $thisblocksize);
+                if(defined($lastread) && $lastread > 0) {
+                    # Got data, move timeout window
+                    $endtime = time + $timeout;
+                    $unread -= $lastread;
+                    $datalen += $lastread;
+                    #$self->printdebuglog("---------> STREAMING $lastread bytes");
+                    if(!$xmodule->$xfuncname($ua, $tempdata)) {
+                        $self->printdebuglog("--------- STREAMING FAILED");
+                        return 0;
+                    }
+                }
+                # If lastread is undef or 0, could be EAGAIN - continue waiting
             }
         }
 
@@ -586,7 +604,7 @@ sub parse_request_line($self, $ua, $header) {
 }
 
 sub parse_header_line($self, $ua, $header) {
-    if($header =~ /^(\S+)\:\ (.+)$/) {
+    if($header =~ /^(\S+)\:\s*(.*)$/) {  # Allow optional space and optional value
         my ($name, $value) = ($1, $2);
         if(defined($httpheadersmapping{lc $name})) {
             # Map header to a normed upper/lowercase form for
@@ -621,7 +639,10 @@ sub parse_header_line($self, $ua, $header) {
             }
         }
     } else {
-        $self->printdebuglog("Illegal header line!");
+        # Log the actual content for debugging
+        my $escaped = $header;
+        $escaped =~ s/([^\x20-\x7E])/sprintf("\\x%02X", ord($1))/ge;
+        $self->printdebuglog("Illegal header line: [$escaped]");
         return 0;
     }
 
@@ -1281,7 +1302,7 @@ nextrequest:
 
             if(!$useuploadstream) {
                 #$self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
-                if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
+                if(!$self->get_request_body($realsocket, $ua, 30, 65536)) {
                     $ua->{keepalive} = 0;
                     $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                     goto cleanup;
@@ -1379,7 +1400,7 @@ nextrequest:
                         my $xfuncnamefinish = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{finish};
                         my $ok = 1;
                         if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
-                            $ok = $self->stream_request_body($realsocket, $ua, 30, 1024, $xmodule, $xfuncnamestream);
+                            $ok = $self->stream_request_body($realsocket, $ua, 30, 65536, $xmodule, $xfuncnamestream);
                             #$ok = $xmodule->$xfuncnamestream($ua, $ua->{postdata});
                         }
 

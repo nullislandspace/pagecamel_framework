@@ -17,6 +17,8 @@ use PageCamel::Helpers::UTF;
 
 use base qw(PageCamel::Web::BaseModule);
 use IO::Socket::IP;
+use IO::Select;
+use Socket qw(IPPROTO_TCP TCP_NODELAY);
 use PageCamel::Helpers::URI qw[encode_uri_path encode_uri_part];
 
 my @ignoremercurialheaders = qw[Date Server Title X-Meta-Robots];
@@ -109,12 +111,16 @@ sub get($self, $ua) {
         PeerHost => $self->{mercurial}->{host},
         PeerPort => $self->{mercurial}->{port},
         Proto => 'tcp',
+        Timeout => 30,
     );
 
     if(!defined($socket)) {
         print STDERR "###########   Can't open socket to mercurial\n";
         return(status => 500);
     }
+
+    # Disable Nagle's algorithm for lower latency
+    setsockopt($socket, IPPROTO_TCP, TCP_NODELAY, 1);
     #binmode $socket;
 
     if($ua->{method} eq 'POST') {
@@ -236,24 +242,31 @@ sub finishPage($self, $ua) {
 }
 
 sub readsocketline($self, $socket, $timeout = 30) {
-    if(!defined($timeout) || !$timeout) {
-        $timeout = 30;
-    };
+    $timeout //= 30;
 
-    my $failat = time + $timeout;
-    
+    my $endtime = time + $timeout;
     my $line = '';
+    my $select = IO::Select->new($socket);
+
     while(1) {
-        my $char = '';
-        $socket->recv($char, 1);
-        if(time > $failat) {
-            return;
+        my $remaining = $endtime - time;
+        if($remaining <= 0) {
+            return;  # Timeout
         }
-        next if(!defined($char) || $char eq '');
-        next if($char eq "\r");
-        last if($char eq "\n");
-        $failat = time + $timeout;
-        $line .= $char;
+
+        # Wait for data using select() instead of busy-wait
+        if($select->can_read($remaining)) {
+            my $char = '';
+            my $bytes = $socket->recv($char, 1);
+            if(!defined($bytes) || !length($char)) {
+                # EOF or error - continue checking timeout
+                next;
+            }
+            next if $char eq "\r";
+            last if $char eq "\n";
+            $endtime = time + $timeout;  # Reset timeout on data received
+            $line .= $char;
+        }
     }
 
     return $line;
@@ -299,7 +312,7 @@ sub streamChunked($self, $ua) {
 }
 
 sub readChunked($self, $socket) {
-    my $content = '';
+    my @chunks;  # Use array instead of string concat for O(n) instead of O(n²)
     while(1) {
         my $chunklen = $self->readsocketline($socket, 60);
         if(!defined($chunklen)) {
@@ -309,41 +322,46 @@ sub readChunked($self, $socket) {
         #print STDERR "Chunk length: ", $chunklen, " bytes\n";
         last unless $chunklen;
         my $partial = $self->readPlain($socket, $chunklen, 120);
-        $content .= $partial;
+        return unless defined($partial);
+        push @chunks, $partial;
         my $dummycrlf = $self->readsocketline($socket, 60);
     }
 
-    return $content;
-
+    return join('', @chunks);
 }
 
 sub readPlain($self, $socket, $clength, $timeout = 30) {
-    if(!defined($timeout) || !$timeout) {
-        $timeout = 30;
-    };
+    $timeout //= 30;
 
-    my $content = '';
+    my @chunks;  # Use array instead of string concat for O(n) instead of O(n²)
     my $reallength = 0;
-    my $failat = time + $timeout;
+    my $endtime = time + $timeout;
+    my $select = IO::Select->new($socket);
+
     while($reallength < $clength) {
-        if(time > $failat) {
-            return;
+        my $remaining = $endtime - time;
+        if($remaining <= 0) {
+            return;  # Timeout
         }
-        my $partial;
-        my $readlen = 100_000;
-        my $remainlen = $clength - $reallength;
-        if($readlen > $remainlen) {
-            $readlen = $remainlen;
-        }
-        $socket->recv($partial, $readlen);
-        if(defined($partial) && $partial ne '') {
-            $reallength += length($partial);
-            $content .= $partial;
-            $failat = time + $timeout;
+
+        # Wait for data using select() instead of busy-wait
+        if($select->can_read($remaining)) {
+            my $partial;
+            my $readlen = 100_000;
+            my $remainlen = $clength - $reallength;
+            if($readlen > $remainlen) {
+                $readlen = $remainlen;
+            }
+            $socket->recv($partial, $readlen);
+            if(defined($partial) && length($partial)) {
+                $reallength += length($partial);
+                push @chunks, $partial;
+                $endtime = time + $timeout;  # Reset timeout on data received
+            }
         }
     }
 
-    return $content;
+    return join('', @chunks);
 }
 
 

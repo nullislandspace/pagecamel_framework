@@ -23,6 +23,7 @@ use JSON::XS;
 use Time::HiRes qw[sleep alarm time];
 use PageCamel::Helpers::WebPrint;
 use Digest::SHA1  qw(sha1 sha1_hex);
+use IO::Select;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -402,27 +403,24 @@ sub sockethandler($self, $ua) {
         $ua->{realsocket}->blocking(0);
         binmode($ua->{realsocket}, ':bytes');
 
+        my $select = IO::Select->new($ua->{realsocket});
         my $starttime = time + 10;
 
         while(!$socketclosed) {
             my $workCount = 0;
 
-            # Read data from websocket
+            # Read data from websocket using IO::Select instead of alarm()
             my $buf;
-            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                local $SIG{ALRM} = sub{croak("alarm")};
-                alarm 0.5;
+            if($select->can_read(0.1)) {
                 my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
-                if(!$ua->{realsocket}) {
-                #if(0 && defined($status) && $status == 0) {
+                if(!defined($status) || $status == 0) {
                     if($self->{isDebugging}) {
                         $reph->debuglog("Websocket closed");
                     }
                     $socketclosed = 1;
                     last;
                 }
-                alarm 0;
-            };
+            }
             if(defined($buf) && length($buf)) {
                 $frame->append($buf);
                 $workCount++;
@@ -510,10 +508,6 @@ sub sockethandler($self, $ua) {
             if(!$self->wscyclic($ua)) {
                 $socketclosed = 1;
                 last;
-            }
-            
-            if(!$workCount) {
-                sleep($self->{sleeptime});
             }
 
             if($timeout < time) {

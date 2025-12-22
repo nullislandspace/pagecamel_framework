@@ -27,16 +27,13 @@ use PageCamel::WebBase;
 use POSIX;
 
 my $childcount = 0;
-$SIG{CHLD} = \&REAPER;
-sub REAPER {
-    my $stiff;
-    while (($stiff = waitpid(-1, &WNOHANG)) > 0) {
-        #print "Child PID $stiff has gone the way of the Dodo\n";
+$SIG{CHLD} = sub {
+    # Reap all terminated children (loop handles multiple children dying at once)
+    while ((my $pid = waitpid(-1, WNOHANG)) > 0) {
         $childcount--;
     }
-    $SIG{CHLD} = \&REAPER; # install *after* calling waitpid
-    return;
-}
+    # Note: On Perl 5.8+, signal handlers are reliable and don't need reinstalling
+};
 
 sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
@@ -137,7 +134,7 @@ sub init($self) {
     my $socket = IO::Socket::UNIX->new(
             Type => SOCK_STREAM(),
             Local => $config->{server}->{internal_socket},
-            Listen => 20, # Queue size of 20
+            Listen => ($config->{server}->{max_childs} || 128), # Queue size based on max_childs config
     ) or croak("Failed to bind: " . $ERRNO);
     if(defined($config->{server}->{socketcommands})) {
         foreach my $cmd (@{$config->{server}->{socketcommands}->{item}}) {
@@ -155,7 +152,7 @@ sub init($self) {
 
 sub run($self) {
     while(1) {
-        my @connections = $self->{select}->can_read();
+        my @connections = $self->{select}->can_read(1);  # 1 second timeout for responsiveness
         foreach my $connection (@connections) {
             my $client = $connection->accept;
             
@@ -182,7 +179,8 @@ sub run($self) {
                 #print STDERR "Child PID $PID is done, exiting... ", $xend - $xstart, "\n";
                 $self->endprogram($header, "exit(0)");
             } else {
-                # Parent
+                # Parent - close our copy of the client socket to prevent fd leak
+                $client->close;
                 $childcount++;
                 next;
             }
@@ -278,34 +276,41 @@ sub endprogram($self, $header, $debugmessage) { ## no critic (Subroutines::Requi
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
     }
 
-    kill 'USR1', $header->{pid}; # Notify frontend that we are done
-    #exit(0);
-
-    sleep(0.3);
-    while(1) {
-        kill 9, $PID;
-        POSIX::_exit(0); # Don't run END{} / DESTROY{} handlers and stuff
-        sleep(10);
+    # Notify frontend that we are done
+    if(defined($header->{pid}) && $header->{pid} > 0) {
+        kill 'USR1', $header->{pid};
     }
+
+    # Exit immediately without running END{} / DESTROY{} handlers
+    POSIX::_exit(0);
 }
 
 sub readFrontendheader($self, $client) {
     my $line = '';
-    while(1) {
-        my $temp;
-        $client->sysread($temp, 1);
-        if(!defined($temp) || !length($temp)) {
-            sleep(0.01);
-            next;
-        }
-        if($temp eq "\r") {
-            next;
-        }
+    my $select = IO::Select->new($client);
+    my $timeout = 15;  # 15 second timeout for frontend header
+    my $endtime = time + $timeout;
 
-        if($temp eq "\n") {
+    while(1) {
+        # Calculate remaining timeout
+        my $remaining = $endtime - time;
+        if($remaining <= 0) {
+            # Timeout - return empty header which will fail validation
             last;
         }
-        $line .= $temp;
+
+        # Wait for data using select() instead of busy-wait
+        if($select->can_read($remaining)) {
+            my $temp;
+            $client->sysread($temp, 1);
+            if(!defined($temp) || !length($temp)) {
+                # Connection closed or error
+                last;
+            }
+            next if $temp eq "\r";
+            last if $temp eq "\n";
+            $line .= $temp;
+        }
     }
 
     my @parts = split/\ /, $line;

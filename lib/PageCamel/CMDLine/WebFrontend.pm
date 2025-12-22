@@ -19,6 +19,7 @@ use IO::Socket::INET;
 use IO::Socket::SSL;
 use IO::Select;
 use IO::Socket::UNIX;
+use Socket qw(IPPROTO_TCP TCP_NODELAY SO_KEEPALIVE SOL_SOCKET);
 use PageCamel::Helpers::ConfigLoader;
 use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
@@ -26,6 +27,7 @@ use PageCamel::Helpers::WebPrint;
 use PageCamel::Helpers::Mandant;
 use Sys::Hostname;
 use POSIX;
+use Errno qw(:POSIX);
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 # For turning off SSL session cache
@@ -176,7 +178,7 @@ sub init($self) {
             my $tcp = IO::Socket::IP->new(
                     LocalHost => $ip,
                     LocalPort => $service->{port},
-                    Listen => 20, # Queue size 20
+                    Listen => ($config->{max_childs} || 128), # Queue size based on max_childs config
                     ReuseAddr => 1,
                     Proto => 'tcp',
             ) or croak("Failed to bind: " . $ERRNO);
@@ -187,6 +189,7 @@ sub init($self) {
     }
     my $select = IO::Select->new(@tcpsockets);
     $self->{select} = $select;
+    $self->{hasssl} = $hasssl;
 
     if($hasssl) {
         if(!defined($self->{config}->{sslconfig}->{ssldefaultdomain})) {
@@ -252,10 +255,23 @@ sub init($self) {
 }
 
 sub run($self) {
+    # Generate SSL session ticket key once (shared by all forked children)
+    # Key format: 16 bytes name + 32 bytes key (16 AES + 16 HMAC)
+    if($self->{hasssl}) {
+        open(my $urandom, '<:raw', '/dev/urandom') or croak("Cannot open /dev/urandom: $!");
+        read($urandom, $self->{ssl_ticket_key_name}, 16) == 16 or croak("Failed to read key name from /dev/urandom");
+        read($urandom, $self->{ssl_ticket_key}, 32) == 32 or croak("Failed to read key from /dev/urandom");
+        close($urandom);
+    }
+
     while(1) {
         while((my @connections = $self->{select}->can_read(1))) {
             foreach my $connection (@connections) {
                 my $client = $connection->accept;
+
+                # Set socket options for lower latency and dead connection detection
+                setsockopt($client, IPPROTO_TCP, TCP_NODELAY, 1);  # Disable Nagle's algorithm
+                setsockopt($client, SOL_SOCKET, SO_KEEPALIVE, 1);  # Enable TCP keepalive
 
                 my $peerhost = $client->peerhost();
                 my $peerport = $client->peerport();
@@ -368,10 +384,25 @@ sub handleClient($self, $client) {
         my $headertimeout = $self->{config}->{headertimeout};
         my $endtime = time + $headertimeout;
         if($usessl) {
+            # Pre-check: wait for client to send TLS ClientHello
+            # This filters out port scanners that connect but send nothing
+            my $precheck = IO::Select->new($client);
+            if(!$precheck->can_read(5)) {
+                # No data received within 5 seconds - likely port scanner, close silently
+                $client->close;
+                $self->endprogram();
+            }
+
             my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
             my $encrypted;
             my $ok = 0;
             eval {
+                # Suppress "uninitialized value" warnings from Net::SSLeay during malformed handshakes
+                local $SIG{__WARN__} = sub {
+                    my $msg = shift;
+                    return if $msg =~ /uninitialized.*IO\/Socket\/SSL\.pm/;
+                    warn $msg;
+                };
                 #print STDERR "SSL connecting\n";
                 $encrypted = IO::Socket::SSL->start_SSL($client,
                     Timeout => $headertimeout,
@@ -387,11 +418,23 @@ sub handleClient($self, $client) {
                         # Enable workarounds for broken clients
                         Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL);
 
-                        # Disable session resumption completely
-                        Net::SSLeay::CTX_set_session_cache_mode($ctx, $SSL_SESS_CACHE_OFF);
+                        # Enable SSL session tickets with shared key (for session resumption across forks)
+                        if(defined($self->{ssl_ticket_key}) && defined($self->{ssl_ticket_key_name})) {
+                            my $ticket_data = [$self->{ssl_ticket_key}, $self->{ssl_ticket_key_name}];
+                            Net::SSLeay::CTX_set_tlsext_ticket_getkey_cb($ctx, sub {
+                                my ($data, $name) = @_;
+                                my ($ticket_key, $ticket_key_name) = @$data;
+                                # If no name given, return current key for new ticket
+                                return ($ticket_key, $ticket_key_name) if !defined($name);
+                                # If name matches our key, return it
+                                return ($ticket_key, $ticket_key_name) if $name eq $ticket_key_name;
+                                # Unknown key name - return current key (will trigger ticket renewal)
+                                return ($ticket_key, $ticket_key_name);
+                            }, $ticket_data);
+                        }
 
-                        # Disable session tickets
-                        Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_NO_TICKET);
+                        # Set session timeout (5 minutes)
+                        eval { Net::SSLeay::CTX_set_timeout($ctx, 300); };
 
                         # Load certificate chain
                         my $ssldefaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
@@ -434,6 +477,18 @@ sub handleClient($self, $client) {
                                                                     $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey})
                                         or croak("Can't set cert and key file");
                                 Net::SSLeay::CTX_use_certificate_chain_file($newctx, $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert});
+                                # Set shared ticket key for session resumption
+                                if(defined($self->{ssl_ticket_key}) && defined($self->{ssl_ticket_key_name})) {
+                                    my $ticket_data = [$self->{ssl_ticket_key}, $self->{ssl_ticket_key_name}];
+                                    Net::SSLeay::CTX_set_tlsext_ticket_getkey_cb($newctx, sub {
+                                        my ($data, $name) = @_;
+                                        my ($ticket_key, $ticket_key_name) = @$data;
+                                        return ($ticket_key, $ticket_key_name) if !defined($name);
+                                        return ($ticket_key, $ticket_key_name) if $name eq $ticket_key_name;
+                                        return ($ticket_key, $ticket_key_name);
+                                    }, $ticket_data);
+                                }
+                                eval { Net::SSLeay::CTX_set_timeout($newctx, 300); };
                                 #print STDERR "Cert: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert}, " Key: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey}, "\n";
                                 $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
                             }
@@ -477,35 +532,36 @@ sub handleClient($self, $client) {
         my $overhead = "PAGECAMEL $lhost $lport $peerhost $peerport $usessl $PID HTTP/1.1\r\n";
         my $headerevalok = 0;
 
-        my $readtimeout = $endtime - time;
-        if($readtimeout < 2) {
-            $readtimeout = 2;
-        }
-
         eval {
             #print STDERR "Start header reading...\n";
-            alarm($readtimeout);
 
             while($overhead !~ /\r\n\r\n/) {
+                # Calculate remaining timeout for this iteration
+                my $remaining = $endtime - time;
+                if($remaining <= 0) {
+                    $headererrors = 1;
+                    last;
+                }
+
                 my $buf = undef;
-                my @connections = $select->can_read(1);
+                my @connections = $select->can_read($remaining);
+
+                # Handle EINTR - signal interrupted the call, just retry
+                if(!@connections && $!{EINTR}) {
+                    next;
+                }
+
                 foreach my $socket (@connections) {
                     sysread($socket, $buf, 10_000_000);
                 }
                 if(!defined($buf) || !length($buf)) {
-                    sleep(0.01);
+                    # No data available yet, loop will retry with updated timeout
                     next;
                 }
                 $overhead .= $buf;
-
-                if($endtime < time) {
-                    $headererrors = 1;
-                    last;
-                }
             }
             $headerevalok = 1;
         };
-        alarm(0);
 
         if(!$headerevalok) {
             #print STDERR "Header read timeout!\n";
@@ -604,7 +660,7 @@ sub handleClient($self, $client) {
         my $debugoutcapture = '';
         my $clientdisconnect = 0;
         my $backenddisconnect = 0;
-        print STDERR "Handling client...\n";
+        #print STDERR "Handling client...\n";
         while(!$done) {
             if($sigpipeseen > $sigpipehandled) {
                 sleep(0.05);
@@ -629,11 +685,22 @@ sub handleClient($self, $client) {
             
             $ERRNO = 0;
             my @connections = $select->can_read($waittime);
-            my $err = '' . $ERRNO;
-            if($err ne '') {
-                print STDERR $ERRNO, "\n";
+            # Handle EINTR (signal interrupted call) - just continue, not an error
+            if(!@connections && $!{EINTR}) {
+                next;
             }
+            if($ERRNO ne '' && !$!{EINTR}) {
+                print STDERR "select error: $ERRNO\n";
+            }
+            my $max_buffer_size = 50_000_000;  # 50MB buffer limit to prevent memory exhaustion
             foreach my $connection (@connections) {
+                # Skip reading if destination buffer is already too large (applies back-pressure)
+                if(ref $connection eq 'IO::Socket::UNIX') {
+                    next if length($toclientbuffer) >= $max_buffer_size;
+                } else {
+                    next if length($tobackendbuffer) >= $max_buffer_size;
+                }
+
                 sysread($connection, $rawbuffer, 10_000_000); # Read at most 10MB at a time
                 if(!length($rawbuffer)) {
                     # can_read active but no data.
@@ -664,13 +731,15 @@ sub handleClient($self, $client) {
             my $loopcount = int(10_000_000 / 16_384); # Write at max ~10MB in one loop
 
             my $sendcount = $loopcount;
+            my $client_offset = 0;  # Track offset to avoid repeated substr copies
             while($sendcount) {
-                if(length($toclientbuffer) && !$clientdisconnect) {
+                my $remaining = length($toclientbuffer) - $client_offset;
+                if($remaining > 0 && !$clientdisconnect) {
                     my $written;
+                    my $towrite = $remaining < $blocksize ? $remaining : $blocksize;
 
-                    my $writebuffer = substr($toclientbuffer, 0, $blocksize); # grab $blocksize chunk of data
                     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                        $written = syswrite($client, $writebuffer);
+                        $written = syswrite($client, $toclientbuffer, $towrite, $client_offset);
                     };
                     if($EVAL_ERROR) {
                         print STDERR "Write error: $EVAL_ERROR\n";
@@ -681,8 +750,8 @@ sub handleClient($self, $client) {
                         }
                     }
                     if(defined($written) && $written) {
-                        #print STDERR "< Clientbuffer ", length($toclientbuffer), " Writebuffer ", length($writebuffer), " written ", $written, "\n";
-                        $toclientbuffer = substr($toclientbuffer, $written);
+                        #print STDERR "< Clientbuffer ", length($toclientbuffer), " written ", $written, "\n";
+                        $client_offset += $written;
                     } else {
                         #print STDERR "No data written to client\n";
                         last;
@@ -692,15 +761,21 @@ sub handleClient($self, $client) {
                 }
                 $sendcount--;
             }
+            # Single substr after loop to remove all written data
+            if($client_offset > 0) {
+                $toclientbuffer = substr($toclientbuffer, $client_offset);
+            }
 
             $sendcount = $loopcount;
+            my $backend_offset = 0;  # Track offset to avoid repeated substr copies
             while($sendcount) {
-                if(length($tobackendbuffer) && !$backenddisconnect) {
+                my $remaining = length($tobackendbuffer) - $backend_offset;
+                if($remaining > 0 && !$backenddisconnect) {
                     my $written;
+                    my $towrite = $remaining < $blocksize ? $remaining : $blocksize;
 
-                    my $writebuffer = substr($tobackendbuffer, 0, $blocksize); # grab $blocksize chunk of data
                     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                        $written = syswrite($backend, $writebuffer);
+                        $written = syswrite($backend, $tobackendbuffer, $towrite, $backend_offset);
                     };
                     if($EVAL_ERROR) {
                         print STDERR "Write error: $EVAL_ERROR\n";
@@ -709,11 +784,10 @@ sub handleClient($self, $client) {
                             # We are in countdown but could still send data to backend. Reset countdown
                             $finishcountdown = time + 20;
                         }
-
                     }
                     if(defined($written) && $written) {
-                        #print STDERR "> Backendbuffer ", length($tobackendbuffer), " Writebuffer ", length($writebuffer), " written ", $written, "\n";
-                        $tobackendbuffer = substr($tobackendbuffer, $written);
+                        #print STDERR "> Backendbuffer ", length($tobackendbuffer), " written ", $written, "\n";
+                        $backend_offset += $written;
 
                         # Reset SIGPIPE counter whenever we have success writing to the backend
                         $sigpipeseen = 0;
@@ -726,6 +800,10 @@ sub handleClient($self, $client) {
                     last;
                 }
                 $sendcount--;
+            }
+            # Single substr after loop to remove all written data
+            if($backend_offset > 0) {
+                $tobackendbuffer = substr($tobackendbuffer, $backend_offset);
             }
 
             if($clientdisconnect) {
@@ -833,26 +911,11 @@ sub get408($self) {
 sub parseheaders($self, $rawheaders) {
     my @headers;
 
-    local $INPUT_RECORD_SEPARATOR = undef;
-
-    my @bytes = split//, $rawheaders;
-    my $line = '';
-
-    while(scalar @bytes) {
-        my $char = shift @bytes;
-        
-        next if($char eq "\r");
-
-        if($char eq "\n") {
-            if($line eq '') {
-                last;
-            }
-            push @headers, '' . $line;
-            $line = '';
-            next;
-        }
-
-        $line .= $char;
+    # Split on newlines - O(n) instead of O(n²) character-by-character parsing
+    my @lines = split(/\r?\n/, $rawheaders);
+    foreach my $line (@lines) {
+        last if $line eq '';  # Empty line marks end of headers
+        push @headers, $line;
     }
 
     return @headers;

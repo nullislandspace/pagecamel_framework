@@ -369,6 +369,20 @@ sub get_login($self, $ua) {
         $webdata{MandantsEnabled} = 1;
     }
 
+    # Handle error redirects from keyfob/app-user logins
+    if($ua->{url} =~ /\?error=([^&]+)/) {
+        my $errorcode = $1;
+        if($errorcode eq 'license_expired') {
+            $webdata{statustext} = "License expired";
+            $webdata{statuscolor} = "errortext";
+        } elsif($errorcode eq 'license_invalid') {
+            $webdata{statustext} = "No valid license";
+            $webdata{statuscolor} = "errortext";
+        } elsif($errorcode eq 'no_license_points') {
+            $webdata{statustext} = "Not enough license points";
+            $webdata{statuscolor} = "errortext";
+        }
+    }
 
     # Force lowercase username
     if($self->{forcelowercase}) {
@@ -532,6 +546,19 @@ sub get_login($self, $ua) {
             $hasAdmin = 1;
         }
 
+        # Check license status before attempting session creation
+        my $licensestatus = $self->checkLicenseStatus();
+        if(!$licensestatus->{valid}) {
+            if($licensestatus->{errortype} eq 'LICENSE_EXPIRED') {
+                $webdata{statustext} = "License expired";
+            } else {
+                $webdata{statustext} = "No valid license";
+            }
+            $webdata{statuscolor} = "errortext";
+            $reph->auditlog($self->{modname}, "Login failed for user " . $webdata{username} . $clidmsg, $webdata{username} . ' (' . $licensestatus->{errortype} . ')');
+            goto finishlogin;
+        }
+
         my ($session, $expires) = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin, $webdata{keeploggedin});
         $user{expires} = $expires;
 
@@ -545,6 +572,12 @@ sub get_login($self, $ua) {
             $webdata{statustext} = "Not enough license points";
             $webdata{statuscolor} = "errortext";
             $reph->auditlog($self->{modname}, "Login failed for user " . $webdata{username} . $clidmsg, $webdata{username} . ' (License points)');
+            goto finishlogin;
+        } elsif($session eq 'LICENSEINVALIDERROR') {
+            # License invalid/expired (race condition fallback)
+            $webdata{statustext} = "No valid license";
+            $webdata{statuscolor} = "errortext";
+            $reph->auditlog($self->{modname}, "Login failed for user " . $webdata{username} . $clidmsg, $webdata{username} . ' (Invalid license)');
             goto finishlogin;
         }
 
@@ -705,6 +738,17 @@ sub get_keyfoblogin($self, $ua) {
         );
     }
 
+    # Check license status before attempting session creation
+    my $licensestatus = $self->checkLicenseStatus();
+    if(!$licensestatus->{valid}) {
+        my $errorparam = ($licensestatus->{errortype} eq 'LICENSE_EXPIRED') ? 'license_expired' : 'license_invalid';
+        return (status      => 303,
+                location    => $self->{login}->{webpath} . "?error=" . $errorparam,
+                type        => "text/html",
+                data         => "<html><body>Redirecting...</body></html>",
+        );
+    }
+
     my ($session, $expires, $startpage) = $self->getAutologin($ua, $user->{username}, $keyfobid);
 
     if($session eq '') {
@@ -712,11 +756,16 @@ sub get_keyfoblogin($self, $ua) {
             status => 500,
         );
     } elsif($session eq 'LICENSEPOINTSERROR') {
-        return (status      => 200,
-                location    => $self->{login}->{webpath},
+        return (status      => 303,
+                location    => $self->{login}->{webpath} . "?error=no_license_points",
                 type        => "text/html",
-                data         => "<html><body><h1>Not enough license points</h1><br>" .
-                                "<a href=\"" . $self->{login}->{webpath} . "\">Click here to try again</a></body></html>",
+                data         => "<html><body>Redirecting...</body></html>",
+        );
+    } elsif($session eq 'LICENSEINVALIDERROR') {
+        return (status      => 303,
+                location    => $self->{login}->{webpath} . "?error=license_invalid",
+                type        => "text/html",
+                data         => "<html><body>Redirecting...</body></html>",
         );
     }
 
@@ -769,6 +818,17 @@ sub get_appuserlogin($self, $ua) {
         $selsth->finish;
 
         if(defined($line) && defined($line->{username})) {
+            # Check license status before attempting session creation
+            my $licensestatus = $self->checkLicenseStatus();
+            if(!$licensestatus->{valid}) {
+                my $errorparam = ($licensestatus->{errortype} eq 'LICENSE_EXPIRED') ? 'license_expired' : 'license_invalid';
+                return (status      => 303,
+                        location    => $self->{login}->{webpath} . "?error=" . $errorparam,
+                        type        => "text/html",
+                        data         => "<html><body>Redirecting...</body></html>",
+                );
+            }
+
             my ($session, $expires, $startpage) = $self->getAutologin($ua, $line->{username});
 
 
@@ -777,11 +837,16 @@ sub get_appuserlogin($self, $ua) {
                     status => 500,
                 );
             } elsif($session eq 'LICENSEPOINTSERROR') {
-                return (status      => 200,
-                        location    => $self->{login}->{webpath},
+                return (status      => 303,
+                        location    => $self->{login}->{webpath} . "?error=no_license_points",
                         type        => "text/html",
-                        data         => "<html><body><h1>Not enough license points</h1><br>" .
-                                        "<a href=\"" . $self->{login}->{webpath} . "\">Click here to try again</a></body></html>",
+                        data         => "<html><body>Redirecting...</body></html>",
+                );
+            } elsif($session eq 'LICENSEINVALIDERROR') {
+                return (status      => 303,
+                        location    => $self->{login}->{webpath} . "?error=license_invalid",
+                        type        => "text/html",
+                        data         => "<html><body>Redirecting...</body></html>",
                 );
             }
 
@@ -965,7 +1030,7 @@ sub getAutologin($self, $ua, $username, $keyfobid = '') {
     }
 
     my ($session, $expires) = $self->createSession($ua, $user{username}, $hasDeveloper, $hasAdmin, 0);
-    if($session eq '' || $session eq 'LICENSEPOINTSERROR') {
+    if($session eq '' || $session eq 'LICENSEPOINTSERROR' || $session eq 'LICENSEINVALIDERROR') {
         return $session;
     }
     $user{expires} = $expires;
@@ -1244,11 +1309,23 @@ sub authcheck($self, $ua) {
 
         if($autologin) {
             ($session, $expires) = $self->getAutologin($ua, $self->{autologin}->{username});
-            if(!defined($session)) {
+            if(!defined($session) || $session eq '') {
                 return (
                     status => 500,
                     type => 'text/plain',
                     data => 'Internal Server error',
+                );
+            } elsif($session eq 'LICENSEPOINTSERROR') {
+                return (
+                    status => 503,
+                    type => 'text/plain',
+                    data => 'Service temporarily unavailable: Not enough license points',
+                );
+            } elsif($session eq 'LICENSEINVALIDERROR') {
+                return (
+                    status => 503,
+                    type => 'text/plain',
+                    data => 'Service unavailable: No valid license',
                 );
             }
         }
@@ -1535,6 +1612,31 @@ sub get_defaultwebdata($self, $webdata) {
     return;
 }
 
+sub checkLicenseStatus($self) {
+    # Returns hashref: { valid => bool, errortype => string|undef }
+    # Used to pre-check license before attempting session creation
+    my $dbh = $self->{server}->{modules}->{$self->{db}};
+
+    my $sth = $dbh->prepare("SELECT is_expired, expiry_date FROM getlicense()");
+    if(!$sth->execute()) {
+        return { valid => 0, errortype => 'DB_ERROR' };
+    }
+
+    my ($isexpired, $expirydate) = $sth->fetchrow_array();
+    $sth->finish();
+
+    if($isexpired) {
+        # If expirydate is set, license expired; otherwise license is invalid
+        if(defined($expirydate)) {
+            return { valid => 0, errortype => 'LICENSE_EXPIRED' };
+        } else {
+            return { valid => 0, errortype => 'LICENSE_INVALID' };
+        }
+    }
+
+    return { valid => 1, errortype => undef };
+}
+
 sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
     my $settings = $self->getSettings();
@@ -1570,14 +1672,16 @@ sub createSession($self, $ua, $username, $hasDeveloper, $hasAdmin, $keeploggedin
             or croak($dbh->errstr);
 
     if(!$sth->execute($session, $username, $host_addr, $userAgent, $simpleUA, $hasDeveloper, $hasAdmin, $validinterval, $validinterval)) {
-        my $licensepointserror = '';
+        my $licenseerror = '';
         my $dberr = $dbh->errstr;
         print STDERR "*********** DB ERROR: $dberr\n";
         if($dberr =~ /not\ enough\ license\ points/i) {
-            $licensepointserror = 'LICENSEPOINTSERROR';
+            $licenseerror = 'LICENSEPOINTSERROR';
+        } elsif($dberr =~ /no\ valid\ license/i) {
+            $licenseerror = 'LICENSEINVALIDERROR';
         }
         $dbh->rollback;
-        return $licensepointserror;
+        return $licenseerror;
     }
 
     $dbh->commit;
