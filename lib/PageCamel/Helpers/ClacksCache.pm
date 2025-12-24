@@ -16,6 +16,7 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use base qw(Net::Clacks::ClacksCache);
+use Time::HiRes qw(time);
 
 sub extraInits($self) {
     $self->{oldtime} = 0;
@@ -46,8 +47,17 @@ sub endconfig($self) {
 
 sub handle_child_start($self) {
     # Handle forking correctly by opening a new socket
+
     if(defined($self->{clacks})) {
+        my $xstart = time;
+        $self->{clacks}->fastdisconnect();
         delete $self->{clacks};
+        my $xend = time;
+
+        my $timetaken = $xend - $xstart;
+        if($timetaken > 1) {
+            print STDERR "\n*******************************  DELETE TOOK ", $timetaken, " seconds\n";
+        }
     }
 
     # Will auto-reconnect on first actual use.

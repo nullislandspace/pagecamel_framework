@@ -176,7 +176,10 @@ sub run($self) {
                 $PROGRAM_NAME = $self->{ps_appname};
                 my $header = $self->handleClient($client);
                 my $xend = time;
-                #print STDERR "Child PID $PID is done, exiting... ", $xend - $xstart, "\n";
+                my $timetaken = $xend - $xstart;
+                if($timetaken > 5 && defined($self->{webserver}->{last_url}) && $self->{webserver}->{last_url} ne 'XXXNONEXXX') {
+                    print STDERR "\nChild PID $PID is done, exiting... ", $xend - $xstart, " *** ", $self->{webserver}->{last_url}, "\n";
+                }
                 $self->endprogram($header, "exit(0)");
             } else {
                 # Parent - close our copy of the client socket to prevent fd leak

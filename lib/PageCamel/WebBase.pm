@@ -384,7 +384,13 @@ sub child_init_hook($self) {
         print STDERR "******************** CHILD START *********************\n";
     }
     foreach my $modname (keys %{$self->{modules}}) {
+        my $xstart = time;
         $self->{modules}->{$modname}->handle_child_start;   # Notify a new child that it was just forked (re-init socket handles and such)
+        my $xend = time;
+        my $timetaken = $xend - $xstart;
+        if($timetaken > 1) {
+            print STDERR "child_init_hook for $modname took ", $timetaken, " seconds\n";
+        }
     }
     $self->{need_srand_call} = 1;
 
@@ -838,6 +844,7 @@ nextrequest:
     $ua->{remote_addr} = $self->{last_accepted_client} || '0.0.0.0';
     $ua->{extra_response_headers} = {};
     $ua->{frontend} = $frontendheader;
+    $self->{last_url} = 'XXXNONEXXX';
 
     my $starttime = time();
 
@@ -897,6 +904,8 @@ nextrequest:
         $ua->{keepalive} = 0;
         goto cleanup;
     }
+
+    $self->{last_url} = $ua->{url};
 
     if(0 && $ua->{url} =~ /cavacopedia/o) {
         $webprint->write($realsocket, "HTTP/1.1 402 No cash, no data. Fuck off, silicon valley!\r\n");
