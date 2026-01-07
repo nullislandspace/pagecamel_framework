@@ -27,7 +27,7 @@ use PageCamel::Helpers::WebPrint;
 use PageCamel::Helpers::Mandant;
 use Sys::Hostname;
 use POSIX;
-use Errno qw(:POSIX);
+use Errno qw();  # Load without importing - only needed for %! hash tying
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 # For turning off SSL session cache
@@ -105,7 +105,17 @@ sub init($self) {
             push @newservices, $service;
         }
         $config->{external_network}->{service} = \@newservices;
-    }    
+    }
+
+    # Validate HTTP/2 configuration: HTTP/2 requires SSL/TLS
+    foreach my $service (@{$config->{external_network}->{service}}) {
+        if(defined($service->{http2}) && $service->{http2}) {
+            if(!defined($service->{usessl}) || !$service->{usessl}) {
+                print STDERR "HTTP/2 requires SSL/TLS! Disabling HTTP/2 on port $service->{port}\n";
+                $service->{http2} = 0;
+            }
+        }
+    }
 
     # Turn any comma-separated ip addresses into their own entry
     foreach my $service (@{$config->{external_network}->{service}}) {
@@ -346,16 +356,8 @@ sub handleClient($self, $client) {
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
 
         my $finishcountdown = 0;
-        $SIG{USR1} = sub {
-            if(!$finishcountdown) {
-                $finishcountdown = time + 20;
-                #print "Backend finished, 20 second countdown before closing socket\n";
-            } else {
-                #print "Backend finished, countdown already started\n";
-            }
-            return;
-        };
-        
+        # Backend connection closure is detected via socket state (sysread returning 0)
+        # No need for USR1 signal - socket state detection is more reliable
 
         #print "Doing some network stuff in child PID $PID\n";
 
@@ -365,9 +367,10 @@ sub handleClient($self, $client) {
         my $peerport = $client->peerport();
 
         my $usessl = 0;
+        my $http2 = 0;
         my $selectedbackend = $self->{config}->{internal_socket};
 
-        # Check if we need to use SSL
+        # Check if we need to use SSL and/or HTTP/2
         foreach my $service (@{$self->{config}->{external_network}->{service}}) {
             # Search for the correct service
             if($service->{port} == $lport) {
@@ -376,6 +379,7 @@ sub handleClient($self, $client) {
                     if($ip eq $lhost) {
                         # Found it
                         $usessl = $service->{usessl};
+                        $http2 = $service->{http2} // 0;
                     }
                 }
             }
@@ -489,15 +493,37 @@ sub handleClient($self, $client) {
                                     }, $ticket_data);
                                 }
                                 eval { Net::SSLeay::CTX_set_timeout($newctx, 300); };
+                                # Set ALPN callback on SNI-switched context for HTTP/2
+                                if($http2) {
+                                    Net::SSLeay::CTX_set_alpn_select_cb($newctx, sub {
+                                        my ($ssl, $protocols) = @_;
+                                        foreach my $proto (@{$protocols}) {
+                                            if($proto eq 'h2') {
+                                                return 'h2';
+                                            }
+                                        }
+                                        return 'http/1.1';
+                                    });
+                                }
                                 #print STDERR "Cert: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert}, " Key: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey}, "\n";
                                 $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
                             }
                             Net::SSLeay::set_SSL_CTX($ssl, $newctx);
                         });
 
-                        #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
-                        ## Advertise supported HTTP versions
-                        #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
+                        # Set ALPN callback to negotiate HTTP/2 or HTTP/1.1
+                        if($http2) {
+                            Net::SSLeay::CTX_set_alpn_select_cb($ctx, sub {
+                                my ($ssl, $protocols) = @_;
+                                # Prefer h2 if client offers it
+                                foreach my $proto (@{$protocols}) {
+                                    if($proto eq 'h2') {
+                                        return 'h2';
+                                    }
+                                }
+                                return 'http/1.1';
+                            });
+                        }
                     },
                 );
                 $ok = 1;
@@ -510,6 +536,15 @@ sub handleClient($self, $client) {
             } elsif(!$ok || !defined($encrypted) || !$encrypted) {
                 print STDERR "startSSL failed: ", $SSL_ERROR, "\n";
                 $self->endprogram();
+            }
+
+            # Check if HTTP/2 was negotiated via ALPN
+            if($http2) {
+                my $negotiatedProtocol = $encrypted->alpn_selected() // 'http/1.1';
+                if($negotiatedProtocol eq 'h2') {
+                    $self->handleHTTP2Client($encrypted, $lhost, $lport, $peerhost, $peerport, $selectedbackend);
+                    $self->endprogram();
+                }
             }
         }
         binmode($client);
@@ -856,6 +891,27 @@ sub handleClient($self, $client) {
 
     return;
 
+}
+
+sub handleHTTP2Client($self, $client, $lhost, $lport, $peerhost, $peerport, $selectedbackend) {
+    require PageCamel::CMDLine::WebFrontend::HTTP2Handler;
+
+    my $handler = PageCamel::CMDLine::WebFrontend::HTTP2Handler->new(
+        clientSocket      => $client,
+        backendSocketPath => $selectedbackend,
+        pagecamelInfo     => {
+            lhost    => $lhost,
+            lport    => $lport,
+            peerhost => $peerhost,
+            peerport => $peerport,
+            usessl   => 1,
+            pid      => $PID,
+        },
+    );
+
+    $handler->run();
+
+    return;
 }
 
 sub endprogram($self) { ## no critic (Subroutines::RequireFinalReturn)
