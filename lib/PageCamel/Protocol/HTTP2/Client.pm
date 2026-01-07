@@ -7,13 +7,13 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
+# autodie close excluded - conflicts with close() method
 use PageCamel::Protocol::HTTP2::Connection;
 use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :endpoints
   :errors);
@@ -200,7 +200,6 @@ sub new {
         my $cb = delete $opts{on_push};
         $opts{on_new_peer_stream} = sub {
             my $stream_id = shift;
-            my $pp_headers;
             $self->active_streams(+1);
 
             $self->{con}->stream_cb(
@@ -233,16 +232,17 @@ sub new {
     }
 
     $self->{con} = PageCamel::Protocol::HTTP2::Connection->new( CLIENT, %opts );
-    bless $self, $class;
+    return bless $self, $class;
 }
 
 sub active_streams {
     my $self = shift;
     my $add = shift || 0;
     $self->{active_streams} += $add;
-    $self->{con}->finish
-      unless $self->{active_streams} > 0
-      || $self->{keepalive};
+    if($self->{active_streams} <= 0 && !$self->{keepalive}) {
+        $self->{con}->finish;
+    }
+    return;
 }
 
 =head3 request
@@ -349,14 +349,12 @@ sub request {
     my $con = $self->{con};
 
     my $stream_id = $con->new_stream;
-    unless ( defined $stream_id ) {
-        if ( exists $con->{on_error} ) {
+    if(!defined $stream_id) {
+        if(exists $con->{on_error}) {
             $con->{on_error}->(PROTOCOL_ERROR);
             return $self;
         }
-        else {
-            croak "Can't create new stream, connection is closed";
-        }
+        croak "Can't create new stream, connection is closed";
     }
 
     $self->active_streams(+1);
@@ -463,7 +461,7 @@ Get connection status:
 =cut
 
 sub shutdown {
-    shift->{con}->shutdown;
+    return shift->{con}->shutdown;
 }
 
 =head3 close
@@ -474,7 +472,7 @@ has keepalive option enabled.
 =cut
 
 sub close {
-    shift->{con}->finish;
+    return shift->{con}->finish;
 }
 
 =head3 next_frame
@@ -536,6 +534,7 @@ sub feed {
         $offset += $len;
     }
     substr( $self->{input}, 0, $offset ) = '' if $offset;
+    return;
 }
 
 =head3 ping
@@ -554,7 +553,7 @@ is omitted client will send random data.
 =cut
 
 sub ping {
-    shift->{con}->send_ping(@_);
+    return shift->{con}->send_ping(@_);
 }
 
 1;

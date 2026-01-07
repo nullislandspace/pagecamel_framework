@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -17,8 +16,7 @@ use PageCamel::Helpers::UTF;
 use PageCamel::Protocol::HTTP2::HuffmanCodes;
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 our ( %hcodes, %rhcodes, $hre );
-require Exporter;
-our @ISA    = qw(Exporter);
+use parent qw(Exporter);
 our @EXPORT = qw(huffman_encode huffman_decode);
 
 # Memory unefficient algorithm (well suited for short strings)

@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -17,11 +16,11 @@ use PageCamel::Helpers::UTF;
 
 
 sub ident_plain {
-    'h2c';
+    return 'h2c';
 }
 
 sub ident_tls {
-    'h2';
+    return 'h2';
 }
 
 1;

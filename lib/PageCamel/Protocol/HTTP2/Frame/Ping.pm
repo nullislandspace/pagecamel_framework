@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -24,13 +23,13 @@ sub decode {
     # PING associated with connection
     if ( $frame_ref->{stream} != 0 ) {
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     # payload is 8 octets
     if ( $length != PING_PAYLOAD_SIZE ) {
         $con->error(FRAME_SIZE_ERROR);
-        return undef;
+        return;
     }
 
     $con->ack_ping( \substr ${$buf_ref}, $buf_offset, $length )
@@ -43,7 +42,7 @@ sub encode {
     my ( $con, $flags_ref, $stream, $data_ref ) = @_;
     if ( length(${$data_ref}) != PING_PAYLOAD_SIZE ) {
         $con->error(INTERNAL_ERROR);
-        return undef;
+        return;
     }
     return ${$data_ref};
 }

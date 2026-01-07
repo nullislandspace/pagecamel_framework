@@ -7,13 +7,13 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
+# autodie close excluded - conflicts with close() methods in Stream/Tunnel classes
 use PageCamel::Protocol::HTTP2::Connection;
 use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :endpoints
   :settings :limits :errors const_name);
@@ -262,7 +262,7 @@ sub new {
     $self->{con}->enqueue( SETTINGS, 0, 0, $self->{settings} )
       unless $self->{con}->upgrade;
 
-    bless $self, $class;
+    return bless $self, $class;
 }
 
 =head3 response
@@ -376,30 +376,35 @@ If body of response is not yet ready or server will stream data
             );
         }
 
-        $self;
+        return $self;
     }
 
     sub send {
         my $self = shift;
         $self->{con}->send_data( $self->{stream_id}, shift );
+        return;
     }
 
     sub last {
         my $self = shift;
         $self->{done} = 1;
         $self->{con}->send_data( $self->{stream_id}, shift, 1 );
+        return;
     }
 
     sub close {
         my $self = shift;
         $self->{done} = 1;
         $self->{con}->send_data( $self->{stream_id}, undef, 1 );
+        return;
     }
 
     sub DESTROY {
         my $self = shift;
-        $self->{con}->send_data( $self->{stream_id}, undef, 1 )
-          unless $self->{done} || !$self->{con};
+        if(!$self->{done} && $self->{con}) {
+            $self->{con}->send_data( $self->{stream_id}, undef, 1 );
+        }
+        return;
     }
 }
 
@@ -441,7 +446,7 @@ If body of response is not yet ready or server will stream data
             );
         }
 
-        $self;
+        return $self;
     }
 
     # Set callback for receiving data on tunnel
@@ -458,6 +463,7 @@ If body of response is not yet ready or server will stream data
                 $cb->($data) if $cb && $weak_self && !$weak_self->{done};
             }
         );
+        return;
     }
 
     # Send data through tunnel (no END_STREAM flag)
@@ -465,6 +471,7 @@ If body of response is not yet ready or server will stream data
         my ( $self, $data ) = @_;
         return if $self->{done};
         $self->{con}->send_data( $self->{stream_id}, $data );
+        return;
     }
 
     # Close the tunnel with optional final data
@@ -473,12 +480,15 @@ If body of response is not yet ready or server will stream data
         return if $self->{done};
         $self->{done} = 1;
         $self->{con}->send_data( $self->{stream_id}, $data, 1 );
+        return;
     }
 
     sub DESTROY {
         my $self = shift;
-        $self->{con}->send_data( $self->{stream_id}, undef, 1 )
-          unless $self->{done} || !$self->{con};
+        if(!$self->{done} && $self->{con}) {
+            $self->{con}->send_data( $self->{stream_id}, undef, 1 );
+        }
+        return;
     }
 }
 
@@ -581,7 +591,8 @@ Get connection status:
 =cut
 
 sub shutdown {
-    shift->{con}->shutdown;
+    my $self = shift;
+    return $self->{con}->shutdown;
 }
 
 =head3 next_frame
@@ -668,7 +679,7 @@ sub feed {
 
     if ( !$con->preface ) {
         my $len = $con->preface_decode( \$self->{input}, $offset );
-        unless ( defined $len ) {
+        if( !defined $len ) {
             tracer->error("invalid preface. shutdown connection\n");
             $con->shutdown(1);
         }
@@ -683,6 +694,7 @@ sub feed {
         $offset += $len;
     }
     substr( $self->{input}, 0, $offset ) = '' if $offset;
+    return;
 }
 
 =head3 enable_connect_protocol
@@ -779,7 +791,9 @@ is omitted server will send random data.
 =cut
 
 sub ping {
-    shift->{con}->send_ping(@_);
+    my $self = shift;
+    my $payload = shift;
+    return $self->{con}->send_ping($payload);
 }
 
 1;

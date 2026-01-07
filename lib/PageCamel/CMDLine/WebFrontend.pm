@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -405,7 +404,7 @@ sub handleClient($self, $client) {
                 local $SIG{__WARN__} = sub {
                     my $msg = shift;
                     return if $msg =~ /uninitialized.*IO\/Socket\/SSL\.pm/;
-                    warn $msg;
+                    carp $msg;
                 };
                 #print STDERR "SSL connecting\n";
                 $encrypted = IO::Socket::SSL->start_SSL($client,

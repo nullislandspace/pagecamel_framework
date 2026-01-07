@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -32,7 +31,7 @@ sub decode {
       )
     {
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     if ( $frame_ref->{flags} & PADDED ) {
@@ -48,10 +47,10 @@ sub decode {
     if ( $hblock_size < 0 ) {
         tracer->error("Not enough space for header block\n");
         $con->error(FRAME_SIZE_ERROR);
-        return undef;
+        return;
     }
 
-    $con->new_peer_stream($promised_sid) or return undef;
+    $con->new_peer_stream($promised_sid) or return;
     $con->stream_promised_sid( $frame_ref->{stream}, $promised_sid );
 
     $con->stream_header_block( $frame_ref->{stream},
@@ -59,7 +58,7 @@ sub decode {
 
     # PP header block complete
     $con->stream_headers_done( $frame_ref->{stream} )
-      or return undef
+      or return
       if $frame_ref->{flags} & END_HEADERS;
 
     return $length;

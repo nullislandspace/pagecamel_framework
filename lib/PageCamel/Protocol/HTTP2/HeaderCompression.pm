@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -55,7 +54,7 @@ sub int_encode {
 
 sub int_decode {
     my ( $buf_ref, $buf_offset, $int_ref, $N ) = @_;
-    return undef if length(${$buf_ref}) - $buf_offset <= 0;
+    return if length(${$buf_ref}) - $buf_offset <= 0;
     $N ||= 7;
     my $ff = ( 1 << $N ) - 1;
 
@@ -65,13 +64,13 @@ sub int_decode {
     my $l = length(${$buf_ref}) - $buf_offset - 1;
 
     for my $i ( 1 .. $l ) {
-        return undef if $i > MAX_INT_SIZE;
+        return if $i > MAX_INT_SIZE;
         my $s = vec( ${$buf_ref}, $i + $buf_offset, 8 );
         ${$int_ref} += ( $s & 0x7f ) << ( $i - 1 ) * 7;
         return $i + 1 if $s < 0x80;
     }
 
-    return undef;
+    return;
 }
 
 sub str_encode {
@@ -100,7 +99,7 @@ sub str_encode {
 sub str_decode {
     my ( $buf_ref, $buf_offset, $str_ref ) = @_;
     my $offset = int_decode( $buf_ref, $buf_offset, \my $l, 7 );
-    return undef
+    return
       unless defined $offset
       && length(${$buf_ref}) - $buf_offset - $offset >= $l;
 
@@ -168,7 +167,7 @@ sub headers_decode {
             if ( $index == 0 ) {
                 tracer->error("Indexed header with zero index\n");
                 $con->error(COMPRESSION_ERROR);
-                return undef;
+                return;
             }
 
             tracer->debug("\tINDEXED($index) HEADER\t");
@@ -185,7 +184,7 @@ sub headers_decode {
                       . $index
                       . "\n" );
                 $con->error(COMPRESSION_ERROR);
-                return undef;
+                return;
             }
             else {
                 my $kv_ref = $ht->[ $index - @stable - 1 ];
@@ -206,14 +205,14 @@ sub headers_decode {
             if ( $key_size == 1 ) {
                 tracer->error("Empty literal header name");
                 $con->error(COMPRESSION_ERROR);
-                return undef;
+                return;
             }
 
             if ( $key =~ /[^a-z0-9\!\#\$\%\&\'\*\+\-\^\_\`]/ && $key !~ /^\:/ )
             {
                 tracer->warning("Illegal characters in header name");
                 $con->stream_error( $stream_id, PROTOCOL_ERROR );
-                return undef;
+                return;
             }
 
             my $value_size =
@@ -258,7 +257,7 @@ sub headers_decode {
                       . $index
                       . "\n" );
                 $con->error(COMPRESSION_ERROR);
-                return undef;
+                return;
             }
             else {
                 $key = $ht->[ $index - @stable - 1 ]->[0];
@@ -291,13 +290,13 @@ sub headers_decode {
                       . "$ht_size > "
                       . $context->{settings}->{&SETTINGS_HEADER_TABLE_SIZE} );
                 $con->error(COMPRESSION_ERROR);
-                return undef;
+                return;
             }
             if (@{$eh}) {
                 tracer->error(
                     "Attempt to change header table size after headers");
                 $con->error(COMPRESSION_ERROR);
-                return undef;
+                return;
             }
             tracer->debug( "Update header table size from "
                   . $context->{max_ht_size} . " to "
@@ -311,7 +310,7 @@ sub headers_decode {
         else {
             tracer->error( sprintf( "Unknown header type: %08b", $f ) );
             $con->error(COMPRESSION_ERROR);
-            return undef;
+            return;
         }
     }
 
@@ -319,7 +318,7 @@ sub headers_decode {
         tracer->error(
             "Headers decoding stopped at offset $offset of $length\n");
         $con->error(COMPRESSION_ERROR);
-        return undef;
+        return;
     }
 
     return $offset;

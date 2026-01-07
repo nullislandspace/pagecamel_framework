@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -24,8 +23,7 @@ use PageCamel::Protocol::HTTP2::Upgrade;
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 
 # Mixin
-our @ISA =
-  qw(PageCamel::Protocol::HTTP2::Frame PageCamel::Protocol::HTTP2::Stream PageCamel::Protocol::HTTP2::Upgrade);
+use parent qw(PageCamel::Protocol::HTTP2::Frame PageCamel::Protocol::HTTP2::Stream PageCamel::Protocol::HTTP2::Upgrade);
 
 # Default settings
 my %default_settings = (
@@ -124,29 +122,30 @@ sub new {
     $self->{decode_ctx}->{max_ht_size} =
       $self->{decode_ctx}->{settings}->{&SETTINGS_HEADER_TABLE_SIZE};
 
-    $self;
+    return $self;
 }
 
 sub decode_context {
-    shift->{decode_ctx};
+    return shift->{decode_ctx};
 }
 
 sub encode_context {
-    shift->{encode_ctx};
+    return shift->{encode_ctx};
 }
 
 sub pending_stream {
-    shift->{pending_stream};
+    return shift->{pending_stream};
 }
 
 sub dequeue {
     my $self = shift;
-    shift @{ $self->{queue} };
+    return shift @{ $self->{queue} };
 }
 
 sub enqueue_raw {
     my $self = shift;
     push @{ $self->{queue} }, @_;
+    return;
 }
 
 sub enqueue {
@@ -156,6 +155,7 @@ sub enqueue {
           $self->frame_encode( $type, $flags, $stream_id, $data_ref );
         $self->state_machine( 'send', $type, $flags, $stream_id );
     }
+    return;
 }
 
 sub enqueue_first {
@@ -172,38 +172,41 @@ sub enqueue_first {
           $self->frame_encode( $type, $flags, $stream_id, $data_ref );
         $self->state_machine( 'send', $type, $flags, $stream_id );
     }
+    return;
 }
 
 sub finish {
     my $self = shift;
-    $self->enqueue( GOAWAY, 0, 0,
-        [ $self->{last_peer_stream}, $self->{error} ] )
-      unless $self->shutdown;
+    if(!$self->shutdown) {
+        $self->enqueue( GOAWAY, 0, 0,
+            [ $self->{last_peer_stream}, $self->{error} ] );
+    }
     $self->shutdown(1);
+    return;
 }
 
 sub shutdown {
     my $self = shift;
     $self->{shutdown} = shift if @_;
-    $self->{shutdown};
+    return $self->{shutdown};
 }
 
 sub goaway {
     my $self = shift;
     $self->{goaway} = shift if @_;
-    $self->{goaway};
+    return $self->{goaway};
 }
 
 sub preface {
     my $self = shift;
     $self->{preface} = shift if @_;
-    $self->{preface};
+    return $self->{preface};
 }
 
 sub upgrade {
     my $self = shift;
     $self->{upgrade} = shift if @_;
-    $self->{upgrade};
+    return $self->{upgrade};
 }
 
 sub state_machine {
@@ -356,6 +359,7 @@ sub state_machine {
         tracer->error("oops!\n");
         $self->error(INTERNAL_ERROR);
     }
+    return;
 }
 
 # TODO: move this to some other module
@@ -375,6 +379,7 @@ sub send_headers {
         $self->enqueue( CONTINUATION, $flags,
             $stream_id, \substr( $header_block, 0, $max_size, '' ) );
     }
+    return;
 }
 
 sub send_pp_headers {
@@ -393,6 +398,7 @@ sub send_pp_headers {
         $self->enqueue( CONTINUATION, $flags,
             $stream_id, \substr( $header_block, 0, $max_size, '' ) );
     }
+    return;
 }
 
 sub send_data {
@@ -421,6 +427,7 @@ sub send_data {
         last if $l == $size;
     }
     $self->stream_blocked_data( $stream_id, $data );
+    return;
 }
 
 sub send_blocked {
@@ -428,6 +435,7 @@ sub send_blocked {
     for my $stream_id ( keys %{ $self->{streams} } ) {
         $self->stream_send_blocked($stream_id);
     }
+    return;
 }
 
 sub error {
@@ -437,7 +445,7 @@ sub error {
         $self->{on_error}->( $self->{error} ) if exists $self->{on_error};
         $self->finish;
     }
-    $self->{error};
+    return $self->{error};
 }
 
 sub setting {
@@ -448,22 +456,23 @@ sub setting {
 sub _setting {
     my ( $ctx, $self, $setting ) = @_;
     my $s = $self->{$ctx}->{settings};
-    return undef unless exists $s->{$setting};
+    return unless exists $s->{$setting};
     $s->{$setting} = pop if @_ > 3;
-    $s->{$setting};
+    return $s->{$setting};
 }
 
 sub enc_setting {
-    _setting( 'encode_ctx', @_ );
+    return _setting( 'encode_ctx', @_ );
 }
 
 sub dec_setting {
-    _setting( 'decode_ctx', @_ );
+    return _setting( 'decode_ctx', @_ );
 }
 
 sub accept_settings {
     my $self = shift;
     $self->enqueue( SETTINGS, ACK, 0, {} );
+    return;
 }
 
 # Flow control windown of connection
@@ -475,15 +484,15 @@ sub _fcw {
         $self->{$dir} += shift;
         tracer->debug( "$dir now is " . $self->{$dir} . "\n" );
     }
-    $self->{$dir};
+    return $self->{$dir};
 }
 
 sub fcw_send {
-    _fcw( 'fcw_send', @_ );
+    return _fcw( 'fcw_send', @_ );
 }
 
 sub fcw_recv {
-    _fcw( 'fcw_recv', @_ );
+    return _fcw( 'fcw_recv', @_ );
 }
 
 sub fcw_update {
@@ -494,6 +503,7 @@ sub fcw_update {
     tracer->debug("update fcw recv of connection with $size b.\n");
     $self->fcw_recv($size);
     $self->enqueue( WINDOW_UPDATE, 0, 0, $size );
+    return;
 }
 
 sub fcw_initial_change {
@@ -506,11 +516,13 @@ sub fcw_initial_change {
         next if $self->stream_state($stream_id) == CLOSED;
         $self->stream_fcw_send( $stream_id, $diff );
     }
+    return;
 }
 
 sub ack_ping {
     my ( $self, $payload_ref ) = @_;
     $self->enqueue_first( PING, ACK, 0, $payload_ref );
+    return;
 }
 
 sub send_ping {
@@ -523,6 +535,7 @@ sub send_ping {
           -PING_PAYLOAD_SIZE(), PING_PAYLOAD_SIZE, $payload;
     }
     $self->enqueue( PING, 0, 0, \$payload );
+    return;
 }
 
 1;

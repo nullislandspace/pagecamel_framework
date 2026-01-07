@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -144,7 +143,7 @@ my %reverse;
 
 sub const_name {
     my ( $tag, $value ) = @_;
-    exists $reverse{$tag} ? ( $reverse{$tag}{$value} || '' ) : '';
+    return exists $reverse{$tag} ? ( $reverse{$tag}{$value} || '' ) : '';
 }
 
 our @EXPORT_OK = ( qw(const_name), map { @{$_} } values %EXPORT_TAGS );

@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -56,7 +55,7 @@ sub frame_encode {
     my $payload = $encoder{$type}->( $con, \$flags, $stream_id, $data_ref );
     my $l = length $payload;
 
-    pack( 'CnC2N', ( $l >> 16 ), ( $l & 0xFFFF ), $type, $flags, $stream_id )
+    return pack( 'CnC2N', ( $l >> 16 ), ( $l & 0xFFFF ), $type, $flags, $stream_id )
       . $payload;
 }
 
@@ -68,7 +67,7 @@ sub preface_decode {
 }
 
 sub preface_encode {
-    PREFACE;
+    return PREFACE;
 }
 
 sub frame_header_decode {
@@ -92,7 +91,7 @@ sub frame_decode {
     if ( $length > $con->dec_setting(SETTINGS_MAX_FRAME_SIZE) ) {
         tracer->error("Frame is too large: $length\n");
         $con->error(FRAME_SIZE_ERROR);
-        return undef;
+        return;
     }
 
     return 0
@@ -116,7 +115,7 @@ sub frame_decode {
     {
         tracer->debug("Expected CONTINUATION for stream $pending_stream_id");
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     # Unknown type of frame
@@ -140,7 +139,7 @@ sub frame_decode {
         return $con->error ? undef : FRAME_HEADER_SIZE + $length;
     }
 
-    return undef
+    return
       unless defined $decoder{$type}
       ->( $con, $buf_ref, $buf_offset + FRAME_HEADER_SIZE, $length );
 

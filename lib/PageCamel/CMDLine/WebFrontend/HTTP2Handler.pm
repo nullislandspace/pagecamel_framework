@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -142,7 +141,7 @@ sub run($self) {
 
                 # Data from HTTP/2 client
                 my $buf;
-                my $bytesRead = $client->sysread($buf, 16384);
+                my $bytesRead = $client->sysread($buf, 16_384);
 
                 if(!defined($bytesRead) || $bytesRead == 0) {
                     # Client disconnected
@@ -463,7 +462,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
     }
 
     my $buf;
-    my $bytesRead = $backend->sysread($buf, 65536);
+    my $bytesRead = $backend->sysread($buf, 65_536);
 
     if(!defined($bytesRead) || $bytesRead == 0) {
         # Backend closed connection

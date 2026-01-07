@@ -7,15 +7,13 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
 use Data::Printer;
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
-require Exporter;
-our @ISA = qw(Exporter);
+use parent qw(Exporter);
 our ( %hcodes, %rhcodes, $hre );
 our @EXPORT = qw(%hcodes %rhcodes $hre);
 

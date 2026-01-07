@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -40,7 +39,7 @@ use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 
 sub new_stream {
     my $self = shift;
-    return undef if $self->goaway;
+    return if $self->goaway;
 
     $self->{last_stream} += 2
       if exists $self->{streams}->{ $self->{type} == CLIENT ? 1 : 2 };
@@ -63,7 +62,7 @@ sub new_peer_stream {
     {
         tracer->error("Peer send invalid stream id: $stream_id\n");
         $self->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
     $self->{last_peer_stream} = $stream_id;
     if ( $self->dec_setting(SETTINGS_MAX_CONCURRENT_STREAMS) <=
@@ -71,7 +70,7 @@ sub new_peer_stream {
     {
         tracer->warning("SETTINGS_MAX_CONCURRENT_STREAMS exceeded\n");
         $self->stream_error( $stream_id, REFUSED_STREAM );
-        return undef;
+        return;
     }
     $self->{active_peer_streams}++;
     tracer->debug("Active streams: $self->{active_peer_streams}");
@@ -90,21 +89,20 @@ sub new_peer_stream {
 
 sub stream {
     my ( $self, $stream_id ) = @_;
-    return undef unless exists $self->{streams}->{$stream_id};
+    return unless exists $self->{streams}->{$stream_id};
 
-    $self->{streams}->{$stream_id};
+    return $self->{streams}->{$stream_id};
 }
 
 # stream_state ( $self, $stream_id, $new_state?, $pending? )
 
 sub stream_state {
-    my $self      = shift;
-    my $stream_id = shift;
-    return undef unless exists $self->{streams}->{$stream_id};
+    my ( $self, $stream_id, @rest ) = @_;
+    return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
 
-    if (@_) {
-        my ( $new_state, $pending ) = @_;
+    if (@rest) {
+        my ( $new_state, $pending ) = @rest;
 
         if ($pending) {
             $self->stream_pending_state( $stream_id, $new_state );
@@ -140,64 +138,65 @@ sub stream_state {
         }
     }
 
-    $s->{state};
+    return $s->{state};
 }
 
 sub stream_pending_state {
     my $self      = shift;
     my $stream_id = shift;
-    return undef unless exists $self->{streams}->{$stream_id};
+    return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
     if (@_) {
         $s->{pending_state} = shift;
         $self->{pending_stream} =
           defined $s->{pending_state} ? $stream_id : undef;
     }
-    $s->{pending_state};
+    return $s->{pending_state};
 }
 
 sub stream_cb {
     my ( $self, $stream_id, $state, $cb ) = @_;
 
-    return undef unless exists $self->{streams}->{$stream_id};
+    return unless exists $self->{streams}->{$stream_id};
 
     push @{ $self->{streams}->{$stream_id}->{cb}->{$state} }, $cb;
+    return;
 }
 
 sub stream_frame_cb {
     my ( $self, $stream_id, $frame, $cb ) = @_;
 
-    return undef unless exists $self->{streams}->{$stream_id};
+    return unless exists $self->{streams}->{$stream_id};
 
     push @{ $self->{streams}->{$stream_id}->{frame_cb}->{$frame} }, $cb;
+    return;
 }
 
 sub stream_data {
-    my $self      = shift;
-    my $stream_id = shift;
-    return undef unless exists $self->{streams}->{$stream_id};
+    my ( $self, $stream_id, $data ) = @_;
+    return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
 
-    if (@_) {
+    if (defined $data) {
 
         # Exec callbacks for data
         if ( exists $s->{frame_cb} && exists $s->{frame_cb}->{&DATA} ) {
             for my $cb ( @{ $s->{frame_cb}->{&DATA} } ) {
-                $cb->( $_[0] );
+                $cb->( $data );
             }
         }
         else {
-            $s->{data} .= shift;
+            $s->{data} .= $data;
         }
     }
 
-    $s->{data};
+    return $s->{data};
 }
 
 sub stream_headers_done {
     my $self      = shift;
     my $stream_id = shift;
-    return undef unless exists $self->{streams}->{$stream_id};
+    return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
 
     my $res =
@@ -206,7 +205,7 @@ sub stream_headers_done {
 
     tracer->debug("Headers done for stream $stream_id\n");
 
-    return undef unless defined $res;
+    return unless defined $res;
 
     # Clear header_block
     $s->{header_block} = '';
@@ -215,7 +214,7 @@ sub stream_headers_done {
     my $is_response = $self->{type} == CLIENT && !$s->{promised_sid};
     my $is_trailer  = !!$self->stream_trailer($stream_id);
 
-    return undef
+    return
       unless $self->validate_headers( $eh, $stream_id, $is_response );
 
     if ( $s->{promised_sid} ) {
@@ -270,7 +269,7 @@ sub validate_headers {
             if ( !$self->enc_setting(SETTINGS_ENABLE_CONNECT_PROTOCOL) ) {
                 tracer->warning(":protocol pseudo-header used without SETTINGS_ENABLE_CONNECT_PROTOCOL");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
-                return undef;
+                return;
             }
             # Extended CONNECT requires: :method, :scheme, :authority, :path, :protocol
             @h = qw(:method :scheme :authority :path :protocol);
@@ -301,7 +300,7 @@ sub validate_headers {
                 tracer->warning(
                     "header <$h> doesn't listed in the trailer header");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
-                return undef;
+                return;
             }
         }
         return 1;
@@ -314,17 +313,17 @@ sub validate_headers {
                 tracer->warning(
                     "pseudo-header <$h> appears after a regular header");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
-                return undef;
+                return;
             }
             elsif ( !grep { $_ eq $h } @allowed_h ) {
                 tracer->warning("invalid pseudo-header <$h>");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
-                return undef;
+                return;
             }
             elsif ( exists $pseudo_hash{$h} ) {
                 tracer->warning("repeated pseudo-header <$h>");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
-                return undef;
+                return;
             }
 
             $pseudo_hash{$h} = $v;
@@ -336,12 +335,12 @@ sub validate_headers {
         if ( $h eq 'connection' ) {
             tracer->warning("connection header is not valid in http/2");
             $self->stream_error( $stream_id, PROTOCOL_ERROR );
-            return undef;
+            return;
         }
         elsif ( $h eq 'te' && $v ne 'trailers' ) {
             tracer->warning("TE header can contain only value 'trailers'");
             $self->stream_error( $stream_id, PROTOCOL_ERROR );
-            return undef;
+            return;
         }
         elsif ( $h eq 'content-length' ) {
             $self->stream_length( $stream_id, $v );
@@ -358,7 +357,7 @@ sub validate_headers {
             {
                 tracer->warning("trailer header contain forbidden headers");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
-                return undef;
+                return;
             }
             $self->stream_trailer( $stream_id, {%th} );
         }
@@ -369,16 +368,17 @@ sub validate_headers {
 
         tracer->warning("missed mandatory pseudo-header $h");
         $self->stream_error( $stream_id, PROTOCOL_ERROR );
-        return undef;
+        return;
     }
 
-    1;
+    return 1;
 }
 
 # RST_STREAM for stream errors
 sub stream_error {
     my ( $self, $stream_id, $error ) = @_;
     $self->enqueue( RST_STREAM, 0, $stream_id, $error );
+    return;
 }
 
 # Flow control windown of stream
@@ -386,22 +386,24 @@ sub _stream_fcw {
     my $dir       = shift;
     my $self      = shift;
     my $stream_id = shift;
-    return undef unless exists $self->{streams}->{$stream_id};
+    return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
 
     if (@_) {
         $s->{$dir} += shift;
         tracer->debug( "Stream $stream_id $dir now is " . $s->{$dir} . "\n" );
     }
-    $s->{$dir};
+    return $s->{$dir};
 }
 
 sub stream_fcw_send {
-    _stream_fcw( 'fcw_send', @_ );
+    my ( $self, $stream_id, @rest ) = @_;
+    return _stream_fcw( 'fcw_send', $self, $stream_id, @rest );
 }
 
 sub stream_fcw_recv {
-    _stream_fcw( 'fcw_recv', @_ );
+    my ( $self, $stream_id, @rest ) = @_;
+    return _stream_fcw( 'fcw_recv', $self, $stream_id, @rest );
 }
 
 sub stream_fcw_update {
@@ -412,22 +414,24 @@ sub stream_fcw_update {
     tracer->debug("update fcw recv of stream $stream_id with $size b.\n");
     $self->stream_fcw_recv( $stream_id, $size );
     $self->enqueue( WINDOW_UPDATE, 0, $stream_id, $size );
+    return;
 }
 
 sub stream_send_blocked {
     my ( $self, $stream_id ) = @_;
-    my $s = $self->{streams}->{$stream_id} or return undef;
+    my $s = $self->{streams}->{$stream_id} or return;
 
     if ( defined( $s->{blocked_data} ) && length( $s->{blocked_data} )
         && $self->stream_fcw_send($stream_id) > 0 )
     {
         $self->send_data($stream_id);
     }
+    return;
 }
 
 sub stream_reprio {
     my ( $self, $stream_id, $exclusive, $stream_dep ) = @_;
-    return undef
+    return
       unless exists $self->{streams}->{$stream_id}
       && ( $stream_dep == 0 || exists $self->{streams}->{$stream_dep} )
       && $stream_id != $stream_dep;

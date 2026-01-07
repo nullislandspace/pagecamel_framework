@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -25,13 +24,13 @@ sub decode {
     if ( $frame_ref->{stream} == 0 ) {
         tracer->error("Received reset stream with stream id 0");
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     if ( $length != 4 ) {
         tracer->error("Received reset stream with invalid length $length");
         $con->error(FRAME_SIZE_ERROR);
-        return undef;
+        return;
     }
 
     my $code = unpack( 'N', substr( ${$buf_ref}, $buf_offset, 4 ) );

@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -39,12 +38,12 @@ my $tracer_sngl = PageCamel::Protocol::HTTP2::Trace->_new(
 my $start_time = 0;
 
 sub tracer {
-    $tracer_sngl;
+    return $tracer_sngl;
 }
 
 sub _new {
     my ( $class, %opts ) = @_;
-    bless {%opts}, $class;
+    return bless {%opts}, $class;
 }
 
 sub _log {
@@ -64,6 +63,7 @@ sub _log {
         printf "[%4d-%02d-%02d %02d:%02d:%02d] %s %s\n", @t, $level, $message;
         $start_time = $now;
     }
+    return;
 }
 
 {
@@ -83,7 +83,7 @@ sub bin2hex {
     my $c   = 0;
     my $s;
 
-    join "", map {
+    return join "", map {
         $c++;
         $s = !( $c % 16 ) ? "\n" : ( $c % 2 ) ? "" : " ";
         $_ . $s

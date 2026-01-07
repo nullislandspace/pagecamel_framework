@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -57,7 +56,7 @@ sub decode {
 
     if ( $frame_ref->{stream} != 0 ) {
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     # just ack for our previous settings
@@ -66,7 +65,7 @@ sub decode {
             tracer->error(
                 "ACK settings frame have non-zero ($length) payload\n");
             $con->error(FRAME_SIZE_ERROR);
-            return undef;
+            return;
         }
         return 0
 
@@ -80,7 +79,7 @@ sub decode {
     if ( $length % 6 != 0 ) {
         tracer->error("Settings frame payload is broken (length $length)\n");
         $con->error(FRAME_SIZE_ERROR);
-        return undef;
+        return;
     }
 
     my @settings = unpack( '(nN)*', substr( ${$buf_ref}, $buf_offset, $length ) );
@@ -98,7 +97,7 @@ sub decode {
                   . const_name( "settings", $key ) . ": "
                   . $value );
             $con->error( $s_check{$key}{error} );
-            return undef;
+            return;
         }
 
         # Settings change may run some action

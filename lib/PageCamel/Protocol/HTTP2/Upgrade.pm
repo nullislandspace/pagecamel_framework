@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -38,11 +37,12 @@ sub upgrade_request {
       'HTTP2-Settings: '
       . encode_base64url( $con->frame_encode( SETTINGS, 0, 0, {} ) ),
       '', '';
+    return $request;
 }
 
 sub upgrade_response {
 
-    join "\x0d\x0a",
+    return join "\x0d\x0a",
       "HTTP/1.1 101 Switching Protocols",
       "Connection: Upgrade",
       "Upgrade: " . PageCamel::Protocol::HTTP2::ident_plain,
@@ -62,8 +62,13 @@ sub decode_upgrade_request {
     pos(${$buf_ref}) = $buf_offset;
 
     # Request
-    return undef if ${$buf_ref} !~ m#\G(\w+) ([^ ]+) HTTP/1\.1\x0d?\x0a#g;
-    my ( $method, $uri ) = ( $1, $2 );
+    my ( $method, $uri );
+    if (${$buf_ref} =~ m#\G(\w+) ([^ ]+) HTTP/1\.1\x0d?\x0a#g) {
+        ( $method, $uri ) = ( $1, $2 );
+    }
+    else {
+        return;
+    }
 
     # TODO: remove after http2 -> http/1.1 headers conversion implemented
     push @{$headers_ref}, ":method", $method;
@@ -99,7 +104,7 @@ sub decode_upgrade_request {
         }
     }
 
-    return undef unless $success == 0b111;
+    return unless $success == 0b111;
 
     # TODO: method POST also can contain data...
 
@@ -119,7 +124,7 @@ sub decode_upgrade_response {
     pos(${$buf_ref}) = $buf_offset;
 
     # Switch Protocols failed
-    return undef if ${$buf_ref} !~ m#\GHTTP/1\.1 101 .+?\x0d?\x0a#g;
+    return if ${$buf_ref} !~ m#\GHTTP/1\.1 101 .+?\x0d?\x0a#g;
 
     my $success = 0;
 
@@ -136,7 +141,7 @@ sub decode_upgrade_response {
         }
     }
 
-    return undef unless $success == 0b11;
+    return unless $success == 0b11;
 
     return $end_headers_pos;
 }

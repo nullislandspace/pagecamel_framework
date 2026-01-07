@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -24,12 +23,12 @@ sub decode {
     # Priority frames MUST be associated with a stream
     if ( $frame_ref->{stream} == 0 ) {
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     if ( $length != 5 ) {
         $con->error(FRAME_SIZE_ERROR);
-        return undef;
+        return;
     }
 
     my ( $stream_dep, $weight ) =
@@ -39,12 +38,11 @@ sub decode {
     $weight++;
 
     $con->stream_weight( $frame_ref->{stream}, $weight );
-    unless (
-        $con->stream_reprio( $frame_ref->{stream}, $exclusive, $stream_dep ) )
+    if(!$con->stream_reprio( $frame_ref->{stream}, $exclusive, $stream_dep ))
     {
         tracer->error("Malformed priority frame");
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     return $length;
@@ -54,7 +52,7 @@ sub encode {
     my ( $con, $flags_ref, $stream, $data_ref ) = @_;
     my $stream_dep = $data_ref->[0];
     my $weight     = $data_ref->[1] - 1;
-    pack( 'NC', $stream_dep, $weight );
+    return pack( 'NC', $stream_dep, $weight );
 }
 
 1;

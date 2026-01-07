@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -30,7 +29,7 @@ sub decode {
       )
     {
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     if ( $frame_ref->{flags} & PADDED ) {
@@ -46,15 +45,13 @@ sub decode {
         $weight++;
 
         $con->stream_weight( $frame_ref->{stream}, $weight );
-        unless (
-            $con->stream_reprio(
+        if(!$con->stream_reprio(
                 $frame_ref->{stream}, $exclusive, $stream_dep
-            )
-          )
+            ))
         {
             tracer->error("Malformed HEADERS frame priority");
             $con->error(PROTOCOL_ERROR);
-            return undef;
+            return;
         }
 
         $offset += 5;
@@ -64,7 +61,7 @@ sub decode {
     my $hblock_size = $length - $offset - $pad;
     if ( $hblock_size < 0 ) {
         $con->error(PROTOCOL_ERROR);
-        return undef;
+        return;
     }
 
     $con->stream_header_block( $frame_ref->{stream},
@@ -72,7 +69,7 @@ sub decode {
 
     # Stream header block complete
     $con->stream_headers_done( $frame_ref->{stream} )
-      or return undef
+      or return
       if $frame_ref->{flags} & END_HEADERS;
 
     return $length;
