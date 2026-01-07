@@ -33,7 +33,7 @@ sub decode {
     }
 
     my ( $stream_dep, $weight ) =
-      unpack( 'NC', substr( $$buf_ref, $buf_offset, 5 ) );
+      unpack( 'NC', substr( ${$buf_ref}, $buf_offset, 5 ) );
     my $exclusive = $stream_dep >> 31;
     $stream_dep &= 0x7FFF_FFFF;
     $weight++;

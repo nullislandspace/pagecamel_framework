@@ -1036,7 +1036,7 @@ sub printAddCutHereLine($self) {
 sub markWithArrow($self, $line, $size, $y = undef) {
     if(!defined($y)) {
         croak("BLA");
-        $y = $self->{imgoffs};
+        #$y = $self->{imgoffs};
     }
     if($line =~ /↳/) {
         $self->printAddArrow($size, $y);

@@ -53,27 +53,27 @@ sub upgrade_response {
 sub decode_upgrade_request {
     my ( $con, $buf_ref, $buf_offset, $headers_ref ) = @_;
 
-    pos($$buf_ref) = $buf_offset;
+    pos(${$buf_ref}) = $buf_offset;
 
     # Search end of headers
-    return 0 if $$buf_ref !~ /$end_headers_re/g;
-    my $end_headers_pos = pos($$buf_ref) - $buf_offset;
+    return 0 if ${$buf_ref} !~ /$end_headers_re/g;
+    my $end_headers_pos = pos(${$buf_ref}) - $buf_offset;
 
-    pos($$buf_ref) = $buf_offset;
+    pos(${$buf_ref}) = $buf_offset;
 
     # Request
-    return undef if $$buf_ref !~ m#\G(\w+) ([^ ]+) HTTP/1\.1\x0d?\x0a#g;
+    return undef if ${$buf_ref} !~ m#\G(\w+) ([^ ]+) HTTP/1\.1\x0d?\x0a#g;
     my ( $method, $uri ) = ( $1, $2 );
 
     # TODO: remove after http2 -> http/1.1 headers conversion implemented
-    push @$headers_ref, ":method", $method;
-    push @$headers_ref, ":path",   $uri;
-    push @$headers_ref, ":scheme", 'http';
+    push @{$headers_ref}, ":method", $method;
+    push @{$headers_ref}, ":path",   $uri;
+    push @{$headers_ref}, ":scheme", 'http';
 
     my $success = 0;
 
     # Parse headers
-    while ( $success != 0b111 && $$buf_ref =~ /$header_re/gc ) {
+    while ( $success != 0b111 && ${$buf_ref} =~ /$header_re/gc ) {
         my ( $header, $value ) = ( lc($1), $2 );
 
         if ( $header eq "connection" ) {
@@ -95,7 +95,7 @@ sub decode_upgrade_request {
             $success |= 0b100;
         }
         else {
-            push @$headers_ref, $header, $value;
+            push @{$headers_ref}, $header, $value;
         }
     }
 
@@ -110,21 +110,21 @@ sub decode_upgrade_request {
 sub decode_upgrade_response {
     my ( $con, $buf_ref, $buf_offset ) = @_;
 
-    pos($$buf_ref) = $buf_offset;
+    pos(${$buf_ref}) = $buf_offset;
 
     # Search end of headers
-    return 0 if $$buf_ref !~ /$end_headers_re/g;
-    my $end_headers_pos = pos($$buf_ref) - $buf_offset;
+    return 0 if ${$buf_ref} !~ /$end_headers_re/g;
+    my $end_headers_pos = pos(${$buf_ref}) - $buf_offset;
 
-    pos($$buf_ref) = $buf_offset;
+    pos(${$buf_ref}) = $buf_offset;
 
     # Switch Protocols failed
-    return undef if $$buf_ref !~ m#\GHTTP/1\.1 101 .+?\x0d?\x0a#g;
+    return undef if ${$buf_ref} !~ m#\GHTTP/1\.1 101 .+?\x0d?\x0a#g;
 
     my $success = 0;
 
     # Parse headers
-    while ( $success != 0b11 && $$buf_ref =~ /$header_re/gc ) {
+    while ( $success != 0b11 && ${$buf_ref} =~ /$header_re/gc ) {
         my ( $header, $value ) = ( lc($1), $2 );
 
         if ( $header eq "connection" && lc($value) eq "upgrade" ) {

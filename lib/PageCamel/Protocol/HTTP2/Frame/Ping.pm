@@ -33,7 +33,7 @@ sub decode {
         return undef;
     }
 
-    $con->ack_ping( \substr $$buf_ref, $buf_offset, $length )
+    $con->ack_ping( \substr ${$buf_ref}, $buf_offset, $length )
       unless $frame_ref->{flags} & ACK;
 
     return $length;
@@ -41,11 +41,11 @@ sub decode {
 
 sub encode {
     my ( $con, $flags_ref, $stream, $data_ref ) = @_;
-    if ( length($$data_ref) != PING_PAYLOAD_SIZE ) {
+    if ( length(${$data_ref}) != PING_PAYLOAD_SIZE ) {
         $con->error(INTERNAL_ERROR);
         return undef;
     }
-    return $$data_ref;
+    return ${$data_ref};
 }
 
 1;

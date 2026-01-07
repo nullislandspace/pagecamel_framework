@@ -427,7 +427,7 @@ sub handleClient($self, $client) {
                             my $ticket_data = [$self->{ssl_ticket_key}, $self->{ssl_ticket_key_name}];
                             Net::SSLeay::CTX_set_tlsext_ticket_getkey_cb($ctx, sub {
                                 my ($data, $name) = @_;
-                                my ($ticket_key, $ticket_key_name) = @$data;
+                                my ($ticket_key, $ticket_key_name) = @{$data};
                                 # If no name given, return current key for new ticket
                                 return ($ticket_key, $ticket_key_name) if !defined($name);
                                 # If name matches our key, return it
@@ -486,7 +486,7 @@ sub handleClient($self, $client) {
                                     my $ticket_data = [$self->{ssl_ticket_key}, $self->{ssl_ticket_key_name}];
                                     Net::SSLeay::CTX_set_tlsext_ticket_getkey_cb($newctx, sub {
                                         my ($data, $name) = @_;
-                                        my ($ticket_key, $ticket_key_name) = @$data;
+                                        my ($ticket_key, $ticket_key_name) = @{$data};
                                         return ($ticket_key, $ticket_key_name) if !defined($name);
                                         return ($ticket_key, $ticket_key_name) if $name eq $ticket_key_name;
                                         return ($ticket_key, $ticket_key_name);

@@ -28,7 +28,7 @@ sub decode {
         return undef;
     }
 
-    my $fcw_add = unpack 'N', substr $$buf_ref, $buf_offset, 4;
+    my $fcw_add = unpack 'N', substr ${$buf_ref}, $buf_offset, 4;
     $fcw_add &= 0x7FFF_FFFF;
 
     if ( $fcw_add == 0 ) {

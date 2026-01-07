@@ -36,11 +36,11 @@ sub decode {
     }
 
     if ( $frame_ref->{flags} & PADDED ) {
-        $pad = unpack( 'C', substr( $$buf_ref, $buf_offset ) );
+        $pad = unpack( 'C', substr( ${$buf_ref}, $buf_offset ) );
         $offset += 1;
     }
 
-    my $promised_sid = unpack 'N', substr $$buf_ref, $buf_offset + $offset, 4;
+    my $promised_sid = unpack 'N', substr ${$buf_ref}, $buf_offset + $offset, 4;
     $promised_sid &= 0x7FFF_FFFF;
     $offset += 4;
 
@@ -55,7 +55,7 @@ sub decode {
     $con->stream_promised_sid( $frame_ref->{stream}, $promised_sid );
 
     $con->stream_header_block( $frame_ref->{stream},
-        substr( $$buf_ref, $buf_offset + $offset, $hblock_size ) );
+        substr( ${$buf_ref}, $buf_offset + $offset, $hblock_size ) );
 
     # PP header block complete
     $con->stream_headers_done( $frame_ref->{stream} )
@@ -71,7 +71,7 @@ sub encode {
     my $promised_id = $data_ref->[0];
     my $hblock_ref  = $data_ref->[1];
 
-    return pack( 'N', $promised_id ) . $$hblock_ref;
+    return pack( 'N', $promised_id ) . ${$hblock_ref};
 }
 
 1;

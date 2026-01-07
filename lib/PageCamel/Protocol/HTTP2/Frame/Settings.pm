@@ -83,7 +83,7 @@ sub decode {
         return undef;
     }
 
-    my @settings = unpack( '(nN)*', substr( $$buf_ref, $buf_offset, $length ) );
+    my @settings = unpack( '(nN)*', substr( ${$buf_ref}, $buf_offset, $length ) );
     while ( my ( $key, $value ) = splice @settings, 0, 2 ) {
         if ( !defined $con->enc_setting($key) ) {
             tracer->debug("\tUnknown setting $key\n");
@@ -125,7 +125,7 @@ sub decode {
 sub encode {
     my ( $con, $flags_ref, $stream, $data ) = @_;
     my $payload = '';
-    for my $key ( sort keys %$data ) {
+    for my $key ( sort keys %{$data} ) {
         tracer->debug( "\tSettings "
               . const_name( "settings", $key )
               . " = $data->{$key}\n" );

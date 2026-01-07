@@ -147,6 +147,6 @@ sub const_name {
     exists $reverse{$tag} ? ( $reverse{$tag}{$value} || '' ) : '';
 }
 
-our @EXPORT_OK = ( qw(const_name), map { @$_ } values %EXPORT_TAGS );
+our @EXPORT_OK = ( qw(const_name), map { @{$_} } values %EXPORT_TAGS );
 
 1;

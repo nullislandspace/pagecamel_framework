@@ -27,7 +27,7 @@ sub decode {
     }
 
     my ( $last_stream_id, $error_code ) =
-      unpack( 'N2', substr( $$buf_ref, $buf_offset, 8 ) );
+      unpack( 'N2', substr( ${$buf_ref}, $buf_offset, 8 ) );
 
     $last_stream_id &= 0x7FFF_FFFF;
 
@@ -36,7 +36,7 @@ sub decode {
           . " last stream is $last_stream_id\n" );
 
     tracer->debug( "additional debug data: "
-          . bin2hex( substr( $$buf_ref, $buf_offset + 8 ) )
+          . bin2hex( substr( ${$buf_ref}, $buf_offset + 8 ) )
           . "\n" )
       if $length - 8 > 0;
 
@@ -50,11 +50,11 @@ sub encode {
 
     $con->goaway(1);
 
-    my $payload = pack( 'N2', @$data );
+    my $payload = pack( 'N2', @{$data} );
     tracer->debug( "\tGOAWAY: last stream = $data->[0], error = "
           . const_name( "errors", $data->[1] )
           . "\n" );
-    $payload .= $data->[2] if @$data > 2;
+    $payload .= $data->[2] if @{$data} > 2;
     return $payload;
 }
 

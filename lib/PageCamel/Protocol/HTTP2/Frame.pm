@@ -62,9 +62,9 @@ sub frame_encode {
 
 sub preface_decode {
     my ( $con, $buf_ref, $buf_offset ) = @_;
-    return 0 if length($$buf_ref) - $buf_offset < length(PREFACE);
+    return 0 if length(${$buf_ref}) - $buf_offset < length(PREFACE);
     return
-      index( $$buf_ref, PREFACE, $buf_offset ) == -1 ? undef : length(PREFACE);
+      index( ${$buf_ref}, PREFACE, $buf_offset ) == -1 ? undef : length(PREFACE);
 }
 
 sub preface_encode {
@@ -75,7 +75,7 @@ sub frame_header_decode {
     my ( undef, $buf_ref, $buf_offset ) = @_;
 
     my ( $hl, $ll, $type, $flags, $stream_id ) =
-      unpack( 'CnC2N', substr( $$buf_ref, $buf_offset, FRAME_HEADER_SIZE ) );
+      unpack( 'CnC2N', substr( ${$buf_ref}, $buf_offset, FRAME_HEADER_SIZE ) );
 
     my $length = ( $hl << 16 ) + $ll;
     $stream_id &= 0x7FFF_FFFF;
@@ -84,7 +84,7 @@ sub frame_header_decode {
 
 sub frame_decode {
     my ( $con, $buf_ref, $buf_offset ) = @_;
-    return 0 if length($$buf_ref) - $buf_offset < FRAME_HEADER_SIZE;
+    return 0 if length(${$buf_ref}) - $buf_offset < FRAME_HEADER_SIZE;
 
     my ( $length, $type, $flags, $stream_id ) =
       $con->frame_header_decode( $buf_ref, $buf_offset );
@@ -96,7 +96,7 @@ sub frame_decode {
     }
 
     return 0
-      if length($$buf_ref) - $buf_offset - FRAME_HEADER_SIZE - $length < 0;
+      if length(${$buf_ref}) - $buf_offset - FRAME_HEADER_SIZE - $length < 0;
 
     tracer->debug(
         sprintf "TYPE = %s(%i), FLAGS = %08b, STREAM_ID = %i, "

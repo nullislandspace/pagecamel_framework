@@ -34,7 +34,7 @@ sub decode {
         return undef;
     }
 
-    my $code = unpack( 'N', substr( $$buf_ref, $buf_offset, 4 ) );
+    my $code = unpack( 'N', substr( ${$buf_ref}, $buf_offset, 4 ) );
 
     tracer->debug( "Receive reset stream with error code "
           . const_name( "errors", $code )

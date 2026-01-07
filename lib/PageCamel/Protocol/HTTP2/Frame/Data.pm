@@ -33,7 +33,7 @@ sub decode {
     }
 
     if ( $frame_ref->{flags} & PADDED ) {
-        $pad = unpack( 'C', substr( $$buf_ref, $buf_offset ) );
+        $pad = unpack( 'C', substr( ${$buf_ref}, $buf_offset ) );
         $offset += 1;
     }
 
@@ -59,7 +59,7 @@ sub decode {
 
     return $length unless $dblock_size;
 
-    my $data = substr $$buf_ref, $buf_offset + $offset, $dblock_size;
+    my $data = substr ${$buf_ref}, $buf_offset + $offset, $dblock_size;
 
     # Update stream data container
     $con->stream_data( $frame_ref->{stream}, $data );
@@ -82,7 +82,7 @@ sub decode {
 sub encode {
     my ( $con, $flags_ref, $stream_id, $data_ref ) = @_;
 
-    return $$data_ref;
+    return ${$data_ref};
 }
 
 1;

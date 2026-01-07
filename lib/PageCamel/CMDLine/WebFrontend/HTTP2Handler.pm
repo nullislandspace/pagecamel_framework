@@ -458,7 +458,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
     }
 
     # Back-pressure: skip reading if client buffer is too large
-    if(length($$toclientbufferRef) >= $max_buffer_size) {
+    if(length(${$toclientbufferRef}) >= $max_buffer_size) {
         return;
     }
 
@@ -481,7 +481,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
         if(defined($tunnel)) {
             $tunnel->send($buf);
             while(my $chunk = $server->next_frame()) {
-                $$toclientbufferRef .= $chunk;
+                ${$toclientbufferRef} .= $chunk;
             }
         }
     } elsif($state eq 'tunnel_pending' || $state eq 'waiting_response') {
@@ -500,7 +500,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
             $stream->send($buf);
             $self->{streamBytesSent}->{$streamId} += length($buf);
             while(my $chunk = $server->next_frame()) {
-                $$toclientbufferRef .= $chunk;
+                ${$toclientbufferRef} .= $chunk;
             }
 
             # Check if we've sent all content-length bytes - if so, send END_STREAM now
@@ -618,7 +618,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
 
     # Queue pending frames to buffer
     while(my $chunk = $server->next_frame()) {
-        $$toclientbufferRef .= $chunk;
+        ${$toclientbufferRef} .= $chunk;
     }
 
     # Clear response buffer
@@ -646,7 +646,7 @@ sub cleanupStream($self, $server, $streamId, $toclientbufferRef, $sendEndStream 
             $self->{streamTunnels}->{$streamId}->close();
         }
         while(my $chunk = $server->next_frame()) {
-            $$toclientbufferRef .= $chunk;
+            ${$toclientbufferRef} .= $chunk;
         }
     }
 
@@ -696,19 +696,19 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown) {
         next if($self->{backenddisconnects}->{$streamId});
 
         my $tobackendbuffer = \$self->{tobackendbuffers}->{$streamId};
-        next if(!defined($$tobackendbuffer) || !length($$tobackendbuffer));
+        next if(!defined(${$tobackendbuffer}) || !length(${$tobackendbuffer}));
 
         my $sendcount = $loopcount;
         my $backend_offset = 0;
 
         while($sendcount) {
-            my $remaining = length($$tobackendbuffer) - $backend_offset;
+            my $remaining = length(${$tobackendbuffer}) - $backend_offset;
             if($remaining > 0) {
                 my $written;
                 my $towrite = $remaining < $blocksize ? $remaining : $blocksize;
 
                 eval {
-                    $written = syswrite($backend, $$tobackendbuffer, $towrite, $backend_offset);
+                    $written = syswrite($backend, ${$tobackendbuffer}, $towrite, $backend_offset);
                 };
                 if($EVAL_ERROR) {
                     #print STDERR "HTTP2Handler: Write error to backend (stream $streamId): $EVAL_ERROR\n";
@@ -727,7 +727,7 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown) {
         }
         # Remove written data from buffer
         if($backend_offset > 0) {
-            $$tobackendbuffer = substr($$tobackendbuffer, $backend_offset);
+            ${$tobackendbuffer} = substr(${$tobackendbuffer}, $backend_offset);
         }
     }
 

@@ -212,7 +212,7 @@ sub new {
                 sub {
                     my $headers = $self->{con}->stream_headers($stream_id);
                     return unless $headers;  # Headers not ready yet
-                    my %h = @$headers;
+                    my %h = @{$headers};
 
                     # Only handle extended CONNECT in OPEN state
                     if ( $h{':method'} eq 'CONNECT' && exists $h{':protocol'} ) {
@@ -239,7 +239,7 @@ sub new {
                 HALF_CLOSED,
                 sub {
                     my $headers = $self->{con}->stream_headers($stream_id);
-                    my %h = @$headers;
+                    my %h = @{$headers};
 
                     # Skip extended CONNECT - already handled in OPEN state
                     if ( $h{':method'} eq 'CONNECT' && exists $h{':protocol'} ) {
@@ -513,7 +513,7 @@ L<Server Push|https://tools.ietf.org/html/rfc7540#section-8.2>
     # Example of push inside of on_request callback
     on_request => sub {
         my ( $stream_id, $headers, $data ) = @_;
-        my %h = (@$headers);
+        my %h = (@{$headers});
 
         # Push promise (must be before response)
         if ( $h{':path'} eq '/index.html' ) {

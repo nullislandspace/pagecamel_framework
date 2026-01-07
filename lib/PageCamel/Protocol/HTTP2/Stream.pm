@@ -129,7 +129,7 @@ sub stream_state {
                   && ( ( $stream_id % 2 ) ^ ( $self->{type} == CLIENT ) );
                 tracer->info(
                     "Active streams: $self->{active_peer_streams} $stream_id");
-                for my $key ( keys %$s ) {
+                for my $key ( keys %{$s} ) {
                     next if grep { $key eq $_ } (
                         qw(state weight stream_dep
                           fcw_recv fcw_send reset)
@@ -247,7 +247,7 @@ sub validate_headers {
     my %pseudo_hash = ();
 
     # First pass: collect pseudo-headers to determine request type
-    for my $i ( 0 .. @$headers / 2 - 1 ) {
+    for my $i ( 0 .. @{$headers} / 2 - 1 ) {
         my ( $h, $v ) = ( $headers->[ $i * 2 ], $headers->[ $i * 2 + 1 ] );
         if ( $h =~ /^\:/ ) {
             $pseudo_hash{$h} = $v;
@@ -295,7 +295,7 @@ sub validate_headers {
 
     # Trailer headers ?
     if ( my $t = $self->stream_trailer($stream_id) ) {
-        for my $i ( 0 .. @$headers / 2 - 1 ) {
+        for my $i ( 0 .. @{$headers} / 2 - 1 ) {
             my ( $h, $v ) = ( $headers->[ $i * 2 ], $headers->[ $i * 2 + 1 ] );
             if ( !exists $t->{$h} ) {
                 tracer->warning(
@@ -307,7 +307,7 @@ sub validate_headers {
         return 1;
     }
 
-    for my $i ( 0 .. @$headers / 2 - 1 ) {
+    for my $i ( 0 .. @{$headers} / 2 - 1 ) {
         my ( $h, $v ) = ( $headers->[ $i * 2 ], $headers->[ $i * 2 + 1 ] );
         if ( $h =~ /^\:/ ) {
             if ( !$pseudo_flag ) {
@@ -455,7 +455,7 @@ sub stream_reprio {
     if ($exclusive) {
 
         # move all siblings to children
-        for my $sid ( keys %$s ) {
+        for my $sid ( keys %{$s} ) {
             next
               if $s->{$sid}->{stream_dep} != $stream_dep
               || $sid == $stream_id;

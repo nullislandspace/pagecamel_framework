@@ -34,13 +34,13 @@ sub decode {
     }
 
     if ( $frame_ref->{flags} & PADDED ) {
-        $pad = unpack( 'C', substr( $$buf_ref, $buf_offset, 1 ) );
+        $pad = unpack( 'C', substr( ${$buf_ref}, $buf_offset, 1 ) );
         $offset += 1;
     }
 
     if ( $frame_ref->{flags} & PRIORITY_FLAG ) {
         ( $stream_dep, $weight ) =
-          unpack( 'NC', substr( $$buf_ref, $buf_offset + $offset, 5 ) );
+          unpack( 'NC', substr( ${$buf_ref}, $buf_offset + $offset, 5 ) );
         $exclusive = $stream_dep >> 31;
         $stream_dep &= 0x7FFF_FFFF;
         $weight++;
@@ -68,7 +68,7 @@ sub decode {
     }
 
     $con->stream_header_block( $frame_ref->{stream},
-        substr( $$buf_ref, $buf_offset + $offset, $hblock_size ) );
+        substr( ${$buf_ref}, $buf_offset + $offset, $hblock_size ) );
 
     # Stream header block complete
     $con->stream_headers_done( $frame_ref->{stream} )
@@ -83,12 +83,12 @@ sub encode {
     my $res = '';
 
     if ( exists $data_ref->{padding} ) {
-        $$flags_ref |= PADDED;
+        ${$flags_ref} |= PADDED;
         $res .= pack 'C', $data_ref->{padding};
     }
 
     if ( exists $data_ref->{stream_dep} || exists $data_ref->{weight} ) {
-        $$flags_ref |= PRIORITY_FLAG;
+        ${$flags_ref} |= PRIORITY_FLAG;
         my $weight = ( $data_ref->{weight} || DEFAULT_WEIGHT ) - 1;
         my $stream_dep = $data_ref->{stream_dep} || 0;
         $stream_dep |= ( 1 << 31 ) if $data_ref->{exclusive};

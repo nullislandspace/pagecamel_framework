@@ -55,19 +55,19 @@ sub int_encode {
 
 sub int_decode {
     my ( $buf_ref, $buf_offset, $int_ref, $N ) = @_;
-    return undef if length($$buf_ref) - $buf_offset <= 0;
+    return undef if length(${$buf_ref}) - $buf_offset <= 0;
     $N ||= 7;
     my $ff = ( 1 << $N ) - 1;
 
-    $$int_ref = $ff & vec( $$buf_ref, $buf_offset, 8 );
-    return 1 if $$int_ref < $ff;
+    ${$int_ref} = $ff & vec( ${$buf_ref}, $buf_offset, 8 );
+    return 1 if ${$int_ref} < $ff;
 
-    my $l = length($$buf_ref) - $buf_offset - 1;
+    my $l = length(${$buf_ref}) - $buf_offset - 1;
 
     for my $i ( 1 .. $l ) {
         return undef if $i > MAX_INT_SIZE;
-        my $s = vec( $$buf_ref, $i + $buf_offset, 8 );
-        $$int_ref += ( $s & 0x7f ) << ( $i - 1 ) * 7;
+        my $s = vec( ${$buf_ref}, $i + $buf_offset, 8 );
+        ${$int_ref} += ( $s & 0x7f ) << ( $i - 1 ) * 7;
         return $i + 1 if $s < 0x80;
     }
 
@@ -102,11 +102,11 @@ sub str_decode {
     my $offset = int_decode( $buf_ref, $buf_offset, \my $l, 7 );
     return undef
       unless defined $offset
-      && length($$buf_ref) - $buf_offset - $offset >= $l;
+      && length(${$buf_ref}) - $buf_offset - $offset >= $l;
 
-    $$str_ref = substr $$buf_ref, $offset + $buf_offset, $l;
-    $$str_ref = huffman_decode($$str_ref)
-      if vec( $$buf_ref, $buf_offset * 8 + 7, 1 ) == 1;
+    ${$str_ref} = substr ${$buf_ref}, $offset + $buf_offset, $l;
+    ${$str_ref} = huffman_decode(${$str_ref})
+      if vec( ${$buf_ref}, $buf_offset * 8 + 7, 1 ) == 1;
     return $offset + $l;
 }
 
@@ -117,13 +117,13 @@ sub evict_ht {
     my $ht = $context->{header_table};
 
     while ( $context->{ht_size} + $size > $context->{max_ht_size} ) {
-        my $n      = $#$ht;
-        my $kv_ref = pop @$ht;
+        my $n      = $#{$ht};
+        my $kv_ref = pop @{$ht};
         $context->{ht_size} -=
           32 + length( $kv_ref->[0] ) + length( $kv_ref->[1] );
         tracer->debug( sprintf "Evicted header [%i] %s = %s\n",
-            $n + 1, @$kv_ref );
-        push @evicted, [ $n, @$kv_ref ];
+            $n + 1, @{$kv_ref} );
+        push @evicted, [ $n, @{$kv_ref} ];
     }
     return @evicted;
 }
@@ -138,7 +138,7 @@ sub add_to_ht {
     my $ht = $context->{header_table};
     my $kv_ref = [ $key, $value ];
 
-    unshift @$ht, $kv_ref;
+    unshift @{$ht}, $kv_ref;
     $context->{ht_size} += $size;
     return @evicted;
 }
@@ -155,7 +155,7 @@ sub headers_decode {
 
     while ( $offset < $length ) {
 
-        my $f = vec( $$buf_ref, $buf_offset + $offset, 8 );
+        my $f = vec( ${$buf_ref}, $buf_offset + $offset, 8 );
         tracer->debug( sprintf "\toffset: %d, byte: %02x\n", $offset, $f );
 
         # Indexed Header
@@ -176,10 +176,10 @@ sub headers_decode {
             # Static table or Header Table entry
             if ( $index <= @stable ) {
                 my ( $key, $value ) = @{ $stable[ $index - 1 ] };
-                push @$eh, $key, $value;
+                push @{$eh}, $key, $value;
                 tracer->debug("$key = $value\n");
             }
-            elsif ( $index > @stable + @$ht ) {
+            elsif ( $index > @stable + @{$ht} ) {
                 tracer->error(
                         "Indexed header with index out of header table: "
                       . $index
@@ -190,7 +190,7 @@ sub headers_decode {
             else {
                 my $kv_ref = $ht->[ $index - @stable - 1 ];
 
-                push @$eh, @$kv_ref;
+                push @{$eh}, @{$kv_ref};
                 tracer->debug("$kv_ref->[0] = $kv_ref->[1]\n");
             }
 
@@ -222,7 +222,7 @@ sub headers_decode {
             last unless $value_size;
 
             # Emitting header
-            push @$eh, $key, $value;
+            push @{$eh}, $key, $value;
 
             # Add to index
             if ( $f == 0x40 ) {
@@ -252,7 +252,7 @@ sub headers_decode {
             if ( $index <= @stable ) {
                 $key = $stable[ $index - 1 ]->[0];
             }
-            elsif ( $index > @stable + @$ht ) {
+            elsif ( $index > @stable + @{$ht} ) {
                 tracer->error(
                         "Literal header with index out of header table: "
                       . $index
@@ -265,7 +265,7 @@ sub headers_decode {
             }
 
             # Emitting header
-            push @$eh, $key, $value;
+            push @{$eh}, $key, $value;
 
             # Add to index
             if ( ( $f & 0xC0 ) == 0x40 ) {
@@ -293,7 +293,7 @@ sub headers_decode {
                 $con->error(COMPRESSION_ERROR);
                 return undef;
             }
-            if (@$eh) {
+            if (@{$eh}) {
                 tracer->error(
                     "Attempt to change header table size after headers");
                 $con->error(COMPRESSION_ERROR);

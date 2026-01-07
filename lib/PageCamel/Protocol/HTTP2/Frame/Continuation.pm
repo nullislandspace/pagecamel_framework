@@ -32,7 +32,7 @@ sub decode {
     }
 
     $con->stream_header_block( $frame_ref->{stream},
-        substr( $$buf_ref, $buf_offset, $length ) );
+        substr( ${$buf_ref}, $buf_offset, $length ) );
 
     # Stream header block complete
     $con->stream_headers_done( $frame_ref->{stream} )
@@ -45,7 +45,7 @@ sub decode {
 
 sub encode {
     my ( $con, $flags_ref, $stream, $data_ref ) = @_;
-    return $$data_ref;
+    return ${$data_ref};
 }
 
 1;
