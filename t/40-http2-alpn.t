@@ -23,18 +23,18 @@ BEGIN {
 use_ok('PageCamel::CMDLine::WebFrontend');
 use_ok('PageCamel::CMDLine::WebFrontend::HTTP2Handler');
 
-# Test that Protocol::HTTP2 modules are available
+# Test that PageCamel::Protocol::HTTP2 modules are available
 SKIP: {
-    eval { require Protocol::HTTP2::Server };
-    skip 'Protocol::HTTP2 not installed', 3 if $@;
+    eval { require PageCamel::Protocol::HTTP2::Server };
+    skip 'PageCamel::Protocol::HTTP2 not installed', 3 if $@;
 
-    use_ok('Protocol::HTTP2::Server');
-    use_ok('Protocol::HTTP2::Constants');
+    use_ok('PageCamel::Protocol::HTTP2::Server');
+    use_ok('PageCamel::Protocol::HTTP2::Constants');
 
     # Test SETTINGS_ENABLE_CONNECT_PROTOCOL constant
-    require Protocol::HTTP2::Constants;
-    Protocol::HTTP2::Constants->import(':settings');
-    ok(defined(&Protocol::HTTP2::Constants::SETTINGS_ENABLE_CONNECT_PROTOCOL),
+    require PageCamel::Protocol::HTTP2::Constants;
+    PageCamel::Protocol::HTTP2::Constants->import(':settings');
+    ok(defined(&PageCamel::Protocol::HTTP2::Constants::SETTINGS_ENABLE_CONNECT_PROTOCOL),
        'SETTINGS_ENABLE_CONNECT_PROTOCOL constant exists');
 }
 

@@ -36,7 +36,7 @@ subtest 'HTTP2Handler WebSocket upgrade translation' => sub {
     }, 'PageCamel::CMDLine::WebFrontend::HTTP2Handler';
 
     # Extended CONNECT request for WebSocket
-    # Headers come as flat list from Protocol::HTTP2
+    # Headers come as flat list from PageCamel::Protocol::HTTP2
     my $headers = [
         ':method',        'CONNECT',
         ':scheme',        'https',
@@ -103,22 +103,22 @@ subtest 'WebSocket key generation' => sub {
     ok(length($key1) >= 20 && length($key1) <= 28, 'Key length is reasonable');
 };
 
-# Test Protocol::HTTP2 extended CONNECT support
-subtest 'Protocol::HTTP2 extended CONNECT support' => sub {
+# Test PageCamel::Protocol::HTTP2 extended CONNECT support
+subtest 'PageCamel::Protocol::HTTP2 extended CONNECT support' => sub {
     SKIP: {
-        eval { require Protocol::HTTP2::Server };
-        skip 'Protocol::HTTP2 not installed', 4 if $@;
+        eval { require PageCamel::Protocol::HTTP2::Server };
+        skip 'PageCamel::Protocol::HTTP2 not installed', 4 if $@;
 
-        require Protocol::HTTP2::Constants;
-        Protocol::HTTP2::Constants->import(':settings');
+        require PageCamel::Protocol::HTTP2::Constants;
+        PageCamel::Protocol::HTTP2::Constants->import(':settings');
 
         # Verify SETTINGS_ENABLE_CONNECT_PROTOCOL constant
-        is(Protocol::HTTP2::Constants::SETTINGS_ENABLE_CONNECT_PROTOCOL(), 8,
+        is(PageCamel::Protocol::HTTP2::Constants::SETTINGS_ENABLE_CONNECT_PROTOCOL(), 8,
            'SETTINGS_ENABLE_CONNECT_PROTOCOL = 8');
 
         # Test server with on_connect_request callback
         my $connect_called = 0;
-        my $server = Protocol::HTTP2::Server->new(
+        my $server = PageCamel::Protocol::HTTP2::Server->new(
             on_connect_request => sub {
                 $connect_called = 1;
             },

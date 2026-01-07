@@ -13,8 +13,8 @@ use utf8;
 
 no warnings 'experimental::args_array_with_signatures';
 
-use Protocol::HTTP2::Server;
-use Protocol::HTTP2::Constants qw(:frame_types :flags :states :settings);
+use PageCamel::Protocol::HTTP2::Server;
+use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :settings);
 use IO::Socket::UNIX;
 use IO::Select;
 use PageCamel::Helpers::DateStrings;
@@ -35,9 +35,9 @@ sub new($class, %config) {
     $self->{streamResponses} = {};
     # Stream states
     $self->{streamStates} = {};
-    # Stream objects for streaming responses (Protocol::HTTP2::Server::Stream)
+    # Stream objects for streaming responses (PageCamel::Protocol::HTTP2::Server::Stream)
     $self->{streamStreams} = {};
-    # Tunnel objects for WebSocket (Protocol::HTTP2::Server::Tunnel)
+    # Tunnel objects for WebSocket (PageCamel::Protocol::HTTP2::Server::Tunnel)
     $self->{streamTunnels} = {};
     # Per-stream buffers for data going to backends
     $self->{tobackendbuffers} = {};
@@ -61,7 +61,7 @@ sub run($self) {
     # Note: SETTINGS_ENABLE_CONNECT_PROTOCOL must be passed in constructor
     # because the initial SETTINGS frame is queued during construction
     my $server;
-    $server = Protocol::HTTP2::Server->new(
+    $server = PageCamel::Protocol::HTTP2::Server->new(
         settings => {
             &SETTINGS_ENABLE_CONNECT_PROTOCOL => 1,
         },
@@ -528,7 +528,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
     # Ensure status is defined (default to 500 if malformed response)
     $status //= 500;
 
-    # Build flat array of headers for Protocol::HTTP2: [name, value, name, value, ...]
+    # Build flat array of headers for PageCamel::Protocol::HTTP2: [name, value, name, value, ...]
     # Note: :status is passed separately to response(), don't include it here
     my @responseHeaders;
     my $contentLength;
@@ -803,6 +803,6 @@ Main event loop. Runs until the client disconnects.
 
 =head1 SEE ALSO
 
-L<Protocol::HTTP2::Server>, L<PageCamel::CMDLine::WebFrontend>
+L<PageCamel::Protocol::HTTP2::Server>, L<PageCamel::CMDLine::WebFrontend>
 
 =cut
