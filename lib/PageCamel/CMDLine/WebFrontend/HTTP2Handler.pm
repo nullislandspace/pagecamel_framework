@@ -15,6 +15,7 @@ use Protocol::HTTP2::Server;
 use Protocol::HTTP2::Constants qw(:frame_types :flags :states :settings);
 use IO::Socket::UNIX;
 use IO::Select;
+use PageCamel::Helpers::DateStrings;
 
 sub new($class, %config) {
     my $self = bless \%config, $class;
@@ -42,6 +43,9 @@ sub new($class, %config) {
     $self->{backenddisconnects} = {};
     # Counter for streams handled (used for exit detection)
     $self->{streamsHandled} = 0;
+    # Per-stream content-length tracking for streaming mode
+    $self->{streamContentLength} = {};
+    $self->{streamBytesSent} = {};
 
     return $self;
 }
@@ -83,10 +87,11 @@ sub run($self) {
     my $done = 0;
     while(!$done) {
         # Build list of sockets to monitor
+        # Note: Don't use connected() check - socket may have buffered data even after peer closes
         my @monitorSockets = ($client);
         foreach my $streamId (keys %{$self->{streamBackends}}) {
             my $backend = $self->{streamBackends}->{$streamId};
-            if(defined($backend) && $backend->connected()) {
+            if(defined($backend)) {
                 push @monitorSockets, $backend;
             }
         }
@@ -112,8 +117,12 @@ sub run($self) {
             next;
         }
 
-        if(!@ready && !length($toclientbuffer) && !$totalBackendBufferSize) {
-            # True timeout with no pending data - send PING to keep connection alive
+        # Only send PING if we have active streams (don't keep connection alive after response)
+        my $activeStreamsForPing = scalar(keys %{$self->{streamBackends}}) +
+                                   scalar(keys %{$self->{streamStreams}}) +
+                                   scalar(keys %{$self->{streamTunnels}});
+        if(!@ready && !length($toclientbuffer) && !$totalBackendBufferSize && $activeStreamsForPing > 0) {
+            # True timeout with no pending data but active streams - send PING to keep connection alive
             $server->ping();
             while(my $chunk = $server->next_frame()) {
                 $toclientbuffer .= $chunk;
@@ -215,6 +224,9 @@ sub run($self) {
             }
         }
     }
+
+    # Debug: log exit reason
+    print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Exiting main loop (streamsHandled=$self->{streamsHandled}, clientdisconnect=$clientdisconnect, bufferLen=" . length($toclientbuffer) . ")\n";
 
     # Cleanup all backend connections
     $self->cleanup();
@@ -449,6 +461,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
 
     if(!defined($bytesRead) || $bytesRead == 0) {
         # Backend closed connection
+        print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Backend closed for stream=$streamId (bytesRead=" . ($bytesRead // 'undef') . ")\n";
         $self->{backenddisconnects}->{$streamId} = 1;
         $self->cleanupStream($server, $streamId, $toclientbufferRef);
         return;
@@ -475,11 +488,21 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
         }
     } elsif($state eq 'streaming') {
         # Streaming response body - send as DATA frames via Stream object
+        print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Streaming data for stream=$streamId, bytes=" . length($buf) . "\n";
         my $stream = $self->{streamStreams}->{$streamId};
         if(defined($stream)) {
             $stream->send($buf);
+            $self->{streamBytesSent}->{$streamId} += length($buf);
             while(my $chunk = $server->next_frame()) {
                 $$toclientbufferRef .= $chunk;
+            }
+
+            # Check if we've sent all content-length bytes - if so, send END_STREAM now
+            my $contentLength = $self->{streamContentLength}->{$streamId};
+            my $bytesSent = $self->{streamBytesSent}->{$streamId};
+            if(defined($contentLength) && $bytesSent >= $contentLength) {
+                print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Content-length reached for stream=$streamId ($bytesSent >= $contentLength), sending END_STREAM\n";
+                $self->cleanupStream($server, $streamId, $toclientbufferRef);
             }
         }
     }
@@ -522,6 +545,9 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
         }
     }
 
+    # Debug: log response processing
+    print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: processBackendResponse stream=$streamId status=$status contentLength=" . ($contentLength // 'undef') . " bodyLen=" . length($bodyPart // '') . " state=$state\n";
+
     if($state eq 'tunnel_pending') {
         # Check if WebSocket upgrade succeeded
         if($status eq '101') {
@@ -548,6 +574,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
         # $contentLength was already extracted during header parsing above
         if(defined($contentLength) && defined($bodyPart) && length($bodyPart) >= $contentLength) {
             # Complete response - use response() which handles END_STREAM
+            print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Using response() for complete response (stream=$streamId)\n";
             $server->response(
                 ':status'  => $status,
                 stream_id  => $streamId,
@@ -557,6 +584,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
             $self->cleanupStream($server, $streamId, $toclientbufferRef, 0);  # Don't send END_STREAM, response() does it
         } else {
             # Send headers, switch to streaming mode for body using response_stream()
+            print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Using response_stream() for streaming response (stream=$streamId)\n";
             my $stream = $server->response_stream(
                 ':status'  => $status,
                 stream_id  => $streamId,
@@ -564,9 +592,13 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
             );
             $self->{streamStreams}->{$streamId} = $stream;
             $self->{streamStates}->{$streamId} = 'streaming';
+            # Track content-length for END_STREAM detection
+            $self->{streamContentLength}->{$streamId} = $contentLength;
+            $self->{streamBytesSent}->{$streamId} = 0;
             # Send any body data we already have
             if(defined($bodyPart) && length($bodyPart)) {
                 $stream->send($bodyPart);
+                $self->{streamBytesSent}->{$streamId} += length($bodyPart);
             }
         }
     }
@@ -583,6 +615,8 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
 }
 
 sub cleanupStream($self, $server, $streamId, $toclientbufferRef, $sendEndStream = 1) {
+    print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: cleanupStream stream=$streamId sendEndStream=$sendEndStream\n";
+
     # Close backend connection
     if(defined($self->{streamBackends}->{$streamId})) {
         eval {
@@ -611,6 +645,8 @@ sub cleanupStream($self, $server, $streamId, $toclientbufferRef, $sendEndStream 
     delete $self->{streamTunnels}->{$streamId};
     delete $self->{tobackendbuffers}->{$streamId};
     delete $self->{backenddisconnects}->{$streamId};
+    delete $self->{streamContentLength}->{$streamId};
+    delete $self->{streamBytesSent}->{$streamId};
 
     return;
 }
@@ -633,6 +669,8 @@ sub cleanup($self) {
     $self->{streamTunnels} = {};
     $self->{tobackendbuffers} = {};
     $self->{backenddisconnects} = {};
+    $self->{streamContentLength} = {};
+    $self->{streamBytesSent} = {};
 
     return;
 }
