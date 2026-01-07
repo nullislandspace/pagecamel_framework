@@ -8,7 +8,11 @@ use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
 use autodie qw( close );
+use Array::Contains;
 use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 no warnings 'experimental::args_array_with_signatures';

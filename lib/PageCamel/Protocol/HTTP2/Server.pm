@@ -1,11 +1,23 @@
 package PageCamel::Protocol::HTTP2::Server;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 4.8;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 use PageCamel::Protocol::HTTP2::Connection;
 use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :endpoints
   :settings :limits :errors const_name);
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
-use Carp;
 use Scalar::Util ();
 
 =encoding utf-8

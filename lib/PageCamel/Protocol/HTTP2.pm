@@ -1,9 +1,20 @@
 package PageCamel::Protocol::HTTP2;
-use 5.008005;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 4.8;
+use autodie qw( close );
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
-our $VERSION = "1.11";
 
 sub ident_plain {
     'h2c';
