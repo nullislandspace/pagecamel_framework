@@ -11,6 +11,8 @@ use autodie qw( close );
 use utf8;
 #---AUTOPRAGMAEND---
 
+no warnings 'experimental::args_array_with_signatures';
+
 use Protocol::HTTP2::Server;
 use Protocol::HTTP2::Constants qw(:frame_types :flags :states :settings);
 use IO::Socket::UNIX;
@@ -55,21 +57,21 @@ sub run($self) {
     my $select = IO::Select->new();
     $select->add($client);
 
-    # Create HTTP/2 server instance
+    # Create HTTP/2 server instance with extended CONNECT enabled (RFC 8441)
+    # Note: SETTINGS_ENABLE_CONNECT_PROTOCOL must be passed in constructor
+    # because the initial SETTINGS frame is queued during construction
     my $server;
     $server = Protocol::HTTP2::Server->new(
-        on_request => sub {
-            my ($streamId, $headers, $data) = @_;
+        settings => {
+            &SETTINGS_ENABLE_CONNECT_PROTOCOL => 1,
+        },
+        on_request => sub ($streamId, $headers, $data) {
             $self->handleRequest($server, $streamId, $headers, $data);
         },
-        on_connect_request => sub {
-            my ($streamId, $headers) = @_;
+        on_connect_request => sub ($streamId, $headers, $data = undef) {
             $self->handleConnectRequest($server, $streamId, $headers);
         },
     );
-
-    # Enable extended CONNECT for WebSocket over HTTP/2
-    $server->enable_connect_protocol();
 
     # Buffering variables - same names as HTTP/1.1 implementation
     my $toclientbuffer = '';
@@ -551,11 +553,18 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
     if($state eq 'tunnel_pending') {
         # Check if WebSocket upgrade succeeded
         if($status eq '101') {
+            # Filter out content-length for tunnel - data flows indefinitely
+            my @tunnelHeaders;
+            for(my $i = 0; $i < scalar(@responseHeaders); $i += 2) {
+                next if(lc($responseHeaders[$i]) eq 'content-length');
+                push @tunnelHeaders, $responseHeaders[$i], $responseHeaders[$i + 1];
+            }
+
             # Send HTTP/2 200 OK to client for tunnel using tunnel_response
             my $tunnel = $server->tunnel_response(
                 ':status'  => 200,
                 stream_id  => $streamId,
-                headers    => \@responseHeaders,
+                headers    => \@tunnelHeaders,
             );
             $self->{streamTunnels}->{$streamId} = $tunnel;
             $self->{streamStates}->{$streamId} = 'tunnel';
