@@ -429,7 +429,7 @@ sub readheader($self, $timeout, $socket) {
                 $buf = undef;
                 my $bufstatus = $socket->sysread($buf, 1);
                 if(!defined($bufstatus)) {
-                    # Error (EAGAIN/EWOULDBLOCK with $! set) - continue waiting
+                    # Error (EAGAIN/EWOULDBLOCK with $ERRNO set) - continue waiting
                     next;
                 }
                 if($bufstatus == 0) {

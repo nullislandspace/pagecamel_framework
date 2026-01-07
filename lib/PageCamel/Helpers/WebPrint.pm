@@ -85,7 +85,7 @@ sub write($self, $ofh, @parts) {
         }
 
         # Handle write errors
-        if($!{EWOULDBLOCK} || $!{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
+        if($ERRNO{EWOULDBLOCK} || $ERRNO{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
             # Socket buffer full - wait for writability using select() instead of busy-wait
             if(!$shownlimitmessage) {
                 #$self->debuglog("Rate limiting output");

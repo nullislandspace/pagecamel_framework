@@ -268,7 +268,7 @@ sub run($self) {
     # Generate SSL session ticket key once (shared by all forked children)
     # Key format: 16 bytes name + 32 bytes key (16 AES + 16 HMAC)
     if($self->{hasssl}) {
-        open(my $urandom, '<:raw', '/dev/urandom') or croak("Cannot open /dev/urandom: $!");
+        open(my $urandom, '<:raw', '/dev/urandom') or croak("Cannot open /dev/urandom: $ERRNO");
         read($urandom, $self->{ssl_ticket_key_name}, 16) == 16 or croak("Failed to read key name from /dev/urandom");
         read($urandom, $self->{ssl_ticket_key}, 32) == 32 or croak("Failed to read key from /dev/urandom");
         close($urandom);
@@ -582,7 +582,7 @@ sub handleClient($self, $client) {
                 my @connections = $select->can_read($remaining);
 
                 # Handle EINTR - signal interrupted the call, just retry
-                if(!@connections && $!{EINTR}) {
+                if(!@connections && $ERRNO{EINTR}) {
                     next;
                 }
 
@@ -721,10 +721,10 @@ sub handleClient($self, $client) {
             $ERRNO = 0;
             my @connections = $select->can_read($waittime);
             # Handle EINTR (signal interrupted call) - just continue, not an error
-            if(!@connections && $!{EINTR}) {
+            if(!@connections && $ERRNO{EINTR}) {
                 next;
             }
-            if($ERRNO ne '' && !$!{EINTR}) {
+            if($ERRNO ne '' && !$ERRNO{EINTR}) {
                 print STDERR "select error: $ERRNO\n";
             }
             my $max_buffer_size = 50_000_000;  # 50MB buffer limit to prevent memory exhaustion

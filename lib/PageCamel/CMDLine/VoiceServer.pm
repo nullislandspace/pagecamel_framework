@@ -324,7 +324,7 @@ sub run($self) {
                 push @toremove, $cid;
                 next;
             }
-            if(!$clients{$cid}->{socket}->opened || $clients{$cid}->{socket}->error || ($ERRNO ne '' && !$!{EWOULDBLOCK})) { ## no critic (Variables::ProhibitPunctuationVars)
+            if(!$clients{$cid}->{socket}->opened || $clients{$cid}->{socket}->error || ($ERRNO ne '' && !$ERRNO{EWOULDBLOCK})) { ## no critic (Variables::ProhibitPunctuationVars)
                 print STDERR "webPrint write failure: $ERRNO\n";
                 push @toremove, $cid;
                 next;

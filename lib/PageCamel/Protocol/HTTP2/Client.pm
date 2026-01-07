@@ -65,7 +65,7 @@ PageCamel::Protocol::HTTP2::Client - HTTP/2 client
 
     # Plain-text HTTP/2 connection
     tcp_connect 'localhost', 8000, sub {
-        my ($fh) = @_ or die "connection failed: $!\n";
+        my ($fh) = @_ or die "connection failed: $ERRNO\n";
         
         my $handle;
         $handle = AnyEvent::Handle->new(

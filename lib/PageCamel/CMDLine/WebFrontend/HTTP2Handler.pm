@@ -119,7 +119,7 @@ sub run($self) {
         my @ready = $select->can_read($waittime);
 
         # Handle EINTR (signal interrupted call) - just continue
-        if(!@ready && $!{EINTR}) {
+        if(!@ready && $ERRNO{EINTR}) {
             next;
         }
 

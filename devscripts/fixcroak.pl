@@ -66,7 +66,7 @@ sub findModules() {
 sub fixCroak($fname, $dryrun) {
     my $parseOK = 1;
 
-    open(my $ifh, '<', $fname) or croak("$!");
+    open(my $ifh, '<', $fname) or croak("$ERRNO");
     my @lines = <$ifh>;
     close $ifh;
 
@@ -135,7 +135,7 @@ sub fixCroak($fname, $dryrun) {
     }
 
     if(!$dryrun) {
-        open(my $ofh, '>', $fname) or croak("$!");
+        open(my $ofh, '>', $fname) or croak("$ERRNO");
         print $ofh join('', @newlines);
         close $ofh;
     }
