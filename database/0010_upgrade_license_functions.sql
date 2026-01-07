@@ -5,8 +5,6 @@
 --
 -- IMPORTANT: This script must be run as a superuser or database owner
 
-BEGIN;
-
 -- Step 1: Create temporary table to store column defaults using getposdate()
 CREATE TEMPORARY TABLE _saved_getposdate_defaults (
     table_schema TEXT NOT NULL,
@@ -128,5 +126,3 @@ END$$;
 
 -- Cleanup temporary table (will be auto-dropped at end of transaction anyway)
 DROP TABLE _saved_getposdate_defaults;
-
-COMMIT;
