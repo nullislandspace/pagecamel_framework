@@ -173,7 +173,7 @@ sub run($self) {
                     $written = syswrite($client, $toclientbuffer, $towrite, $client_offset);
                 };
                 if($EVAL_ERROR) {
-                    print STDERR "HTTP2Handler: Write error to client: $EVAL_ERROR\n";
+                    #print STDERR "HTTP2Handler: Write error to client: $EVAL_ERROR\n";
                 } else {
                     if($finishcountdown) {
                         # Reset countdown if we're still sending data
@@ -228,7 +228,7 @@ sub run($self) {
     }
 
     # Debug: log exit reason
-    print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Exiting main loop (streamsHandled=$self->{streamsHandled}, clientdisconnect=$clientdisconnect, bufferLen=" . length($toclientbuffer) . ")\n";
+    #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Exiting main loop (streamsHandled=$self->{streamsHandled}, clientdisconnect=$clientdisconnect, bufferLen=" . length($toclientbuffer) . ")\n";
 
     # Cleanup all backend connections
     $self->cleanup();
@@ -463,7 +463,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
 
     if(!defined($bytesRead) || $bytesRead == 0) {
         # Backend closed connection
-        print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Backend closed for stream=$streamId (bytesRead=" . ($bytesRead // 'undef') . ")\n";
+        #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Backend closed for stream=$streamId (bytesRead=" . ($bytesRead // 'undef') . ")\n";
         $self->{backenddisconnects}->{$streamId} = 1;
         $self->cleanupStream($server, $streamId, $toclientbufferRef);
         return;
@@ -490,7 +490,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
         }
     } elsif($state eq 'streaming') {
         # Streaming response body - send as DATA frames via Stream object
-        print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Streaming data for stream=$streamId, bytes=" . length($buf) . "\n";
+        #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Streaming data for stream=$streamId, bytes=" . length($buf) . "\n";
         my $stream = $self->{streamStreams}->{$streamId};
         if(defined($stream)) {
             $stream->send($buf);
@@ -503,7 +503,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
             my $contentLength = $self->{streamContentLength}->{$streamId};
             my $bytesSent = $self->{streamBytesSent}->{$streamId};
             if(defined($contentLength) && $bytesSent >= $contentLength) {
-                print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Content-length reached for stream=$streamId ($bytesSent >= $contentLength), sending END_STREAM\n";
+                #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Content-length reached for stream=$streamId ($bytesSent >= $contentLength), sending END_STREAM\n";
                 $self->cleanupStream($server, $streamId, $toclientbufferRef);
             }
         }
@@ -548,7 +548,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
     }
 
     # Debug: log response processing
-    print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: processBackendResponse stream=$streamId status=$status contentLength=" . ($contentLength // 'undef') . " bodyLen=" . length($bodyPart // '') . " state=$state\n";
+    #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: processBackendResponse stream=$streamId status=$status contentLength=" . ($contentLength // 'undef') . " bodyLen=" . length($bodyPart // '') . " state=$state\n";
 
     if($state eq 'tunnel_pending') {
         # Check if WebSocket upgrade succeeded
@@ -583,7 +583,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
         # $contentLength was already extracted during header parsing above
         if(defined($contentLength) && defined($bodyPart) && length($bodyPart) >= $contentLength) {
             # Complete response - use response() which handles END_STREAM
-            print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Using response() for complete response (stream=$streamId)\n";
+            #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Using response() for complete response (stream=$streamId)\n";
             $server->response(
                 ':status'  => $status,
                 stream_id  => $streamId,
@@ -593,7 +593,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
             $self->cleanupStream($server, $streamId, $toclientbufferRef, 0);  # Don't send END_STREAM, response() does it
         } else {
             # Send headers, switch to streaming mode for body using response_stream()
-            print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Using response_stream() for streaming response (stream=$streamId)\n";
+            #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: Using response_stream() for streaming response (stream=$streamId)\n";
             my $stream = $server->response_stream(
                 ':status'  => $status,
                 stream_id  => $streamId,
@@ -624,7 +624,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
 }
 
 sub cleanupStream($self, $server, $streamId, $toclientbufferRef, $sendEndStream = 1) {
-    print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: cleanupStream stream=$streamId sendEndStream=$sendEndStream\n";
+    #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: cleanupStream stream=$streamId sendEndStream=$sendEndStream\n";
 
     # Close backend connection
     if(defined($self->{streamBackends}->{$streamId})) {
@@ -707,7 +707,7 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown) {
                     $written = syswrite($backend, $$tobackendbuffer, $towrite, $backend_offset);
                 };
                 if($EVAL_ERROR) {
-                    print STDERR "HTTP2Handler: Write error to backend (stream $streamId): $EVAL_ERROR\n";
+                    #print STDERR "HTTP2Handler: Write error to backend (stream $streamId): $EVAL_ERROR\n";
                     $self->{backenddisconnects}->{$streamId} = 1;
                     last;
                 }
