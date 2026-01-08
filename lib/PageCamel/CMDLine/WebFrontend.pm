@@ -24,6 +24,7 @@ use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::WebPrint;
 use PageCamel::Helpers::Mandant;
+use PageCamel::Helpers::DateStrings;
 use Sys::Hostname;
 use POSIX;
 use Errno qw();  # Load without importing - only needed for %! hash tying
@@ -286,11 +287,11 @@ sub run($self) {
                 my $peerport = $client->peerport();
                 my $hostip = $client->sockhost();
                 my $hostport = $client->sockport();
-                if(1 && $peerhost ne '127.0.0.1' && $peerhost ne '178.189.98.74') {
+                if(0 && $peerhost ne '127.0.0.1' && $peerhost ne '178.189.98.74') {
                     $client->close;
                     next;
                 }
-                print "**** Connection from ", $peerhost, ":", $peerport, " to ", $hostip, ":", $hostport, "   \n";
+                print getISODate(), " Connection from ", $peerhost, ":", $peerport, " to ", $hostip, ":", $hostport, "   \n";
 
                 if(defined($self->{debugip})) {
                     if($peerhost ne $self->{debugip}) {
@@ -533,7 +534,7 @@ sub handleClient($self, $client) {
                 print STDERR "EVAL ERROR: ", $EVAL_ERROR, "\n";
                 $self->endprogram();
             } elsif(!$ok || !defined($encrypted) || !$encrypted) {
-                print STDERR "startSSL failed: ", $SSL_ERROR, "\n";
+                print STDERR getISODate(), " startSSL failed: ", $SSL_ERROR, "\n";
                 $self->endprogram();
             }
 
