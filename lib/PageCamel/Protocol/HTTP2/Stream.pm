@@ -69,6 +69,7 @@ sub new_peer_stream {
         $self->{active_peer_streams} )
     {
         tracer->warning("SETTINGS_MAX_CONCURRENT_STREAMS exceeded\n");
+        print STDERR "HTTP2 REFUSED_STREAM: stream=$stream_id active=$self->{active_peer_streams} max=" . $self->dec_setting(SETTINGS_MAX_CONCURRENT_STREAMS) . "\n";
         $self->stream_error( $stream_id, REFUSED_STREAM );
         return;
     }

@@ -228,27 +228,29 @@ sub run($self) {
             $done = 1;
         }
 
+        # HTTP/2 connections should stay open for more requests (unlike HTTP/1.1)
+        # Only use finish countdown if we're actively sending data and need to drain buffer
+        # The connection stays open until client disconnects or idle timeout
+
         # Check if all streams are complete (no active backends/streams/tunnels)
         my $activeStreams = scalar(keys %{$self->{streamBackends}}) +
                             scalar(keys %{$self->{streamStreams}}) +
                             scalar(keys %{$self->{streamTunnels}});
 
-        # Start finish countdown when all streams complete but client buffer has data
-        if(!$finishcountdown && $self->{streamsHandled} > 0 && $activeStreams == 0) {
-            if(!length($toclientbuffer)) {
-                $done = 1;
-            } else {
-                $finishcountdown = time + 20;
-            }
+        # If we have data to send but no active streams, start countdown to drain buffer
+        if($finishcountdown && !length($toclientbuffer)) {
+            # Buffer drained, reset countdown
+            $finishcountdown = 0;
+        } elsif(!$finishcountdown && length($toclientbuffer) && $activeStreams == 0) {
+            # Data to send but no streams - give time to drain
+            $finishcountdown = time + 20;
         }
 
-        # Handle finish countdown
-        if($finishcountdown > 0) {
-            if(!length($toclientbuffer)) {
-                $done = 1;
-            } elsif($finishcountdown <= time) {
-                $done = 1;
-            }
+        # Handle finish countdown (only for buffer draining, not connection close)
+        if($finishcountdown > 0 && $finishcountdown <= time) {
+            # Timeout waiting to drain buffer - something is wrong
+            print STDERR getISODate() . " HTTP2Handler: Buffer drain timeout, closing\n";
+            $done = 1;
         }
     }
 
@@ -264,6 +266,13 @@ sub run($self) {
 sub handleRequest($self, $server, $streamId, $headers, $data) {
     # Track that we've handled a request
     $self->{streamsHandled}++;
+
+    # Debug: log incoming request
+    my %h;
+    for(my $i = 0; $i < scalar(@{$headers}); $i += 2) {
+        $h{$headers->[$i]} = $headers->[$i + 1];
+    }
+    print STDERR getISODate() . " HTTP2Handler: handleRequest stream=$streamId path=$h{':path'} activeBackends=" . scalar(keys %{$self->{streamBackends}}) . "\n";
 
     # Convert HTTP/2 headers to HTTP/1.1 request
     my $request = $self->translateRequest($streamId, $headers, $data);
@@ -540,6 +549,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
 sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
     my $response = $self->{streamResponses}->{$streamId};
     my $state = $self->{streamStates}->{$streamId};
+    print STDERR getISODate() . " HTTP2Handler: processBackendResponse stream=$streamId state=$state responseLen=" . length($response) . "\n";
 
     # Split headers from body
     my ($headerPart, $bodyPart) = split(/\r\n\r\n/, $response, 2);
@@ -649,7 +659,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
 }
 
 sub cleanupStream($self, $server, $streamId, $toclientbufferRef, $sendEndStream = 1) {
-    #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: cleanupStream stream=$streamId sendEndStream=$sendEndStream\n";
+    print STDERR getISODate() . " HTTP2Handler: cleanupStream stream=$streamId sendEndStream=$sendEndStream activeBackends=" . scalar(keys %{$self->{streamBackends}}) . "\n";
 
     # Close backend connection
     if(defined($self->{streamBackends}->{$streamId})) {

@@ -286,11 +286,11 @@ sub run($self) {
                 my $peerport = $client->peerport();
                 my $hostip = $client->sockhost();
                 my $hostport = $client->sockport();
+                if(1 && $peerhost ne '127.0.0.1' && $peerhost ne '178.189.98.74') {
+                    $client->close;
+                    next;
+                }
                 print "**** Connection from ", $peerhost, ":", $peerport, " to ", $hostip, ":", $hostport, "   \n";
-                #if(0 && $peerhost ne '94.130.141.212') {
-                #    $client->close;
-                #    next;
-                #}
 
                 if(defined($self->{debugip})) {
                     if($peerhost ne $self->{debugip}) {
