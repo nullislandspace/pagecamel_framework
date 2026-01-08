@@ -107,34 +107,52 @@ sub run($self) {
             $totalBackendBufferSize += length($self->{tobackendbuffers}->{$streamId} // '');
         }
 
-        # Adaptive wait time - short when buffers have data, longer when empty
-        my $waittime = 0.1;
-        if(length($toclientbuffer) || $totalBackendBufferSize) {
-            $waittime = 0.001;
+        # Build select sets for reading and writing
+        my $readSet = IO::Select->new(@monitorSockets);
+        my $writeSet = IO::Select->new();
+
+        # Add client to write set if we have data to send
+        if(length($toclientbuffer)) {
+            $writeSet->add($client);
         }
 
-        $select = IO::Select->new(@monitorSockets);
+        # Add backends to write set if we have data to send to them
+        foreach my $streamId (keys %{$self->{tobackendbuffers}}) {
+            my $backend = $self->{streamBackends}->{$streamId};
+            if(defined($backend) && length($self->{tobackendbuffers}->{$streamId} // '')) {
+                $writeSet->add($backend);
+            }
+        }
+
+        # Use select() - block until I/O is ready
+        # Use short timeout (0.001s) if we have data to send, longer (1s) otherwise
+        # This ensures we stay responsive when actively transferring data
+        my $timeout = $writeSet->count() > 0 ? 0.001 : 1;
         $ERRNO = 0;
-        my @ready = $select->can_read($waittime);
+        my ($canRead, $canWrite, undef) = IO::Select->select($readSet, $writeSet, undef, $timeout);
 
         # Handle EINTR (signal interrupted call) - just continue
-        if(!@ready && $ERRNO{EINTR}) {
+        if(!defined($canRead) && $ERRNO{EINTR}) {
             next;
         }
 
-        # Only send PING if we have active streams (don't keep connection alive after response)
+        # Default to empty arrays if select returned undef
+        $canRead //= [];
+        $canWrite //= [];
+
+        # Timeout with no I/O - send PING if we have active streams
         my $activeStreamsForPing = scalar(keys %{$self->{streamBackends}}) +
                                    scalar(keys %{$self->{streamStreams}}) +
                                    scalar(keys %{$self->{streamTunnels}});
-        if(!@ready && !length($toclientbuffer) && !$totalBackendBufferSize && $activeStreamsForPing > 0) {
-            # True timeout with no pending data but active streams - send PING to keep connection alive
+        if(!@{$canRead} && !@{$canWrite} && $activeStreamsForPing > 0) {
             $server->ping();
             while(my $chunk = $server->next_frame()) {
                 $toclientbuffer .= $chunk;
             }
         }
 
-        foreach my $socket (@ready) {
+        # Handle readable sockets
+        foreach my $socket (@{$canRead}) {
             if($socket == $client) {
                 # Skip reading from client if toclientbuffer is too large (back-pressure)
                 next if(length($toclientbuffer) >= $max_buffer_size);
@@ -161,12 +179,16 @@ sub run($self) {
             }
         }
 
+        # Build hash of writable sockets for quick lookup
+        my %canWriteHash = map { $_ => 1 } @{$canWrite};
+
         # Write to client from buffer with proper partial write handling
+        # For SSL sockets, write unconditionally - SSL handles its own buffering
         my $loopcount = int(10_000_000 / $blocksize);  # Write at max ~10MB in one loop
         my $sendcount = $loopcount;
         my $client_offset = 0;
 
-        while($sendcount) {
+        while($sendcount && length($toclientbuffer)) {
             my $remaining = length($toclientbuffer) - $client_offset;
             if($remaining > 0 && !$clientdisconnect) {
                 my $written;
@@ -198,8 +220,8 @@ sub run($self) {
             $toclientbuffer = substr($toclientbuffer, $client_offset);
         }
 
-        # Write to backends from per-stream buffers
-        $self->writeToBackends($blocksize, $loopcount, $finishcountdown);
+        # Write to backends from per-stream buffers (only when writable)
+        $self->writeToBackends($blocksize, $loopcount, $finishcountdown, \%canWriteHash);
 
         # Handle client disconnect
         if($clientdisconnect) {
@@ -687,12 +709,14 @@ sub cleanup($self) {
     return;
 }
 
-sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown) {
+sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHashRef) {
     # Write from per-stream buffers to backends with proper partial write handling
+    # Only write when select() says socket is writable
     foreach my $streamId (keys %{$self->{tobackendbuffers}}) {
         my $backend = $self->{streamBackends}->{$streamId};
         next if(!defined($backend));
         next if($self->{backenddisconnects}->{$streamId});
+        next if(!$canWriteHashRef->{$backend});  # Skip if not writable
 
         my $tobackendbuffer = \$self->{tobackendbuffers}->{$streamId};
         next if(!defined(${$tobackendbuffer}) || !length(${$tobackendbuffer}));

@@ -265,8 +265,9 @@ sub validate_headers {
         # CONNECT method has special pseudo-header requirements
         if ( exists $pseudo_hash{':protocol'} ) {
             # Extended CONNECT (RFC 8441) - requires :protocol
-            # Check if peer has enabled extended CONNECT protocol
-            if ( !$self->enc_setting(SETTINGS_ENABLE_CONNECT_PROTOCOL) ) {
+            # Check if WE (the server) have enabled extended CONNECT protocol
+            # dec_setting = our settings (what we advertise to peer)
+            if ( !$self->dec_setting(SETTINGS_ENABLE_CONNECT_PROTOCOL) ) {
                 tracer->warning(":protocol pseudo-header used without SETTINGS_ENABLE_CONNECT_PROTOCOL");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
                 return;
