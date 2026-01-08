@@ -906,6 +906,7 @@ sub handleHTTP2Client($self, $client, $lhost, $lport, $peerhost, $peerport, $sel
             usessl   => 1,
             pid      => $PID,
         },
+        errorPage590Html  => $self->_get590Html(),
     );
 
     $handler->run();
@@ -921,7 +922,7 @@ sub endprogram($self) { ## no critic (Subroutines::RequireFinalReturn)
     }
 }
 
-sub get590($self) {
+sub _get590Html($self) {
     my $html = '<html><head><title>590 Connection to backend server failed</title></head><body onload="starttimer();">';
 
     $html .= '<script>function starttimer() { setTimeout(() => {doreload();}, 15000); };function doreload() {window.location.reload();};</script>';
@@ -932,6 +933,12 @@ sub get590($self) {
     $html .= '<p align="center">Click on the cat to reload the page.</p>';
 
     $html .= "</body></html>";
+
+    return $html;
+}
+
+sub get590($self) {
+    my $html = $self->_get590Html();
 
     my $reply = "HTTP/1.1 590 Connection to backend server failed\r\n";
     $reply .= "Content-Type: text/html; charset=UTF-8\r\n";

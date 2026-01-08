@@ -280,10 +280,12 @@ sub handleRequest($self, $server, $streamId, $headers, $data) {
     # Connect to backend
     my $backend = $self->connectBackend($streamId);
     if(!defined($backend)) {
-        # Send 502 Bad Gateway
+        # Send 590 Backend Not Running (custom PageCamel error) with error page
         $server->response(
-            ':status' => 502,
-            stream_id => $streamId,
+            ':status'  => 590,
+            stream_id  => $streamId,
+            headers    => ['content-type', 'text/html; charset=UTF-8'],
+            data       => $self->{errorPage590Html} // '',
         );
         return;
     }
@@ -325,9 +327,12 @@ sub handleConnectRequest($self, $server, $streamId, $headers) {
     # Connect to backend
     my $backend = $self->connectBackend($streamId);
     if(!defined($backend)) {
+        # Send 590 Backend Not Running (custom PageCamel error) with error page
         $server->response(
-            ':status' => 502,
-            stream_id => $streamId,
+            ':status'  => 590,
+            stream_id  => $streamId,
+            headers    => ['content-type', 'text/html; charset=UTF-8'],
+            data       => $self->{errorPage590Html} // '',
         );
         return;
     }
