@@ -272,7 +272,7 @@ sub handleRequest($self, $server, $streamId, $headers, $data) {
     for(my $i = 0; $i < scalar(@{$headers}); $i += 2) {
         $h{$headers->[$i]} = $headers->[$i + 1];
     }
-    print STDERR getISODate() . " HTTP2Handler: handleRequest stream=$streamId path=$h{':path'} activeBackends=" . scalar(keys %{$self->{streamBackends}}) . "\n";
+    #print STDERR getISODate() . " HTTP2Handler: handleRequest stream=$streamId path=$h{':path'} activeBackends=" . scalar(keys %{$self->{streamBackends}}) . "\n";
 
     # Convert HTTP/2 headers to HTTP/1.1 request
     my $request = $self->translateRequest($streamId, $headers, $data);
@@ -549,7 +549,7 @@ sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_
 sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
     my $response = $self->{streamResponses}->{$streamId};
     my $state = $self->{streamStates}->{$streamId};
-    print STDERR getISODate() . " HTTP2Handler: processBackendResponse stream=$streamId state=$state responseLen=" . length($response) . "\n";
+    #print STDERR getISODate() . " HTTP2Handler: processBackendResponse stream=$streamId state=$state responseLen=" . length($response) . "\n";
 
     # Split headers from body
     my ($headerPart, $bodyPart) = split(/\r\n\r\n/, $response, 2);
@@ -596,10 +596,22 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
             }
 
             # Send HTTP/2 200 OK to client for tunnel using tunnel_response
+            # Set up on_data callback to forward client data to backend
             my $tunnel = $server->tunnel_response(
                 ':status'  => 200,
                 stream_id  => $streamId,
                 headers    => \@tunnelHeaders,
+                on_data    => sub {
+                    my ($data) = @_;
+                    # Forward incoming tunnel data to backend
+                    #print STDERR getISODate() . " HTTP2Handler: Tunnel on_data stream=$streamId bytes=" . length($data) . "\n";
+                    if(defined($self->{streamBackends}->{$streamId})) {
+                        $self->{tobackendbuffers}->{$streamId} //= '';
+                        $self->{tobackendbuffers}->{$streamId} .= $data;
+                    } else {
+                        #print STDERR getISODate() . " HTTP2Handler: WARNING - no backend for tunnel stream=$streamId\n";
+                    }
+                },
             );
             $self->{streamTunnels}->{$streamId} = $tunnel;
             $self->{streamStates}->{$streamId} = 'tunnel';
@@ -659,7 +671,7 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
 }
 
 sub cleanupStream($self, $server, $streamId, $toclientbufferRef, $sendEndStream = 1) {
-    print STDERR getISODate() . " HTTP2Handler: cleanupStream stream=$streamId sendEndStream=$sendEndStream activeBackends=" . scalar(keys %{$self->{streamBackends}}) . "\n";
+    #print STDERR getISODate() . " HTTP2Handler: cleanupStream stream=$streamId sendEndStream=$sendEndStream activeBackends=" . scalar(keys %{$self->{streamBackends}}) . "\n";
 
     # Close backend connection
     if(defined($self->{streamBackends}->{$streamId})) {
