@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -66,7 +65,7 @@ sub findModules() {
 sub fixCroak($fname, $dryrun) {
     my $parseOK = 1;
 
-    open(my $ifh, '<', $fname) or croak("$!");
+    open(my $ifh, '<', $fname) or croak("$ERRNO");
     my @lines = <$ifh>;
     close $ifh;
 
@@ -135,7 +134,7 @@ sub fixCroak($fname, $dryrun) {
     }
 
     if(!$dryrun) {
-        open(my $ofh, '>', $fname) or croak("$!");
+        open(my $ofh, '>', $fname) or croak("$ERRNO");
         print $ofh join('', @newlines);
         close $ofh;
     }

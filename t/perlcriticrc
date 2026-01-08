@@ -135,3 +135,11 @@ max_elsif = 20
 # due to inheritance ("use base"), there MAY be private subs that are not used in that particular pm file
 [-Subroutines::ProhibitUnusedPrivateSubroutines]
 
+# if close() fails, we are fucked anyway...
+[-InputOutput::RequireCheckedClose]
+
+# Let's ignore that for now
+[-BuiltinFunctions::ProhibitComplexMappings]
+
+# no strict 'refs' is allowed under some circumstances
+[-[TestingAndDebugging::ProhibitNoStrict]]

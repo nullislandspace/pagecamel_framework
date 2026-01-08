@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -259,7 +258,7 @@ sub handleClient($self, $client) { ## no critic (Subroutines::RequireFinalReturn
     $ok = 0;
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         $client->close();
-        kill 'USR1', $header->{pid}; # Notify frontend that we are done
+        # Frontend detects connection closure via socket state (sysread returning 0)
 
         #print "Done with client PID $PID\n";
         $ok = 1;
@@ -279,10 +278,7 @@ sub endprogram($self, $header, $debugmessage) { ## no critic (Subroutines::Requi
         print STDERR "EVAL ERROR: ", $debugmessage, "\n";
     }
 
-    # Notify frontend that we are done
-    if(defined($header->{pid}) && $header->{pid} > 0) {
-        kill 'USR1', $header->{pid};
-    }
+    # Frontend detects connection closure via socket state (sysread returning 0)
 
     # Exit immediately without running END{} / DESTROY{} handlers
     POSIX::_exit(0);

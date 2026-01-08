@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -85,7 +84,7 @@ sub write($self, $ofh, @parts) {
         }
 
         # Handle write errors
-        if($!{EWOULDBLOCK} || $!{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
+        if($ERRNO{EWOULDBLOCK} || $ERRNO{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
             # Socket buffer full - wait for writability using select() instead of busy-wait
             if(!$shownlimitmessage) {
                 #$self->debuglog("Rate limiting output");

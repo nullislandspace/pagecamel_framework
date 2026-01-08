@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -26,11 +25,11 @@ foreach my $file (@files) {
 	print "Editing $file...\n";
 
 	my @lines;
-	open(my $ifh, "<", $file) or die($!);
+	open(my $ifh, "<", $file) or die($ERRNO);
 	@lines = <$ifh>;
 	close $ifh;
 
-	open(my $ofh, ">", $file) or die($!);
+	open(my $ofh, ">", $file) or die($ERRNO);
 	foreach my $line (@lines) {
         #$line =~ s/VERSION = \d\.\d+/VERSION = $newversion/g;
         $line =~ s/\$ua\-\>request_method\(\)/\$ua->{method}/g;
@@ -52,7 +51,7 @@ exit(0);
 
 sub find_pm($workDir) {
 	my @files;
-	opendir(my $dfh, $workDir) or die($!);
+	opendir(my $dfh, $workDir) or die($ERRNO);
 	while((my $fname = readdir($dfh))) {
 		next if($fname eq "." || $fname eq ".." || $fname eq ".hg");
 		$fname = $workDir . "/" . $fname;

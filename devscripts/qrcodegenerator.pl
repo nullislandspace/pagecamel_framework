@@ -1,9 +1,20 @@
 #!/usr/bin/env perl
-
+#---AUTOPRAGMASTART---
 use v5.40;
-
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 4.8;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
+
+
 
 use Image::PNG::QRCode 'qrpng';
 use GD;

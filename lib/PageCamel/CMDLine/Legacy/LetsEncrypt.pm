@@ -9,7 +9,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -349,7 +348,7 @@ sub parse_options($self, $opt) {
                 load $opt->{'handle-with'};
                 $opt->{'handler'} = $opt->{'handle-with'}->new();
             };
-            return $self->_error("Cannot use the module to handle challenges with.") if $@;
+            return $self->_error("Cannot use the module to handle challenges with.") if $EVAL_ERROR;
             my $method = 'handle_challenge_' . $opt->{'handle-as'};
             return $self->_error("Module to handle challenges does not seem to support the challenge type of $opt->{'handle-as'}.") unless $opt->{'handler'}->can($method);
             my $rv = $self->_load_params($opt, 'handle-params');
@@ -363,7 +362,7 @@ sub parse_options($self, $opt) {
                 load $opt->{'complete-with'};
                 $opt->{'complete-handler'} = $opt->{'complete-with'}->new();
             };
-            return $self->_error("Cannot use the module to complete processing with.") if $@;
+            return $self->_error("Cannot use the module to complete processing with.") if $EVAL_ERROR;
             return $self->_error("Module to complete processing with does not seem to support the required 'complete' method.") unless $opt->{'complete-handler'}->can('complete');
             my $rv = $self->_load_params($opt, 'complete-params');
             return $rv if $rv;
@@ -398,7 +397,7 @@ sub encode_args {
     @ARGV = @ARGVmod;
     eval {
         my $from;
-        if ($^O eq 'MSWin32') {
+        if ($OSNAME eq 'MSWin32') {
             load 'Win32';
             if (defined &Win32::GetACP) {
                 $from = "cp" . Win32::GetACP();
@@ -415,7 +414,7 @@ sub encode_args {
         @ARGV = map { decode $from, $_ } @ARGV;
         autoload 'URI::_punycode';
     };
-    return $@;
+    return $EVAL_ERROR;
 }
 
 sub _register($self, $le, $opt) {
@@ -464,8 +463,8 @@ sub _load_params($self, $opt, $type) {
     eval {
         $opt->{$type} = $j->decode($opt->{$type});
     };
-    return ($@ or (ref $opt->{$type} ne 'HASH')) ?
-        $self->_error("Could not decode '$type'. Please make sure you are providing a valid JSON document and {} are in place." . ($opt->{'debug'} ? $@ : '')) : 0;
+    return ($EVAL_ERROR or (ref $opt->{$type} ne 'HASH')) ?
+        $self->_error("Could not decode '$type'. Please make sure you are providing a valid JSON document and {} are in place." . ($opt->{'debug'} ? $EVAL_ERROR : '')) : 0;
 }
 
 sub _read($self, $file) {
@@ -575,9 +574,9 @@ sub remoteCall($self, $command, @options) {
         alarm 0;
     };
     alarm 0;
-    if($@) {
-        print STDERR "ERROR: ", $@, "\n";
-        die("RPC Timeout encountered!\n") if($@ eq "RPC Timeout");
+    if($EVAL_ERROR) {
+        print STDERR "ERROR: ", $EVAL_ERROR, "\n";
+        die("RPC Timeout encountered!\n") if($EVAL_ERROR eq "RPC Timeout");
         $error = 1;
     }
 

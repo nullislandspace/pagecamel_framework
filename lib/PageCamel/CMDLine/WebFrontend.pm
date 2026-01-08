@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -25,9 +24,10 @@ use Time::HiRes qw(sleep usleep time);
 use PageCamel::Helpers::Logo;
 use PageCamel::Helpers::WebPrint;
 use PageCamel::Helpers::Mandant;
+use PageCamel::Helpers::DateStrings;
 use Sys::Hostname;
 use POSIX;
-use Errno qw(:POSIX);
+use Errno qw();  # Load without importing - only needed for %! hash tying
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
 
 # For turning off SSL session cache
@@ -105,7 +105,17 @@ sub init($self) {
             push @newservices, $service;
         }
         $config->{external_network}->{service} = \@newservices;
-    }    
+    }
+
+    # Validate HTTP/2 configuration: HTTP/2 requires SSL/TLS
+    foreach my $service (@{$config->{external_network}->{service}}) {
+        if(defined($service->{http2}) && $service->{http2}) {
+            if(!defined($service->{usessl}) || !$service->{usessl}) {
+                print STDERR "HTTP/2 requires SSL/TLS! Disabling HTTP/2 on port $service->{port}\n";
+                $service->{http2} = 0;
+            }
+        }
+    }
 
     # Turn any comma-separated ip addresses into their own entry
     foreach my $service (@{$config->{external_network}->{service}}) {
@@ -258,7 +268,7 @@ sub run($self) {
     # Generate SSL session ticket key once (shared by all forked children)
     # Key format: 16 bytes name + 32 bytes key (16 AES + 16 HMAC)
     if($self->{hasssl}) {
-        open(my $urandom, '<:raw', '/dev/urandom') or croak("Cannot open /dev/urandom: $!");
+        open(my $urandom, '<:raw', '/dev/urandom') or croak("Cannot open /dev/urandom: $ERRNO");
         read($urandom, $self->{ssl_ticket_key_name}, 16) == 16 or croak("Failed to read key name from /dev/urandom");
         read($urandom, $self->{ssl_ticket_key}, 32) == 32 or croak("Failed to read key from /dev/urandom");
         close($urandom);
@@ -277,11 +287,11 @@ sub run($self) {
                 my $peerport = $client->peerport();
                 my $hostip = $client->sockhost();
                 my $hostport = $client->sockport();
-                print "**** Connection from ", $peerhost, ":", $peerport, " to ", $hostip, ":", $hostport, "   \n";
-                #if(0 && $peerhost ne '94.130.141.212') {
-                #    $client->close;
-                #    next;
-                #}
+                if(0 && $peerhost ne '127.0.0.1' && $peerhost ne '178.189.98.74') {
+                    $client->close;
+                    next;
+                }
+                print getISODate(), " Connection from ", $peerhost, ":", $peerport, " to ", $hostip, ":", $hostport, "   \n";
 
                 if(defined($self->{debugip})) {
                     if($peerhost ne $self->{debugip}) {
@@ -346,16 +356,8 @@ sub handleClient($self, $client) {
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
 
         my $finishcountdown = 0;
-        $SIG{USR1} = sub {
-            if(!$finishcountdown) {
-                $finishcountdown = time + 20;
-                #print "Backend finished, 20 second countdown before closing socket\n";
-            } else {
-                #print "Backend finished, countdown already started\n";
-            }
-            return;
-        };
-        
+        # Backend connection closure is detected via socket state (sysread returning 0)
+        # No need for USR1 signal - socket state detection is more reliable
 
         #print "Doing some network stuff in child PID $PID\n";
 
@@ -365,9 +367,10 @@ sub handleClient($self, $client) {
         my $peerport = $client->peerport();
 
         my $usessl = 0;
+        my $http2 = 0;
         my $selectedbackend = $self->{config}->{internal_socket};
 
-        # Check if we need to use SSL
+        # Check if we need to use SSL and/or HTTP/2
         foreach my $service (@{$self->{config}->{external_network}->{service}}) {
             # Search for the correct service
             if($service->{port} == $lport) {
@@ -376,6 +379,7 @@ sub handleClient($self, $client) {
                     if($ip eq $lhost) {
                         # Found it
                         $usessl = $service->{usessl};
+                        $http2 = $service->{http2} // 0;
                     }
                 }
             }
@@ -401,7 +405,7 @@ sub handleClient($self, $client) {
                 local $SIG{__WARN__} = sub {
                     my $msg = shift;
                     return if $msg =~ /uninitialized.*IO\/Socket\/SSL\.pm/;
-                    warn $msg;
+                    carp $msg;
                 };
                 #print STDERR "SSL connecting\n";
                 $encrypted = IO::Socket::SSL->start_SSL($client,
@@ -423,7 +427,7 @@ sub handleClient($self, $client) {
                             my $ticket_data = [$self->{ssl_ticket_key}, $self->{ssl_ticket_key_name}];
                             Net::SSLeay::CTX_set_tlsext_ticket_getkey_cb($ctx, sub {
                                 my ($data, $name) = @_;
-                                my ($ticket_key, $ticket_key_name) = @$data;
+                                my ($ticket_key, $ticket_key_name) = @{$data};
                                 # If no name given, return current key for new ticket
                                 return ($ticket_key, $ticket_key_name) if !defined($name);
                                 # If name matches our key, return it
@@ -482,22 +486,44 @@ sub handleClient($self, $client) {
                                     my $ticket_data = [$self->{ssl_ticket_key}, $self->{ssl_ticket_key_name}];
                                     Net::SSLeay::CTX_set_tlsext_ticket_getkey_cb($newctx, sub {
                                         my ($data, $name) = @_;
-                                        my ($ticket_key, $ticket_key_name) = @$data;
+                                        my ($ticket_key, $ticket_key_name) = @{$data};
                                         return ($ticket_key, $ticket_key_name) if !defined($name);
                                         return ($ticket_key, $ticket_key_name) if $name eq $ticket_key_name;
                                         return ($ticket_key, $ticket_key_name);
                                     }, $ticket_data);
                                 }
                                 eval { Net::SSLeay::CTX_set_timeout($newctx, 300); };
+                                # Set ALPN callback on SNI-switched context for HTTP/2
+                                if($http2) {
+                                    Net::SSLeay::CTX_set_alpn_select_cb($newctx, sub {
+                                        my ($ssl, $protocols) = @_;
+                                        foreach my $proto (@{$protocols}) {
+                                            if($proto eq 'h2') {
+                                                return 'h2';
+                                            }
+                                        }
+                                        return 'http/1.1';
+                                    });
+                                }
                                 #print STDERR "Cert: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslcert}, " Key: ", $self->{config}->{sslconfig}->{ssldomains}->{$h}->{sslkey}, "\n";
                                 $self->{config}->{sslconfig}->{ssldomains}->{$h}->{ctx} = $newctx;
                             }
                             Net::SSLeay::set_SSL_CTX($ssl, $newctx);
                         });
 
-                        #    Prepared/tested for future ALPN needs (e.g. HTTP/2)
-                        ## Advertise supported HTTP versions
-                        #Net::SSLeay::CTX_set_alpn_select_cb($ctx, ['http/1.1', 'http/2.0']);
+                        # Set ALPN callback to negotiate HTTP/2 or HTTP/1.1
+                        if($http2) {
+                            Net::SSLeay::CTX_set_alpn_select_cb($ctx, sub {
+                                my ($ssl, $protocols) = @_;
+                                # Prefer h2 if client offers it
+                                foreach my $proto (@{$protocols}) {
+                                    if($proto eq 'h2') {
+                                        return 'h2';
+                                    }
+                                }
+                                return 'http/1.1';
+                            });
+                        }
                     },
                 );
                 $ok = 1;
@@ -508,8 +534,17 @@ sub handleClient($self, $client) {
                 print STDERR "EVAL ERROR: ", $EVAL_ERROR, "\n";
                 $self->endprogram();
             } elsif(!$ok || !defined($encrypted) || !$encrypted) {
-                print STDERR "startSSL failed: ", $SSL_ERROR, "\n";
+                print STDERR getISODate(), " startSSL failed: ", $SSL_ERROR, "\n";
                 $self->endprogram();
+            }
+
+            # Check if HTTP/2 was negotiated via ALPN
+            if($http2) {
+                my $negotiatedProtocol = $encrypted->alpn_selected() // 'http/1.1';
+                if($negotiatedProtocol eq 'h2') {
+                    $self->handleHTTP2Client($encrypted, $lhost, $lport, $peerhost, $peerport, $selectedbackend);
+                    $self->endprogram();
+                }
             }
         }
         binmode($client);
@@ -547,7 +582,7 @@ sub handleClient($self, $client) {
                 my @connections = $select->can_read($remaining);
 
                 # Handle EINTR - signal interrupted the call, just retry
-                if(!@connections && $!{EINTR}) {
+                if(!@connections && $ERRNO{EINTR}) {
                     next;
                 }
 
@@ -686,10 +721,10 @@ sub handleClient($self, $client) {
             $ERRNO = 0;
             my @connections = $select->can_read($waittime);
             # Handle EINTR (signal interrupted call) - just continue, not an error
-            if(!@connections && $!{EINTR}) {
+            if(!@connections && $ERRNO{EINTR}) {
                 next;
             }
-            if($ERRNO ne '' && !$!{EINTR}) {
+            if($ERRNO ne '' && !$ERRNO{EINTR}) {
                 print STDERR "select error: $ERRNO\n";
             }
             my $max_buffer_size = 50_000_000;  # 50MB buffer limit to prevent memory exhaustion
@@ -858,6 +893,28 @@ sub handleClient($self, $client) {
 
 }
 
+sub handleHTTP2Client($self, $client, $lhost, $lport, $peerhost, $peerport, $selectedbackend) {
+    require PageCamel::CMDLine::WebFrontend::HTTP2Handler;
+
+    my $handler = PageCamel::CMDLine::WebFrontend::HTTP2Handler->new(
+        clientSocket      => $client,
+        backendSocketPath => $selectedbackend,
+        pagecamelInfo     => {
+            lhost    => $lhost,
+            lport    => $lport,
+            peerhost => $peerhost,
+            peerport => $peerport,
+            usessl   => 1,
+            pid      => $PID,
+        },
+        errorPage590Html  => $self->_get590Html(),
+    );
+
+    $handler->run();
+
+    return;
+}
+
 sub endprogram($self) { ## no critic (Subroutines::RequireFinalReturn)
     sleep(1);
     while(1) {
@@ -866,7 +923,7 @@ sub endprogram($self) { ## no critic (Subroutines::RequireFinalReturn)
     }
 }
 
-sub get590($self) {
+sub _get590Html($self) {
     my $html = '<html><head><title>590 Connection to backend server failed</title></head><body onload="starttimer();">';
 
     $html .= '<script>function starttimer() { setTimeout(() => {doreload();}, 15000); };function doreload() {window.location.reload();};</script>';
@@ -877,6 +934,12 @@ sub get590($self) {
     $html .= '<p align="center">Click on the cat to reload the page.</p>';
 
     $html .= "</body></html>";
+
+    return $html;
+}
+
+sub get590($self) {
+    my $html = $self->_get590Html();
 
     my $reply = "HTTP/1.1 590 Connection to backend server failed\r\n";
     $reply .= "Content-Type: text/html; charset=UTF-8\r\n";

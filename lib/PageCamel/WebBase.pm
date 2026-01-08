@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -429,7 +428,7 @@ sub readheader($self, $timeout, $socket) {
                 $buf = undef;
                 my $bufstatus = $socket->sysread($buf, 1);
                 if(!defined($bufstatus)) {
-                    # Error (EAGAIN/EWOULDBLOCK with $! set) - continue waiting
+                    # Error (EAGAIN/EWOULDBLOCK with $ERRNO set) - continue waiting
                     next;
                 }
                 if($bufstatus == 0) {
@@ -1311,7 +1310,7 @@ nextrequest:
 
             if(!$useuploadstream) {
                 #$self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
-                if(!$self->get_request_body($realsocket, $ua, 30, 65536)) {
+                if(!$self->get_request_body($realsocket, $ua, 30, 65_536)) {
                     $ua->{keepalive} = 0;
                     $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                     goto cleanup;
@@ -1409,7 +1408,7 @@ nextrequest:
                         my $xfuncnamefinish = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{finish};
                         my $ok = 1;
                         if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
-                            $ok = $self->stream_request_body($realsocket, $ua, 30, 65536, $xmodule, $xfuncnamestream);
+                            $ok = $self->stream_request_body($realsocket, $ua, 30, 65_536, $xmodule, $xfuncnamestream);
                             #$ok = $xmodule->$xfuncnamestream($ua, $ua->{postdata});
                         }
 

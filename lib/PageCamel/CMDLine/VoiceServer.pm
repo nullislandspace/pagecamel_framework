@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -324,7 +323,7 @@ sub run($self) {
                 push @toremove, $cid;
                 next;
             }
-            if(!$clients{$cid}->{socket}->opened || $clients{$cid}->{socket}->error || ($ERRNO ne '' && !$!{EWOULDBLOCK})) { ## no critic (Variables::ProhibitPunctuationVars)
+            if(!$clients{$cid}->{socket}->opened || $clients{$cid}->{socket}->error || ($ERRNO ne '' && !$ERRNO{EWOULDBLOCK})) { ## no critic (Variables::ProhibitPunctuationVars)
                 print STDERR "webPrint write failure: $ERRNO\n";
                 push @toremove, $cid;
                 next;

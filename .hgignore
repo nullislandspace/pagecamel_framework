@@ -19,3 +19,6 @@ package-lock.json
 
 \.map$
 ^\.claude\/.*
+lib/PageCamel/CMDLine/.claude/settings.local.json
+lib/PageCamel/CMDLine/CLAUDE.md
+

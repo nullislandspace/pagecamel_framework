@@ -7,7 +7,6 @@ use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
 our $VERSION = 4.8;
-use autodie qw( close );
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -1036,7 +1035,7 @@ sub printAddCutHereLine($self) {
 sub markWithArrow($self, $line, $size, $y = undef) {
     if(!defined($y)) {
         croak("BLA");
-        $y = $self->{imgoffs};
+        #$y = $self->{imgoffs};
     }
     if($line =~ /↳/) {
         $self->printAddArrow($size, $y);
