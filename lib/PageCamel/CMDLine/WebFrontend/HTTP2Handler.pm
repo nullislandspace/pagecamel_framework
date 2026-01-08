@@ -587,6 +587,11 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
         }
     }
 
+    # Add Alt-Svc header to advertise HTTP/3 if enabled
+    if($self->{http3Port}) {
+        push @responseHeaders, 'alt-svc', 'h3=":' . $self->{http3Port} . '"; ma=86400';
+    }
+
     # Debug: log response processing
     #print STDERR getISODate() . " HTTP2Handler [$self->{pagecamelInfo}->{peerhost}]: processBackendResponse stream=$streamId status=$status contentLength=" . ($contentLength // 'undef') . " bodyLen=" . length($bodyPart // '') . " state=$state\n";
 

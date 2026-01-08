@@ -117,6 +117,16 @@ sub init($self) {
         }
     }
 
+    # Validate HTTP/3 configuration: HTTP/3 requires SSL/TLS
+    foreach my $service (@{$config->{external_network}->{service}}) {
+        if(defined($service->{http3}) && $service->{http3}) {
+            if(!defined($service->{usessl}) || !$service->{usessl}) {
+                print STDERR "HTTP/3 requires SSL/TLS! Disabling HTTP/3 on port $service->{port}\n";
+                $service->{http3} = 0;
+            }
+        }
+    }
+
     # Turn any comma-separated ip addresses into their own entry
     foreach my $service (@{$config->{external_network}->{service}}) {
         my @newips;
@@ -178,28 +188,64 @@ sub init($self) {
 
 
     my $hasssl = 0;
+    my $hashttp3 = 0;
     my @tcpsockets;
+    my @udpsockets;
+    my %udpSocketInfo;  # Map socket to {ip, port, service}
+
     foreach my $service (@{$config->{external_network}->{service}}) {
         print '** Service at port ', $service->{port}, ' does ', $service->{usessl} ? '' : 'NOT', " use SSL/TLS\n";
         if($service->{usessl}) {
             $hasssl = 1;
         }
+        if($service->{http3}) {
+            $hashttp3 = 1;
+            print '   HTTP/3 enabled on port ', $service->{port}, "\n";
+        }
         foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
+            # Create TCP socket
             my $tcp = IO::Socket::IP->new(
                     LocalHost => $ip,
                     LocalPort => $service->{port},
                     Listen => ($config->{max_childs} || 128), # Queue size based on max_childs config
                     ReuseAddr => 1,
                     Proto => 'tcp',
-            ) or croak("Failed to bind: " . $ERRNO);
-            #binmode($tcp, ':bytes');
+            ) or croak("Failed to bind TCP: " . $ERRNO);
             push @tcpsockets, $tcp;
-            print "   Listening on ", $ip, ":, ", $service->{port}, "/tcp\n";
+            print "   Listening on ", $ip, ":", $service->{port}, "/tcp\n";
+
+            # Create UDP socket for HTTP/3 if enabled
+            if($service->{http3}) {
+                my $udp = IO::Socket::IP->new(
+                        LocalHost => $ip,
+                        LocalPort => $service->{port},
+                        ReuseAddr => 1,
+                        Proto => 'udp',
+                ) or croak("Failed to bind UDP: " . $ERRNO);
+                $udp->blocking(0);
+                push @udpsockets, $udp;
+                $udpSocketInfo{$udp} = {
+                    ip      => $ip,
+                    port    => $service->{port},
+                    service => $service,
+                };
+                print "   Listening on ", $ip, ":", $service->{port}, "/udp (HTTP/3)\n";
+            }
         }
     }
-    my $select = IO::Select->new(@tcpsockets);
+    my $select = IO::Select->new(@tcpsockets, @udpsockets);
     $self->{select} = $select;
+    $self->{tcpsockets} = \@tcpsockets;
+    $self->{udpsockets} = \@udpsockets;
+    $self->{udpSocketInfo} = \%udpSocketInfo;
     $self->{hasssl} = $hasssl;
+    $self->{hashttp3} = $hashttp3;
+
+    # Initialize QUIC/HTTP3 state if HTTP/3 is enabled
+    if($hashttp3) {
+        $self->{quicConnections} = {};  # Connection ID -> Connection object
+        $self->{quicConnectionsByAddr} = {};  # "ip:port" -> Connection object
+    }
 
     if($hasssl) {
         if(!defined($self->{config}->{sslconfig}->{ssldefaultdomain})) {
@@ -274,9 +320,23 @@ sub run($self) {
         close($urandom);
     }
 
+    # Build lookup hash for UDP sockets
+    my %isUdpSocket;
+    foreach my $udp (@{$self->{udpsockets}}) {
+        $isUdpSocket{$udp} = 1;
+    }
+
     while(1) {
         while((my @connections = $self->{select}->can_read(1))) {
             foreach my $connection (@connections) {
+                # Check if this is a UDP socket (HTTP/3) or TCP socket
+                if($isUdpSocket{$connection}) {
+                    # UDP packet for HTTP/3
+                    $self->handleQUICPacket($connection);
+                    next;
+                }
+
+                # TCP connection handling (HTTP/1.1 and HTTP/2)
                 my $client = $connection->accept;
 
                 # Set socket options for lower latency and dead connection detection
@@ -323,6 +383,11 @@ sub run($self) {
                     next;
                 }
             }
+        }
+
+        # Handle QUIC connection timeouts and maintenance
+        if($self->{hashttp3}) {
+            $self->handleQUICTimeouts();
         }
 
         if($self->{dynamicIP} ne '') {
@@ -896,6 +961,15 @@ sub handleClient($self, $client) {
 sub handleHTTP2Client($self, $client, $lhost, $lport, $peerhost, $peerport, $selectedbackend) {
     require PageCamel::CMDLine::WebFrontend::HTTP2Handler;
 
+    # Check if HTTP/3 is enabled on this port for Alt-Svc advertisement
+    my $http3Port;
+    foreach my $service (@{$self->{config}->{external_network}->{service}}) {
+        if($service->{port} == $lport && $service->{http3}) {
+            $http3Port = $lport;
+            last;
+        }
+    }
+
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP2Handler->new(
         clientSocket      => $client,
         backendSocketPath => $selectedbackend,
@@ -908,11 +982,243 @@ sub handleHTTP2Client($self, $client, $lhost, $lport, $peerhost, $peerport, $sel
             pid      => $PID,
         },
         errorPage590Html  => $self->_get590Html(),
+        http3Port         => $http3Port,
     );
 
     $handler->run();
 
     return;
+}
+
+sub handleQUICPacket($self, $udpSocket) {
+    # Receive UDP datagram
+    my $packet;
+    my $peerAddr = $udpSocket->recv($packet, 65535);
+
+    return unless(defined($peerAddr) && length($packet));
+
+    # Extract peer info
+    my ($peerPort, $peerIp) = Socket::unpack_sockaddr_in($peerAddr);
+    my $peerhost = Socket::inet_ntoa($peerIp);
+    my $peerkey = "$peerhost:$peerPort";
+
+    # Get local socket info
+    my $socketInfo = $self->{udpSocketInfo}->{$udpSocket};
+    my $lhost = $socketInfo->{ip};
+    my $lport = $socketInfo->{port};
+    my $service = $socketInfo->{service};
+
+    # Get timestamp for QUIC
+    my $ts = Time::HiRes::time();
+
+    # Try to find existing connection by peer address
+    my $quicConn = $self->{quicConnectionsByAddr}->{$peerkey};
+
+    if(defined($quicConn)) {
+        # Existing connection - process packet
+        my $rv = $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
+
+        if($rv < 0) {
+            # Connection error or closing
+            if($quicConn->is_closed()) {
+                $self->cleanupQUICConnection($quicConn);
+            }
+        }
+
+        # Send any response packets
+        $self->sendQUICPackets($quicConn, $udpSocket);
+    } else {
+        # New connection - extract connection ID from packet header
+        my $dcid = $self->extractQUICConnectionId($packet);
+        return unless(defined($dcid));
+
+        # Check for existing connection by connection ID
+        $quicConn = $self->{quicConnections}->{$dcid};
+
+        if(defined($quicConn)) {
+            # Connection migration - packet from new address
+            $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
+            $self->sendQUICPackets($quicConn, $udpSocket);
+        } else {
+            # Brand new connection
+            $self->handleNewQUICConnection($udpSocket, $packet, $peerhost, $peerPort, $lhost, $lport, $service, $ts);
+        }
+    }
+
+    return;
+}
+
+sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $lhost, $lport, $service, $ts) {
+    require PageCamel::Protocol::QUIC::Server;
+    require PageCamel::Protocol::QUIC::Connection;
+    require PageCamel::CMDLine::WebFrontend::HTTP3Handler;
+
+    # Generate connection IDs
+    my $dcid = $self->extractQUICConnectionId($packet);
+    my $scid = $self->generateQUICConnectionId();
+
+    return unless(defined($dcid));
+
+    # Get SSL config
+    my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
+    my $certFile = $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert};
+    my $keyFile = $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey};
+
+    my $peerkey = "$peerhost:$peerPort";
+    print getISODate(), " HTTP/3 connection from ", $peerhost, ":", $peerPort, " to ", $lhost, ":", $lport, "\n";
+
+    # Create QUIC connection
+    my $quicConn = PageCamel::Protocol::QUIC::Connection->new(
+        id        => $scid,
+        dcid      => $dcid,
+        scid      => $scid,
+        path      => {
+            local  => {host => $lhost, port => $lport},
+            remote => {host => $peerhost, port => $peerPort},
+        },
+        peer_addr  => {host => $peerhost, port => $peerPort},
+        local_addr => {host => $lhost, port => $lport},
+        cert_file  => $certFile,
+        key_file   => $keyFile,
+        on_stream_data => sub($conn, $streamId, $data, $fin) {
+            $self->handleQUICStreamData($conn, $streamId, $data, $fin);
+        },
+        on_handshake => sub($conn) {
+            $self->handleQUICHandshake($conn);
+        },
+    );
+
+    # Store connection
+    $self->{quicConnections}->{$dcid} = $quicConn;
+    $self->{quicConnections}->{$scid} = $quicConn;
+    $self->{quicConnectionsByAddr}->{$peerkey} = $quicConn;
+
+    # Store additional metadata
+    $quicConn->{_udpSocket} = $udpSocket;
+    $quicConn->{_service} = $service;
+    $quicConn->{_selectedbackend} = $self->{config}->{internal_socket};
+
+    # Process the initial packet
+    $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
+
+    # Send response packets
+    $self->sendQUICPackets($quicConn, $udpSocket);
+
+    return;
+}
+
+sub handleQUICStreamData($self, $quicConn, $streamId, $data, $fin) {
+    # HTTP/3 stream data is handled by the HTTP3Handler
+    # This callback is for lower-level QUIC handling
+    return;
+}
+
+sub handleQUICHandshake($self, $quicConn) {
+    # QUIC handshake completed - connection is now established
+    print getISODate(), " HTTP/3 handshake completed for ", $quicConn->id(), "\n";
+    return;
+}
+
+sub sendQUICPackets($self, $quicConn, $udpSocket) {
+    my $ts = Time::HiRes::time();
+    my @packets = $quicConn->get_packets($ts);
+
+    foreach my $pkt (@packets) {
+        my $peerAddr = $pkt->{peer_addr};
+        my $sockaddr = Socket::pack_sockaddr_in($peerAddr->{port}, Socket::inet_aton($peerAddr->{host}));
+        $udpSocket->send($pkt->{data}, 0, $sockaddr);
+    }
+
+    return;
+}
+
+sub handleQUICTimeouts($self) {
+    my $ts = Time::HiRes::time();
+
+    foreach my $connId (keys %{$self->{quicConnections}}) {
+        my $quicConn = $self->{quicConnections}->{$connId};
+        next unless(defined($quicConn));
+
+        # Skip if we already processed this connection (multiple IDs per connection)
+        next if($quicConn->{_timeoutHandled});
+
+        my $expiry = $quicConn->get_expiry();
+        if($expiry <= $ts) {
+            $quicConn->handle_expiry($ts);
+
+            # Send any resulting packets
+            my $udpSocket = $quicConn->{_udpSocket};
+            $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+
+            # Check if connection closed
+            if($quicConn->is_closed()) {
+                $self->cleanupQUICConnection($quicConn);
+            }
+        }
+
+        $quicConn->{_timeoutHandled} = 1;
+    }
+
+    # Reset timeout handled flags
+    foreach my $connId (keys %{$self->{quicConnections}}) {
+        my $quicConn = $self->{quicConnections}->{$connId};
+        delete $quicConn->{_timeoutHandled} if(defined($quicConn));
+    }
+
+    return;
+}
+
+sub cleanupQUICConnection($self, $quicConn) {
+    return unless(defined($quicConn));
+
+    # Remove from connection ID map
+    foreach my $cid ($quicConn->get_connection_ids()) {
+        delete $self->{quicConnections}->{$cid};
+    }
+
+    # Remove from address map
+    my $peerAddr = $quicConn->peer_addr();
+    if(defined($peerAddr)) {
+        my $peerkey = "$peerAddr->{host}:$peerAddr->{port}";
+        delete $self->{quicConnectionsByAddr}->{$peerkey};
+    }
+
+    # Destroy connection
+    $quicConn->destroy();
+
+    return;
+}
+
+sub extractQUICConnectionId($self, $packet) {
+    # Extract Destination Connection ID from QUIC packet header
+    # QUIC long header: first byte has 0x80 set, DCID length at byte 5
+    # QUIC short header: first byte has 0x80 clear, DCID based on known length
+
+    return unless(defined($packet) && length($packet) >= 6);
+
+    my $firstByte = ord(substr($packet, 0, 1));
+
+    if($firstByte & 0x80) {
+        # Long header
+        my $dcidLen = ord(substr($packet, 5, 1));
+        return unless(length($packet) >= 6 + $dcidLen);
+        return substr($packet, 6, $dcidLen);
+    } else {
+        # Short header - DCID length is based on connection configuration
+        # Default to 8 bytes for new connections
+        return substr($packet, 1, 8) if(length($packet) >= 9);
+    }
+
+    return;
+}
+
+sub generateQUICConnectionId($self) {
+    # Generate a random 8-byte connection ID
+    my $cid = '';
+    for(my $i = 0; $i < 8; $i++) {
+        $cid .= chr(int(rand(256)));
+    }
+    return $cid;
 }
 
 sub endprogram($self) { ## no critic (Subroutines::RequireFinalReturn)

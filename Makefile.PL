@@ -1,13 +1,86 @@
 use v5.38;
 use ExtUtils::MakeMaker;
+use Config;
+use File::Find;
 
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
-WriteMakefile(
+# Build PM hash excluding any nested blib directories
+my %pm;
+find(sub {
+    return unless -f $_;
+    return if $File::Find::dir =~ m{/blib/};  # Skip nested blib directories
+    my $file = $File::Find::name;
+    return unless $file =~ /\.(pm|pl|json|md|tt)$/;
+    (my $inst = $file) =~ s{^lib/}{blib/lib/};
+    $pm{$file} = $inst;
+}, 'lib');
+
+# HTTP/3 support detection - automatically enabled if libraries are available
+my $http3Enabled = 0;
+my @http3Libs = ();
+my @http3Incs = ();
+
+print "Checking for HTTP/3 library support...\n";
+
+# Check for ngtcp2 via pkg-config
+my $ngtcp2Cflags = `pkg-config --cflags libngtcp2 2>/dev/null`;
+my $ngtcp2Libs = `pkg-config --libs libngtcp2 2>/dev/null`;
+# Try GnuTLS crypto first, then fall back to quictls/OpenSSL
+my $ngtcp2CryptoCflags = `pkg-config --cflags libngtcp2_crypto_gnutls 2>/dev/null`;
+my $ngtcp2CryptoLibs = `pkg-config --libs libngtcp2_crypto_gnutls 2>/dev/null`;
+my $usingGnutls = 1;
+
+# Check for nghttp3 via pkg-config
+my $nghttp3Cflags = `pkg-config --cflags libnghttp3 2>/dev/null`;
+my $nghttp3Libs = `pkg-config --libs libnghttp3 2>/dev/null`;
+
+# Chomp all values first
+chomp($ngtcp2Cflags) if(defined($ngtcp2Cflags));
+chomp($ngtcp2Libs) if(defined($ngtcp2Libs));
+chomp($ngtcp2CryptoCflags) if(defined($ngtcp2CryptoCflags));
+chomp($ngtcp2CryptoLibs) if(defined($ngtcp2CryptoLibs));
+chomp($nghttp3Cflags) if(defined($nghttp3Cflags));
+chomp($nghttp3Libs) if(defined($nghttp3Libs));
+
+# Check if we have the required libraries (must be defined and non-empty)
+if(defined($ngtcp2Libs) && length($ngtcp2Libs) &&
+   defined($nghttp3Libs) && length($nghttp3Libs)) {
+
+    print "  Found ngtcp2: $ngtcp2Libs\n";
+    print "  Found nghttp3: $nghttp3Libs\n";
+
+    push @http3Incs, split(/\s+/, "$ngtcp2Cflags $ngtcp2CryptoCflags $nghttp3Cflags");
+    push @http3Libs, split(/\s+/, "$ngtcp2Libs $ngtcp2CryptoLibs $nghttp3Libs");
+
+    # Also need GnuTLS
+    my $gnutlsCflags = `pkg-config --cflags gnutls 2>/dev/null`;
+    my $gnutlsLibs = `pkg-config --libs gnutls 2>/dev/null`;
+    chomp($gnutlsCflags) if(defined($gnutlsCflags));
+    chomp($gnutlsLibs) if(defined($gnutlsLibs));
+
+    if(defined($gnutlsLibs) && length($gnutlsLibs)) {
+        push @http3Incs, split(/\s+/, $gnutlsCflags);
+        push @http3Libs, split(/\s+/, $gnutlsLibs);
+    }
+
+    $http3Enabled = 1;
+    print "HTTP/3 support enabled (using GnuTLS).\n";
+} else {
+    print "HTTP/3 libraries (ngtcp2/nghttp3) not found.\n";
+    print "Install libngtcp2-dev and libnghttp3-dev to enable HTTP/3 support.\n";
+}
+
+# Remove duplicates from includes and libs
+my %seenInc;
+@http3Incs = grep { !$seenInc{$_}++ } @http3Incs;
+my %seenLib;
+@http3Libs = grep { !$seenLib{$_}++ } @http3Libs;
+
+# Build parameters
+my %mmParams = (
     NAME              => 'PageCamel::Framework',
-    VERSION_FROM      => 'lib/PageCamel/Framework.pm', # finds $VERSION
+    VERSION_FROM      => 'lib/PageCamel/Framework.pm',
     PREREQ_PM         => {
-        'AHA' => 0.6, # AVM Home Automation (Fritz!Box)
+        'AHA' => 0.6,
         'Archive::Zip' => 0,
         'Array::Contains' => 3.1,
         'Carp' => 0,
@@ -16,7 +89,7 @@ WriteMakefile(
         'CPAN::Mini::Inject' => 0,
         'Crypt::Digest::SHA256' => 0,
         'Crypt::LE' => 0,
-        'Crypt::OpenSSL::RSA' => 0.99, # Workaround for Crypt::LE
+        'Crypt::OpenSSL::RSA' => 0.99,
         'CSS::Minifier::XS' => 0,
         'Data::Dumper' => 0,
         'Data::Entropy::Algorithms' => 0,
@@ -55,7 +128,6 @@ WriteMakefile(
         'HTTP::Date' => 0,
         'Image::Imlib2' => 2.04,
         'Image::PNG::QRCode' => 0,
-        #'IO::Compress::Brotli' => 0,
         'IO::Compress::Gzip' => 0,
         'IO::File' => 0,
         'IO::Handle' => 0,
@@ -125,10 +197,58 @@ WriteMakefile(
         'XML::RPC' => 2.1,
         'XML::Simple' => 0,
         'YAML::Syck' => 0,
-
         "forks" => 0,
     },
-    ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
-      (ABSTRACT_FROM  => 'lib/PageCamel/Framework.pm', # retrieve abstract from module
-       AUTHOR         => 'Rene Schickbauer <pagecamel@cavac.at>') : ()),
+    ABSTRACT_FROM     => 'lib/PageCamel/Framework.pm',
+    AUTHOR            => 'Rene Schickbauer <pagecamel@cavac.at>',
+    LICENSE           => 'artistic_2',
+    MIN_PERL_VERSION  => '5.038',
+    PM                => \%pm,  # Explicit PM hash excluding nested blib directories
 );
+
+# Add XS compilation if HTTP/3 is enabled
+if($http3Enabled) {
+    # Point to subdirectories with their own Makefile.PL for XS modules
+    $mmParams{DIR} = ['lib/PageCamel/XS'];
+
+    # Write the HTTP/3 configuration for the XS subdirectory
+    open my $fh, '>', 'lib/PageCamel/XS/http3_config.pl' or die "Cannot write http3_config.pl: $!";
+    print $fh "# Auto-generated HTTP/3 configuration\n";
+    print $fh "our \$HTTP3_ENABLED = 1;\n";
+    print $fh "our \@HTTP3_INCS = qw(" . join(' ', @http3Incs) . ");\n";
+    print $fh "our \@HTTP3_LIBS = qw(" . join(' ', @http3Libs) . ");\n";
+    print $fh "1;\n";
+    close $fh;
+    print "Wrote HTTP/3 configuration to lib/PageCamel/XS/http3_config.pl\n";
+}
+
+WriteMakefile(%mmParams);
+
+# Custom targets
+sub MY::postamble {
+    return <<'MAKE_FRAG';
+
+# Clean up nested blib directories that can cause build issues
+clean ::
+	-rm -rf lib/PageCamel/blib lib/PageCamel/XS/blib
+
+# HTTP/3 specific targets
+http3-check:
+	@echo "Checking HTTP/3 library availability..."
+	@pkg-config --exists libngtcp2 && echo "ngtcp2: found" || echo "ngtcp2: NOT FOUND"
+	@pkg-config --exists libnghttp3 && echo "nghttp3: found" || echo "nghttp3: NOT FOUND"
+	@pkg-config --exists openssl && echo "openssl: found" || echo "openssl: NOT FOUND"
+
+http3-info:
+	@echo "HTTP/3 Build Information:"
+	@echo "========================="
+	@if [ -f lib/PageCamel/XS/http3_config.pl ]; then \
+		echo "HTTP/3 support: ENABLED"; \
+		cat lib/PageCamel/XS/http3_config.pl; \
+	else \
+		echo "HTTP/3 support: DISABLED"; \
+		echo "Install libngtcp2-dev and libnghttp3-dev to enable."; \
+	fi
+
+MAKE_FRAG
+}
