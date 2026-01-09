@@ -17,9 +17,11 @@ use PageCamel::Helpers::UTF;
 no warnings 'experimental::args_array_with_signatures';
 
 use PageCamel::Protocol::HTTP2::Server;
-use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :settings);
+use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :settings :limits);
 use IO::Socket::UNIX;
 use IO::Select;
+use Socket qw(MSG_PEEK MSG_DONTWAIT);
+use Time::HiRes qw(time);
 use PageCamel::Helpers::DateStrings;
 
 sub new($class, %config) {
@@ -34,6 +36,8 @@ sub new($class, %config) {
 
     # Stream to backend connection mapping
     $self->{streamBackends} = {};
+    # Reverse lookup: backend socket → stream ID (for O(1) lookup)
+    $self->{backendToStream} = {};
     # Stream to response buffer mapping
     $self->{streamResponses} = {};
     # Stream states
@@ -52,6 +56,11 @@ sub new($class, %config) {
     $self->{streamContentLength} = {};
     $self->{streamBytesSent} = {};
 
+    # Backend connection pool for Keep-Alive reuse
+    $self->{backendPool} = [];              # Available backend connections (ready for reuse)
+    $self->{maxPoolSize} = 8;               # Max connections to keep in pool
+    $self->{waitingForBackend} = [];        # Queue of [streamId, request, state] waiting for backend
+
     return $self;
 }
 
@@ -61,12 +70,14 @@ sub run($self) {
     $select->add($client);
 
     # Create HTTP/2 server instance with extended CONNECT enabled (RFC 8441)
-    # Note: SETTINGS_ENABLE_CONNECT_PROTOCOL must be passed in constructor
-    # because the initial SETTINGS frame is queued during construction
+    # Note: Settings must be passed in constructor because the initial
+    # SETTINGS frame is queued during construction
     my $server;
     $server = PageCamel::Protocol::HTTP2::Server->new(
         settings => {
             &SETTINGS_ENABLE_CONNECT_PROTOCOL => 1,
+            &SETTINGS_INITIAL_WINDOW_SIZE     => 1_048_576,  # 1MB (default 64KB) - reduces flow control round-trips
+            # Note: MAX_FRAME_SIZE not increased - Protocol::HTTP2 must respect client's advertised size
         },
         on_request => sub ($streamId, $headers, $data) {
             $self->handleRequest($server, $streamId, $headers, $data);
@@ -90,7 +101,18 @@ sub run($self) {
 
     # Main event loop
     my $done = 0;
+
+    # Debug timing - set to 1 to diagnose performance issues
+    #my $debugTiming = 1;
+    #my $loopCount = 0;
+    #my $totalSelectTime = 0;
+    #my $totalReadTime = 0;
+    #my $totalClientWriteTime = 0;
+    #my $totalBackendWriteTime = 0;
+    #my $lastReportTime = time();
+
     while(!$done) {
+        #my $loopStart = time() if($debugTiming);
         # Build list of sockets to monitor
         # Note: Don't use connected() check - socket may have buffered data even after peer closes
         my @monitorSockets = ($client);
@@ -129,7 +151,9 @@ sub run($self) {
         # This ensures we stay responsive when actively transferring data
         my $timeout = $writeSet->count() > 0 ? 0.001 : 1;
         $ERRNO = 0;
+        #my $selectStart = time() if($debugTiming);
         my ($canRead, $canWrite, undef) = IO::Select->select($readSet, $writeSet, undef, $timeout);
+        #$totalSelectTime += (time() - $selectStart) if($debugTiming);
 
         # Handle EINTR (signal interrupted call) - just continue
         if(!defined($canRead) && $ERRNO{EINTR}) {
@@ -152,6 +176,7 @@ sub run($self) {
         }
 
         # Handle readable sockets
+        #my $readStart = time() if($debugTiming);
         foreach my $socket (@{$canRead}) {
             if($socket == $client) {
                 # Skip reading from client if toclientbuffer is too large (back-pressure)
@@ -179,49 +204,71 @@ sub run($self) {
             }
         }
 
+        #$totalReadTime += (time() - $readStart) if($debugTiming);
+
         # Build hash of writable sockets for quick lookup
         my %canWriteHash = map { $_ => 1 } @{$canWrite};
 
+        # Fair I/O: limit writes per iteration to allow interleaving client/backend I/O
+        # Higher limit = more throughput but less responsiveness to new requests
+        my $maxBytesPerDirection = 10_000_000;  # 10MB per direction per iteration
+
         # Write to client from buffer with proper partial write handling
-        # For SSL sockets, write unconditionally - SSL handles its own buffering
-        my $loopcount = int(10_000_000 / $blocksize);  # Write at max ~10MB in one loop
-        my $sendcount = $loopcount;
-        my $client_offset = 0;
+        #my $clientWriteStart = time() if($debugTiming);
+        my $clientBytesWritten = 0;
+        while($clientBytesWritten < $maxBytesPerDirection && length($toclientbuffer) && !$clientdisconnect) {
+            my $towrite = length($toclientbuffer) < $blocksize ? length($toclientbuffer) : $blocksize;
+            my $written;
 
-        while($sendcount && length($toclientbuffer)) {
-            my $remaining = length($toclientbuffer) - $client_offset;
-            if($remaining > 0 && !$clientdisconnect) {
-                my $written;
-                my $towrite = $remaining < $blocksize ? $remaining : $blocksize;
+            eval {
+                $written = syswrite($client, $toclientbuffer, $towrite);
+            };
+            if($EVAL_ERROR) {
+                #print STDERR "HTTP2Handler: Write error to client: $EVAL_ERROR\n";
+                last;
+            }
 
-                eval {
-                    $written = syswrite($client, $toclientbuffer, $towrite, $client_offset);
-                };
-                if($EVAL_ERROR) {
-                    #print STDERR "HTTP2Handler: Write error to client: $EVAL_ERROR\n";
-                } else {
-                    if($finishcountdown) {
-                        # Reset countdown if we're still sending data
-                        $finishcountdown = time + 20;
-                    }
-                }
-                if(defined($written) && $written) {
-                    $client_offset += $written;
-                } else {
-                    last;
+            if(defined($written) && $written > 0) {
+                $toclientbuffer = substr($toclientbuffer, $written);
+                $clientBytesWritten += $written;
+                if($finishcountdown) {
+                    # Reset countdown if we're still sending data
+                    $finishcountdown = time + 20;
                 }
             } else {
                 last;
             }
-            $sendcount--;
-        }
-        # Remove written data from buffer
-        if($client_offset > 0) {
-            $toclientbuffer = substr($toclientbuffer, $client_offset);
         }
 
-        # Write to backends from per-stream buffers (only when writable)
-        $self->writeToBackends($blocksize, $loopcount, $finishcountdown, \%canWriteHash);
+        #$totalClientWriteTime += (time() - $clientWriteStart) if($debugTiming);
+
+        # Write to backends from per-stream buffers (fair round-robin)
+        #my $backendWriteStart = time() if($debugTiming);
+        $self->writeToBackends($blocksize, $maxBytesPerDirection, \%canWriteHash);
+        #$totalBackendWriteTime += (time() - $backendWriteStart) if($debugTiming);
+
+        # Process waiting streams - assign backends from pool to queued requests
+        $self->processWaitingStreams($server, \$toclientbuffer);
+
+        # Debug timing report (every 2 seconds) - uncomment to diagnose performance
+        #if($debugTiming) {
+        #    $loopCount++;
+        #    my $now = time();
+        #    if($now - $lastReportTime >= 2) {
+        #        my $elapsed = $now - $lastReportTime;
+        #        my $activeBackends = scalar(keys %{$self->{streamBackends}});
+        #        my $bufLen = length($toclientbuffer);
+        #        print STDERR sprintf("%s HTTP2 PERF: loops=%d select=%.3fs read=%.3fs clientWrite=%.3fs backendWrite=%.3fs backends=%d bufLen=%d\n",
+        #            getISODate(), $loopCount, $totalSelectTime, $totalReadTime,
+        #            $totalClientWriteTime, $totalBackendWriteTime, $activeBackends, $bufLen);
+        #        $loopCount = 0;
+        #        $totalSelectTime = 0;
+        #        $totalReadTime = 0;
+        #        $totalClientWriteTime = 0;
+        #        $totalBackendWriteTime = 0;
+        #        $lastReportTime = $now;
+        #    }
+        #}
 
         # Handle client disconnect
         if($clientdisconnect) {
@@ -272,15 +319,25 @@ sub handleRequest($self, $server, $streamId, $headers, $data) {
     for(my $i = 0; $i < scalar(@{$headers}); $i += 2) {
         $h{$headers->[$i]} = $headers->[$i + 1];
     }
-    #print STDERR getISODate() . " HTTP2Handler: handleRequest stream=$streamId path=$h{':path'} activeBackends=" . scalar(keys %{$self->{streamBackends}}) . "\n";
+    #print STDERR getISODate() . " HTTP2 REQ: stream=$streamId activeBackends=" . scalar(keys %{$self->{streamBackends}}) . " poolSize=" . scalar(@{$self->{backendPool}}) . " path=$h{':path'}\n";
+    $self->{streamStartTime}->{$streamId} = time();
 
     # Convert HTTP/2 headers to HTTP/1.1 request
     my $request = $self->translateRequest($streamId, $headers, $data);
 
-    # Connect to backend
-    my $backend = $self->connectBackend($streamId);
+    # Try to acquire backend from pool
+    my $backend = $self->acquireBackend($streamId);
     if(!defined($backend)) {
-        # Send 590 Backend Not Running (custom PageCamel error) with error page
+        # Check if we're at max capacity (queue) vs backend unavailable (error)
+        my $activeBackends = scalar(keys %{$self->{streamBackends}});
+        if($activeBackends >= $self->{maxPoolSize}) {
+            # At max capacity - queue the stream for later
+            #print STDERR getISODate() . " HTTP2 QUEUE: stream=$streamId (active=$activeBackends, waiting=" . scalar(@{$self->{waitingForBackend}}) . ")\n";
+            push @{$self->{waitingForBackend}}, [$streamId, $request, 'waiting_response'];
+            return;
+        }
+
+        # Backend genuinely unavailable - send 590 error
         $server->response(
             ':status'  => 590,
             stream_id  => $streamId,
@@ -321,13 +378,25 @@ sub handleConnectRequest($self, $server, $streamId, $headers) {
         return;
     }
 
+    #print STDERR getISODate() . " HTTP2 WS REQ: stream=$streamId activeBackends=" . scalar(keys %{$self->{streamBackends}}) . " poolSize=" . scalar(@{$self->{backendPool}}) . " path=$h{':path'}\n";
+    $self->{streamStartTime}->{$streamId} = time();
+
     # Translate to HTTP/1.1 WebSocket upgrade
     my $request = $self->translateWebsocketUpgrade($streamId, $headers);
 
-    # Connect to backend
-    my $backend = $self->connectBackend($streamId);
+    # Try to acquire backend from pool
+    my $backend = $self->acquireBackend($streamId);
     if(!defined($backend)) {
-        # Send 590 Backend Not Running (custom PageCamel error) with error page
+        # Check if we're at max capacity (queue) vs backend unavailable (error)
+        my $activeBackends = scalar(keys %{$self->{streamBackends}});
+        if($activeBackends >= $self->{maxPoolSize}) {
+            # At max capacity - queue the stream for later
+            #print STDERR getISODate() . " HTTP2 WS QUEUE: stream=$streamId (active=$activeBackends, waiting=" . scalar(@{$self->{waitingForBackend}}) . ")\n";
+            push @{$self->{waitingForBackend}}, [$streamId, $request, 'tunnel_pending'];
+            return;
+        }
+
+        # Backend genuinely unavailable - send 590 error
         $server->response(
             ':status'  => 590,
             stream_id  => $streamId,
@@ -348,6 +417,8 @@ sub handleConnectRequest($self, $server, $streamId, $headers) {
 }
 
 sub translateRequest($self, $streamId, $headers, $data) {
+    # Translate HTTP/2 request to HTTP/1.1
+    # Note: PAGECAMEL overhead is sent once per backend connection in createPooledBackend()
     my %h;
     my @orderHeaders;
     # Headers come as flat list: [key, value, key, value, ...]
@@ -364,11 +435,7 @@ sub translateRequest($self, $streamId, $headers, $data) {
     my $path = $h{':path'} // '/';
     my $authority = $h{':authority'} // 'localhost';
 
-    # Build PAGECAMEL overhead header
-    my $info = $self->{pagecamelInfo};
-    my $overhead = "PAGECAMEL $info->{lhost} $info->{lport} $info->{peerhost} $info->{peerport} $info->{usessl} $info->{pid} HTTP/2\r\n";
-
-    # Build HTTP/1.1 request
+    # Build HTTP/1.1 request (no PAGECAMEL overhead - sent on connection creation)
     my $request = "$method $path HTTP/1.1\r\n";
     $request .= "Host: $authority\r\n";
 
@@ -391,9 +458,6 @@ sub translateRequest($self, $streamId, $headers, $data) {
 
     $request .= "\r\n";
 
-    # Prepend PAGECAMEL overhead
-    $request = $overhead . $request;
-
     # Add body if present
     if(defined($data) && length($data)) {
         $request .= $data;
@@ -403,6 +467,8 @@ sub translateRequest($self, $streamId, $headers, $data) {
 }
 
 sub translateWebsocketUpgrade($self, $streamId, $headers) {
+    # Translate HTTP/2 extended CONNECT to HTTP/1.1 WebSocket upgrade
+    # Note: PAGECAMEL overhead is sent once per backend connection in createPooledBackend()
     my %h;
     my @orderHeaders;
     # Headers come as flat list: [key, value, key, value, ...]
@@ -418,14 +484,10 @@ sub translateWebsocketUpgrade($self, $streamId, $headers) {
     my $path = $h{':path'} // '/';
     my $authority = $h{':authority'} // 'localhost';
 
-    # Build PAGECAMEL overhead header
-    my $info = $self->{pagecamelInfo};
-    my $overhead = "PAGECAMEL $info->{lhost} $info->{lport} $info->{peerhost} $info->{peerport} $info->{usessl} $info->{pid} HTTP/2\r\n";
-
     # Generate Sec-WebSocket-Key
     my $key = $self->generateWebsocketKey();
 
-    # Build HTTP/1.1 WebSocket upgrade request
+    # Build HTTP/1.1 WebSocket upgrade request (no PAGECAMEL overhead - sent on connection creation)
     my $request = "GET $path HTTP/1.1\r\n";
     $request .= "Host: $authority\r\n";
     $request .= "Upgrade: websocket\r\n";
@@ -443,9 +505,6 @@ sub translateWebsocketUpgrade($self, $streamId, $headers) {
 
     $request .= "\r\n";
 
-    # Prepend PAGECAMEL overhead
-    $request = $overhead . $request;
-
     # Store key for validation
     $self->{streamWebsocketKey}->{$streamId} = $key;
 
@@ -462,7 +521,10 @@ sub generateWebsocketKey($self) {
     return MIME::Base64::encode_base64($key, '');
 }
 
-sub connectBackend($self, $streamId) {
+sub createPooledBackend($self) {
+    # Create new backend connection and send PAGECAMEL overhead immediately
+    my $startTime = time();
+
     my $backend = IO::Socket::UNIX->new(
         Peer    => $self->{backendSocketPath},
         Timeout => 15,
@@ -473,24 +535,152 @@ sub connectBackend($self, $streamId) {
         return;
     }
 
-    $self->{streamBackends}->{$streamId} = $backend;
+    # Send PAGECAMEL overhead header immediately (required within 15 seconds)
+    my $info = $self->{pagecamelInfo};
+    my $overhead = "PAGECAMEL $info->{lhost} $info->{lport} $info->{peerhost} $info->{peerport} $info->{usessl} $info->{pid} HTTP/2\r\n";
+
+    my $written = syswrite($backend, $overhead);
+    if(!defined($written) || $written != length($overhead)) {
+        carp("HTTP2Handler: Failed to send overhead to backend: $ERRNO");
+        close($backend);
+        return;
+    }
+
+    my $elapsed = time() - $startTime;
+    if($elapsed > 0.001) {  # Log if > 1ms
+        print STDERR getISODate() . " HTTP2Handler: createPooledBackend took ${elapsed}s\n";
+    }
 
     return $backend;
 }
 
-sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_size) {
-    # Find which stream this backend belongs to
-    my $streamId;
-    foreach my $sid (keys %{$self->{streamBackends}}) {
-        if($self->{streamBackends}->{$sid} == $backend) {
-            $streamId = $sid;
-            last;
+sub isBackendAlive($self, $backend) {
+    # Check if backend connection is still open
+    # Use select() with 0 timeout to check for readability without blocking
+    # If readable with no data or error, connection is closed
+    return 0 if(!defined($backend));
+
+    my $select = IO::Select->new($backend);
+    my @ready = $select->can_read(0);
+
+    if(@ready) {
+        # Socket is readable - check if there's actually data or if it's EOF
+        my $buf;
+        my $rc = recv($backend, $buf, 1, MSG_PEEK | MSG_DONTWAIT);
+        if(!defined($rc) || length($buf) == 0) {
+            # Connection closed or error
+            return 0;
+        }
+        # Has unexpected data - backend sent something we didn't request
+        # This shouldn't happen, but treat as unhealthy
+        return 0;
+    }
+
+    # Not readable = no pending data and not closed = healthy
+    return 1;
+}
+
+sub acquireBackend($self, $streamId) {
+    # Try to get a healthy connection from pool, or create new one
+
+    # First, try to get from pool
+    while(scalar(@{$self->{backendPool}}) > 0) {
+        my $backend = pop @{$self->{backendPool}};
+
+        if($self->isBackendAlive($backend)) {
+            # Connection is healthy, assign to stream
+            $self->{streamBackends}->{$streamId} = $backend;
+            $self->{backendToStream}->{$backend} = $streamId;
+            #print STDERR getISODate() . " HTTP2Handler: acquireBackend stream=$streamId (reused from pool, poolSize=" . scalar(@{$self->{backendPool}}) . ")\n";
+            return $backend;
+        } else {
+            # Connection is dead, close and try next
+            #print STDERR getISODate() . " HTTP2Handler: discarding stale pooled connection\n";
+            eval { close($backend); };
         }
     }
 
-    if(!defined($streamId)) {
+    # Pool empty, check if we can create a new connection
+    my $activeBackends = scalar(keys %{$self->{streamBackends}});
+    if($activeBackends >= $self->{maxPoolSize}) {
+        # At max capacity, caller should queue the stream
+        #print STDERR getISODate() . " HTTP2Handler: acquireBackend stream=$streamId - at max capacity ($activeBackends), queuing\n";
         return;
     }
+
+    # Create new connection
+    my $backend = $self->createPooledBackend();
+    if(!defined($backend)) {
+        return;
+    }
+
+    $self->{streamBackends}->{$streamId} = $backend;
+    $self->{backendToStream}->{$backend} = $streamId;
+    #print STDERR getISODate() . " HTTP2Handler: acquireBackend stream=$streamId (new connection, active=$activeBackends)\n";
+
+    return $backend;
+}
+
+sub releaseBackend($self, $streamId, $reusable = 1) {
+    # Release backend connection - return to pool if healthy and reusable, else close
+    my $backend = $self->{streamBackends}->{$streamId};
+    return if(!defined($backend));
+
+    # Clean up mappings
+    delete $self->{streamBackends}->{$streamId};
+    delete $self->{backendToStream}->{$backend};
+
+    # Check if we should return to pool
+    if($reusable && $self->isBackendAlive($backend) && scalar(@{$self->{backendPool}}) < $self->{maxPoolSize}) {
+        push @{$self->{backendPool}}, $backend;
+        #print STDERR getISODate() . " HTTP2Handler: releaseBackend stream=$streamId (returned to pool, poolSize=" . scalar(@{$self->{backendPool}}) . ")\n";
+    } else {
+        eval { close($backend); };
+        #print STDERR getISODate() . " HTTP2Handler: releaseBackend stream=$streamId (closed, reusable=$reusable)\n";
+    }
+
+    return;
+}
+
+sub processWaitingStreams($self, $server, $toclientbufferRef) {
+    # Process streams waiting for a backend connection
+    return if(scalar(@{$self->{waitingForBackend}}) == 0);
+
+    my @stillWaiting;
+    while(my $waiting = shift @{$self->{waitingForBackend}}) {
+        my ($streamId, $request, $state) = @{$waiting};
+
+        my $backend = $self->acquireBackend($streamId);
+        if(!defined($backend)) {
+            # Still no backend available, keep waiting
+            push @stillWaiting, $waiting;
+            last;  # Don't try more if we're at capacity
+        }
+
+        # Got a backend, buffer the request
+        $self->{tobackendbuffers}->{$streamId} = $request;
+        $self->{streamStates}->{$streamId} = $state;
+        $self->{streamResponses}->{$streamId} = '';
+        #print STDERR getISODate() . " HTTP2Handler: processWaitingStreams - assigned backend to stream=$streamId\n";
+    }
+
+    # Put remaining waiting streams back
+    unshift @{$self->{waitingForBackend}}, @stillWaiting;
+
+    return;
+}
+
+# Legacy method for compatibility - now uses pool
+sub connectBackend($self, $streamId) {
+    return $self->acquireBackend($streamId);
+}
+
+sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_size) {
+    # Find which stream this backend belongs to (O(1) reverse lookup)
+    if(!defined($self->{backendToStream}->{$backend})) {
+        return;
+    }
+    my $streamId = $self->{backendToStream}->{$backend};
 
     # Back-pressure: skip reading if client buffer is too large
     if(length(${$toclientbufferRef}) >= $max_buffer_size) {
@@ -676,15 +866,20 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
 }
 
 sub cleanupStream($self, $server, $streamId, $toclientbufferRef, $sendEndStream = 1) {
-    #print STDERR getISODate() . " HTTP2Handler: cleanupStream stream=$streamId sendEndStream=$sendEndStream activeBackends=" . scalar(keys %{$self->{streamBackends}}) . "\n";
+    #my $elapsed = $self->{streamStartTime}->{$streamId} ? sprintf("%.3f", time() - $self->{streamStartTime}->{$streamId}) : "?";
+    #print STDERR getISODate() . " HTTP2 DONE: stream=$streamId elapsed=${elapsed}s activeBackends=" . scalar(keys %{$self->{streamBackends}}) . " poolSize=" . scalar(@{$self->{backendPool}}) . "\n";
+    delete $self->{streamStartTime}->{$streamId};
 
-    # Close backend connection
-    if(defined($self->{streamBackends}->{$streamId})) {
-        eval {
-            close($self->{streamBackends}->{$streamId});
-        };
-        delete $self->{streamBackends}->{$streamId};
-    }
+    # Determine if backend connection is reusable for Keep-Alive pooling:
+    # - WebSocket tunnels are NOT reusable (bidirectional data flow)
+    # - Backend disconnects are NOT reusable (connection was closed)
+    # - Regular completed requests ARE reusable
+    my $isTunnel = defined($self->{streamTunnels}->{$streamId});
+    my $backendClosed = $self->{backenddisconnects}->{$streamId} // 0;
+    my $reusable = !$isTunnel && !$backendClosed;
+
+    # Release backend connection (returns to pool if reusable, closes otherwise)
+    $self->releaseBackend($streamId, $reusable);
 
     # Send END_STREAM if needed via Stream or Tunnel object
     if($sendEndStream) {
@@ -713,7 +908,7 @@ sub cleanupStream($self, $server, $streamId, $toclientbufferRef, $sendEndStream 
 }
 
 sub cleanup($self) {
-    # Close all backend connections
+    # Close all active backend connections
     foreach my $streamId (keys %{$self->{streamBackends}}) {
         if(defined($self->{streamBackends}->{$streamId})) {
             eval {
@@ -722,7 +917,17 @@ sub cleanup($self) {
         }
     }
 
+    # Close all pooled backend connections
+    foreach my $backend (@{$self->{backendPool}}) {
+        eval {
+            close($backend);
+        };
+    }
+
     $self->{streamBackends} = {};
+    $self->{backendToStream} = {};
+    $self->{backendPool} = [];
+    $self->{waitingForBackend} = [];
     $self->{streamStates} = {};
     $self->{streamResponses} = {};
     $self->{streamWebsocketKey} = {};
@@ -736,48 +941,45 @@ sub cleanup($self) {
     return;
 }
 
-sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHashRef) {
-    # Write from per-stream buffers to backends with proper partial write handling
-    # Only write when select() says socket is writable
-    foreach my $streamId (keys %{$self->{tobackendbuffers}}) {
-        my $backend = $self->{streamBackends}->{$streamId};
-        next if(!defined($backend));
-        next if($self->{backenddisconnects}->{$streamId});
-        next if(!$canWriteHashRef->{$backend});  # Skip if not writable
+sub writeToBackends($self, $blocksize, $maxBytesPerIteration, $canWriteHashRef) {
+    # Write from per-stream buffers to backends using round-robin fairness
+    # Each stream gets ONE block per pass, then we cycle through all streams again
+    # This ensures all streams make equal progress instead of one stream hogging writes
 
-        my $tobackendbuffer = \$self->{tobackendbuffers}->{$streamId};
-        next if(!defined(${$tobackendbuffer}) || !length(${$tobackendbuffer}));
+    my $totalBytesThisIteration = 0;
+    my $madeProgress = 1;  # Track if any writes succeeded
 
-        my $sendcount = $loopcount;
-        my $backend_offset = 0;
+    # Round-robin: one block per stream per pass, repeat until nothing left or limit hit
+    while($madeProgress && $totalBytesThisIteration < $maxBytesPerIteration) {
+        $madeProgress = 0;
 
-        while($sendcount) {
-            my $remaining = length(${$tobackendbuffer}) - $backend_offset;
-            if($remaining > 0) {
-                my $written;
-                my $towrite = $remaining < $blocksize ? $remaining : $blocksize;
+        foreach my $streamId (keys %{$self->{tobackendbuffers}}) {
+            my $backend = $self->{streamBackends}->{$streamId};
+            next if(!defined($backend));
+            next if($self->{backenddisconnects}->{$streamId});
+            next if(!$canWriteHashRef->{$backend});  # Skip if not writable
 
-                eval {
-                    $written = syswrite($backend, ${$tobackendbuffer}, $towrite, $backend_offset);
-                };
-                if($EVAL_ERROR) {
-                    #print STDERR "HTTP2Handler: Write error to backend (stream $streamId): $EVAL_ERROR\n";
-                    $self->{backenddisconnects}->{$streamId} = 1;
-                    last;
-                }
-                if(defined($written) && $written) {
-                    $backend_offset += $written;
-                } else {
-                    last;
-                }
-            } else {
-                last;
+            my $tobackendbuffer = \$self->{tobackendbuffers}->{$streamId};
+            next if(!defined(${$tobackendbuffer}) || !length(${$tobackendbuffer}));
+
+            # Write ONE block per stream per pass (fair round-robin)
+            my $towrite = length(${$tobackendbuffer}) < $blocksize ? length(${$tobackendbuffer}) : $blocksize;
+            my $written;
+
+            eval {
+                $written = syswrite($backend, ${$tobackendbuffer}, $towrite);
+            };
+            if($EVAL_ERROR) {
+                #print STDERR "HTTP2Handler: Write error to backend (stream $streamId): $EVAL_ERROR\n";
+                $self->{backenddisconnects}->{$streamId} = 1;
+                next;
             }
-            $sendcount--;
-        }
-        # Remove written data from buffer
-        if($backend_offset > 0) {
-            ${$tobackendbuffer} = substr(${$tobackendbuffer}, $backend_offset);
+
+            if(defined($written) && $written > 0) {
+                ${$tobackendbuffer} = substr(${$tobackendbuffer}, $written);
+                $totalBytesThisIteration += $written;
+                $madeProgress = 1;
+            }
         }
     }
 
