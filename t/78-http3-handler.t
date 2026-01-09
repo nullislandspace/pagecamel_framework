@@ -88,12 +88,12 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
     );
 
     ok($request, 'translateRequest returns content');
-    like($request, qr/PAGECAMEL/, 'Contains PAGECAMEL overhead header');
-    like($request, qr/HTTP\/3/, 'PAGECAMEL header includes HTTP/3');
+    # Note: PAGECAMEL overhead is now sent once per pooled connection (in createPooledBackend),
+    # not per-request. This improves performance with connection pooling.
+    unlike($request, qr/PAGECAMEL/, 'No PAGECAMEL overhead (sent per-connection now)');
     like($request, qr/GET \/test\/path HTTP\/1\.1/, 'Contains HTTP/1.1 request line');
     like($request, qr/Host: example\.com/, 'Contains Host header from :authority');
     like($request, qr/user-agent: TestClient\/1\.0/, 'Contains user-agent header');
-    like($request, qr/192\.168\.1\.1 443 10\.0\.0\.1 54321/, 'Contains connection info');
 }
 
 # Test translateRequest with POST body
@@ -154,8 +154,9 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
     );
 
     ok($request, 'translateWebsocketUpgrade returns content');
-    like($request, qr/PAGECAMEL/, 'Contains PAGECAMEL overhead header');
-    like($request, qr/HTTP\/3/, 'PAGECAMEL header includes HTTP/3');
+    # Note: PAGECAMEL overhead is now sent once per pooled connection (in createPooledBackend),
+    # not per-request. This improves performance with connection pooling.
+    unlike($request, qr/PAGECAMEL/, 'No PAGECAMEL overhead (sent per-connection now)');
     like($request, qr/GET \/socket HTTP\/1\.1/, 'Contains GET request (not CONNECT)');
     like($request, qr/Host: ws\.example\.com/, 'Contains Host header');
     like($request, qr/Upgrade: websocket/, 'Contains Upgrade header');

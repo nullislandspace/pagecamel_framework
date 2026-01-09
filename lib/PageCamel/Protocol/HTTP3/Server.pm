@@ -24,9 +24,11 @@ sub new($class, %config) {
         # QUIC connection
         quic_conn          => $config{quic_conn} // croak("quic_conn required"),
 
-        # Settings
-        max_field_section_size => $config{max_field_section_size} // 16384,
-        qpack_max_table_capacity => $config{qpack_max_table_capacity} // 4096,
+        # Settings (increased from RFC minimums for better performance)
+        # max_field_section_size: 64KB allows larger header blocks without fragmentation
+        # qpack_max_table_capacity: 64KB enables better header compression for repeated headers
+        max_field_section_size => $config{max_field_section_size} // 65536,
+        qpack_max_table_capacity => $config{qpack_max_table_capacity} // 65536,
         qpack_blocked_streams => $config{qpack_blocked_streams} // 100,
         enable_connect_protocol => $config{enable_connect_protocol} // 1,
 
@@ -619,9 +621,9 @@ Optional:
 
 =over 4
 
-=item max_field_section_size - Max header section size (default: 16384)
+=item max_field_section_size - Max header section size (default: 65536)
 
-=item qpack_max_table_capacity - QPACK dynamic table capacity (default: 4096)
+=item qpack_max_table_capacity - QPACK dynamic table capacity (default: 65536)
 
 =item qpack_blocked_streams - Max QPACK blocked streams (default: 100)
 

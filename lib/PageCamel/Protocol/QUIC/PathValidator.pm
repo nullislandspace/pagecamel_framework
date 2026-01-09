@@ -227,12 +227,6 @@ sub stats($self) {
     };
 }
 
-# Export constants
-sub PATH_UNKNOWN()    { PATH_UNKNOWN }
-sub PATH_VALIDATING() { PATH_VALIDATING }
-sub PATH_VALIDATED()  { PATH_VALIDATED }
-sub PATH_FAILED()     { PATH_FAILED }
-
 1;
 
 __END__

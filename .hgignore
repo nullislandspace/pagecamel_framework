@@ -21,4 +21,9 @@ package-lock.json
 ^\.claude\/.*
 lib/PageCamel/CMDLine/.claude/settings.local.json
 lib/PageCamel/CMDLine/CLAUDE.md
+lib/PageCamel/XS/NGHTTP3.c
+lib/PageCamel/XS/NGHTTP3.o
+lib/PageCamel/XS/NGTCP2.bs
+lib/PageCamel/XS/NGTCP2.c
+lib/PageCamel/XS/NGTCP2.o
 

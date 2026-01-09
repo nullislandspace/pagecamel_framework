@@ -21,6 +21,8 @@ use PageCamel::Protocol::HTTP3::QPACK::Encoder;
 use PageCamel::Protocol::HTTP3::QPACK::Decoder;
 use IO::Socket::UNIX;
 use IO::Select;
+use Socket qw(MSG_PEEK);
+use Time::HiRes qw(time);
 use PageCamel::Helpers::DateStrings;
 
 sub new($class, %config) {
@@ -35,6 +37,8 @@ sub new($class, %config) {
 
     # Stream to backend connection mapping
     $self->{streamBackends} = {};
+    # Reverse lookup: backend socket → stream ID (for O(1) lookup)
+    $self->{backendToStream} = {};
     # Stream to response buffer mapping
     $self->{streamResponses} = {};
     # Stream states
@@ -52,6 +56,11 @@ sub new($class, %config) {
     # Per-stream content-length tracking
     $self->{streamContentLength} = {};
     $self->{streamBytesSent} = {};
+
+    # Backend connection pool (Keep-Alive reuse)
+    $self->{backendPool} = [];           # Available connections ready for reuse
+    $self->{maxPoolSize} = 8;            # Max connections to keep in pool
+    $self->{waitingForBackend} = [];     # Queue of [streamId, request, isWebSocket] waiting for backend
 
     return $self;
 }
@@ -150,6 +159,9 @@ sub run($self) {
         # Write to backends from per-stream buffers
         $self->writeToBackends($blocksize, 1000, $finishcountdown, \%canWriteHash);
 
+        # Process any streams waiting for a backend connection
+        $self->processWaitingStreams($http3Server);
+
         # Get outgoing QUIC packets and send them
         my @packets = $quicConn->get_packets(Time::HiRes::time());
         foreach my $pkt (@packets) {
@@ -191,13 +203,21 @@ sub run($self) {
 sub handleRequest($self, $server, $streamId, $headers, $data) {
     $self->{streamsHandled}++;
 
-    # Convert HTTP/3 headers to HTTP/1.1 request
+    # Convert HTTP/3 headers to HTTP/1.1 request (without PAGECAMEL overhead)
     my $request = $self->translateRequest($streamId, $headers, $data);
 
-    # Connect to backend
-    my $backend = $self->connectBackend($streamId);
+    # Try to acquire backend from pool
+    my $backend = $self->acquireBackend($streamId);
     if(!defined($backend)) {
-        # Send 590 Backend Not Running
+        # Check if we're at capacity (queue) or backend unavailable (error)
+        my $activeBackends = scalar(keys %{$self->{streamBackends}});
+        if($activeBackends >= $self->{maxPoolSize}) {
+            # At capacity, queue the request for later
+            push @{$self->{waitingForBackend}}, [$streamId, $request, 0];
+            return;
+        }
+
+        # Backend truly unavailable - send 590
         $server->response(
             $streamId,
             590,
@@ -233,12 +253,21 @@ sub handleConnectRequest($self, $server, $streamId, $headers) {
         return;
     }
 
-    # Translate to HTTP/1.1 WebSocket upgrade
+    # Translate to HTTP/1.1 WebSocket upgrade (without PAGECAMEL overhead)
     my $request = $self->translateWebsocketUpgrade($streamId, $headers);
 
-    # Connect to backend
-    my $backend = $self->connectBackend($streamId);
+    # Try to acquire backend from pool
+    my $backend = $self->acquireBackend($streamId);
     if(!defined($backend)) {
+        # Check if we're at capacity (queue) or backend unavailable (error)
+        my $activeBackends = scalar(keys %{$self->{streamBackends}});
+        if($activeBackends >= $self->{maxPoolSize}) {
+            # At capacity, queue the request for later (WebSocket flag = 1)
+            push @{$self->{waitingForBackend}}, [$streamId, $request, 1];
+            return;
+        }
+
+        # Backend truly unavailable - send 590
         $server->response($streamId, 590, ['content-type', 'text/html'], '');
         return;
     }
@@ -313,11 +342,8 @@ sub translateRequest($self, $streamId, $headers, $body) {
         $request .= $body;
     }
 
-    # Prepend PAGECAMEL overhead header
-    my $info = $self->{pagecamelInfo};
-    my $overhead = "PAGECAMEL $info->{lhost} $info->{lport} $info->{peerhost} $info->{peerport} 1 $PID HTTP/3\r\n";
-
-    return $overhead . $request;
+    # Note: PAGECAMEL overhead is sent once per pooled connection in createPooledBackend()
+    return $request;
 }
 
 sub translateWebsocketUpgrade($self, $streamId, $headers) {
@@ -357,15 +383,14 @@ sub translateWebsocketUpgrade($self, $streamId, $headers) {
 
     $request .= "\r\n";
 
-    # Prepend PAGECAMEL overhead header
-    my $info = $self->{pagecamelInfo};
-    my $overhead = "PAGECAMEL $info->{lhost} $info->{lport} $info->{peerhost} $info->{peerport} 1 $PID HTTP/3\r\n";
-
-    return $overhead . $request;
+    # Note: PAGECAMEL overhead is sent once per pooled connection in createPooledBackend()
+    return $request;
 }
 
 sub connectBackend($self, $streamId) {
     my $socketPath = $self->{backendSocketPath};
+
+    my $startTime = time();
 
     my $backend = IO::Socket::UNIX->new(
         Type => SOCK_STREAM,
@@ -377,23 +402,161 @@ sub connectBackend($self, $streamId) {
         return;
     }
 
+    my $elapsed = time() - $startTime;
+    if($elapsed > 0.001) {  # Log if > 1ms
+        print STDERR getISODate() . " HTTP3Handler: connectBackend took ${elapsed}s for stream $streamId\n";
+    }
+
     $backend->blocking(0);
     $self->{streamBackends}->{$streamId} = $backend;
+    $self->{backendToStream}->{$backend} = $streamId;  # Reverse mapping for O(1) lookup
 
     return $backend;
 }
 
-sub handleBackendData($self, $server, $socket, $toclientbufferRef, $maxBufferSize) {
-    # Find which stream this backend belongs to
-    my $streamId;
-    foreach my $sid (keys %{$self->{streamBackends}}) {
-        if($self->{streamBackends}->{$sid} == $socket) {
-            $streamId = $sid;
-            last;
+# Backend connection pooling methods
+
+sub createPooledBackend($self) {
+    # Create a new backend connection and send PAGECAMEL overhead immediately
+    my $socketPath = $self->{backendSocketPath};
+
+    my $startTime = time();
+
+    my $backend = IO::Socket::UNIX->new(
+        Type => SOCK_STREAM,
+        Peer => $socketPath,
+    );
+
+    if(!defined($backend)) {
+        print STDERR getISODate() . " HTTP3Handler: createPooledBackend failed: $ERRNO\n";
+        return;
+    }
+
+    # Send PAGECAMEL overhead immediately (once per connection, not per request)
+    my $info = $self->{pagecamelInfo};
+    my $overhead = "PAGECAMEL $info->{lhost} $info->{lport} $info->{peerhost} $info->{peerport} 1 $PID HTTP/3\r\n";
+
+    my $written = syswrite($backend, $overhead);
+    if(!defined($written) || $written != length($overhead)) {
+        print STDERR getISODate() . " HTTP3Handler: Failed to send overhead: $ERRNO\n";
+        close($backend);
+        return;
+    }
+
+    my $elapsed = time() - $startTime;
+    if($elapsed > 0.001) {  # Log if > 1ms
+        print STDERR getISODate() . " HTTP3Handler: createPooledBackend took ${elapsed}s\n";
+    }
+
+    $backend->blocking(0);
+    return $backend;
+}
+
+sub isBackendAlive($self, $backend) {
+    # Check if connection is still open using select() + MSG_PEEK
+    return 0 if(!defined($backend));
+
+    my $select = IO::Select->new($backend);
+    my @ready = $select->can_read(0);
+
+    if(@ready) {
+        # Socket has data or is closed - check with MSG_PEEK
+        my $buf;
+        my $rc = recv($backend, $buf, 1, MSG_PEEK);
+
+        if(!defined($rc)) {
+            return 0;  # Error - connection dead
+        }
+        if(length($buf) == 0) {
+            return 0;  # Connection closed (EOF)
+        }
+        # Unexpected data on backend (shouldn't happen in normal flow)
+        return 0;
+    }
+
+    return 1;  # No data waiting, connection healthy
+}
+
+sub acquireBackend($self, $streamId) {
+    # Try to get a connection from the pool
+    while(scalar(@{$self->{backendPool}}) > 0) {
+        my $backend = pop @{$self->{backendPool}};
+
+        if($self->isBackendAlive($backend)) {
+            $self->{streamBackends}->{$streamId} = $backend;
+            $self->{backendToStream}->{$backend} = $streamId;
+            return $backend;
+        } else {
+            # Connection dead, close it
+            eval { close($backend); };
         }
     }
 
-    return unless(defined($streamId));
+    # Check if we're at capacity
+    my $activeBackends = scalar(keys %{$self->{streamBackends}});
+    if($activeBackends >= $self->{maxPoolSize}) {
+        return;  # At capacity, caller should queue the request
+    }
+
+    # Create new connection
+    my $backend = $self->createPooledBackend();
+    if(!defined($backend)) {
+        return;
+    }
+
+    $self->{streamBackends}->{$streamId} = $backend;
+    $self->{backendToStream}->{$backend} = $streamId;
+
+    return $backend;
+}
+
+sub releaseBackend($self, $streamId, $reusable = 1) {
+    my $backend = $self->{streamBackends}->{$streamId};
+    return if(!defined($backend));
+
+    # Remove from stream mappings
+    delete $self->{streamBackends}->{$streamId};
+    delete $self->{backendToStream}->{$backend};
+
+    # Return to pool if reusable and healthy
+    if($reusable && $self->isBackendAlive($backend) &&
+       scalar(@{$self->{backendPool}}) < $self->{maxPoolSize}) {
+        push @{$self->{backendPool}}, $backend;
+    } else {
+        eval { close($backend); };
+    }
+}
+
+sub processWaitingStreams($self, $server) {
+    return if(scalar(@{$self->{waitingForBackend}}) == 0);
+
+    my @stillWaiting;
+    while(my $waiting = shift @{$self->{waitingForBackend}}) {
+        my ($streamId, $request, $isWebSocket) = @{$waiting};
+
+        my $backend = $self->acquireBackend($streamId);
+        if(!defined($backend)) {
+            # Still at capacity, re-queue this and stop processing
+            push @stillWaiting, $waiting;
+            last;
+        }
+
+        # Got a backend, send the request
+        $self->{tobackendbuffers}->{$streamId} = $request;
+        $self->{streamStates}->{$streamId} = $isWebSocket ? 'tunnel_pending' : 'waiting_response';
+        $self->{streamResponses}->{$streamId} = '';
+    }
+
+    # Re-add any still-waiting streams
+    unshift @{$self->{waitingForBackend}}, @stillWaiting;
+}
+
+sub handleBackendData($self, $server, $socket, $toclientbufferRef, $maxBufferSize) {
+    # Find which stream this backend belongs to (O(1) reverse lookup)
+    if(!defined($self->{backendToStream}->{$socket})) {
+        return;
+    }
+    my $streamId = $self->{backendToStream}->{$socket};
 
     # Skip if buffer is too large (back-pressure)
     return if(length(${$toclientbufferRef}) >= $maxBufferSize);
@@ -550,40 +713,47 @@ sub processBackendResponse($self, $server, $streamId) {
 }
 
 sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHashRef) {
-    foreach my $streamId (keys %{$self->{tobackendbuffers}}) {
-        my $backend = $self->{streamBackends}->{$streamId};
-        next unless(defined($backend));
+    # Round-robin fair writes: one block (16KB) per stream per pass
+    # This ensures all streams make progress, preventing one large stream from starving others
+    my $maxBytesPerIteration = 1_000_000;  # 1MB total limit per iteration
+    my $totalBytesThisIteration = 0;
+    my $madeProgress = 1;
 
-        my $buffer = $self->{tobackendbuffers}->{$streamId};
-        next unless(defined($buffer) && length($buffer));
+    while($madeProgress && $totalBytesThisIteration < $maxBytesPerIteration) {
+        $madeProgress = 0;
 
-        # Only write if socket is writable
-        next unless($canWriteHashRef->{$backend});
+        foreach my $streamId (keys %{$self->{tobackendbuffers}}) {
+            my $backend = $self->{streamBackends}->{$streamId};
+            next unless(defined($backend));
 
-        my $sendcount = $loopcount;
-        my $offset = 0;
+            # Skip disconnected backends
+            next if($self->{backenddisconnects}->{$streamId});
 
-        while($sendcount && length($buffer) > $offset) {
-            my $remaining = length($buffer) - $offset;
-            my $towrite = $remaining < $blocksize ? $remaining : $blocksize;
+            # Only write if socket is writable
+            next unless($canWriteHashRef->{$backend});
+
+            my $tobackendbuffer = \$self->{tobackendbuffers}->{$streamId};
+            next unless(defined(${$tobackendbuffer}) && length(${$tobackendbuffer}));
+
+            # Write ONE block per stream per pass (fair round-robin)
+            my $bufferLen = length(${$tobackendbuffer});
+            my $towrite = $bufferLen < $blocksize ? $bufferLen : $blocksize;
 
             my $written;
             eval {
-                $written = syswrite($backend, $buffer, $towrite, $offset);
+                $written = syswrite($backend, ${$tobackendbuffer}, $towrite);
             };
 
             if($EVAL_ERROR || !defined($written)) {
                 $self->{backenddisconnects}->{$streamId} = 1;
-                last;
+                next;
             }
 
-            $offset += $written;
-            $sendcount--;
-        }
-
-        # Remove written data
-        if($offset > 0) {
-            $self->{tobackendbuffers}->{$streamId} = substr($buffer, $offset);
+            if($written > 0) {
+                ${$tobackendbuffer} = substr(${$tobackendbuffer}, $written);
+                $totalBytesThisIteration += $written;
+                $madeProgress = 1;
+            }
         }
     }
 
@@ -591,14 +761,23 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHa
 }
 
 sub cleanupStream($self, $streamId) {
-    # Close backend connection
+    # Determine if backend connection is reusable
+    # WebSocket tunnels are NOT reusable (bidirectional data flow)
+    # Backend disconnects are NOT reusable (connection was closed)
+    my $isTunnel = defined($self->{streamTunnels}->{$streamId});
+    my $backendClosed = $self->{backenddisconnects}->{$streamId} // 0;
+    my $reusable = !$isTunnel && !$backendClosed;
+
+    # Release backend to pool (or close if not reusable)
     my $backend = $self->{streamBackends}->{$streamId};
     if(defined($backend)) {
-        eval { $backend->close(); };
+        $self->releaseBackend($streamId, $reusable);
+    } else {
+        # No backend - just clean up the mapping
+        delete $self->{streamBackends}->{$streamId};
     }
 
     # Clean up stream state
-    delete $self->{streamBackends}->{$streamId};
     delete $self->{streamResponses}->{$streamId};
     delete $self->{streamStates}->{$streamId};
     delete $self->{streamStreams}->{$streamId};
@@ -612,10 +791,18 @@ sub cleanupStream($self, $streamId) {
 }
 
 sub cleanup($self) {
-    # Clean up all streams
+    # Clean up all active streams
     foreach my $streamId (keys %{$self->{streamBackends}}) {
         $self->cleanupStream($streamId);
     }
+
+    # Close all pooled backend connections
+    while(my $backend = pop @{$self->{backendPool}}) {
+        eval { close($backend); };
+    }
+
+    # Clear waiting queue
+    $self->{waitingForBackend} = [];
 
     return;
 }
