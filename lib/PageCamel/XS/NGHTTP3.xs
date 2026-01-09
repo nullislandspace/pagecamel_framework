@@ -784,23 +784,14 @@ bind_control_stream(self, stream_id)
     OUTPUT:
         RETVAL
 
-# Bind QPACK encoder stream
+# Bind QPACK streams - MUST be called with both encoder and decoder stream IDs together
 IV
-bind_qpack_encoder_stream(self, stream_id)
+bind_qpack_streams(self, qenc_stream_id, qdec_stream_id)
         PageCamel_HTTP3_Connection *self
-        IV stream_id
+        IV qenc_stream_id
+        IV qdec_stream_id
     CODE:
-        RETVAL = nghttp3_conn_bind_qpack_streams(self->conn, (int64_t)stream_id, 0);
-    OUTPUT:
-        RETVAL
-
-# Bind QPACK decoder stream
-IV
-bind_qpack_decoder_stream(self, stream_id)
-        PageCamel_HTTP3_Connection *self
-        IV stream_id
-    CODE:
-        RETVAL = nghttp3_conn_bind_qpack_streams(self->conn, 0, (int64_t)stream_id);
+        RETVAL = nghttp3_conn_bind_qpack_streams(self->conn, (int64_t)qenc_stream_id, (int64_t)qdec_stream_id);
     OUTPUT:
         RETVAL
 
@@ -868,6 +859,8 @@ writev_stream(self, stream_id)
                 offset += vec[i].len;
             }
 
+            /* Return (actual_stream_id, data, fin) - nghttp3 may have changed pstream_id */
+            mXPUSHi((IV)pstream_id);
             mXPUSHs(data_sv);
             mXPUSHi(fin);
         }

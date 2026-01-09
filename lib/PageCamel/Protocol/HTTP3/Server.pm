@@ -94,30 +94,64 @@ sub _open_control_streams($self) {
     if ($control_id >= 0) {
         $self->{control_stream_id} = $control_id;
         $self->{http3_conn}->bind_control_stream($control_id);
-
-        # Send stream type
-        my $type_data = pack('C', STREAM_TYPE_CONTROL);
-        $quic->write_stream($control_id, $type_data, 0);
+        # NOTE: nghttp3 includes the stream type byte for control stream
     }
 
-    # QPACK encoder stream
+    # QPACK streams - must open both and bind together
     my $enc_id = $quic->{quic_conn}->open_uni_stream();
-    if ($enc_id >= 0) {
-        $self->{qpack_enc_stream_id} = $enc_id;
-        $self->{http3_conn}->bind_qpack_encoder_stream($enc_id);
+    my $dec_id = $quic->{quic_conn}->open_uni_stream();
 
-        my $type_data = pack('C', STREAM_TYPE_QPACK_ENCODER);
-        $quic->write_stream($enc_id, $type_data, 0);
+    if ($enc_id >= 0 && $dec_id >= 0) {
+        $self->{qpack_enc_stream_id} = $enc_id;
+        $self->{qpack_dec_stream_id} = $dec_id;
+
+        # Bind both QPACK streams together (nghttp3 requires this)
+        # NOTE: nghttp3 includes the stream type byte, so don't prepend
+        $self->{http3_conn}->bind_qpack_streams($enc_id, $dec_id);
     }
 
-    # QPACK decoder stream
-    my $dec_id = $quic->{quic_conn}->open_uni_stream();
-    if ($dec_id >= 0) {
-        $self->{qpack_dec_stream_id} = $dec_id;
-        $self->{http3_conn}->bind_qpack_decoder_stream($dec_id);
+    # CRITICAL: Flush pending SETTINGS data from nghttp3 to QUIC
+    # After binding streams, nghttp3 generates SETTINGS frames that must be sent
+    $self->flush_pending_data();
+}
 
-        my $type_data = pack('C', STREAM_TYPE_QPACK_DECODER);
-        $quic->write_stream($dec_id, $type_data, 0);
+# Flush pending HTTP/3 data from nghttp3 to QUIC streams
+# This is critical after binding control streams (SETTINGS must be sent)
+# and after submitting responses
+sub flush_pending_data($self) {
+    my $quic = $self->{quic_conn};
+    my $http3 = $self->{http3_conn};
+
+    # Loop until nghttp3 has no more data to send
+    # writev_stream returns (actual_stream_id, data, fin) - the stream_id tells us
+    # which stream the data belongs to (nghttp3 decides, not us)
+    my $max_iterations = 100;  # Safety limit
+    my $sent_streams = {};  # Track which streams we've sent data for
+
+    for my $iter (1..$max_iterations) {
+        # Pass -1 to let nghttp3 tell us which stream has data
+        my ($actual_stream_id, $data, $fin) = $http3->writev_stream(-1);
+
+        # No more data to send
+        last unless defined $actual_stream_id && defined $data && length($data);
+
+        # Avoid infinite loop - if we've seen this stream, nghttp3 should have consumed it
+        if ($sent_streams->{$actual_stream_id}++) {
+            # We've already sent data for this stream in this flush
+            # Call add_write_offset and try again
+            $http3->add_write_offset($actual_stream_id, length($data));
+            next;
+        }
+
+        # Debug: hex dump what we're sending
+        my $hex = unpack('H*', $data);
+        print STDERR "HTTP3::Server: stream $actual_stream_id sending " . length($data) . " bytes: $hex\n";
+
+        # Write to QUIC
+        $quic->write_stream($actual_stream_id, $data, $fin // 0);
+
+        # Acknowledge we consumed this data from nghttp3
+        $http3->add_write_offset($actual_stream_id, length($data));
     }
 }
 
@@ -179,8 +213,9 @@ sub _process_uni_stream($self, $stream_id, $data, $fin) {
 # Get data to write to QUIC streams
 
 sub get_stream_data($self, $stream_id) {
-    my ($data, $fin) = $self->{http3_conn}->writev_stream($stream_id);
-    return ($data, $fin);
+    # writev_stream returns (actual_stream_id, data, fin)
+    my ($actual_stream_id, $data, $fin) = $self->{http3_conn}->writev_stream($stream_id);
+    return ($actual_stream_id, $data, $fin);
 }
 
 # Response methods
@@ -217,12 +252,46 @@ sub response($self, $stream_id, $status, $headers, $body = undef) {
 
     $self->{responses_sent}++;
 
-    # Write response data to QUIC if body provided
-    if (defined $body && length($body)) {
+    # Check if we have body data to send
+    my $has_body = defined $body && length($body);
+
+    # Flush HEADERS frame from nghttp3 to QUIC
+    # If we have body data, force fin=0 on the HEADERS frame
+    $self->flush_stream_data($stream_id, $has_body ? 0 : undef);
+
+    # Write response body to QUIC if provided
+    if ($has_body) {
         $self->_write_response_data($stream_id, $body, 1);
     }
 
     return 0;
+}
+
+# Flush pending data for a specific stream from nghttp3 to QUIC
+# $force_fin: undef = use nghttp3's fin, 0 = force no fin, 1 = force fin
+sub flush_stream_data($self, $target_stream_id, $force_fin = undef) {
+    my $quic = $self->{quic_conn};
+    my $http3 = $self->{http3_conn};
+
+    # Get pending data from nghttp3
+    # writev_stream returns (actual_stream_id, data, fin) - nghttp3 tells us which stream
+    my ($actual_stream_id, $data, $fin) = $http3->writev_stream($target_stream_id);
+
+    # Make sure we got data for the stream we asked for
+    if (defined $actual_stream_id && defined $data && length($data)) {
+        if ($actual_stream_id != $target_stream_id) {
+            warn "HTTP/3: flush_stream_data asked for stream $target_stream_id but got $actual_stream_id\n";
+        }
+
+        # Determine fin value: use forced value if provided, else use nghttp3's value
+        my $actual_fin = defined($force_fin) ? $force_fin : ($fin // 0);
+
+        # Write to QUIC
+        $quic->write_stream($actual_stream_id, $data, $actual_fin);
+
+        # Acknowledge we consumed this data
+        $http3->add_write_offset($actual_stream_id, length($data));
+    }
 }
 
 sub response_stream($self, $stream_id, $status, $headers) {
@@ -248,6 +317,10 @@ sub response_stream($self, $stream_id, $status, $headers) {
     }
 
     $self->{responses_sent}++;
+
+    # Flush HEADERS frame from nghttp3 to QUIC
+    # Force fin=0 since body data will follow
+    $self->flush_stream_data($stream_id, 0);
 
     # Return a stream object for sending body chunks
     return PageCamel::Protocol::HTTP3::ResponseStream->new(
@@ -295,6 +368,10 @@ sub tunnel_response($self, $stream_id, $status, $headers) {
         return;
     }
 
+    # Flush HEADERS frame from nghttp3 to QUIC
+    # Force fin=0 since tunnel data will follow
+    $self->flush_stream_data($stream_id, 0);
+
     # Return tunnel object for bidirectional data
     return PageCamel::Protocol::HTTP3::Tunnel->new(
         server    => $self,
@@ -303,8 +380,45 @@ sub tunnel_response($self, $stream_id, $status, $headers) {
 }
 
 sub _write_response_data($self, $stream_id, $data, $fin) {
-    # Write data to QUIC stream
-    return $self->{quic_conn}->write_stream($stream_id, $data, $fin);
+    # HTTP/3 body data must be wrapped in DATA frames
+    # DATA frame format: type (0x00) + length (varint) + payload
+    return 0 unless defined $data && length($data);
+
+    my $framed_data = $self->_frame_data($data);
+    return $self->{quic_conn}->write_stream($stream_id, $framed_data, $fin);
+}
+
+# Frame body data as HTTP/3 DATA frame
+sub _frame_data($self, $payload) {
+    my $len = length($payload);
+
+    # DATA frame type is 0x00
+    my $frame_type = pack('C', 0x00);
+
+    # Encode length as variable-length integer (RFC 9000 Section 16)
+    my $frame_len = $self->_encode_varint($len);
+
+    return $frame_type . $frame_len . $payload;
+}
+
+# Encode variable-length integer (RFC 9000 Section 16)
+sub _encode_varint($self, $value) {
+    if ($value < 64) {
+        # 1 byte: 00xxxxxx
+        return pack('C', $value);
+    }
+    elsif ($value < 16384) {
+        # 2 bytes: 01xxxxxx xxxxxxxx
+        return pack('n', 0x4000 | $value);
+    }
+    elsif ($value < 1073741824) {
+        # 4 bytes: 10xxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
+        return pack('N', 0x80000000 | $value);
+    }
+    else {
+        # 8 bytes: 11xxxxxx ...
+        return pack('Q>', 0xC000000000000000 | $value);
+    }
 }
 
 # Stream management

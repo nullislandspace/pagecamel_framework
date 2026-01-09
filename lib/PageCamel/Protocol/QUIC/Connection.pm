@@ -6,7 +6,7 @@ use warnings;
 use PageCamel::XS::NGTCP2 qw(:constants);
 use PageCamel::XS::NGTCP2::Stream;
 use Carp qw(croak);
-use Scalar::Util qw(weaken);
+use Scalar::Util qw(weaken blessed);
 
 our $VERSION = '0.01';
 
@@ -14,17 +14,18 @@ sub new($class, %config) {
     my $self = bless {
         # Identity
         id             => $config{id} // croak("id required"),
-        dcid           => $config{dcid} // croak("dcid required"),
-        scid           => $config{scid} // croak("scid required"),
+        dcid           => $config{dcid} // croak("dcid required"),      # Client's SCID (for ngtcp2)
+        scid           => $config{scid} // croak("scid required"),      # Server's SCID
+        original_dcid  => $config{original_dcid} // $config{dcid},      # Client's DCID from packet (for transport params)
 
         # Network
         path           => $config{path} // croak("path required"),
         peer_addr      => $config{peer_addr},
         local_addr     => $config{local_addr},
 
-        # TLS
-        cert_file      => $config{cert_file},
-        key_file       => $config{key_file},
+        # TLS - multi-domain SNI support
+        ssl_domains    => $config{ssl_domains} // croak("ssl_domains required"),
+        default_domain => $config{default_domain} // croak("default_domain required"),
         alpn_protocols => $config{alpn_protocols} // ['h3'],
 
         # Settings
@@ -71,14 +72,79 @@ sub new($class, %config) {
 }
 
 sub _init_connection($self) {
+    # Wrap raw connection IDs in CID objects if needed
+    # Note: dcid = client's SCID, scid = server's SCID, original_dcid = client's DCID from packet
+    my $dcid = $self->{dcid};
+    my $scid = $self->{scid};
+    my $original_dcid = $self->{original_dcid};
+
+    if (!blessed($dcid) || !$dcid->isa('PageCamel::XS::NGTCP2::CID')) {
+        $dcid = PageCamel::XS::NGTCP2::CID->new($dcid);
+    }
+    if (!blessed($scid) || !$scid->isa('PageCamel::XS::NGTCP2::CID')) {
+        $scid = PageCamel::XS::NGTCP2::CID->new($scid);
+    }
+    if (!blessed($original_dcid) || !$original_dcid->isa('PageCamel::XS::NGTCP2::CID')) {
+        $original_dcid = PageCamel::XS::NGTCP2::CID->new($original_dcid);
+    }
+
+    # Store wrapped CID objects for later use (e.g., initial key derivation)
+    $self->{dcid_obj} = $dcid;
+    $self->{scid_obj} = $scid;
+    $self->{original_dcid_obj} = $original_dcid;
+
+    # Wrap path hash in Path object if needed
+    my $path = $self->{path};
+    if (!blessed($path) || !$path->isa('PageCamel::XS::NGTCP2::Path')) {
+        # path is a hash like {local => {host, port}, remote => {host, port}}
+        my $local_host = $path->{local}{host} // $path->{local}{ip} // '0.0.0.0';
+        my $local_port = $path->{local}{port} // 0;
+        my $remote_host = $path->{remote}{host} // $path->{remote}{ip} // '0.0.0.0';
+        my $remote_port = $path->{remote}{port} // 0;
+        $path = PageCamel::XS::NGTCP2::Path->new($local_host, $local_port, $remote_host, $remote_port);
+        $self->{path} = $path;  # Save wrapped path for later use
+    }
+
+    # Create default Settings if not provided
+    my $settings = $self->{settings};
+    if (!blessed($settings) || !$settings->isa('PageCamel::XS::NGTCP2::Settings')) {
+        $settings = PageCamel::XS::NGTCP2::Settings->new();
+        $settings->set_initial_ts(PageCamel::XS::NGTCP2::timestamp());
+        $settings->enable_logging();  # Enable ngtcp2 debug logging
+    }
+
+    # Create default TransportParams if not provided
+    my $params = $self->{transport_params};
+    if (!blessed($params) || !$params->isa('PageCamel::XS::NGTCP2::TransportParams')) {
+        $params = PageCamel::XS::NGTCP2::TransportParams->new();
+        # Set reasonable defaults for a server
+        $params->set_initial_max_streams_bidi(100);
+        $params->set_initial_max_streams_uni(100);
+        $params->set_initial_max_data(1048576);        # 1MB
+        $params->set_initial_max_stream_data_bidi_local(262144);   # 256KB
+        $params->set_initial_max_stream_data_bidi_remote(262144);  # 256KB
+        $params->set_initial_max_stream_data_uni(262144);          # 256KB
+        $params->set_max_idle_timeout(30 * 1000000000);  # 30 seconds in nanoseconds
+        $params->set_max_udp_payload_size(1350);         # Standard QUIC MTU
+        $params->set_active_connection_id_limit(8);      # Allow multiple CIDs
+    }
+
+    # Server MUST set transport params:
+    # - original_dcid = client's DCID from Initial packet (what client sent in DCID field)
+    # - initial_scid = server's own SCID
+    $params->set_original_dcid($original_dcid);
+    $params->set_initial_scid($scid);
+
     # Create the low-level QUIC connection
     $self->{quic_conn} = PageCamel::XS::NGTCP2::Connection->server_new(
-        dcid     => $self->{dcid},
-        scid     => $self->{scid},
-        path     => $self->{path},
+        dcid     => $dcid,
+        scid     => $scid,
+        path     => $path,
         version  => NGTCP2_PROTO_VER_V1(),
-        settings => $self->{settings},
-        params   => $self->{transport_params},
+        settings => $settings,
+        params   => $params,
+        ssl_domains    => $self->{ssl_domains},
+        default_domain => $self->{default_domain},
         on_recv_stream_data => sub { $self->_on_recv_stream_data(@_) },
         on_stream_open => sub { $self->_on_stream_open(@_) },
         on_stream_close => sub { $self->_on_stream_close(@_) },
@@ -96,6 +162,16 @@ sub local_addr($self) { return $self->{local_addr}; }
 sub is_established($self) { return $self->{state} eq 'established'; }
 sub is_closing($self) { return $self->{state} eq 'closing'; }
 sub is_closed($self) { return $self->{state} eq 'closed'; }
+
+# SNI hostname (from client TLS handshake)
+sub get_hostname($self) {
+    return $self->{quic_conn}->get_hostname();
+}
+
+# Backend socket path for the negotiated domain
+sub get_backend_socket($self) {
+    return $self->{quic_conn}->get_backend_socket();
+}
 
 # Connection ID management
 
@@ -119,6 +195,10 @@ sub process_packet($self, $packet, $peer_addr, $ts) {
     $self->{packets_received}++;
     $self->{bytes_received} += length($packet);
 
+    # NOTE: Initial keys are automatically derived by ngtcp2_crypto_recv_client_initial_cb
+    # callback when read_pkt processes the first Initial packet from the client.
+    # No manual key derivation is needed.
+
     # Check for path change (connection migration)
     if ($self->_addr_changed($peer_addr)) {
         if ($self->_handle_migration($peer_addr)) {
@@ -126,7 +206,8 @@ sub process_packet($self, $packet, $peer_addr, $ts) {
         }
     }
 
-    # Process packet through ngtcp2
+    # Process packet through ngtcp2 (this triggers recv_client_initial callback
+    # which derives initial keys automatically)
     my $rv = $self->{quic_conn}->read_pkt($self->{path}, $packet, $ts);
 
     if ($rv < 0) {
@@ -150,7 +231,28 @@ sub get_packets($self, $ts) {
 
     my @packets;
 
-    # Get packets from ngtcp2
+    # First, include any packets generated by write_stream calls
+    # These MUST be sent before packets from write_pkt to maintain ordering
+    my $pending_count = $self->{pending_stream_packets} ? scalar(@{$self->{pending_stream_packets}}) : 0;
+    print STDERR "QUIC::Connection: get_packets called, pending_stream_packets=$pending_count\n";
+
+    if ($self->{pending_stream_packets} && @{$self->{pending_stream_packets}}) {
+        for my $data (@{$self->{pending_stream_packets}}) {
+            next unless defined $data && length($data);
+
+            $self->{packets_sent}++;
+            $self->{bytes_sent} += length($data);
+
+            print STDERR "QUIC::Connection: adding pending stream packet, size=" . length($data) . "\n";
+            push @packets, {
+                data      => $data,
+                peer_addr => $self->{peer_addr},
+            };
+        }
+        $self->{pending_stream_packets} = [];
+    }
+
+    # Then get any additional packets from ngtcp2
     my @pkt_data = $self->{quic_conn}->write_pkt($ts);
 
     for my $data (@pkt_data) {
@@ -169,11 +271,13 @@ sub get_packets($self, $ts) {
 }
 
 sub get_expiry($self) {
+    return 0 unless $self->{quic_conn};
     return $self->{quic_conn}->get_expiry();
 }
 
 sub handle_expiry($self, $ts) {
     return if $self->is_closed();
+    return unless $self->{quic_conn};
 
     my $rv = $self->{quic_conn}->handle_expiry($ts);
 
@@ -219,10 +323,28 @@ sub get_stream($self, $stream_id) {
 }
 
 sub write_stream($self, $stream_id, $data, $fin = 0) {
-    return unless $self->is_established();
+    print STDERR "QUIC::Connection: write_stream called, stream=$stream_id, datalen=" . length($data) . ", fin=$fin, state=$self->{state}\n";
+    unless ($self->is_established()) {
+        print STDERR "QUIC::Connection: write_stream returning early - not established (state=$self->{state})\n";
+        return;
+    }
 
     my $ts = PageCamel::XS::NGTCP2::timestamp();
-    return $self->{quic_conn}->write_stream($stream_id, $data, $ts, $fin);
+
+    # write_stream returns packet data that must be sent via UDP
+    print STDERR "QUIC::Connection: calling XS write_stream\n";
+    my ($packet) = $self->{quic_conn}->write_stream($stream_id, $data, $ts, $fin);
+
+    if (defined $packet && length($packet)) {
+        # Store packet for later transmission via get_packets
+        $self->{pending_stream_packets} //= [];
+        push @{$self->{pending_stream_packets}}, $packet;
+        print STDERR "QUIC::Connection: write_stream stored packet, size=" . length($packet) . ", total pending=" . scalar(@{$self->{pending_stream_packets}}) . "\n";
+        return length($packet);
+    }
+
+    print STDERR "QUIC::Connection: write_stream returned no packet\n";
+    return 0;
 }
 
 sub close_stream($self, $stream_id, $error_code = 0) {
@@ -332,10 +454,14 @@ sub _on_stream_close($self, $stream_id, $error_code, $flags) {
 }
 
 sub _on_handshake_completed($self) {
+    print STDERR "QUIC::Connection: _on_handshake_completed called, old state=$self->{state}\n";
     $self->{state} = 'established';
+    print STDERR "QUIC::Connection: state set to 'established'\n";
 
     if ($self->{on_handshake}) {
+        print STDERR "QUIC::Connection: calling on_handshake callback\n";
         $self->{on_handshake}->($self);
+        print STDERR "QUIC::Connection: on_handshake callback returned\n";
     }
 
     return 0;

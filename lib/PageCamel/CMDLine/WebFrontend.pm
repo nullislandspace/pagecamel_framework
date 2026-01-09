@@ -202,14 +202,30 @@ sub init($self) {
     my @udpsockets;
     my %udpSocketInfo;  # Map socket to {ip, port, service}
 
+    # Check if HTTP/3 XS modules are available
+    my $http3Available = 0;
+    eval {
+        require PageCamel::XS::NGTCP2;
+        require PageCamel::XS::NGHTTP3;
+        require PageCamel::Protocol::HTTP3::Server;
+        $http3Available = 1;
+    };
+    if(!$http3Available) {
+        print "WARNING: HTTP/3 XS modules not available (not compiled or not in \@INC)\n";
+        print "         HTTP/3 support will be disabled.\n";
+        print "         Run 'make' in pagecamel_framework to compile XS modules.\n\n";
+    }
+
     foreach my $service (@{$config->{external_network}->{service}}) {
         print '** Service at port ', $service->{port}, ' does ', $service->{usessl} ? '' : 'NOT', " use SSL/TLS\n";
         if($service->{usessl}) {
             $hasssl = 1;
         }
-        if($service->{http3}) {
+        if($service->{http3} && $http3Available) {
             $hashttp3 = 1;
             print '   HTTP/3 enabled on port ', $service->{port}, "\n";
+        } elsif($service->{http3} && !$http3Available) {
+            print '   HTTP/3 configured but XS modules not available - DISABLED\n';
         }
         foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
             # Create TCP socket
@@ -223,8 +239,8 @@ sub init($self) {
             push @tcpsockets, $tcp;
             print "   Listening on ", $ip, ":", $service->{port}, "/tcp\n";
 
-            # Create UDP socket for HTTP/3 if enabled
-            if($service->{http3}) {
+            # Create UDP socket for HTTP/3 if enabled and XS modules available
+            if($service->{http3} && $http3Available) {
                 my $udp = IO::Socket::IP->new(
                         LocalHost => $ip,
                         LocalPort => $service->{port},
@@ -356,7 +372,8 @@ sub run($self) {
                 my $peerport = $client->peerport();
                 my $hostip = $client->sockhost();
                 my $hostport = $client->sockport();
-                if(0 && $peerhost ne '127.0.0.1' && $peerhost ne '178.189.98.74') {
+                #if(1 && $peerhost ne '127.0.0.1' && $peerhost ne '178.189.98.74') {
+                if(1 && $peerhost ne '127.0.0.1' && $peerhost ne '192.164.14.58') {
                     $client->close;
                     next;
                 }
@@ -1031,8 +1048,8 @@ sub handleQUICPacket($self, $udpSocket) {
     my $lport = $socketInfo->{port};
     my $service = $socketInfo->{service};
 
-    # Get timestamp for QUIC
-    my $ts = Time::HiRes::time();
+    # Get timestamp for QUIC (ngtcp2 expects nanoseconds)
+    my $ts = PageCamel::XS::NGTCP2::timestamp();
 
     # Try to find existing connection by peer address
     my $quicConn = $self->{quicConnectionsByAddr}->{$peerkey};
@@ -1076,33 +1093,41 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
     require PageCamel::Protocol::QUIC::Connection;
     require PageCamel::CMDLine::WebFrontend::HTTP3Handler;
 
-    # Generate connection IDs
-    my $dcid = $self->extractQUICConnectionId($packet);
-    my $scid = $self->generateQUICConnectionId();
+    # Extract BOTH DCID and SCID from the client's Initial packet
+    # - client_dcid: what client sent in DCID field (random value for server)
+    # - client_scid: what client sent in SCID field (client's own source CID)
+    my ($client_dcid, $client_scid) = $self->extractQUICConnectionIds($packet);
 
-    return unless(defined($dcid));
+    return unless(defined($client_dcid) && defined($client_scid));
 
-    # Get SSL config
+    # Generate server's own SCID
+    my $server_scid = $self->generateQUICConnectionId();
+
+    # Get SSL config - pass all domains for SNI support
     my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
-    my $certFile = $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslcert};
-    my $keyFile = $self->{config}->{sslconfig}->{ssldomains}->{$defaultdomain}->{sslkey};
+    my $ssldomains = $self->{config}->{sslconfig}->{ssldomains};
 
     my $peerkey = "$peerhost:$peerPort";
     print getISODate(), " HTTP/3 connection from ", $peerhost, ":", $peerPort, " to ", $lhost, ":", $lport, "\n";
 
-    # Create QUIC connection
+    # Create QUIC connection with multi-domain SNI support
+    # IMPORTANT: According to ngtcp2 documentation:
+    # - dcid param = client's SCID (so we can send packets back to client)
+    # - scid param = server's new SCID
+    # - original_dcid transport param = client's DCID from packet
     my $quicConn = PageCamel::Protocol::QUIC::Connection->new(
-        id        => $scid,
-        dcid      => $dcid,
-        scid      => $scid,
+        id        => $server_scid,
+        dcid      => $client_scid,      # ngtcp2 dcid = client's SCID
+        scid      => $server_scid,      # ngtcp2 scid = server's SCID
+        original_dcid => $client_dcid,  # For transport params (what client sent as DCID)
         path      => {
             local  => {host => $lhost, port => $lport},
             remote => {host => $peerhost, port => $peerPort},
         },
         peer_addr  => {host => $peerhost, port => $peerPort},
         local_addr => {host => $lhost, port => $lport},
-        cert_file  => $certFile,
-        key_file   => $keyFile,
+        ssl_domains    => $ssldomains,
+        default_domain => $defaultdomain,
         on_stream_data => sub($conn, $streamId, $data, $fin) {
             $self->handleQUICStreamData($conn, $streamId, $data, $fin);
         },
@@ -1111,15 +1136,18 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
         },
     );
 
-    # Store connection
-    $self->{quicConnections}->{$dcid} = $quicConn;
-    $self->{quicConnections}->{$scid} = $quicConn;
+    # Store connection by both client's DCID (for Initial packets) and server's SCID
+    $self->{quicConnections}->{$client_dcid} = $quicConn;
+    $self->{quicConnections}->{$server_scid} = $quicConn;
+    # Also store by client's SCID for routing responses
+    $self->{quicConnections}->{$client_scid} = $quicConn;
     $self->{quicConnectionsByAddr}->{$peerkey} = $quicConn;
 
     # Store additional metadata
     $quicConn->{_udpSocket} = $udpSocket;
     $quicConn->{_service} = $service;
-    $quicConn->{_selectedbackend} = $self->{config}->{internal_socket};
+    # Backend will be selected based on SNI after handshake
+    $quicConn->{_selectedbackend} = undef;
 
     # Process the initial packet
     $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
@@ -1131,32 +1159,129 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
 }
 
 sub handleQUICStreamData($self, $quicConn, $streamId, $data, $fin) {
-    # HTTP/3 stream data is handled by the HTTP3Handler
-    # This callback is for lower-level QUIC handling
+    # Route stream data to the HTTP/3 server for processing
+    my $http3Server = $quicConn->{_http3Server};
+    if(defined($http3Server)) {
+        print getISODate(), " HTTP/3: Processing stream $streamId, ", length($data), " bytes, fin=$fin\n";
+        $http3Server->process_stream_data($streamId, $data, $fin);
+    } else {
+        print STDERR getISODate(), " HTTP/3: No HTTP3 server for connection, dropping stream $streamId data\n";
+    }
     return;
 }
 
 sub handleQUICHandshake($self, $quicConn) {
     # QUIC handshake completed - connection is now established
-    print getISODate(), " HTTP/3 handshake completed for ", $quicConn->id(), "\n";
+    my $hostname = $quicConn->get_hostname() // 'unknown';
+    my $backend = $quicConn->get_backend_socket();
+
+    print getISODate(), " HTTP/3 handshake completed for ", $quicConn->id(),
+          " (SNI: $hostname)\n";
+
+    # Set the backend socket based on SNI
+    if(defined($backend)) {
+        $quicConn->{_selectedbackend} = $backend;
+    } else {
+        # Fall back to default internal socket if no specific backend configured
+        $quicConn->{_selectedbackend} = $self->{config}->{internal_socket};
+        print getISODate(), " HTTP/3: No specific backend for $hostname, using default\n";
+    }
+
+    # Create HTTP/3 server instance to handle HTTP/3 framing over QUIC
+    my $http3Server = PageCamel::Protocol::HTTP3::Server->new(
+        quic_conn => $quicConn,
+        on_request => sub($server, $streamId, $headers, $fin) {
+            $self->handleHTTP3Request($quicConn, $server, $streamId, $headers, $fin);
+        },
+        on_connect_request => sub($server, $streamId, $headers) {
+            $self->handleHTTP3ConnectRequest($quicConn, $server, $streamId, $headers);
+        },
+        on_error => sub($server, $streamId, $error) {
+            print STDERR getISODate(), " HTTP/3: Error on stream $streamId: $error\n";
+        },
+    );
+
+    $quicConn->{_http3Server} = $http3Server;
+    print getISODate(), " HTTP/3: Created HTTP/3 server for ", $quicConn->id(), "\n";
+
+    # CRITICAL: Send control stream packets (SETTINGS) immediately after creating HTTP/3 server
+    # If we don't send these now, the client will receive response data before SETTINGS
+    # and close with H3_CLOSED_CRITICAL_STREAM error
+    my $udpSocket = $quicConn->{_udpSocket};
+    $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+
+    return;
+}
+
+sub handleHTTP3Request($self, $quicConn, $http3Server, $streamId, $headers, $fin) {
+    # HTTP/3 request received - for now, send a simple test response
+    print getISODate(), " HTTP/3: Request on stream $streamId (fin=$fin)\n";
+
+    # Extract request info using Headers accessor methods
+    my $method = $headers->method() // 'unknown';
+    my $path = $headers->path() // '/';
+    my $authority = $headers->authority() // 'unknown';
+
+    print getISODate(), " HTTP/3: $method $path (Host: $authority)\n";
+
+    # Simple test response
+    my $body = "Hello from HTTP/3!\n";
+    $body .= "Method: $method\n";
+    $body .= "Path: $path\n";
+    $body .= "Host: $authority\n";
+
+    # Headers as hash
+    my %responseHeaders = (
+        'content-type' => 'text/plain',
+        'server' => 'PageCamel/HTTP3',
+    );
+
+    print getISODate(), " HTTP/3: Sending response on stream $streamId\n";
+    $http3Server->response($streamId, 200, \%responseHeaders, $body);
+
+    # Send any outbound QUIC packets
+    my $udpSocket = $quicConn->{_udpSocket};
+    $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+
+    return;
+}
+
+sub handleHTTP3ConnectRequest($self, $quicConn, $http3Server, $streamId, $headers) {
+    # HTTP/3 CONNECT request (WebSocket upgrade) - not yet implemented
+    print getISODate(), " HTTP/3: CONNECT request on stream $streamId (not yet implemented)\n";
+
+    my %responseHeaders = (
+        'content-type' => 'text/plain',
+    );
+    my $body = "WebSocket over HTTP/3 not yet implemented\n";
+    $http3Server->response($streamId, 501, \%responseHeaders, $body);
+
+    # Send any outbound QUIC packets
+    my $udpSocket = $quicConn->{_udpSocket};
+    $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+
     return;
 }
 
 sub sendQUICPackets($self, $quicConn, $udpSocket) {
-    my $ts = Time::HiRes::time();
+    my $ts = PageCamel::XS::NGTCP2::timestamp();
     my @packets = $quicConn->get_packets($ts);
 
+    print STDERR "sendQUICPackets: sending " . scalar(@packets) . " packets\n";
+    my $pktNum = 0;
     foreach my $pkt (@packets) {
         my $peerAddr = $pkt->{peer_addr};
         my $sockaddr = Socket::pack_sockaddr_in($peerAddr->{port}, Socket::inet_aton($peerAddr->{host}));
-        $udpSocket->send($pkt->{data}, 0, $sockaddr);
+        my $sent = $udpSocket->send($pkt->{data}, 0, $sockaddr);
+        print STDERR "sendQUICPackets: packet $pktNum, size=" . length($pkt->{data}) . ", sent=$sent to $peerAddr->{host}:$peerAddr->{port}\n";
+        $pktNum++;
     }
 
     return;
 }
 
 sub handleQUICTimeouts($self) {
-    my $ts = Time::HiRes::time();
+    my $ts = PageCamel::XS::NGTCP2::timestamp();
 
     foreach my $connId (keys %{$self->{quicConnections}}) {
         my $quicConn = $self->{quicConnections}->{$connId};
@@ -1233,6 +1358,39 @@ sub extractQUICConnectionId($self, $packet) {
     }
 
     return;
+}
+
+sub extractQUICConnectionIds($self, $packet) {
+    # Extract BOTH Destination and Source Connection IDs from QUIC Initial packet
+    # Returns (dcid, scid) or () on failure
+    #
+    # QUIC Long Header format:
+    # Byte 0: Header byte (0x80 set for long header)
+    # Bytes 1-4: Version (4 bytes)
+    # Byte 5: DCID Length
+    # Bytes 6 to 6+DCID_LEN-1: DCID
+    # Byte 6+DCID_LEN: SCID Length
+    # Bytes 6+DCID_LEN+1 onwards: SCID
+
+    return unless(defined($packet) && length($packet) >= 7);
+
+    my $firstByte = ord(substr($packet, 0, 1));
+
+    # Only long headers have SCID
+    return unless($firstByte & 0x80);
+
+    my $dcidLen = ord(substr($packet, 5, 1));
+    return unless(length($packet) >= 7 + $dcidLen);
+
+    my $dcid = substr($packet, 6, $dcidLen);
+
+    my $scidLenOffset = 6 + $dcidLen;
+    my $scidLen = ord(substr($packet, $scidLenOffset, 1));
+    return unless(length($packet) >= $scidLenOffset + 1 + $scidLen);
+
+    my $scid = substr($packet, $scidLenOffset + 1, $scidLen);
+
+    return ($dcid, $scid);
 }
 
 sub generateQUICConnectionId($self) {

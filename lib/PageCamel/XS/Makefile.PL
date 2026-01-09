@@ -44,29 +44,10 @@ print "  Library flags: $libs\n";
 # Point to parent's blib directory (from lib/PageCamel/XS -> project root)
 my $parent_blib = '../../..';
 
-WriteMakefile(
-    NAME              => 'PageCamel::XS::NGTCP2',
-    VERSION_FROM      => 'NGTCP2.pm',
-    ABSTRACT          => 'XS bindings for ngtcp2 QUIC library',
-    AUTHOR            => 'PageCamel Framework',
-    LICENSE           => 'mit',
-    MIN_PERL_VERSION  => '5.038',
-    PREREQ_PM         => {},
-    LIBS              => [$libs],
-    INC               => "-I. $inc",
-    TYPEMAPS          => ['typemap'],
-    XS                => {
-        'NGTCP2.xs' => 'NGTCP2.c',
-    },
-    OBJECT            => 'NGTCP2$(OBJ_EXT)',
-    CCFLAGS           => "$Config{ccflags}",
-    clean             => { FILES => 'NGTCP2.c NGTCP2$(OBJ_EXT) *.bs' },
-    # Install to parent's blib
-    INST_LIB          => "$parent_blib/blib/lib",
-    INST_ARCHLIB      => "$parent_blib/blib/arch",
-);
-
 # Custom postamble to build NGHTTP3 module separately
+# Must be defined before WriteMakefile()
+# Suppress redefine warning - parent Makefile.PL also defines MY::postamble
+no warnings 'redefine';
 sub MY::postamble {
     my $libs_escaped = $libs;
     my $inc_escaped = $inc;
@@ -105,22 +86,27 @@ clean ::
 MAKE_FRAG
 }
 
-# Also need to install NGHTTP3.pm
-sub MY::install {
-    my $inherited = shift->SUPER::install(@_);
+# NGHTTP3 installation - add rules via postamble instead of overriding install
+# (overriding MY::install can cause issues with SUPER:: before WriteMakefile)
 
-    # Add NGHTTP3 installation
-    $inherited .= <<'INSTALL_FRAG';
-
-# Install NGHTTP3 module files
-install :: install_nghttp3
-
-install_nghttp3:
-	$(NOECHO) $(MKPATH) $(DESTINSTALLPRIVLIB)/PageCamel/XS/NGHTTP3
-	$(NOECHO) $(CP) NGHTTP3.pm $(DESTINSTALLPRIVLIB)/PageCamel/XS/
-	$(NOECHO) $(CP) NGHTTP3/*.pm $(DESTINSTALLPRIVLIB)/PageCamel/XS/NGHTTP3/
-
-INSTALL_FRAG
-
-    return $inherited;
-}
+WriteMakefile(
+    NAME              => 'PageCamel::XS::NGTCP2',
+    VERSION_FROM      => 'NGTCP2.pm',
+    ABSTRACT          => 'XS bindings for ngtcp2 QUIC library',
+    AUTHOR            => 'PageCamel Framework',
+    LICENSE           => 'mit',
+    MIN_PERL_VERSION  => '5.038',
+    PREREQ_PM         => {},
+    LIBS              => [$libs],
+    INC               => "-I. $inc",
+    TYPEMAPS          => ['typemap'],
+    XS                => {
+        'NGTCP2.xs' => 'NGTCP2.c',
+    },
+    OBJECT            => 'NGTCP2$(OBJ_EXT)',
+    CCFLAGS           => "$Config{ccflags}",
+    clean             => { FILES => 'NGTCP2.c NGTCP2$(OBJ_EXT) *.bs' },
+    # Install to parent's blib
+    INST_LIB          => "$parent_blib/blib/lib",
+    INST_ARCHLIB      => "$parent_blib/blib/arch",
+);

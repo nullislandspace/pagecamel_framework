@@ -13,8 +13,17 @@
 #include <ngtcp2/ngtcp2_crypto.h>
 #include <ngtcp2/ngtcp2_crypto_gnutls.h>
 #include <gnutls/gnutls.h>
+#include <gnutls/crypto.h>
 #include <string.h>
 #include <time.h>
+#include <stdarg.h>
+
+/* Structure for domain-specific credentials */
+typedef struct {
+    char *domain;
+    gnutls_certificate_credentials_t cred;
+    char *backend_socket;
+} PageCamel_DomainCred;
 
 /* Wrapper structure for QUIC connection with Perl callback storage */
 typedef struct {
@@ -27,8 +36,20 @@ typedef struct {
     SV *handshake_completed_cb;
     SV *path_validation_cb;
     SV *user_data;
-    gnutls_certificate_credentials_t cred;
+
+    /* Multi-domain SNI support */
+    PageCamel_DomainCred *domains;
+    int domain_count;
+    char *default_domain;
+    char *negotiated_hostname;
+    char *selected_backend;
+    int selected_domain_idx;
+
+    gnutls_certificate_credentials_t shared_cred;
     gnutls_session_t session;
+
+    /* Connection reference for ngtcp2_crypto callbacks */
+    ngtcp2_crypto_conn_ref conn_ref;
 } PageCamel_QUIC_Connection;
 
 /* Wrapper for transport parameters */
@@ -81,6 +102,208 @@ static ngtcp2_tstamp get_timestamp(void) {
     return (ngtcp2_tstamp)ts.tv_sec * NGTCP2_SECONDS + (ngtcp2_tstamp)ts.tv_nsec;
 }
 
+/* Callback for ngtcp2_crypto to get the ngtcp2_conn from conn_ref */
+static ngtcp2_conn *get_conn_callback(ngtcp2_crypto_conn_ref *conn_ref) {
+    PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)conn_ref->user_data;
+    fprintf(stderr, "NGTCP2: get_conn_callback called, qc=%p, conn=%p\n", (void*)qc, qc ? (void*)qc->conn : NULL);
+    return qc ? qc->conn : NULL;
+}
+
+/* Helper to find domain by hostname (case-insensitive) */
+static int find_domain_by_hostname(PageCamel_QUIC_Connection *qc, const char *hostname) {
+    int i;
+    for (i = 0; i < qc->domain_count; i++) {
+        if (strcasecmp(qc->domains[i].domain, hostname) == 0) {
+            return i;
+        }
+    }
+    /* Try matching without port if present */
+    char *colon = strchr(hostname, ':');
+    if (colon) {
+        size_t len = colon - hostname;
+        for (i = 0; i < qc->domain_count; i++) {
+            if (strncasecmp(qc->domains[i].domain, hostname, len) == 0 &&
+                qc->domains[i].domain[len] == '\0') {
+                return i;
+            }
+        }
+    }
+    return -1;  /* Not found */
+}
+
+/* Capture SNI hostname and select backend - call after handshake starts */
+static void capture_sni_hostname(PageCamel_QUIC_Connection *qc) {
+    char hostname[256];
+    size_t hostname_len = sizeof(hostname);
+    unsigned int type;
+    int rv, idx;
+
+    if (!qc || !qc->session) return;
+
+    /* Get the SNI hostname from the client */
+    rv = gnutls_server_name_get(qc->session, hostname, &hostname_len, &type, 0);
+    if (rv == GNUTLS_E_SUCCESS && type == GNUTLS_NAME_DNS) {
+        hostname[hostname_len] = '\0';
+
+        /* Store the negotiated hostname */
+        if (qc->negotiated_hostname) {
+            free(qc->negotiated_hostname);
+        }
+        qc->negotiated_hostname = strdup(hostname);
+
+        /* Find matching domain for backend routing */
+        idx = find_domain_by_hostname(qc, hostname);
+        if (idx >= 0) {
+            qc->selected_domain_idx = idx;
+            qc->selected_backend = qc->domains[idx].backend_socket;
+            return;
+        }
+    }
+
+    /* Fall back to default domain */
+    if (qc->default_domain) {
+        idx = find_domain_by_hostname(qc, qc->default_domain);
+        if (idx >= 0) {
+            qc->selected_domain_idx = idx;
+            qc->selected_backend = qc->domains[idx].backend_socket;
+            if (!qc->negotiated_hostname) {
+                qc->negotiated_hostname = strdup(qc->default_domain);
+            }
+        }
+    }
+}
+
+/* Random number generator callback for ngtcp2 */
+static void rand_callback(uint8_t *dest, size_t destlen,
+    const ngtcp2_rand_ctx *rand_ctx)
+{
+    (void)rand_ctx;  /* unused */
+    /* Use GnuTLS random for cryptographic quality randomness */
+    gnutls_rnd(GNUTLS_RND_RANDOM, dest, destlen);
+}
+
+/* Get new connection ID callback - required for QUIC */
+static int get_new_connection_id_callback(ngtcp2_conn *conn, ngtcp2_cid *cid,
+    uint8_t *token, size_t cidlen, void *user_data)
+{
+    (void)conn;
+    (void)user_data;
+
+    /* Generate random connection ID */
+    gnutls_rnd(GNUTLS_RND_RANDOM, cid->data, cidlen);
+    cid->datalen = cidlen;
+
+    /* Generate random stateless reset token (NGTCP2_STATELESS_RESET_TOKENLEN = 16 bytes) */
+    gnutls_rnd(GNUTLS_RND_RANDOM, token, NGTCP2_STATELESS_RESET_TOKENLEN);
+
+    return 0;
+}
+
+/* Debug logging callback for ngtcp2 */
+static void ngtcp2_log_printf_cb(void *user_data, const char *format, ...) {
+    va_list args;
+    (void)user_data;
+    va_start(args, format);
+    fprintf(stderr, "NGTCP2-LOG: ");
+    vfprintf(stderr, format, args);
+    va_end(args);
+}
+
+/* Debug wrapper for recv_client_initial to trace initial packet processing */
+static int recv_client_initial_wrapper(ngtcp2_conn *conn,
+    const ngtcp2_cid *dcid, void *user_data)
+{
+    int rv;
+    fprintf(stderr, "NGTCP2: recv_client_initial called, dcid len=%zu\n", dcid->datalen);
+
+    rv = ngtcp2_crypto_recv_client_initial_cb(conn, dcid, user_data);
+
+    fprintf(stderr, "NGTCP2: recv_client_initial returned %d\n", rv);
+    if (rv != 0) {
+        fprintf(stderr, "NGTCP2: recv_client_initial ERROR: %s\n", ngtcp2_strerror(rv));
+    }
+
+    return rv;
+}
+
+/* Debug wrapper for recv_crypto_data to trace transport params processing */
+static int recv_crypto_data_wrapper(ngtcp2_conn *conn,
+    ngtcp2_crypto_level crypto_level, uint64_t offset,
+    const uint8_t *data, size_t datalen, void *user_data)
+{
+    int rv;
+    const char *level_str;
+    PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)user_data;
+    const ngtcp2_cid *rcid;
+
+    switch (crypto_level) {
+        case NGTCP2_CRYPTO_LEVEL_INITIAL:
+            level_str = "INITIAL";
+            break;
+        case NGTCP2_CRYPTO_LEVEL_HANDSHAKE:
+            level_str = "HANDSHAKE";
+            break;
+        case NGTCP2_CRYPTO_LEVEL_APPLICATION:
+            level_str = "APPLICATION";
+            break;
+        case NGTCP2_CRYPTO_LEVEL_EARLY:
+            level_str = "EARLY";
+            break;
+        default:
+            level_str = "UNKNOWN";
+            break;
+    }
+
+    fprintf(stderr, "NGTCP2: recv_crypto_data level=%s offset=%lu datalen=%zu\n",
+            level_str, (unsigned long)offset, datalen);
+
+    /* Dump first 32 bytes of crypto data in hex */
+    if (datalen > 0) {
+        size_t dump_len = datalen < 32 ? datalen : 32;
+        size_t i;
+        fprintf(stderr, "NGTCP2: crypto_data[0..%zu]: ", dump_len - 1);
+        for (i = 0; i < dump_len; i++) {
+            fprintf(stderr, "%02x ", data[i]);
+        }
+        fprintf(stderr, "\n");
+    }
+
+    /* Debug: show connection's stored CIDs before processing */
+    rcid = ngtcp2_conn_get_dcid(conn);
+    if (rcid) {
+        fprintf(stderr, "NGTCP2: conn dcid len=%zu\n", rcid->datalen);
+    }
+
+    /* Call the real crypto callback */
+    rv = ngtcp2_crypto_recv_crypto_data_cb(conn, crypto_level, offset, data, datalen, user_data);
+
+    fprintf(stderr, "NGTCP2: recv_crypto_data returned %d\n", rv);
+
+    if (rv != 0) {
+        fprintf(stderr, "NGTCP2: recv_crypto_data ERROR: %s\n", ngtcp2_strerror(rv));
+
+        /* Check GnuTLS state */
+        if (qc && qc->session) {
+            int alert = gnutls_alert_get(qc->session);
+            if (alert != 0) {
+                fprintf(stderr, "NGTCP2: GnuTLS alert: %d (%s)\n", alert, gnutls_alert_get_name(alert));
+            }
+        }
+    }
+
+    /* After successful processing, show remote transport params */
+    if (rv == 0) {
+        const ngtcp2_transport_params *rparams = ngtcp2_conn_get_remote_transport_params(conn);
+        if (rparams) {
+            fprintf(stderr, "NGTCP2: remote transport params:\n");
+            fprintf(stderr, "  initial_scid.datalen=%zu\n", rparams->initial_scid.datalen);
+            fprintf(stderr, "  initial_max_data=%lu\n", (unsigned long)rparams->initial_max_data);
+        }
+    }
+
+    return rv;
+}
+
 /* Callback implementations that call back to Perl */
 static int recv_stream_data_trampoline(ngtcp2_conn *conn, uint32_t flags,
     int64_t stream_id, uint64_t offset, const uint8_t *data, size_t datalen,
@@ -89,7 +312,12 @@ static int recv_stream_data_trampoline(ngtcp2_conn *conn, uint32_t flags,
     dTHX;
     PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)user_data;
 
+    fprintf(stderr, "NGTCP2: recv_stream_data_trampoline called! stream_id=%lld offset=%llu datalen=%zu flags=0x%x\n",
+            (long long)stream_id, (unsigned long long)offset, datalen, flags);
+    fprintf(stderr, "NGTCP2: qc=%p, recv_stream_data_cb=%p\n", (void*)qc, qc ? (void*)qc->recv_stream_data_cb : NULL);
+
     if (qc->recv_stream_data_cb && SvOK(qc->recv_stream_data_cb)) {
+        fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: callback is set, calling Perl\n");
         dSP;
         int count;
         int retval = 0;
@@ -115,7 +343,10 @@ static int recv_stream_data_trampoline(ngtcp2_conn *conn, uint32_t flags,
         FREETMPS;
         LEAVE;
 
+        fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: Perl callback returned %d\n", retval);
         return retval;
+    } else {
+        fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: NO callback set or callback invalid!\n");
     }
 
     return 0;
@@ -126,6 +357,8 @@ static int stream_open_trampoline(ngtcp2_conn *conn, int64_t stream_id,
 {
     dTHX;
     PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)user_data;
+
+    fprintf(stderr, "NGTCP2: stream_open_trampoline called! stream_id=%lld\n", (long long)stream_id);
 
     if (qc->stream_open_cb && SvOK(qc->stream_open_cb)) {
         dSP;
@@ -737,6 +970,12 @@ set_initial_rtt(self, rtt)
     CODE:
         self->settings.initial_rtt = (ngtcp2_duration)rtt;
 
+void
+enable_logging(self)
+        PageCamel_Settings *self
+    CODE:
+        self->settings.log_printf = ngtcp2_log_printf_cb;
+
 
 MODULE = PageCamel::XS::NGTCP2    PACKAGE = PageCamel::XS::NGTCP2::TransportParams
 
@@ -820,6 +1059,24 @@ set_active_connection_id_limit(self, val)
         UV val
     CODE:
         self->params.active_connection_id_limit = (uint64_t)val;
+
+void
+set_original_dcid(self, cid)
+        PageCamel_TransportParams *self
+        PageCamel_CID *cid
+    CODE:
+        /* Server MUST set original_dcid to the client's DCID from Initial packet */
+        fprintf(stderr, "NGTCP2: set_original_dcid, len=%zu\n", cid->cid.datalen);
+        memcpy(&self->params.original_dcid, &cid->cid, sizeof(ngtcp2_cid));
+
+void
+set_initial_scid(self, cid)
+        PageCamel_TransportParams *self
+        PageCamel_CID *cid
+    CODE:
+        /* Server's own Source Connection ID */
+        fprintf(stderr, "NGTCP2: set_initial_scid, len=%zu\n", cid->cid.datalen);
+        memcpy(&self->params.initial_scid, &cid->cid, sizeof(ngtcp2_cid));
 
 
 MODULE = PageCamel::XS::NGTCP2    PACKAGE = PageCamel::XS::NGTCP2::CID
@@ -953,6 +1210,9 @@ server_new(class, ...)
         PageCamel_TransportParams *params = NULL;
         uint32_t version = NGTCP2_PROTO_VER_V1;
         ngtcp2_callbacks callbacks;
+        SV *ssl_domains_sv = NULL;
+        const char *default_domain = NULL;
+        gnutls_certificate_credentials_t cred = NULL;
         int rv;
         int i;
     CODE:
@@ -1021,6 +1281,15 @@ server_new(class, ...)
             else if (strEQ(key, "on_path_validation")) {
                 qc->path_validation_cb = newSVsv(val);
             }
+            else if (strEQ(key, "ssl_domains")) {
+                if (!SvROK(val) || SvTYPE(SvRV(val)) != SVt_PVHV) {
+                    croak("ssl_domains must be a hash reference");
+                }
+                ssl_domains_sv = val;
+            }
+            else if (strEQ(key, "default_domain")) {
+                default_domain = SvPV_nolen(val);
+            }
         }
 
         if (!dcid || !scid || !path || !settings || !params) {
@@ -1028,8 +1297,156 @@ server_new(class, ...)
             croak("server_new requires dcid, scid, path, settings, and params");
         }
 
-        /* Set up callbacks */
+        if (!ssl_domains_sv || !default_domain) {
+            Safefree(qc);
+            croak("server_new requires ssl_domains and default_domain for TLS");
+        }
+
+        /* Initialize certificate credentials */
+        rv = gnutls_certificate_allocate_credentials(&cred);
+        if (rv != GNUTLS_E_SUCCESS) {
+            Safefree(qc);
+            croak("gnutls_certificate_allocate_credentials failed: %s", gnutls_strerror(rv));
+        }
+
+        /* Parse ssl_domains hash and load all certificates */
+        {
+            HV *domains_hv = (HV *)SvRV(ssl_domains_sv);
+            I32 num_domains = hv_iterinit(domains_hv);
+            SV *domain_val;
+            char *domain_key;
+            I32 key_len;
+            int domain_idx = 0;
+
+            /* Allocate domains array */
+            Newxz(qc->domains, num_domains, PageCamel_DomainCred);
+            qc->domain_count = 0;
+            qc->default_domain = strdup(default_domain);
+            qc->selected_domain_idx = -1;
+
+            while ((domain_val = hv_iternextsv(domains_hv, &domain_key, &key_len)) != NULL) {
+                HV *domain_config;
+                SV **cert_sv, **key_sv, **backend_sv;
+                const char *cert_path, *key_path, *backend_path;
+
+                if (!SvROK(domain_val) || SvTYPE(SvRV(domain_val)) != SVt_PVHV) {
+                    continue;  /* Skip invalid entries */
+                }
+
+                domain_config = (HV *)SvRV(domain_val);
+
+                /* Get certificate path */
+                cert_sv = hv_fetch(domain_config, "sslcert", 7, 0);
+                if (!cert_sv || !SvOK(*cert_sv)) {
+                    continue;  /* Skip domains without cert */
+                }
+                cert_path = SvPV_nolen(*cert_sv);
+
+                /* Get key path */
+                key_sv = hv_fetch(domain_config, "sslkey", 6, 0);
+                if (!key_sv || !SvOK(*key_sv)) {
+                    continue;  /* Skip domains without key */
+                }
+                key_path = SvPV_nolen(*key_sv);
+
+                /* Get backend socket path (optional) */
+                backend_sv = hv_fetch(domain_config, "internal_socket", 15, 0);
+                backend_path = (backend_sv && SvOK(*backend_sv)) ? SvPV_nolen(*backend_sv) : NULL;
+
+                /* Load certificate into credentials */
+                rv = gnutls_certificate_set_x509_key_file(cred, cert_path, key_path, GNUTLS_X509_FMT_PEM);
+                if (rv < 0) {
+                    warn("Failed to load certificate for %s: %s", domain_key, gnutls_strerror(rv));
+                    continue;
+                }
+
+                /* Store domain info for backend routing */
+                qc->domains[domain_idx].domain = strdup(domain_key);
+                qc->domains[domain_idx].cred = NULL;  /* Using shared credentials */
+                qc->domains[domain_idx].backend_socket = backend_path ? strdup(backend_path) : NULL;
+                domain_idx++;
+                qc->domain_count = domain_idx;
+            }
+
+            if (qc->domain_count == 0) {
+                gnutls_certificate_free_credentials(cred);
+                Safefree(qc->domains);
+                Safefree(qc);
+                croak("No valid SSL domains configured");
+            }
+        }
+
+        /* Initialize GnuTLS session for server */
+        /* Use simpler flags - GNUTLS_NO_AUTO_REKEY is important for QUIC */
+        rv = gnutls_init(&qc->session, GNUTLS_SERVER | GNUTLS_NO_AUTO_REKEY);
+        if (rv != GNUTLS_E_SUCCESS) {
+            gnutls_certificate_free_credentials(cred);
+            Safefree(qc);
+            croak("gnutls_init failed: %s", gnutls_strerror(rv));
+        }
+
+        /* Set up connection reference for ngtcp2_crypto callbacks */
+        qc->conn_ref.get_conn = get_conn_callback;
+        qc->conn_ref.user_data = qc;
+        gnutls_session_set_ptr(qc->session, &qc->conn_ref);
+
+        /* Set credentials on the session */
+        rv = gnutls_credentials_set(qc->session, GNUTLS_CRD_CERTIFICATE, cred);
+        if (rv != GNUTLS_E_SUCCESS) {
+            gnutls_deinit(qc->session);
+            gnutls_certificate_free_credentials(cred);
+            Safefree(qc);
+            croak("gnutls_credentials_set failed: %s", gnutls_strerror(rv));
+        }
+
+        /* Store credentials for cleanup */
+        qc->shared_cred = cred;
+
+        /* Set default priority (TLS 1.3 required for QUIC) - simplified string */
+        rv = gnutls_priority_set_direct(qc->session, "NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
+        if (rv != GNUTLS_E_SUCCESS) {
+            gnutls_deinit(qc->session);
+            Safefree(qc);
+            croak("gnutls_priority_set_direct failed: %s", gnutls_strerror(rv));
+        }
+
+        /* Set ALPN for HTTP/3 */
+        {
+            gnutls_datum_t alpn = { (unsigned char *)"h3", 2 };
+            gnutls_alpn_set_protocols(qc->session, &alpn, 1, 0);
+        }
+
+        /* Set up callbacks - crypto callbacks from ngtcp2_crypto_gnutls */
         memset(&callbacks, 0, sizeof(callbacks));
+
+        /* Random number generator - required */
+        callbacks.rand = rand_callback;
+
+        /* Required crypto callbacks from ngtcp2_crypto library */
+        rv = ngtcp2_crypto_gnutls_configure_server_session(qc->session);
+        if (rv != 0) {
+            fprintf(stderr, "NGTCP2: ngtcp2_crypto_gnutls_configure_server_session failed: %d\n", rv);
+            gnutls_deinit(qc->session);
+            gnutls_certificate_free_credentials(cred);
+            Safefree(qc);
+            croak("ngtcp2_crypto_gnutls_configure_server_session failed");
+        }
+        fprintf(stderr, "NGTCP2: crypto session configured successfully\n");
+        callbacks.recv_client_initial = recv_client_initial_wrapper;
+        callbacks.recv_crypto_data = recv_crypto_data_wrapper;
+        callbacks.encrypt = ngtcp2_crypto_encrypt_cb;
+        callbacks.decrypt = ngtcp2_crypto_decrypt_cb;
+        callbacks.hp_mask = ngtcp2_crypto_hp_mask_cb;
+        callbacks.update_key = ngtcp2_crypto_update_key_cb;
+        callbacks.delete_crypto_aead_ctx = ngtcp2_crypto_delete_crypto_aead_ctx_cb;
+        callbacks.delete_crypto_cipher_ctx = ngtcp2_crypto_delete_crypto_cipher_ctx_cb;
+        callbacks.get_path_challenge_data = ngtcp2_crypto_get_path_challenge_data_cb;
+        callbacks.version_negotiation = ngtcp2_crypto_version_negotiation_cb;
+
+        /* Connection ID management - required */
+        callbacks.get_new_connection_id = get_new_connection_id_callback;
+
+        /* Application-level callbacks (trampolines to Perl) */
         callbacks.recv_stream_data = recv_stream_data_trampoline;
         callbacks.stream_open = stream_open_trampoline;
         callbacks.stream_close = stream_close_trampoline;
@@ -1037,8 +1454,15 @@ server_new(class, ...)
         callbacks.handshake_completed = handshake_completed_trampoline;
         callbacks.path_validation = path_validation_trampoline;
 
-        /* Create the ngtcp2 connection - full implementation would include TLS setup */
-        /* This is a placeholder - actual implementation needs ngtcp2_crypto integration */
+        /* Debug: show transport params */
+        fprintf(stderr, "NGTCP2: server_new transport params:\n");
+        fprintf(stderr, "  original_dcid.datalen=%zu\n", params->params.original_dcid.datalen);
+        fprintf(stderr, "  initial_scid.datalen=%zu\n", params->params.initial_scid.datalen);
+        fprintf(stderr, "  initial_max_data=%lu\n", (unsigned long)params->params.initial_max_data);
+        fprintf(stderr, "  initial_max_streams_bidi=%lu\n", (unsigned long)params->params.initial_max_streams_bidi);
+        fprintf(stderr, "  dcid param len=%zu, scid param len=%zu\n", dcid->cid.datalen, scid->cid.datalen);
+
+        /* Create the ngtcp2 connection */
         rv = ngtcp2_conn_server_new(
             &qc->conn,
             &dcid->cid,
@@ -1053,9 +1477,20 @@ server_new(class, ...)
         );
 
         if (rv != 0) {
+            gnutls_deinit(qc->session);
+            gnutls_certificate_free_credentials(qc->shared_cred);
             Safefree(qc);
             croak("ngtcp2_conn_server_new failed: %s", ngtcp2_strerror(rv));
         }
+
+        fprintf(stderr, "NGTCP2: server_new succeeded, conn=%p, session=%p\n",
+                (void*)qc->conn, (void*)qc->session);
+
+        /* Link the GnuTLS session to the ngtcp2 connection - CRITICAL */
+        ngtcp2_conn_set_tls_native_handle(qc->conn, qc->session);
+
+        fprintf(stderr, "NGTCP2: TLS handle linked, conn_ref callback=%p\n",
+                (void*)qc->conn_ref.get_conn);
 
         RETVAL = qc;
     OUTPUT:
@@ -1065,6 +1500,7 @@ void
 DESTROY(self)
         PageCamel_QUIC_Connection *self
     CODE:
+        int i;
         if (self->conn) {
             ngtcp2_conn_del(self->conn);
         }
@@ -1077,8 +1513,63 @@ DESTROY(self)
         if (self->path_validation_cb) SvREFCNT_dec(self->path_validation_cb);
         if (self->user_data) SvREFCNT_dec(self->user_data);
         if (self->session) gnutls_deinit(self->session);
-        if (self->cred) gnutls_certificate_free_credentials(self->cred);
+        if (self->shared_cred) gnutls_certificate_free_credentials(self->shared_cred);
+        /* Free domain info */
+        if (self->domains) {
+            for (i = 0; i < self->domain_count; i++) {
+                if (self->domains[i].domain) free(self->domains[i].domain);
+                if (self->domains[i].backend_socket) free(self->domains[i].backend_socket);
+            }
+            Safefree(self->domains);
+        }
+        if (self->default_domain) free(self->default_domain);
+        if (self->negotiated_hostname) free(self->negotiated_hostname);
         Safefree(self);
+
+# Get the negotiated hostname (SNI from client)
+SV *
+get_hostname(self)
+        PageCamel_QUIC_Connection *self
+    CODE:
+        /* Try to capture SNI if not already done */
+        if (!self->negotiated_hostname) {
+            capture_sni_hostname(self);
+        }
+        if (self->negotiated_hostname) {
+            RETVAL = newSVpv(self->negotiated_hostname, 0);
+        } else {
+            RETVAL = &PL_sv_undef;
+        }
+    OUTPUT:
+        RETVAL
+
+# Get the backend socket path for the negotiated domain
+SV *
+get_backend_socket(self)
+        PageCamel_QUIC_Connection *self
+    CODE:
+        /* Try to capture SNI if not already done */
+        if (!self->negotiated_hostname) {
+            capture_sni_hostname(self);
+        }
+        if (self->selected_backend) {
+            RETVAL = newSVpv(self->selected_backend, 0);
+        } else {
+            RETVAL = &PL_sv_undef;
+        }
+    OUTPUT:
+        RETVAL
+
+# Capture SNI hostname from TLS handshake
+void
+capture_sni(self)
+        PageCamel_QUIC_Connection *self
+    CODE:
+        capture_sni_hostname(self);
+
+# NOTE: Initial keys are derived automatically by ngtcp2_crypto_recv_client_initial_cb
+# callback when read_pkt processes the first Initial packet. No manual key derivation
+# is needed. The recv_client_initial callback is set up in server_new.
 
 # Process incoming packet
 IV
@@ -1094,6 +1585,8 @@ read_pkt(self, path, pkt, ts)
 
         memset(&pi, 0, sizeof(pi));
 
+        fprintf(stderr, "NGTCP2: read_pkt called, pktlen=%zu, ts=%lu\n", pktlen, (unsigned long)ts);
+
         RETVAL = ngtcp2_conn_read_pkt(
             self->conn,
             &path->path,
@@ -1102,10 +1595,12 @@ read_pkt(self, path, pkt, ts)
             pktlen,
             (ngtcp2_tstamp)ts
         );
+        fprintf(stderr, "NGTCP2: read_pkt returned %d (%s)\n", (int)RETVAL,
+                RETVAL < 0 ? ngtcp2_strerror((int)RETVAL) : "OK");
     OUTPUT:
         RETVAL
 
-# Write outgoing packets
+# Write outgoing packets (loops until no more packets to send)
 void
 write_pkt(self, ts)
         PageCamel_QUIC_Connection *self
@@ -1115,21 +1610,48 @@ write_pkt(self, ts)
         ngtcp2_path_storage ps;
         ngtcp2_pkt_info pi;
         ngtcp2_ssize nwrite;
+        int packet_count = 0;
     PPCODE:
-        ngtcp2_path_storage_zero(&ps);
+        fprintf(stderr, "NGTCP2: write_pkt called, ts=%lu\n", (unsigned long)ts);
 
-        nwrite = ngtcp2_conn_write_pkt(
-            self->conn,
-            &ps.path,
-            &pi,
-            buf,
-            sizeof(buf),
-            (ngtcp2_tstamp)ts
-        );
+        /* Loop to get all available packets */
+        while (1) {
+            ngtcp2_path_storage_zero(&ps);
 
-        if (nwrite > 0) {
+            nwrite = ngtcp2_conn_write_pkt(
+                self->conn,
+                &ps.path,
+                &pi,
+                buf,
+                sizeof(buf),
+                (ngtcp2_tstamp)ts
+            );
+
+            fprintf(stderr, "NGTCP2: write_pkt iteration %d returned %zd\n", packet_count, nwrite);
+
+            if (nwrite < 0) {
+                /* Error */
+                fprintf(stderr, "NGTCP2: write_pkt error: %s\n", ngtcp2_strerror((int)nwrite));
+                break;
+            }
+
+            if (nwrite == 0) {
+                /* No more packets to write */
+                break;
+            }
+
+            /* Push packet data onto Perl stack */
             mXPUSHs(newSVpvn((const char *)buf, nwrite));
+            packet_count++;
+
+            /* Safety limit to prevent infinite loops */
+            if (packet_count >= 100) {
+                fprintf(stderr, "NGTCP2: write_pkt hit safety limit of 100 packets\n");
+                break;
+            }
         }
+
+        fprintf(stderr, "NGTCP2: write_pkt returning %d packets\n", packet_count);
 
 # Get connection expiry time
 UV
@@ -1211,8 +1733,9 @@ open_uni_stream(self)
     OUTPUT:
         RETVAL
 
-# Write stream data
-IV
+# Write stream data - returns packet data that MUST be sent via UDP
+# Returns: ($packet_data) on success, () on error or nothing to send
+void
 write_stream(self, stream_id, data, ts, fin = 0)
         PageCamel_QUIC_Connection *self
         IV stream_id
@@ -1229,7 +1752,7 @@ write_stream(self, stream_id, data, ts, fin = 0)
         ngtcp2_ssize ndatalen;
         uint32_t flags = 0;
         ngtcp2_vec datavec;
-    CODE:
+    PPCODE:
         dataptr = (const uint8_t *)SvPVbyte(data, datalen);
         ngtcp2_path_storage_zero(&ps);
 
@@ -1254,9 +1777,11 @@ write_stream(self, stream_id, data, ts, fin = 0)
             (ngtcp2_tstamp)ts
         );
 
-        RETVAL = nwrite;
-    OUTPUT:
-        RETVAL
+        /* Return packet data if we have something to send */
+        if (nwrite > 0) {
+            mXPUSHs(newSVpvn((const char *)buf, nwrite));
+        }
+        /* On error or nothing to write, return empty list */
 
 # Shutdown stream
 IV

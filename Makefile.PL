@@ -223,9 +223,7 @@ if($http3Enabled) {
     print "Wrote HTTP/3 configuration to lib/PageCamel/XS/http3_config.pl\n";
 }
 
-WriteMakefile(%mmParams);
-
-# Custom targets
+# Custom targets - must be defined before WriteMakefile()
 sub MY::postamble {
     return <<'MAKE_FRAG';
 
@@ -253,3 +251,5 @@ http3-info:
 
 MAKE_FRAG
 }
+
+WriteMakefile(%mmParams);
