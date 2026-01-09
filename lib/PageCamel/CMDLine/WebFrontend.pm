@@ -109,6 +109,10 @@ sub init($self) {
 
     # Validate HTTP/2 configuration: HTTP/2 requires SSL/TLS
     foreach my $service (@{$config->{external_network}->{service}}) {
+        if(!defined($service->{http2})) {
+            $service->{http2} = 0;
+        }
+
         if(defined($service->{http2}) && $service->{http2}) {
             if(!defined($service->{usessl}) || !$service->{usessl}) {
                 print STDERR "HTTP/2 requires SSL/TLS! Disabling HTTP/2 on port $service->{port}\n";
@@ -379,7 +383,7 @@ sub handleClient($self, $client) {
                     if($ip eq $lhost) {
                         # Found it
                         $usessl = $service->{usessl};
-                        $http2 = $service->{http2} // 0;
+                        $http2 = $service->{http2};
                     }
                 }
             }
