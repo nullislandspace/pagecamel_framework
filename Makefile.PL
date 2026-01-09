@@ -8,6 +8,7 @@ WriteMakefile(
     VERSION_FROM      => 'lib/PageCamel/Framework.pm', # finds $VERSION
     PREREQ_PM         => {
         'AHA' => 0.6, # AVM Home Automation (Fritz!Box)
+        'AnyEvent' => 0,
         'Archive::Zip' => 0,
         'Array::Contains' => 3.1,
         'Carp' => 0,
