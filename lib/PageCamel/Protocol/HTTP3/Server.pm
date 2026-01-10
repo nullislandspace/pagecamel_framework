@@ -125,33 +125,48 @@ sub flush_pending_data($self) {
     # Loop until nghttp3 has no more data to send
     # writev_stream returns (actual_stream_id, data, fin) - the stream_id tells us
     # which stream the data belongs to (nghttp3 decides, not us)
-    my $max_iterations = 100;  # Safety limit
-    my $sent_streams = {};  # Track which streams we've sent data for
+    # Use high iteration limit - 1.2MB / 16KB = 75 chunks per stream
+    my $max_iterations = 1000;  # Safety limit for very large responses
+    my $total_bytes = 0;
+    my $iterations_used = 0;
 
     for my $iter (1..$max_iterations) {
         # Pass -1 to let nghttp3 tell us which stream has data
         my ($actual_stream_id, $data, $fin) = $http3->writev_stream(-1);
 
-        # No more data to send
+        # No more data to send - nghttp3 returns undef when nothing pending
         last unless defined $actual_stream_id && defined $data && length($data);
 
-        # Avoid infinite loop - if we've seen this stream, nghttp3 should have consumed it
-        if ($sent_streams->{$actual_stream_id}++) {
-            # We've already sent data for this stream in this flush
-            # Call add_write_offset and try again
-            $http3->add_write_offset($actual_stream_id, length($data));
-            next;
+        $iterations_used = $iter;
+
+        # Write to QUIC - returns bytes actually consumed (may be less than length if blocked)
+        my $bytes_written = $quic->write_stream($actual_stream_id, $data, $fin // 0);
+
+        # Handle write errors or partial writes
+        if (!defined($bytes_written) || $bytes_written < 0) {
+            # Error - don't acknowledge any data to nghttp3
+            print STDERR "HTTP3::Server::flush_pending_data: write_stream error: $bytes_written\n";
+            last;
         }
 
-        # Debug: hex dump what we're sending
-        my $hex = unpack('H*', $data);
-        print STDERR "HTTP3::Server: stream $actual_stream_id sending " . length($data) . " bytes: $hex\n";
+        if ($bytes_written == 0) {
+            # Flow control blocked - don't acknowledge, try again later
+            last;
+        }
 
-        # Write to QUIC
-        $quic->write_stream($actual_stream_id, $data, $fin // 0);
+        $total_bytes += $bytes_written;
 
-        # Acknowledge we consumed this data from nghttp3
-        $http3->add_write_offset($actual_stream_id, length($data));
+        # CRITICAL: Only acknowledge the bytes that were actually written to QUIC
+        $http3->add_write_offset($actual_stream_id, $bytes_written);
+
+        # Note: Don't break on partial write. Continue looping - on the next iteration,
+        # writev_stream will return more data (nghttp3 tracks the offset), and write_stream
+        # will return 0 if truly blocked. Breaking here prevents cwnd from growing properly
+        # because we only send 1 packet per flush cycle instead of filling the cwnd.
+    }
+
+    if ($total_bytes > 0) {
+        print STDERR "HTTP3::Server::flush_pending_data: sent $total_bytes bytes in $iterations_used iterations\n";
     }
 }
 
@@ -235,40 +250,62 @@ sub response($self, $stream_id, $status, $headers, $body = undef) {
         }
     }
 
+    # Check if we have body data to send
+    my $has_body = defined $body && length($body);
+
     # Add content-length if body provided
-    if (defined $body && length($body)) {
+    if ($has_body) {
         unless (grep { lc($_) eq 'content-length' } @header_array) {
             push @header_array, 'content-length' => length($body);
         }
     }
 
-    # Submit response headers
-    my $rv = $self->{http3_conn}->submit_response($stream_id, \@header_array);
-    if ($rv < 0) {
-        warn "HTTP/3: Failed to submit response: " .
-             PageCamel::XS::NGHTTP3::strerror($rv) . "\n";
-        return $rv;
+    # Submit response - use submit_response_with_body if we have body data
+    my $rv;
+    if ($has_body) {
+        # Use the new data_reader API for body data
+        $rv = $self->{http3_conn}->submit_response_with_body($stream_id, \@header_array);
+        if ($rv < 0) {
+            warn "HTTP/3: Failed to submit response with body: " .
+                 PageCamel::XS::NGHTTP3::strerror($rv) . "\n";
+            return $rv;
+        }
+
+        # Push body data to nghttp3's internal buffer
+        my $data_rv = $self->{http3_conn}->set_stream_body_data($stream_id, $body);
+        if ($data_rv < 0) {
+            warn "HTTP/3: Failed to set body data: $data_rv\n";
+            return $data_rv;
+        }
+
+        # Mark body as complete
+        $self->{http3_conn}->set_stream_eof($stream_id);
+
+        # Tell nghttp3 data is available - it will call read_data callback
+        $self->{http3_conn}->resume_stream($stream_id);
+    }
+    else {
+        # No body - use original submit_response (NULL data_reader = no body)
+        $rv = $self->{http3_conn}->submit_response($stream_id, \@header_array);
+        if ($rv < 0) {
+            warn "HTTP/3: Failed to submit response: " .
+                 PageCamel::XS::NGHTTP3::strerror($rv) . "\n";
+            return $rv;
+        }
     }
 
     $self->{responses_sent}++;
 
-    # Check if we have body data to send
-    my $has_body = defined $body && length($body);
-
-    # Flush HEADERS frame from nghttp3 to QUIC
-    # If we have body data, force fin=0 on the HEADERS frame
-    $self->flush_stream_data($stream_id, $has_body ? 0 : undef);
-
-    # Write response body to QUIC if provided
-    if ($has_body) {
-        $self->_write_response_data($stream_id, $body, 1);
-    }
+    # Flush all pending data from nghttp3 to QUIC
+    # nghttp3 generates HEADERS and DATA frames via writev_stream
+    $self->flush_pending_data();
 
     return 0;
 }
 
 # Flush pending data for a specific stream from nghttp3 to QUIC
 # $force_fin: undef = use nghttp3's fin, 0 = force no fin, 1 = force fin
+# Returns: bytes written (>=0) or negative error code
 sub flush_stream_data($self, $target_stream_id, $force_fin = undef) {
     my $quic = $self->{quic_conn};
     my $http3 = $self->{http3_conn};
@@ -286,12 +323,19 @@ sub flush_stream_data($self, $target_stream_id, $force_fin = undef) {
         # Determine fin value: use forced value if provided, else use nghttp3's value
         my $actual_fin = defined($force_fin) ? $force_fin : ($fin // 0);
 
-        # Write to QUIC
-        $quic->write_stream($actual_stream_id, $data, $actual_fin);
+        # Write to QUIC - returns bytes actually consumed
+        my $bytes_written = $quic->write_stream($actual_stream_id, $data, $actual_fin);
 
-        # Acknowledge we consumed this data
-        $http3->add_write_offset($actual_stream_id, length($data));
+        if (defined($bytes_written) && $bytes_written > 0) {
+            # CRITICAL: Only acknowledge bytes actually written to QUIC
+            $http3->add_write_offset($actual_stream_id, $bytes_written);
+            return $bytes_written;
+        }
+
+        return $bytes_written // -1;
     }
+
+    return 0;
 }
 
 sub response_stream($self, $stream_id, $status, $headers) {
@@ -309,7 +353,8 @@ sub response_stream($self, $stream_id, $status, $headers) {
         }
     }
 
-    my $rv = $self->{http3_conn}->submit_response($stream_id, \@header_array);
+    # Use submit_response_with_body since body data will follow
+    my $rv = $self->{http3_conn}->submit_response_with_body($stream_id, \@header_array);
     if ($rv < 0) {
         warn "HTTP/3: Failed to submit streaming response: " .
              PageCamel::XS::NGHTTP3::strerror($rv) . "\n";
@@ -319,8 +364,7 @@ sub response_stream($self, $stream_id, $status, $headers) {
     $self->{responses_sent}++;
 
     # Flush HEADERS frame from nghttp3 to QUIC
-    # Force fin=0 since body data will follow
-    $self->flush_stream_data($stream_id, 0);
+    $self->flush_pending_data();
 
     # Return a stream object for sending body chunks
     return PageCamel::Protocol::HTTP3::ResponseStream->new(
@@ -330,7 +374,33 @@ sub response_stream($self, $stream_id, $status, $headers) {
 }
 
 sub send_body_chunk($self, $stream_id, $data, $fin = 0) {
-    return $self->_write_response_data($stream_id, $data, $fin);
+    # Push body data through nghttp3's proper API
+    my $hasData = defined($data) && length($data);
+
+    # Push data to nghttp3's internal buffer (if any)
+    if ($hasData) {
+        my $rv = $self->{http3_conn}->set_stream_body_data($stream_id, $data);
+        if ($rv < 0) {
+            warn "HTTP/3: Failed to push body chunk: $rv\n";
+            return $rv;
+        }
+    }
+
+    # Mark EOF if this is the last chunk
+    if ($fin) {
+        print STDERR "HTTP/3: set_stream_eof for stream $stream_id\n";
+        $self->{http3_conn}->set_stream_eof($stream_id);
+    }
+
+    # Tell nghttp3 data is available (or EOF status changed)
+    if ($hasData || $fin) {
+        $self->{http3_conn}->resume_stream($stream_id);
+
+        # Flush DATA frames from nghttp3 to QUIC
+        $self->flush_pending_data();
+    }
+
+    return $hasData ? length($data) : 0;
 }
 
 sub send_trailers($self, $stream_id, $headers) {
@@ -363,14 +433,14 @@ sub tunnel_response($self, $stream_id, $status, $headers) {
         }
     }
 
-    my $rv = $self->{http3_conn}->submit_response($stream_id, \@header_array);
+    # Use submit_response_with_body since tunnel data will follow
+    my $rv = $self->{http3_conn}->submit_response_with_body($stream_id, \@header_array);
     if ($rv < 0) {
         return;
     }
 
     # Flush HEADERS frame from nghttp3 to QUIC
-    # Force fin=0 since tunnel data will follow
-    $self->flush_stream_data($stream_id, 0);
+    $self->flush_pending_data();
 
     # Return tunnel object for bidirectional data
     return PageCamel::Protocol::HTTP3::Tunnel->new(
@@ -380,12 +450,31 @@ sub tunnel_response($self, $stream_id, $status, $headers) {
 }
 
 sub _write_response_data($self, $stream_id, $data, $fin) {
+    # DEPRECATED: This method bypasses nghttp3's DATA frame handling.
+    # Use send_body_chunk() instead which properly uses nghttp3's data_reader API.
     # HTTP/3 body data must be wrapped in DATA frames
     # DATA frame format: type (0x00) + length (varint) + payload
+    # Returns: bytes of original data consumed (not including frame overhead),
+    #          or negative error code
     return 0 unless defined $data && length($data);
 
     my $framed_data = $self->_frame_data($data);
-    return $self->{quic_conn}->write_stream($stream_id, $framed_data, $fin);
+    my $frame_overhead = length($framed_data) - length($data);
+    my $rv = $self->{quic_conn}->write_stream($stream_id, $framed_data, $fin);
+
+    if($rv < 0) {
+        # Error - could be STREAM_DATA_BLOCKED (-8) for flow control
+        # print STDERR "HTTP3Server: write_stream error $rv for " . length($framed_data) . " bytes\n";
+        return $rv;
+    }
+
+    # Convert bytes consumed of framed_data back to bytes of original data
+    if($rv <= $frame_overhead) {
+        # Only consumed frame header, not the actual data
+        return 0;
+    }
+
+    return $rv - $frame_overhead;
 }
 
 # Frame body data as HTTP/3 DATA frame
@@ -426,6 +515,9 @@ sub _encode_varint($self, $value) {
 sub close_stream($self, $stream_id, $error_code = 0) {
     delete $self->{requests}{$stream_id};
     delete $self->{pending_responses}{$stream_id};
+
+    # Clean up stream body buffer
+    $self->{http3_conn}->clear_stream_buffer($stream_id);
 
     $self->{http3_conn}->close_stream($stream_id, $error_code);
     $self->{quic_conn}->close_stream($stream_id, $error_code);
@@ -591,6 +683,7 @@ sub last($self, $data = '') {
 sub close($self) {
     return if $self->{closed};
     $self->{closed} = 1;
+    print STDERR "HTTP3::ResponseStream::close() called for stream " . $self->{stream_id} . "\n";
     return $self->{server}->send_body_chunk($self->{stream_id}, '', 1);
 }
 

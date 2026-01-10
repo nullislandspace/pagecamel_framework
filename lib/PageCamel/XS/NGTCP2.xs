@@ -18,6 +18,9 @@
 #include <time.h>
 #include <stdarg.h>
 
+/* Debug flag - set to 1 to enable verbose logging */
+#define NGTCP2_DEBUG 0
+
 /* Structure for domain-specific credentials */
 typedef struct {
     char *domain;
@@ -105,7 +108,7 @@ static ngtcp2_tstamp get_timestamp(void) {
 /* Callback for ngtcp2_crypto to get the ngtcp2_conn from conn_ref */
 static ngtcp2_conn *get_conn_callback(ngtcp2_crypto_conn_ref *conn_ref) {
     PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)conn_ref->user_data;
-    fprintf(stderr, "NGTCP2: get_conn_callback called, qc=%p, conn=%p\n", (void*)qc, qc ? (void*)qc->conn : NULL);
+    if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: get_conn_callback called, qc=%p, conn=%p\n", (void*)qc, qc ? (void*)qc->conn : NULL);
     return qc ? qc->conn : NULL;
 }
 
@@ -199,14 +202,17 @@ static int get_new_connection_id_callback(ngtcp2_conn *conn, ngtcp2_cid *cid,
     return 0;
 }
 
-/* Debug logging callback for ngtcp2 */
+/* Debug logging callback for ngtcp2 - disabled for production */
 static void ngtcp2_log_printf_cb(void *user_data, const char *format, ...) {
-    va_list args;
     (void)user_data;
+    (void)format;
+    /* Debug logging disabled - uncomment below to re-enable
+    va_list args;
     va_start(args, format);
     fprintf(stderr, "NGTCP2-LOG: ");
     vfprintf(stderr, format, args);
     va_end(args);
+    */
 }
 
 /* Debug wrapper for recv_client_initial to trace initial packet processing */
@@ -214,12 +220,12 @@ static int recv_client_initial_wrapper(ngtcp2_conn *conn,
     const ngtcp2_cid *dcid, void *user_data)
 {
     int rv;
-    fprintf(stderr, "NGTCP2: recv_client_initial called, dcid len=%zu\n", dcid->datalen);
+    if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: recv_client_initial called, dcid len=%zu\n", dcid->datalen);
 
     rv = ngtcp2_crypto_recv_client_initial_cb(conn, dcid, user_data);
 
-    fprintf(stderr, "NGTCP2: recv_client_initial returned %d\n", rv);
-    if (rv != 0) {
+    if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: recv_client_initial returned %d\n", rv);
+    if (rv != 0 && NGTCP2_DEBUG) {
         fprintf(stderr, "NGTCP2: recv_client_initial ERROR: %s\n", ngtcp2_strerror(rv));
     }
 
@@ -232,72 +238,77 @@ static int recv_crypto_data_wrapper(ngtcp2_conn *conn,
     const uint8_t *data, size_t datalen, void *user_data)
 {
     int rv;
-    const char *level_str;
     PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)user_data;
-    const ngtcp2_cid *rcid;
 
-    switch (crypto_level) {
-        case NGTCP2_CRYPTO_LEVEL_INITIAL:
-            level_str = "INITIAL";
-            break;
-        case NGTCP2_CRYPTO_LEVEL_HANDSHAKE:
-            level_str = "HANDSHAKE";
-            break;
-        case NGTCP2_CRYPTO_LEVEL_APPLICATION:
-            level_str = "APPLICATION";
-            break;
-        case NGTCP2_CRYPTO_LEVEL_EARLY:
-            level_str = "EARLY";
-            break;
-        default:
-            level_str = "UNKNOWN";
-            break;
-    }
+    if (NGTCP2_DEBUG) {
+        const char *level_str;
+        const ngtcp2_cid *rcid;
 
-    fprintf(stderr, "NGTCP2: recv_crypto_data level=%s offset=%lu datalen=%zu\n",
-            level_str, (unsigned long)offset, datalen);
-
-    /* Dump first 32 bytes of crypto data in hex */
-    if (datalen > 0) {
-        size_t dump_len = datalen < 32 ? datalen : 32;
-        size_t i;
-        fprintf(stderr, "NGTCP2: crypto_data[0..%zu]: ", dump_len - 1);
-        for (i = 0; i < dump_len; i++) {
-            fprintf(stderr, "%02x ", data[i]);
+        switch (crypto_level) {
+            case NGTCP2_CRYPTO_LEVEL_INITIAL:
+                level_str = "INITIAL";
+                break;
+            case NGTCP2_CRYPTO_LEVEL_HANDSHAKE:
+                level_str = "HANDSHAKE";
+                break;
+            case NGTCP2_CRYPTO_LEVEL_APPLICATION:
+                level_str = "APPLICATION";
+                break;
+            case NGTCP2_CRYPTO_LEVEL_EARLY:
+                level_str = "EARLY";
+                break;
+            default:
+                level_str = "UNKNOWN";
+                break;
         }
-        fprintf(stderr, "\n");
-    }
 
-    /* Debug: show connection's stored CIDs before processing */
-    rcid = ngtcp2_conn_get_dcid(conn);
-    if (rcid) {
-        fprintf(stderr, "NGTCP2: conn dcid len=%zu\n", rcid->datalen);
+        fprintf(stderr, "NGTCP2: recv_crypto_data level=%s offset=%lu datalen=%zu\n",
+                level_str, (unsigned long)offset, datalen);
+
+        /* Dump first 32 bytes of crypto data in hex */
+        if (datalen > 0) {
+            size_t dump_len = datalen < 32 ? datalen : 32;
+            size_t i;
+            fprintf(stderr, "NGTCP2: crypto_data[0..%zu]: ", dump_len - 1);
+            for (i = 0; i < dump_len; i++) {
+                fprintf(stderr, "%02x ", data[i]);
+            }
+            fprintf(stderr, "\n");
+        }
+
+        /* Debug: show connection's stored CIDs before processing */
+        rcid = ngtcp2_conn_get_dcid(conn);
+        if (rcid) {
+            fprintf(stderr, "NGTCP2: conn dcid len=%zu\n", rcid->datalen);
+        }
     }
 
     /* Call the real crypto callback */
     rv = ngtcp2_crypto_recv_crypto_data_cb(conn, crypto_level, offset, data, datalen, user_data);
 
-    fprintf(stderr, "NGTCP2: recv_crypto_data returned %d\n", rv);
+    if (NGTCP2_DEBUG) {
+        fprintf(stderr, "NGTCP2: recv_crypto_data returned %d\n", rv);
 
-    if (rv != 0) {
-        fprintf(stderr, "NGTCP2: recv_crypto_data ERROR: %s\n", ngtcp2_strerror(rv));
+        if (rv != 0) {
+            fprintf(stderr, "NGTCP2: recv_crypto_data ERROR: %s\n", ngtcp2_strerror(rv));
 
-        /* Check GnuTLS state */
-        if (qc && qc->session) {
-            int alert = gnutls_alert_get(qc->session);
-            if (alert != 0) {
-                fprintf(stderr, "NGTCP2: GnuTLS alert: %d (%s)\n", alert, gnutls_alert_get_name(alert));
+            /* Check GnuTLS state */
+            if (qc && qc->session) {
+                int alert = gnutls_alert_get(qc->session);
+                if (alert != 0) {
+                    fprintf(stderr, "NGTCP2: GnuTLS alert: %d (%s)\n", alert, gnutls_alert_get_name(alert));
+                }
             }
         }
-    }
 
-    /* After successful processing, show remote transport params */
-    if (rv == 0) {
-        const ngtcp2_transport_params *rparams = ngtcp2_conn_get_remote_transport_params(conn);
-        if (rparams) {
-            fprintf(stderr, "NGTCP2: remote transport params:\n");
-            fprintf(stderr, "  initial_scid.datalen=%zu\n", rparams->initial_scid.datalen);
-            fprintf(stderr, "  initial_max_data=%lu\n", (unsigned long)rparams->initial_max_data);
+        /* After successful processing, show remote transport params */
+        if (rv == 0) {
+            const ngtcp2_transport_params *rparams = ngtcp2_conn_get_remote_transport_params(conn);
+            if (rparams) {
+                fprintf(stderr, "NGTCP2: remote transport params:\n");
+                fprintf(stderr, "  initial_scid.datalen=%zu\n", rparams->initial_scid.datalen);
+                fprintf(stderr, "  initial_max_data=%lu\n", (unsigned long)rparams->initial_max_data);
+            }
         }
     }
 
@@ -312,12 +323,14 @@ static int recv_stream_data_trampoline(ngtcp2_conn *conn, uint32_t flags,
     dTHX;
     PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)user_data;
 
-    fprintf(stderr, "NGTCP2: recv_stream_data_trampoline called! stream_id=%lld offset=%llu datalen=%zu flags=0x%x\n",
-            (long long)stream_id, (unsigned long long)offset, datalen, flags);
-    fprintf(stderr, "NGTCP2: qc=%p, recv_stream_data_cb=%p\n", (void*)qc, qc ? (void*)qc->recv_stream_data_cb : NULL);
+    if (NGTCP2_DEBUG) {
+        fprintf(stderr, "NGTCP2: recv_stream_data_trampoline called! stream_id=%lld offset=%llu datalen=%zu flags=0x%x\n",
+                (long long)stream_id, (unsigned long long)offset, datalen, flags);
+        fprintf(stderr, "NGTCP2: qc=%p, recv_stream_data_cb=%p\n", (void*)qc, qc ? (void*)qc->recv_stream_data_cb : NULL);
+    }
 
     if (qc->recv_stream_data_cb && SvOK(qc->recv_stream_data_cb)) {
-        fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: callback is set, calling Perl\n");
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: callback is set, calling Perl\n");
         dSP;
         int count;
         int retval = 0;
@@ -343,10 +356,10 @@ static int recv_stream_data_trampoline(ngtcp2_conn *conn, uint32_t flags,
         FREETMPS;
         LEAVE;
 
-        fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: Perl callback returned %d\n", retval);
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: Perl callback returned %d\n", retval);
         return retval;
     } else {
-        fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: NO callback set or callback invalid!\n");
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: recv_stream_data_trampoline: NO callback set or callback invalid!\n");
     }
 
     return 0;
@@ -358,7 +371,7 @@ static int stream_open_trampoline(ngtcp2_conn *conn, int64_t stream_id,
     dTHX;
     PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)user_data;
 
-    fprintf(stderr, "NGTCP2: stream_open_trampoline called! stream_id=%lld\n", (long long)stream_id);
+    if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: stream_open_trampoline called! stream_id=%lld\n", (long long)stream_id);
 
     if (qc->stream_open_cb && SvOK(qc->stream_open_cb)) {
         dSP;
@@ -1066,7 +1079,7 @@ set_original_dcid(self, cid)
         PageCamel_CID *cid
     CODE:
         /* Server MUST set original_dcid to the client's DCID from Initial packet */
-        fprintf(stderr, "NGTCP2: set_original_dcid, len=%zu\n", cid->cid.datalen);
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: set_original_dcid, len=%zu\n", cid->cid.datalen);
         memcpy(&self->params.original_dcid, &cid->cid, sizeof(ngtcp2_cid));
 
 void
@@ -1075,7 +1088,7 @@ set_initial_scid(self, cid)
         PageCamel_CID *cid
     CODE:
         /* Server's own Source Connection ID */
-        fprintf(stderr, "NGTCP2: set_initial_scid, len=%zu\n", cid->cid.datalen);
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: set_initial_scid, len=%zu\n", cid->cid.datalen);
         memcpy(&self->params.initial_scid, &cid->cid, sizeof(ngtcp2_cid));
 
 
@@ -1425,13 +1438,13 @@ server_new(class, ...)
         /* Required crypto callbacks from ngtcp2_crypto library */
         rv = ngtcp2_crypto_gnutls_configure_server_session(qc->session);
         if (rv != 0) {
-            fprintf(stderr, "NGTCP2: ngtcp2_crypto_gnutls_configure_server_session failed: %d\n", rv);
+            if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: ngtcp2_crypto_gnutls_configure_server_session failed: %d\n", rv);
             gnutls_deinit(qc->session);
             gnutls_certificate_free_credentials(cred);
             Safefree(qc);
             croak("ngtcp2_crypto_gnutls_configure_server_session failed");
         }
-        fprintf(stderr, "NGTCP2: crypto session configured successfully\n");
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: crypto session configured successfully\n");
         callbacks.recv_client_initial = recv_client_initial_wrapper;
         callbacks.recv_crypto_data = recv_crypto_data_wrapper;
         callbacks.encrypt = ngtcp2_crypto_encrypt_cb;
@@ -1455,12 +1468,14 @@ server_new(class, ...)
         callbacks.path_validation = path_validation_trampoline;
 
         /* Debug: show transport params */
-        fprintf(stderr, "NGTCP2: server_new transport params:\n");
-        fprintf(stderr, "  original_dcid.datalen=%zu\n", params->params.original_dcid.datalen);
-        fprintf(stderr, "  initial_scid.datalen=%zu\n", params->params.initial_scid.datalen);
-        fprintf(stderr, "  initial_max_data=%lu\n", (unsigned long)params->params.initial_max_data);
-        fprintf(stderr, "  initial_max_streams_bidi=%lu\n", (unsigned long)params->params.initial_max_streams_bidi);
-        fprintf(stderr, "  dcid param len=%zu, scid param len=%zu\n", dcid->cid.datalen, scid->cid.datalen);
+        if (NGTCP2_DEBUG) {
+            fprintf(stderr, "NGTCP2: server_new transport params:\n");
+            fprintf(stderr, "  original_dcid.datalen=%zu\n", params->params.original_dcid.datalen);
+            fprintf(stderr, "  initial_scid.datalen=%zu\n", params->params.initial_scid.datalen);
+            fprintf(stderr, "  initial_max_data=%lu\n", (unsigned long)params->params.initial_max_data);
+            fprintf(stderr, "  initial_max_streams_bidi=%lu\n", (unsigned long)params->params.initial_max_streams_bidi);
+            fprintf(stderr, "  dcid param len=%zu, scid param len=%zu\n", dcid->cid.datalen, scid->cid.datalen);
+        }
 
         /* Create the ngtcp2 connection */
         rv = ngtcp2_conn_server_new(
@@ -1483,13 +1498,13 @@ server_new(class, ...)
             croak("ngtcp2_conn_server_new failed: %s", ngtcp2_strerror(rv));
         }
 
-        fprintf(stderr, "NGTCP2: server_new succeeded, conn=%p, session=%p\n",
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: server_new succeeded, conn=%p, session=%p\n",
                 (void*)qc->conn, (void*)qc->session);
 
         /* Link the GnuTLS session to the ngtcp2 connection - CRITICAL */
         ngtcp2_conn_set_tls_native_handle(qc->conn, qc->session);
 
-        fprintf(stderr, "NGTCP2: TLS handle linked, conn_ref callback=%p\n",
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: TLS handle linked, conn_ref callback=%p\n",
                 (void*)qc->conn_ref.get_conn);
 
         RETVAL = qc;
@@ -1585,7 +1600,7 @@ read_pkt(self, path, pkt, ts)
 
         memset(&pi, 0, sizeof(pi));
 
-        fprintf(stderr, "NGTCP2: read_pkt called, pktlen=%zu, ts=%lu\n", pktlen, (unsigned long)ts);
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: read_pkt called, pktlen=%zu, ts=%lu\n", pktlen, (unsigned long)ts);
 
         RETVAL = ngtcp2_conn_read_pkt(
             self->conn,
@@ -1595,7 +1610,7 @@ read_pkt(self, path, pkt, ts)
             pktlen,
             (ngtcp2_tstamp)ts
         );
-        fprintf(stderr, "NGTCP2: read_pkt returned %d (%s)\n", (int)RETVAL,
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: read_pkt returned %d (%s)\n", (int)RETVAL,
                 RETVAL < 0 ? ngtcp2_strerror((int)RETVAL) : "OK");
     OUTPUT:
         RETVAL
@@ -1612,7 +1627,7 @@ write_pkt(self, ts)
         ngtcp2_ssize nwrite;
         int packet_count = 0;
     PPCODE:
-        fprintf(stderr, "NGTCP2: write_pkt called, ts=%lu\n", (unsigned long)ts);
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: write_pkt called, ts=%lu\n", (unsigned long)ts);
 
         /* Loop to get all available packets */
         while (1) {
@@ -1627,11 +1642,11 @@ write_pkt(self, ts)
                 (ngtcp2_tstamp)ts
             );
 
-            fprintf(stderr, "NGTCP2: write_pkt iteration %d returned %zd\n", packet_count, nwrite);
+            if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: write_pkt iteration %d returned %zd\n", packet_count, nwrite);
 
             if (nwrite < 0) {
                 /* Error */
-                fprintf(stderr, "NGTCP2: write_pkt error: %s\n", ngtcp2_strerror((int)nwrite));
+                if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: write_pkt error: %s\n", ngtcp2_strerror((int)nwrite));
                 break;
             }
 
@@ -1646,12 +1661,12 @@ write_pkt(self, ts)
 
             /* Safety limit to prevent infinite loops */
             if (packet_count >= 100) {
-                fprintf(stderr, "NGTCP2: write_pkt hit safety limit of 100 packets\n");
+                if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: write_pkt hit safety limit of 100 packets\n");
                 break;
             }
         }
 
-        fprintf(stderr, "NGTCP2: write_pkt returning %d packets\n", packet_count);
+        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: write_pkt returning %d packets\n", packet_count);
 
 # Get connection expiry time
 UV
@@ -1734,7 +1749,9 @@ open_uni_stream(self)
         RETVAL
 
 # Write stream data - returns packet data that MUST be sent via UDP
-# Returns: ($packet_data) on success, () on error or nothing to send
+# Returns: ($packet_data, $bytes_consumed) on success
+#          (undef, $bytes_consumed) if data was consumed but no packet yet
+#          (undef, -error_code) on error
 void
 write_stream(self, stream_id, data, ts, fin = 0)
         PageCamel_QUIC_Connection *self
@@ -1777,11 +1794,20 @@ write_stream(self, stream_id, data, ts, fin = 0)
             (ngtcp2_tstamp)ts
         );
 
-        /* Return packet data if we have something to send */
-        if (nwrite > 0) {
+        /* Always return two values: (packet_data, bytes_consumed/error) */
+        if (nwrite < 0) {
+            /* Error - return (undef, -error_code) */
+            mXPUSHs(&PL_sv_undef);
+            mXPUSHs(newSViv(nwrite));
+        } else if (nwrite > 0) {
+            /* Success with packet - return (packet_data, bytes_consumed) */
             mXPUSHs(newSVpvn((const char *)buf, nwrite));
+            mXPUSHs(newSViv(ndatalen >= 0 ? ndatalen : 0));
+        } else {
+            /* nwrite == 0 means nothing to send yet */
+            mXPUSHs(&PL_sv_undef);
+            mXPUSHs(newSViv(ndatalen >= 0 ? ndatalen : 0));
         }
-        /* On error or nothing to write, return empty list */
 
 # Shutdown stream
 IV
@@ -1797,6 +1823,46 @@ shutdown_stream(self, stream_id, app_error_code)
         );
     OUTPUT:
         RETVAL
+
+# Get remaining stream send window (flow control)
+UV
+get_max_stream_data_left(self, stream_id)
+        PageCamel_QUIC_Connection *self
+        IV stream_id
+    CODE:
+        RETVAL = ngtcp2_conn_get_max_stream_data_left(self->conn, (int64_t)stream_id);
+    OUTPUT:
+        RETVAL
+
+# Get connection-level send window
+UV
+get_max_data_left(self)
+        PageCamel_QUIC_Connection *self
+    CODE:
+        RETVAL = ngtcp2_conn_get_max_data_left(self->conn);
+    OUTPUT:
+        RETVAL
+
+# Get congestion window remaining (bytes available to send)
+UV
+get_cwnd_left(self)
+        PageCamel_QUIC_Connection *self
+    CODE:
+        RETVAL = ngtcp2_conn_get_cwnd_left(self->conn);
+    OUTPUT:
+        RETVAL
+
+# Get connection close error info (for diagnostics)
+void
+get_ccerr(self)
+        PageCamel_QUIC_Connection *self
+    PPCODE:
+        ngtcp2_connection_close_error ccerr;
+        ngtcp2_conn_get_connection_close_error(self->conn, &ccerr);
+        /* Return (type, error_code, reason_len) */
+        mXPUSHi(ccerr.type);
+        mXPUSHu(ccerr.error_code);
+        mXPUSHu(ccerr.reasonlen);
 
 # Extend stream max offset (flow control)
 IV

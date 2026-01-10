@@ -351,18 +351,50 @@ sub run($self) {
         $isUdpSocket{$udp} = 1;
     }
 
-    while(1) {
-        while((my @connections = $self->{select}->can_read(1))) {
-            foreach my $connection (@connections) {
-                # Check if this is a UDP socket (HTTP/3) or TCP socket
-                if($isUdpSocket{$connection}) {
-                    # UDP packet for HTTP/3
-                    $self->handleQUICPacket($connection);
-                    next;
-                }
+    # Fork dedicated HTTP/3 handler process if HTTP/3 is enabled
+    # This child process owns all UDP sockets and handles all QUIC/HTTP/3 traffic
+    if($self->{hashttp3} && @{$self->{udpsockets}}) {
+        my $http3Pid = fork();
+        if(!defined($http3Pid)) {
+            croak("Failed to fork HTTP/3 handler process: $ERRNO");
+        } elsif($http3Pid == 0) {
+            # Child process - HTTP/3 handler
+            $PROGRAM_NAME = $self->{ps_appname} . '_http3';
 
+            # Close TCP sockets (parent handles those)
+            foreach my $tcpSocket (@{$self->{sockets}}) {
+                $tcpSocket->close();
+            }
+
+            # Run HTTP/3 event loop (never returns)
+            $self->runHTTP3Handler();
+            exit(0);
+        } else {
+            # Parent process - close UDP sockets (child owns them)
+            print getISODate(), " Forked HTTP/3 handler process (PID $http3Pid)\n";
+            $self->{http3Pid} = $http3Pid;
+
+            foreach my $udpSocket (@{$self->{udpsockets}}) {
+                $self->{select}->remove($udpSocket);
+                $udpSocket->close();
+            }
+            $self->{udpsockets} = [];
+            %isUdpSocket = ();
+        }
+    }
+
+    while(1) {
+        # Parent process handles TCP connections only (HTTP/1.1 and HTTP/2)
+        # HTTP/3/QUIC is handled by the dedicated child process
+        my $selectTimeout = 0.1;  # Default 100ms
+
+        while((my @connections = $self->{select}->can_read($selectTimeout))) {
+            # After first iteration, use short timeout to drain any pending connections
+            $selectTimeout = 0.001;
+            foreach my $connection (@connections) {
                 # TCP connection handling (HTTP/1.1 and HTTP/2)
                 my $client = $connection->accept;
+                next unless(defined($client));  # Accept can fail
 
                 # Set socket options for lower latency and dead connection detection
                 setsockopt($client, IPPROTO_TCP, TCP_NODELAY, 1);  # Disable Nagle's algorithm
@@ -411,10 +443,7 @@ sub run($self) {
             }
         }
 
-        # Handle QUIC connection timeouts and maintenance
-        if($self->{hashttp3}) {
-            $self->handleQUICTimeouts();
-        }
+        # Note: QUIC/HTTP/3 is handled by dedicated child process (forked above)
 
         if($self->{dynamicIP} ne '') {
             if($self->{dynamicIPnextcheck} < time) {
@@ -1030,6 +1059,104 @@ sub handleHTTP2Client($self, $client, $lhost, $lport, $peerhost, $peerport, $sel
     return;
 }
 
+sub runHTTP3Handler($self) {
+    # Dedicated HTTP/3 handler process event loop
+    # This runs in a forked child process and handles all QUIC/HTTP/3 traffic
+
+    print getISODate(), " HTTP/3 handler process starting\n";
+
+    # Initialize QUIC connection tracking
+    $self->{quicConnections} = {};
+
+    # Build IO::Select for UDP sockets
+    my $udpSelect = IO::Select->new();
+    foreach my $udpSocket (@{$self->{udpsockets}}) {
+        $udpSelect->add($udpSocket);
+    }
+
+    # Build UDP socket info lookup
+    # (Already populated in _init_sockets)
+
+    # Main event loop
+    while(1) {
+        # Calculate select timeout from QUIC connection expiry times
+        my $selectTimeout = 0.1;  # Default 100ms
+        if(keys %{$self->{quicConnections}}) {
+            my $now = PageCamel::XS::NGTCP2::timestamp();
+            my $minExpiry = undef;
+            my %seen;
+            foreach my $connId (keys %{$self->{quicConnections}}) {
+                my $quicConn = $self->{quicConnections}->{$connId};
+                next unless(defined($quicConn));
+                my $connPtr = "$quicConn";
+                next if($seen{$connPtr}++);
+                my $expiry = $quicConn->get_expiry();
+                if(!defined($minExpiry) || $expiry < $minExpiry) {
+                    $minExpiry = $expiry;
+                }
+            }
+            if(defined($minExpiry)) {
+                if($minExpiry <= $now) {
+                    $selectTimeout = 0.001;
+                } else {
+                    my $timeoutNs = $minExpiry - $now;
+                    $selectTimeout = $timeoutNs / 1_000_000_000;
+                    $selectTimeout = 0.1 if($selectTimeout > 0.1);
+                    $selectTimeout = 0.001 if($selectTimeout < 0.001);
+                }
+            }
+        }
+
+        # Wait for UDP packets or timeout
+        $ERRNO = 0;
+        my @readable = $udpSelect->can_read($selectTimeout);
+
+        # Handle EINTR
+        if(!@readable && $ERRNO{EINTR}) {
+            next;
+        }
+
+        # Process incoming UDP packets
+        foreach my $udpSocket (@readable) {
+            $self->handleQUICPacket($udpSocket);
+        }
+
+        # Handle QUIC timeouts and send packets
+        $self->handleQUICTimeouts();
+
+        # Process backend I/O for all HTTP/3 connections
+        $self->handleHTTP3Backends();
+
+        # Cleanup closed connections
+        $self->cleanupClosedQUICConnections();
+    }
+}
+
+sub cleanupClosedQUICConnections($self) {
+    # Remove connections that have finished draining
+    my @toRemove;
+    my %seen;
+
+    foreach my $connId (keys %{$self->{quicConnections}}) {
+        my $quicConn = $self->{quicConnections}->{$connId};
+        next unless(defined($quicConn));
+
+        my $connPtr = "$quicConn";
+        next if($seen{$connPtr}++);
+
+        if($quicConn->is_closed()) {
+            # Connection is fully closed, cleanup
+            $self->cleanupQUICConnection($quicConn);
+            push @toRemove, $connId;
+        }
+    }
+
+    # Remove from hash after iteration
+    foreach my $connId (@toRemove) {
+        delete $self->{quicConnections}->{$connId};
+    }
+}
+
 sub handleQUICPacket($self, $udpSocket) {
     # Receive UDP datagram
     my $packet;
@@ -1056,7 +1183,13 @@ sub handleQUICPacket($self, $udpSocket) {
 
     if(defined($quicConn)) {
         # Existing connection - process packet
+        my $cwndBefore = $quicConn->{quic_conn}->get_cwnd_left();
         my $rv = $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
+        my $cwndAfter = $quicConn->{quic_conn}->get_cwnd_left();
+
+        if($cwndBefore != $cwndAfter) {
+            print STDERR getISODate() . " QUIC: ACK processed, cwnd $cwndBefore -> $cwndAfter (+" . ($cwndAfter - $cwndBefore) . ")\n";
+        }
 
         if($rv < 0) {
             # Connection error or closing
@@ -1067,6 +1200,19 @@ sub handleQUICPacket($self, $udpSocket) {
 
         # Send any response packets
         $self->sendQUICPackets($quicConn, $udpSocket);
+
+        # Try to flush any pending stream data (ACKs may have opened flow control window)
+        # Loop until no more progress can be made (blocked or empty)
+        my $handler = $quicConn->{_http3Handler};
+        my $http3Server = $quicConn->{_http3Server};
+        if(defined($handler) && defined($http3Server)) {
+            my $sendCb = sub { $self->sendQUICPackets($quicConn, $udpSocket); };
+            my $maxFlushIterations = 100;  # Safety limit
+            while($handler->flushPendingStreams($http3Server, $sendCb) && --$maxFlushIterations > 0) {
+                $self->sendQUICPackets($quicConn, $udpSocket);
+            }
+            $self->sendQUICPackets($quicConn, $udpSocket);
+        }
     } else {
         # New connection - extract connection ID from packet header
         my $dcid = $self->extractQUICConnectionId($packet);
@@ -1079,6 +1225,18 @@ sub handleQUICPacket($self, $udpSocket) {
             # Connection migration - packet from new address
             $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
             $self->sendQUICPackets($quicConn, $udpSocket);
+
+            # Try to flush any pending stream data (loop until blocked or empty)
+            my $handler = $quicConn->{_http3Handler};
+            my $http3Server = $quicConn->{_http3Server};
+            if(defined($handler) && defined($http3Server)) {
+                my $sendCb = sub { $self->sendQUICPackets($quicConn, $udpSocket); };
+                my $maxFlushIterations = 100;
+                while($handler->flushPendingStreams($http3Server, $sendCb) && --$maxFlushIterations > 0) {
+                    $self->sendQUICPackets($quicConn, $udpSocket);
+                }
+                $self->sendQUICPackets($quicConn, $udpSocket);
+            }
         } else {
             # Brand new connection
             $self->handleNewQUICConnection($udpSocket, $packet, $peerhost, $peerPort, $lhost, $lport, $service, $ts);
@@ -1162,10 +1320,7 @@ sub handleQUICStreamData($self, $quicConn, $streamId, $data, $fin) {
     # Route stream data to the HTTP/3 server for processing
     my $http3Server = $quicConn->{_http3Server};
     if(defined($http3Server)) {
-        print getISODate(), " HTTP/3: Processing stream $streamId, ", length($data), " bytes, fin=$fin\n";
         $http3Server->process_stream_data($streamId, $data, $fin);
-    } else {
-        print STDERR getISODate(), " HTTP/3: No HTTP3 server for connection, dropping stream $streamId data\n";
     }
     return;
 }
@@ -1186,6 +1341,35 @@ sub handleQUICHandshake($self, $quicConn) {
         $quicConn->{_selectedbackend} = $self->{config}->{internal_socket};
         print getISODate(), " HTTP/3: No specific backend for $hostname, using default\n";
     }
+
+    # Get peer address info from QUIC connection
+    my $peerAddr = $quicConn->peer_addr();
+    my $peerhost = $peerAddr->{host} // '0.0.0.0';
+    my $peerport = $peerAddr->{port} // 0;
+    my $service = $quicConn->{_service};
+    my $lport = $service->{port} // 443;
+    # Get local host - use first bind address from service
+    my $lhost = '0.0.0.0';
+    if(defined($service->{bind_adresses}) && defined($service->{bind_adresses}->{ip})) {
+        my @ips = @{$service->{bind_adresses}->{ip}};
+        $lhost = $ips[0] if(@ips);
+    }
+
+    # Create HTTP3Handler instance for backend proxying
+    require PageCamel::CMDLine::WebFrontend::HTTP3Handler;
+    my $http3Handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
+        quicConnection    => $quicConn,
+        backendSocketPath => $quicConn->{_selectedbackend},
+        pagecamelInfo     => {
+            lhost    => $lhost,
+            lport    => $lport,
+            peerhost => $peerhost,
+            peerport => $peerport,
+            usessl   => 1,
+        },
+        errorPage590Html  => $self->{config}->{errorPage590Html} // '<html><body><h1>590 Backend Unavailable</h1></body></html>',
+    );
+    $quicConn->{_http3Handler} = $http3Handler;
 
     # Create HTTP/3 server instance to handle HTTP/3 framing over QUIC
     my $http3Server = PageCamel::Protocol::HTTP3::Server->new(
@@ -1214,51 +1398,57 @@ sub handleQUICHandshake($self, $quicConn) {
 }
 
 sub handleHTTP3Request($self, $quicConn, $http3Server, $streamId, $headers, $fin) {
-    # HTTP/3 request received - for now, send a simple test response
-    print getISODate(), " HTTP/3: Request on stream $streamId (fin=$fin)\n";
-
-    # Extract request info using Headers accessor methods
+    # HTTP/3 request received - delegate to HTTP3Handler for backend proxying
     my $method = $headers->method() // 'unknown';
     my $path = $headers->path() // '/';
     my $authority = $headers->authority() // 'unknown';
 
-    print getISODate(), " HTTP/3: $method $path (Host: $authority)\n";
+    print getISODate(), " HTTP/3: Request stream=$streamId $method $path\n";
 
-    # Simple test response
-    my $body = "Hello from HTTP/3!\n";
-    $body .= "Method: $method\n";
-    $body .= "Path: $path\n";
-    $body .= "Host: $authority\n";
+    my $handler = $quicConn->{_http3Handler};
+    if(!defined($handler)) {
+        print STDERR getISODate(), " HTTP/3: No handler for connection, sending 500\n";
+        $http3Server->response($streamId, 500, ['content-type', 'text/plain'], 'Internal Server Error');
+        return;
+    }
 
-    # Headers as hash
-    my %responseHeaders = (
-        'content-type' => 'text/plain',
-        'server' => 'PageCamel/HTTP3',
-    );
+    # Convert Headers object to array reference for handler
+    my $headersArrayRef = $headers->to_arrayref();
 
-    print getISODate(), " HTTP/3: Sending response on stream $streamId\n";
-    $http3Server->response($streamId, 200, \%responseHeaders, $body);
+    # Delegate to handler - it will connect to backend and buffer the request
+    print STDERR getISODate() . " HTTP/3: Calling handler->handleRequest for stream $streamId\n";
+    $handler->handleRequest($http3Server, $streamId, $headersArrayRef, undef);
+    print STDERR getISODate() . " HTTP/3: handler->handleRequest returned, streamBackends=" . scalar(keys %{$handler->{streamBackends}}) . " tobackendbuffers=" . scalar(keys %{$handler->{tobackendbuffers}}) . "\n";
 
-    # Send any outbound QUIC packets
-    my $udpSocket = $quicConn->{_udpSocket};
-    $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+    # Note: Response will be sent asynchronously when backend data is available
+    # The main loop will poll backends via handleHTTP3Backends()
 
     return;
 }
 
 sub handleHTTP3ConnectRequest($self, $quicConn, $http3Server, $streamId, $headers) {
-    # HTTP/3 CONNECT request (WebSocket upgrade) - not yet implemented
-    print getISODate(), " HTTP/3: CONNECT request on stream $streamId (not yet implemented)\n";
+    # HTTP/3 CONNECT request (WebSocket upgrade) - delegate to HTTP3Handler
+    my $path = $headers->path() // '/';
+    my $authority = $headers->authority() // 'unknown';
+    my $protocol = $headers->protocol() // '';
 
-    my %responseHeaders = (
-        'content-type' => 'text/plain',
-    );
-    my $body = "WebSocket over HTTP/3 not yet implemented\n";
-    $http3Server->response($streamId, 501, \%responseHeaders, $body);
+    # print getISODate(), " HTTP/3: CONNECT request on stream $streamId: $path (Host: $authority, protocol: $protocol)\n";
 
-    # Send any outbound QUIC packets
-    my $udpSocket = $quicConn->{_udpSocket};
-    $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+    my $handler = $quicConn->{_http3Handler};
+    if(!defined($handler)) {
+        print STDERR getISODate(), " HTTP/3: No handler for connection, sending 500\n";
+        $http3Server->response($streamId, 500, ['content-type', 'text/plain'], 'Internal Server Error');
+        return;
+    }
+
+    # Convert Headers object to array reference for handler
+    my $headersArrayRef = $headers->to_arrayref();
+
+    # Delegate to handler - it will connect to backend and handle WebSocket upgrade
+    $handler->handleConnectRequest($http3Server, $streamId, $headersArrayRef);
+
+    # Note: Response will be sent asynchronously when backend responds
+    # The main loop will poll backends via handleHTTP3Backends()
 
     return;
 }
@@ -1267,14 +1457,35 @@ sub sendQUICPackets($self, $quicConn, $udpSocket) {
     my $ts = PageCamel::XS::NGTCP2::timestamp();
     my @packets = $quicConn->get_packets($ts);
 
-    print STDERR "sendQUICPackets: sending " . scalar(@packets) . " packets\n";
+    if(@packets > 0) {
+        my $totalBytes = 0;
+        foreach my $pkt (@packets) {
+            $totalBytes += length($pkt->{data});
+        }
+        my $cwndLeft = $quicConn->{quic_conn}->get_cwnd_left();
+        print STDERR getISODate() . " sendQUICPackets: sending " . scalar(@packets) . " packets ($totalBytes bytes), cwnd_left=$cwndLeft\n";
+    }
+
     my $pktNum = 0;
     foreach my $pkt (@packets) {
+        $pktNum++;
         my $peerAddr = $pkt->{peer_addr};
+        if(!defined($peerAddr) || !defined($peerAddr->{host}) || !defined($peerAddr->{port})) {
+            print STDERR getISODate() . " sendQUICPackets: ERROR - invalid peer_addr for packet $pktNum!\n";
+            next;
+        }
+
+        # Debug: Log first few packets and any failures
+        my $logThis = ($pktNum <= 3);
+
         my $sockaddr = Socket::pack_sockaddr_in($peerAddr->{port}, Socket::inet_aton($peerAddr->{host}));
         my $sent = $udpSocket->send($pkt->{data}, 0, $sockaddr);
-        print STDERR "sendQUICPackets: packet $pktNum, size=" . length($pkt->{data}) . ", sent=$sent to $peerAddr->{host}:$peerAddr->{port}\n";
-        $pktNum++;
+
+        if(!defined($sent) || $sent != length($pkt->{data})) {
+            print STDERR getISODate() . " sendQUICPackets: UDP send FAILED to $peerAddr->{host}:$peerAddr->{port}! sent=" . ($sent // 'undef') . " expected=" . length($pkt->{data}) . " errno=$ERRNO\n";
+        } elsif($logThis) {
+            print STDERR getISODate() . " sendQUICPackets: sent " . length($pkt->{data}) . " bytes to $peerAddr->{host}:$peerAddr->{port}\n";
+        }
     }
 
     return;
@@ -1292,11 +1503,31 @@ sub handleQUICTimeouts($self) {
 
         my $expiry = $quicConn->get_expiry();
         if($expiry <= $ts) {
-            $quicConn->handle_expiry($ts);
+            # Rate limit: don't call handle_expiry more than once per millisecond per connection
+            my $lastExpiry = $quicConn->{_lastExpiryHandled} // 0;
+            if($ts - $lastExpiry < 1_000_000) {  # 1ms in nanoseconds
+                $quicConn->{_timeoutHandled} = 1;
+                next;
+            }
+            $quicConn->{_lastExpiryHandled} = $ts;
 
-            # Send any resulting packets
+            my $rv = $quicConn->handle_expiry($ts);
+
+            # Send any resulting packets (probe packets for congestion control)
             my $udpSocket = $quicConn->{_udpSocket};
             $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+
+            # After timeout handling, try to flush pending stream data
+            my $handler = $quicConn->{_http3Handler};
+            my $http3Server = $quicConn->{_http3Server};
+            if(defined($handler) && defined($http3Server)) {
+                my $sendCb = sub { $self->sendQUICPackets($quicConn, $udpSocket); };
+                my $maxFlushIterations = 100;
+                while($handler->flushPendingStreams($http3Server, $sendCb) && --$maxFlushIterations > 0) {
+                    $self->sendQUICPackets($quicConn, $udpSocket);
+                }
+                $self->sendQUICPackets($quicConn, $udpSocket);
+            }
 
             # Check if connection closed
             if($quicConn->is_closed()) {
@@ -1319,6 +1550,13 @@ sub handleQUICTimeouts($self) {
 sub cleanupQUICConnection($self, $quicConn) {
     return unless(defined($quicConn));
 
+    # Cleanup HTTP3Handler if present
+    my $handler = $quicConn->{_http3Handler};
+    if(defined($handler)) {
+        $handler->cleanup();
+        delete $quicConn->{_http3Handler};
+    }
+
     # Remove from connection ID map
     foreach my $cid ($quicConn->get_connection_ids()) {
         delete $self->{quicConnections}->{$cid};
@@ -1333,6 +1571,160 @@ sub cleanupQUICConnection($self, $quicConn) {
 
     # Destroy connection
     $quicConn->destroy();
+
+    return;
+}
+
+sub handleHTTP3Backends($self) {
+    # Poll backend sockets for all QUIC connections and process responses
+    # This is called from the main loop to handle async backend I/O
+
+    my $blocksize = 16_384;
+    my $maxBufferSize = 50_000_000;
+
+    # Collect all backends from all handlers
+    my @allBackends;
+    my %backendToQuicConn;  # backend socket → QUIC connection mapping
+
+    my $numConnections = scalar(keys %{$self->{quicConnections}});
+
+    my %seen;  # Track seen QUIC connections to avoid duplicates
+    foreach my $connId (keys %{$self->{quicConnections}}) {
+        my $quicConn = $self->{quicConnections}->{$connId};
+        next unless(defined($quicConn));
+
+        # Skip if we've already processed this connection (multiple IDs per connection)
+        my $connPtr = "$quicConn";
+        next if($seen{$connPtr}++);
+
+        my $handler = $quicConn->{_http3Handler};
+        next unless(defined($handler));
+
+        # Get all backend sockets from this handler
+        # Apply back-pressure: skip backends whose response buffer is too large OR congestion-blocked
+        my $maxResponseBuffer = 32768;  # 32KB - lower than congestion window to avoid buildup
+        foreach my $streamId (keys %{$handler->{streamBackends}}) {
+            my $backend = $handler->{streamBackends}->{$streamId};
+            next unless(defined($backend));
+
+            # Skip if stream is congestion-blocked (waiting for ACKs)
+            if($handler->{streamCongestionBlocked}->{$streamId}) {
+                next;
+            }
+
+            # Check response buffer size for back-pressure
+            my $responseLen = length($handler->{streamResponses}->{$streamId} // '');
+            if($responseLen > $maxResponseBuffer) {
+                # Buffer too large - don't read more until client catches up
+                next;
+            }
+
+            push @allBackends, $backend;
+            $backendToQuicConn{$backend} = $quicConn;
+        }
+    }
+
+    # Build select sets for backends (may be empty if all congestion-blocked)
+    my $readSet = IO::Select->new(@allBackends);
+    my $writeSet = IO::Select->new();
+
+    # Add backends with pending writes to write set
+    my $pendingWrites = 0;
+    %seen = ();
+    foreach my $connId (keys %{$self->{quicConnections}}) {
+        my $quicConn = $self->{quicConnections}->{$connId};
+        next unless(defined($quicConn));
+
+        my $connPtr = "$quicConn";
+        next if($seen{$connPtr}++);
+
+        my $handler = $quicConn->{_http3Handler};
+        next unless(defined($handler));
+
+        foreach my $streamId (keys %{$handler->{tobackendbuffers}}) {
+            my $backend = $handler->{streamBackends}->{$streamId};
+            if(defined($backend) && length($handler->{tobackendbuffers}->{$streamId} // '')) {
+                $writeSet->add($backend);
+                $pendingWrites++;
+            }
+        }
+    }
+
+    # Debug: Log if we have backends to process
+    if($numConnections > 0 && (scalar(@allBackends) > 0 || $pendingWrites > 0)) {
+        print STDERR getISODate() . " handleHTTP3Backends: connections=$numConnections backends=" . scalar(@allBackends) . " pendingWrites=$pendingWrites\n";
+    }
+
+    # Poll backends for read/write (only if we have sockets to poll)
+    my $canRead = [];
+    my $canWrite = [];
+    my %canWriteHash;
+
+    if($readSet->count() > 0 || $writeSet->count() > 0) {
+        $ERRNO = 0;
+        my ($r, $w, undef) = IO::Select->select($readSet, $writeSet, undef, 0.01);
+
+        # Handle EINTR - but don't return early, still need to flush
+        if(!defined($r) && $ERRNO{EINTR}) {
+            $r = [];
+            $w = [];
+        }
+
+        $canRead = $r // [];
+        $canWrite = $w // [];
+        %canWriteHash = map { $_ => 1 } @{$canWrite};
+
+        # Process readable sockets
+        foreach my $socket (@{$canRead}) {
+            my $quicConn = $backendToQuicConn{$socket};
+            next unless(defined($quicConn));
+
+            my $handler = $quicConn->{_http3Handler};
+            my $http3Server = $quicConn->{_http3Server};
+            next unless(defined($handler) && defined($http3Server));
+
+            my $dummyBuffer = '';  # HTTP3Handler appends to toclientbuffer but we don't use it here
+            $handler->handleBackendData($http3Server, $socket, \$dummyBuffer, $maxBufferSize);
+
+            # Send any resulting QUIC packets
+            my $udpSocket = $quicConn->{_udpSocket};
+            $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+        }
+    }
+
+    %seen = ();
+    foreach my $connId (keys %{$self->{quicConnections}}) {
+        my $quicConn = $self->{quicConnections}->{$connId};
+        next unless(defined($quicConn));
+
+        my $connPtr = "$quicConn";
+        next if($seen{$connPtr}++);
+
+        my $handler = $quicConn->{_http3Handler};
+        my $http3Server = $quicConn->{_http3Server};
+        next unless(defined($handler) && defined($http3Server));
+
+        # Write to backends
+        $handler->writeToBackends($blocksize, 100, 0, \%canWriteHash);
+
+        # Process any waiting streams
+        $handler->processWaitingStreams($http3Server);
+
+        # Flush pending stream data (retry sends blocked by flow control)
+        # Pass callback to send packets during flush to keep congestion window open
+        # Loop until no more progress can be made
+        my $udpSocket = $quicConn->{_udpSocket};
+        my $sendPacketsCallback = sub {
+            $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+        };
+        my $maxFlushIterations = 100;
+        while($handler->flushPendingStreams($http3Server, $sendPacketsCallback) && --$maxFlushIterations > 0) {
+            $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+        }
+
+        # Send any remaining QUIC packets after the flush
+        $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+    }
 
     return;
 }
