@@ -405,7 +405,7 @@ sub run($self) {
                 my $hostip = $client->sockhost();
                 my $hostport = $client->sockport();
                 #if(1 && $peerhost ne '127.0.0.1' && $peerhost ne '178.189.98.74') {
-                if(1 && $peerhost ne '127.0.0.1' && $peerhost ne '192.164.14.58') {
+                if(0 && $peerhost ne '127.0.0.1' && $peerhost ne '192.164.14.58') {
                     $client->close;
                     next;
                 }
@@ -880,9 +880,9 @@ sub handleClient($self, $client) {
                         if($http3 && !$altSvcInjected) {
                             my $headerEndPos = index($toclientbuffer, "\r\n\r\n");
                             if($headerEndPos >= 0) {
-                                # Found end of headers - inject Alt-Svc before the final \r\n\r\n
+                                # Found end of headers - inject Alt-Svc after the first \r\n (after last header)
                                 my $altSvcHeader = "Alt-Svc: h3=\":" . $lport . "\"; ma=86400\r\n";
-                                substr($toclientbuffer, $headerEndPos, 0, $altSvcHeader);
+                                substr($toclientbuffer, $headerEndPos + 2, 0, $altSvcHeader);
                                 $altSvcInjected = 1;
                             }
                         }
@@ -898,6 +898,13 @@ sub handleClient($self, $client) {
 
             my $blocksize = 16_384; # Blocksize limit of SSL/TLS lib, it seems
             my $loopcount = int(10_000_000 / 16_384); # Write at max ~10MB in one loop
+
+            # Don't write to client until Alt-Svc has been injected (or we know it's not needed)
+            # This prevents sending partial headers before we can inject the Alt-Svc header
+            if($http3 && !$altSvcInjected && index($toclientbuffer, "\r\n\r\n") < 0) {
+                # Headers not complete yet, hold back writes
+                goto SKIP_CLIENT_WRITE;
+            }
 
             my $sendcount = $loopcount;
             my $client_offset = 0;  # Track offset to avoid repeated substr copies
@@ -935,6 +942,7 @@ sub handleClient($self, $client) {
                 $toclientbuffer = substr($toclientbuffer, $client_offset);
             }
 
+            SKIP_CLIENT_WRITE:
             $sendcount = $loopcount;
             my $backend_offset = 0;  # Track offset to avoid repeated substr copies
             while($sendcount) {
