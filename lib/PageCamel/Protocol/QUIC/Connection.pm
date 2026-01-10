@@ -26,6 +26,7 @@ sub new($class, %config) {
         # TLS - multi-domain SNI support
         ssl_domains    => $config{ssl_domains} // croak("ssl_domains required"),
         default_domain => $config{default_domain} // croak("default_domain required"),
+        default_backend => $config{default_backend},  # Default internal_socket for domains without one
         alpn_protocols => $config{alpn_protocols} // ['h3'],
 
         # Settings
@@ -145,6 +146,7 @@ sub _init_connection($self) {
         params   => $params,
         ssl_domains    => $self->{ssl_domains},
         default_domain => $self->{default_domain},
+        default_backend => $self->{default_backend},
         on_recv_stream_data => sub { $self->_on_recv_stream_data(@_) },
         on_stream_open => sub { $self->_on_stream_open(@_) },
         on_stream_close => sub { $self->_on_stream_close(@_) },
@@ -213,14 +215,8 @@ sub process_packet($self, $packet, $peer_addr, $ts) {
     if ($rv < 0) {
         # Error processing packet
         if ($rv == NGTCP2_ERR_DRAINING()) {
-            my ($err_type, $err_code, $reason_len) = $self->{quic_conn}->get_ccerr();
-            # Error types: 0=TRANSPORT, 1=APPLICATION (HTTP/3)
-            # For HTTP/3: error codes are H3_* values (0x100+)
-            print STDERR "QUIC Connection: read_pkt returned DRAINING (type=$err_type, error_code=$err_code/0x" . sprintf("%x", $err_code) . ")\n";
             $self->{state} = 'closing';
         } elsif ($rv == NGTCP2_ERR_CLOSING()) {
-            my ($err_type, $err_code, $reason_len) = $self->{quic_conn}->get_ccerr();
-            print STDERR "QUIC Connection: read_pkt returned CLOSING (type=$err_type, error_code=$err_code/0x" . sprintf("%x", $err_code) . ")\n";
             $self->{state} = 'closing';
         } else {
             warn "QUIC: Error processing packet: " .
@@ -289,8 +285,9 @@ sub handle_expiry($self, $ts) {
 
     if ($rv < 0) {
         if ($rv == NGTCP2_ERR_IDLE_CLOSE()) {
-            print STDERR "QUIC Connection: handle_expiry returned IDLE_CLOSE\n";
-            $self->close(0, 'idle timeout');
+            # Idle timeout - connection is done, mark as closed immediately
+            $self->{state} = 'closed';
+            return;
         } else {
             warn "QUIC: Timeout error: " .
                  PageCamel::XS::NGTCP2::strerror($rv) . "\n";
@@ -299,11 +296,9 @@ sub handle_expiry($self, $ts) {
 
     # Check if connection is in closing/draining state
     if ($self->{quic_conn}->is_in_closing_period()) {
-        print STDERR "QUIC Connection: entering closing period\n";
         $self->{state} = 'closing';
     }
     if ($self->{quic_conn}->is_in_draining_period()) {
-        print STDERR "QUIC Connection: entering draining period\n";
         $self->{state} = 'closed';
     }
 }
@@ -343,14 +338,6 @@ sub write_stream($self, $stream_id, $data, $fin = 0) {
 
     # write_stream returns (packet_data, bytes_consumed/error_code)
     my ($packet, $result) = $self->{quic_conn}->write_stream($stream_id, $data, $ts, $fin);
-
-    # Debug: log when write returns 0 or error
-    if(!defined($result) || $result <= 0) {
-        my $streamWindow = $self->{quic_conn}->get_max_stream_data_left($stream_id);
-        my $connWindow = $self->{quic_conn}->get_max_data_left();
-        my $cwndLeft = $self->{quic_conn}->get_cwnd_left();
-        print STDERR "QUIC write_stream: result=" . ($result // 'undef') . " pkt=" . (defined($packet) ? length($packet) : 'undef') . " stream_win=$streamWindow conn_win=$connWindow cwnd_left=$cwndLeft datalen=" . length($data) . "\n";
-    }
 
     # Handle error case (result is negative error code)
     if(!defined($result) || $result < 0) {

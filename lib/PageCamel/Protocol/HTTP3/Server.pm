@@ -145,7 +145,6 @@ sub flush_pending_data($self) {
         # Handle write errors or partial writes
         if (!defined($bytes_written) || $bytes_written < 0) {
             # Error - don't acknowledge any data to nghttp3
-            print STDERR "HTTP3::Server::flush_pending_data: write_stream error: $bytes_written\n";
             last;
         }
 
@@ -163,10 +162,6 @@ sub flush_pending_data($self) {
         # writev_stream will return more data (nghttp3 tracks the offset), and write_stream
         # will return 0 if truly blocked. Breaking here prevents cwnd from growing properly
         # because we only send 1 packet per flush cycle instead of filling the cwnd.
-    }
-
-    if ($total_bytes > 0) {
-        print STDERR "HTTP3::Server::flush_pending_data: sent $total_bytes bytes in $iterations_used iterations\n";
     }
 }
 
@@ -388,7 +383,6 @@ sub send_body_chunk($self, $stream_id, $data, $fin = 0) {
 
     # Mark EOF if this is the last chunk
     if ($fin) {
-        print STDERR "HTTP/3: set_stream_eof for stream $stream_id\n";
         $self->{http3_conn}->set_stream_eof($stream_id);
     }
 
@@ -683,7 +677,6 @@ sub last($self, $data = '') {
 sub close($self) {
     return if $self->{closed};
     $self->{closed} = 1;
-    print STDERR "HTTP3::ResponseStream::close() called for stream " . $self->{stream_id} . "\n";
     return $self->{server}->send_body_chunk($self->{stream_id}, '', 1);
 }
 

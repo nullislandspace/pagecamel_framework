@@ -1183,13 +1183,7 @@ sub handleQUICPacket($self, $udpSocket) {
 
     if(defined($quicConn)) {
         # Existing connection - process packet
-        my $cwndBefore = $quicConn->{quic_conn}->get_cwnd_left();
         my $rv = $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
-        my $cwndAfter = $quicConn->{quic_conn}->get_cwnd_left();
-
-        if($cwndBefore != $cwndAfter) {
-            print STDERR getISODate() . " QUIC: ACK processed, cwnd $cwndBefore -> $cwndAfter (+" . ($cwndAfter - $cwndBefore) . ")\n";
-        }
 
         if($rv < 0) {
             # Connection error or closing
@@ -1286,6 +1280,7 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
         local_addr => {host => $lhost, port => $lport},
         ssl_domains    => $ssldomains,
         default_domain => $defaultdomain,
+        default_backend => $self->{config}->{internal_socket},
         on_stream_data => sub($conn, $streamId, $data, $fin) {
             $self->handleQUICStreamData($conn, $streamId, $data, $fin);
         },
@@ -1330,8 +1325,8 @@ sub handleQUICHandshake($self, $quicConn) {
     my $hostname = $quicConn->get_hostname() // 'unknown';
     my $backend = $quicConn->get_backend_socket();
 
-    print getISODate(), " HTTP/3 handshake completed for ", $quicConn->id(),
-          " (SNI: $hostname)\n";
+    my $cid_hex = unpack('H*', $quicConn->id());
+    print getISODate(), " HTTP/3 handshake completed for $cid_hex (SNI: $hostname)\n";
 
     # Set the backend socket based on SNI
     if(defined($backend)) {
@@ -1416,9 +1411,7 @@ sub handleHTTP3Request($self, $quicConn, $http3Server, $streamId, $headers, $fin
     my $headersArrayRef = $headers->to_arrayref();
 
     # Delegate to handler - it will connect to backend and buffer the request
-    print STDERR getISODate() . " HTTP/3: Calling handler->handleRequest for stream $streamId\n";
     $handler->handleRequest($http3Server, $streamId, $headersArrayRef, undef);
-    print STDERR getISODate() . " HTTP/3: handler->handleRequest returned, streamBackends=" . scalar(keys %{$handler->{streamBackends}}) . " tobackendbuffers=" . scalar(keys %{$handler->{tobackendbuffers}}) . "\n";
 
     # Note: Response will be sent asynchronously when backend data is available
     # The main loop will poll backends via handleHTTP3Backends()
@@ -1457,35 +1450,12 @@ sub sendQUICPackets($self, $quicConn, $udpSocket) {
     my $ts = PageCamel::XS::NGTCP2::timestamp();
     my @packets = $quicConn->get_packets($ts);
 
-    if(@packets > 0) {
-        my $totalBytes = 0;
-        foreach my $pkt (@packets) {
-            $totalBytes += length($pkt->{data});
-        }
-        my $cwndLeft = $quicConn->{quic_conn}->get_cwnd_left();
-        print STDERR getISODate() . " sendQUICPackets: sending " . scalar(@packets) . " packets ($totalBytes bytes), cwnd_left=$cwndLeft\n";
-    }
-
-    my $pktNum = 0;
     foreach my $pkt (@packets) {
-        $pktNum++;
         my $peerAddr = $pkt->{peer_addr};
-        if(!defined($peerAddr) || !defined($peerAddr->{host}) || !defined($peerAddr->{port})) {
-            print STDERR getISODate() . " sendQUICPackets: ERROR - invalid peer_addr for packet $pktNum!\n";
-            next;
-        }
-
-        # Debug: Log first few packets and any failures
-        my $logThis = ($pktNum <= 3);
+        next if(!defined($peerAddr) || !defined($peerAddr->{host}) || !defined($peerAddr->{port}));
 
         my $sockaddr = Socket::pack_sockaddr_in($peerAddr->{port}, Socket::inet_aton($peerAddr->{host}));
-        my $sent = $udpSocket->send($pkt->{data}, 0, $sockaddr);
-
-        if(!defined($sent) || $sent != length($pkt->{data})) {
-            print STDERR getISODate() . " sendQUICPackets: UDP send FAILED to $peerAddr->{host}:$peerAddr->{port}! sent=" . ($sent // 'undef') . " expected=" . length($pkt->{data}) . " errno=$ERRNO\n";
-        } elsif($logThis) {
-            print STDERR getISODate() . " sendQUICPackets: sent " . length($pkt->{data}) . " bytes to $peerAddr->{host}:$peerAddr->{port}\n";
-        }
+        $udpSocket->send($pkt->{data}, 0, $sockaddr);
     }
 
     return;
@@ -1648,11 +1618,6 @@ sub handleHTTP3Backends($self) {
                 $pendingWrites++;
             }
         }
-    }
-
-    # Debug: Log if we have backends to process
-    if($numConnections > 0 && (scalar(@allBackends) > 0 || $pendingWrites > 0)) {
-        print STDERR getISODate() . " handleHTTP3Backends: connections=$numConnections backends=" . scalar(@allBackends) . " pendingWrites=$pendingWrites\n";
     }
 
     # Poll backends for read/write (only if we have sockets to poll)

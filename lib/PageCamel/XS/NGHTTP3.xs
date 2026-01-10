@@ -374,10 +374,10 @@ static int acked_stream_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
 
     /* Advance the consumed offset - this is how many BODY bytes were ACKed.
      * This is the authoritative signal that data was consumed by nghttp3. */
-    size_t old_offset = stream_consumed_offset[idx];
+    /* size_t old_offset = stream_consumed_offset[idx]; */
     stream_consumed_offset[idx] += datalen;
-    fprintf(stderr, "NGHTTP3: acked_stream_data stream=%lld datalen=%llu offset %zu -> %zu\n",
-            (long long)stream_id, (unsigned long long)datalen, old_offset, stream_consumed_offset[idx]);
+    /* fprintf(stderr, "NGHTTP3: acked_stream_data stream=%lld datalen=%llu offset %zu -> %zu\n",
+            (long long)stream_id, (unsigned long long)datalen, old_offset, stream_consumed_offset[idx]); */
 
     /* Also update the buffer's offset for cleanup tracking */
     StreamDataBuffer *buf = find_stream_buffer(h3c, stream_id);
@@ -460,32 +460,11 @@ static nghttp3_ssize read_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
     vec[0].base = (uint8_t *)(buf->data + consumed);
     vec[0].len = available;
 
-    /* Check for 15736 boundary crossing (corruption point) */
-    size_t range_start = consumed;
-    size_t range_end = consumed + available;
-    if (range_start <= 15736 && range_end > 15736) {
-        size_t offset_in_data = 15736 - consumed;
-        uint8_t *p = (uint8_t *)(buf->data + consumed);
-        fprintf(stderr, "NGHTTP3: *** READ BOUNDARY 15736 *** stream=%lld consumed=%zu available=%zu buf->data=%p\n",
-                (long long)stream_id, consumed, available, (void *)buf->data);
-        if (offset_in_data >= 4 && offset_in_data + 8 <= available) {
-            fprintf(stderr, "NGHTTP3: read bytes 15732-15751: [%02x %02x %02x %02x | %02x %02x %02x %02x | %02x %02x %02x %02x]\n",
-                    p[offset_in_data - 4], p[offset_in_data - 3], p[offset_in_data - 2], p[offset_in_data - 1],
-                    p[offset_in_data], p[offset_in_data + 1], p[offset_in_data + 2], p[offset_in_data + 3],
-                    p[offset_in_data + 4], p[offset_in_data + 5], p[offset_in_data + 6], p[offset_in_data + 7]);
-        }
-    }
-
-    fprintf(stderr, "NGHTTP3: read_data stream=%lld consumed=%zu available=%zu buf->len=%zu\n",
-            (long long)stream_id, consumed, available, buf->len);
-
     /* CRITICAL: Advance consumed offset NOW.
      * nghttp3 keeps its own copy of data for retransmission.
      * If we don't advance, next read_data call returns same data,
      * causing nghttp3 to create duplicate DATA frames. */
     stream_consumed_offset[idx] = consumed + available;
-    fprintf(stderr, "NGHTTP3: read_data advancing consumed %zu -> %zu\n",
-            consumed, stream_consumed_offset[idx]);
 
     /* Check if this is all the data */
     if (buf->eof) {
@@ -1092,25 +1071,6 @@ writev_stream(self, stream_id)
                 offset += vec[i].len;
             }
 
-            fprintf(stderr, "NGHTTP3: writev_stream stream=%lld vcnt=%d total=%zu fin=%d\n",
-                    (long long)pstream_id, vcnt, total_len, fin);
-
-            /* Debug: dump first few bytes of each vec to see structure */
-            if (vcnt > 0 && total_len > 100) {
-                fprintf(stderr, "NGHTTP3: writev vecs: ");
-                for (i = 0; i < vcnt; i++) {
-                    if (vec[i].len > 0) {
-                        fprintf(stderr, "[v%d len=%zu first4=%02x%02x%02x%02x] ",
-                                i, vec[i].len,
-                                ((uint8_t *)vec[i].base)[0],
-                                vec[i].len > 1 ? ((uint8_t *)vec[i].base)[1] : 0,
-                                vec[i].len > 2 ? ((uint8_t *)vec[i].base)[2] : 0,
-                                vec[i].len > 3 ? ((uint8_t *)vec[i].base)[3] : 0);
-                    }
-                }
-                fprintf(stderr, "\n");
-            }
-
             /* Return (actual_stream_id, data, fin) - nghttp3 may have changed pstream_id */
             mXPUSHi((IV)pstream_id);
             mXPUSHs(data_sv);
@@ -1434,39 +1394,6 @@ set_stream_body_data(self, stream_id, data)
     CODE:
         dataptr = SvPVbyte(data, datalen);
 
-        /* Debug: print info and check for 15736 boundary (corruption point) */
-        {
-            size_t prev_len = 0;
-            StreamDataBuffer *existing = find_stream_buffer(self, stream_id);
-            if (existing) prev_len = existing->len;
-            size_t new_len = prev_len + datalen;
-
-            /* Print boundary crossing details at 15736 */
-            if (prev_len <= 15736 && new_len > 15736) {
-                size_t offset_in_chunk = 15736 - prev_len;
-                fprintf(stderr, "NGHTTP3: *** SET BOUNDARY 15736 *** stream=%lld prev=%zu add=%zu offset=%zu\n",
-                        (long long)stream_id, prev_len, datalen, offset_in_chunk);
-                if (offset_in_chunk + 8 <= datalen && offset_in_chunk >= 4) {
-                    fprintf(stderr, "NGHTTP3: set bytes 15732-15751: [%02x %02x %02x %02x | %02x %02x %02x %02x | %02x %02x %02x %02x]\n",
-                            (unsigned char)dataptr[offset_in_chunk - 4],
-                            (unsigned char)dataptr[offset_in_chunk - 3],
-                            (unsigned char)dataptr[offset_in_chunk - 2],
-                            (unsigned char)dataptr[offset_in_chunk - 1],
-                            (unsigned char)dataptr[offset_in_chunk],
-                            (unsigned char)dataptr[offset_in_chunk + 1],
-                            (unsigned char)dataptr[offset_in_chunk + 2],
-                            (unsigned char)dataptr[offset_in_chunk + 3],
-                            (unsigned char)dataptr[offset_in_chunk + 4],
-                            (unsigned char)dataptr[offset_in_chunk + 5],
-                            (unsigned char)dataptr[offset_in_chunk + 6],
-                            (unsigned char)dataptr[offset_in_chunk + 7]);
-                }
-            }
-
-            fprintf(stderr, "NGHTTP3: set_stream_body_data stream=%lld prev_len=%zu adding=%zu new_len=%zu\n",
-                    (long long)stream_id, prev_len, datalen, new_len);
-        }
-
         buf = get_or_create_stream_buffer(self, stream_id);
         if (!buf) {
             RETVAL = -1;  /* Memory allocation failed */
@@ -1486,7 +1413,6 @@ set_stream_body_data(self, stream_id, data)
                 }
                 else {
                     /* Need to grow - this is unexpected with 2MB pre-alloc */
-                    char *olddata = buf->data;
                     size_t newalloc = buf->alloc * 2;
                     if (newalloc < buf->len + datalen) {
                         newalloc = buf->len + datalen;
@@ -1496,8 +1422,6 @@ set_stream_body_data(self, stream_id, data)
                         RETVAL = -1;
                     }
                     else {
-                        fprintf(stderr, "NGHTTP3: set_stream_body_data stream=%lld REALLOC %p -> %p (alloc %zu -> %zu)\n",
-                                (long long)stream_id, (void *)olddata, (void *)newdata, buf->alloc, newalloc);
                         memcpy(newdata + buf->len, dataptr, datalen);
                         buf->data = newdata;
                         buf->len += datalen;
@@ -1516,9 +1440,7 @@ set_stream_body_data(self, stream_id, data)
                 else {
                     memcpy(buf->data, dataptr, datalen);
                     buf->len = datalen;
-                    buf->alloc = initial_alloc;  /* Track allocated size */
-                    fprintf(stderr, "NGHTTP3: set_stream_body_data stream=%lld INITIAL alloc %zu bytes at %p\n",
-                            (long long)stream_id, initial_alloc, (void *)buf->data);
+                    buf->alloc = initial_alloc;
                     RETVAL = 0;
                 }
             }

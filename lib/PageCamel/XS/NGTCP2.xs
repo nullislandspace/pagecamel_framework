@@ -44,6 +44,7 @@ typedef struct {
     PageCamel_DomainCred *domains;
     int domain_count;
     char *default_domain;
+    char *default_backend;  /* Default internal_socket for domains without one */
     char *negotiated_hostname;
     char *selected_backend;
     int selected_domain_idx;
@@ -1303,6 +1304,11 @@ server_new(class, ...)
             else if (strEQ(key, "default_domain")) {
                 default_domain = SvPV_nolen(val);
             }
+            else if (strEQ(key, "default_backend")) {
+                if (SvOK(val)) {
+                    qc->default_backend = strdup(SvPV_nolen(val));
+                }
+            }
         }
 
         if (!dcid || !scid || !path || !settings || !params) {
@@ -1376,7 +1382,14 @@ server_new(class, ...)
                 /* Store domain info for backend routing */
                 qc->domains[domain_idx].domain = strdup(domain_key);
                 qc->domains[domain_idx].cred = NULL;  /* Using shared credentials */
-                qc->domains[domain_idx].backend_socket = backend_path ? strdup(backend_path) : NULL;
+                /* Use domain-specific backend, or fall back to default */
+                if (backend_path) {
+                    qc->domains[domain_idx].backend_socket = strdup(backend_path);
+                } else if (qc->default_backend) {
+                    qc->domains[domain_idx].backend_socket = strdup(qc->default_backend);
+                } else {
+                    qc->domains[domain_idx].backend_socket = NULL;
+                }
                 domain_idx++;
                 qc->domain_count = domain_idx;
             }
@@ -1538,6 +1551,7 @@ DESTROY(self)
             Safefree(self->domains);
         }
         if (self->default_domain) free(self->default_domain);
+        if (self->default_backend) free(self->default_backend);
         if (self->negotiated_hostname) free(self->negotiated_hostname);
         Safefree(self);
 
