@@ -1381,7 +1381,8 @@ sub handleQUICHandshake($self, $quicConn) {
     );
 
     $quicConn->{_http3Server} = $http3Server;
-    print getISODate(), " HTTP/3: Created HTTP/3 server for ", $quicConn->id(), "\n";
+    my $cid_hex = unpack('H*', $quicConn->id());
+    print getISODate(), " HTTP/3: Created HTTP/3 server for $cid_hex\n";
 
     # CRITICAL: Send control stream packets (SETTINGS) immediately after creating HTTP/3 server
     # If we don't send these now, the client will receive response data before SETTINGS
