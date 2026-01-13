@@ -8,8 +8,7 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -420,8 +419,8 @@ sub work {
         eval {
             $rv = $opt->{'complete-handler'}->complete($data, \%callback_data);
         };
-        if ($@ or !$rv) {
-            return $self->_error("Completion handler " . ($@ ? "thrown an error: $@" : "did not return a true value"), 'COMPLETION_HANDLER');
+        if ($EVAL_ERROR or !$rv) {
+            return $self->_error("Completion handler " . ($EVAL_ERROR ? "thrown an error: $EVAL_ERROR" : "did not return a true value"), 'COMPLETION_HANDLER');
         }
     }
 
@@ -555,7 +554,7 @@ sub encode_args {
     @ARGV = @ARGVmod;
     eval {
         my $from;
-        if ($^O eq 'MSWin32') {
+        if ($OSNAME eq 'MSWin32') {
             load 'Win32';
             if (defined &Win32::GetACP) {
                 $from = "cp" . Win32::GetACP();
@@ -572,7 +571,7 @@ sub encode_args {
         @ARGV = map { decode $from, $_ } @ARGV;
         autoload 'URI::_punycode';
     };
-    return $@;
+    return $EVAL_ERROR;
 }
 
 sub parse_config {
@@ -677,7 +676,7 @@ sub _load_mod {
         load $opt->{$type};
         $opt->{$handler} = $mod->new();
     };
-    if (my $rv = $@) {
+    if (my $rv = $EVAL_ERROR) {
         $rv=~s/(?: in) \@INC .*$//s; $rv=~s/Compilation failed[^\n]+$//s;
         return $rv || 'error';
     }
@@ -695,8 +694,8 @@ sub _load_params {
     eval {
         $opt->{$type} = $j->decode($opt->{$type});
     };
-    return ($@ or (ref $opt->{$type} ne 'HASH')) ?
-        $self->_error("Could not decode '$type'. Please make sure you are providing a valid JSON document and {} are in place." . ($opt->{'debug'} ? $@ : ''), 'JSON_DECODE') : 0;
+    return ($EVAL_ERROR or (ref $opt->{$type} ne 'HASH')) ?
+        $self->_error("Could not decode '$type'. Please make sure you are providing a valid JSON document and {} are in place." . ($opt->{'debug'} ? $EVAL_ERROR : ''), 'JSON_DECODE') : 0;
 }
 
 sub _read {
@@ -818,9 +817,9 @@ sub remoteCall {
         alarm 0;
     };
     alarm 0;
-    if($@) {
-        print STDERR "ERROR: ", $@, "\n";
-        die("RPC Timeout encountered!\n") if($@ eq "RPC Timeout");
+    if($EVAL_ERROR) {
+        print STDERR "ERROR: ", $EVAL_ERROR, "\n";
+        die("RPC Timeout encountered!\n") if($EVAL_ERROR eq "RPC Timeout");
         $error = 1;
     }
 
