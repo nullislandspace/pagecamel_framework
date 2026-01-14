@@ -53,6 +53,8 @@ sub _init_settings($self) {
     $self->{settings} = PageCamel::XS::NGTCP2::Settings->new();
     $self->{settings}->set_initial_ts(PageCamel::XS::NGTCP2::timestamp());
     $self->{settings}->set_max_tx_udp_payload_size(1350);
+    # Use BBR2 congestion control - better for high-throughput scenarios than CUBIC
+    $self->{settings}->set_cc_algo(PageCamel::XS::NGTCP2::NGTCP2_CC_ALGO_BBR2());
 }
 
 sub _init_transport_params($self) {

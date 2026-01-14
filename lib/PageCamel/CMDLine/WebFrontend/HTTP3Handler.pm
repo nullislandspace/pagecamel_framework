@@ -413,7 +413,7 @@ sub connectBackend($self, $streamId) {
     );
 
     if(!defined($backend)) {
-        print STDERR getISODate() . " HTTP3Handler: Cannot connect to backend: $ERRNO\n";
+        print STDERR getISODate() . " HTTP/3: Failed to connect to backend: $ERRNO\n";
         return;
     }
 
@@ -565,6 +565,15 @@ sub handleBackendData($self, $server, $socket, $toclientbufferRef, $maxBufferSiz
     my $buf;
     my $bytesRead = $socket->sysread($buf, 16_384);
 
+    my $responseLen = length($self->{streamResponses}->{$streamId} // '');
+    my $bytesSent = $self->{streamBytesSent}->{$streamId} // 0;
+    # Log every 1MB milestone to reduce noise
+    my $prevMB = int(($bytesSent - ($bytesRead // 0)) / 1_000_000);
+    my $curMB = int($bytesSent / 1_000_000);
+    if(defined($bytesRead) && $bytesRead > 0 && $curMB > $prevMB) {
+        print STDERR "DEBUG handleBackendData: stream=$streamId bytesSent=${curMB}MB responseBuffer=$responseLen\n";
+    }
+
     if(!defined($bytesRead) || $bytesRead == 0) {
         # Backend disconnected
         $self->{backenddisconnects}->{$streamId} = 1;
@@ -677,12 +686,16 @@ sub processBackendResponse($self, $server, $streamId) {
                     if($bytesWritten < length($body)) {
                         # Partial write - keep unsent portion in buffer
                         $self->{streamResponses}->{$streamId} = substr($body, $bytesWritten);
+                        # Mark as congestion-blocked since we couldn't send everything
+                        $self->{streamCongestionBlocked}->{$streamId} = 1;
                     } else {
                         $self->{streamResponses}->{$streamId} = '';
                     }
                 } else {
                     # Flow control blocked - keep entire body in buffer
                     $self->{streamResponses}->{$streamId} = $body;
+                    # Mark as congestion-blocked for back-pressure
+                    $self->{streamCongestionBlocked}->{$streamId} = 1;
                 }
             } else {
                 $self->{streamResponses}->{$streamId} = '';
@@ -716,6 +729,8 @@ sub processBackendResponse($self, $server, $streamId) {
             if(defined($bytesWritten) && $bytesWritten > 0) {
                 # Successfully sent some bytes
                 $self->{streamBytesSent}->{$streamId} += $bytesWritten;
+                # Clear congestion-blocked since we made progress
+                delete $self->{streamCongestionBlocked}->{$streamId};
 
                 if($bytesWritten >= length($response)) {
                     # All data sent - clear buffer
@@ -723,9 +738,14 @@ sub processBackendResponse($self, $server, $streamId) {
                 } else {
                     # Partial write (flow control) - keep unsent portion
                     $self->{streamResponses}->{$streamId} = substr($response, $bytesWritten);
+                    # Mark as congestion-blocked for back-pressure
+                    $self->{streamCongestionBlocked}->{$streamId} = 1;
                 }
+            } else {
+                # bytesWritten is 0 or negative (flow control blocked), keep buffer as-is
+                # Mark as congestion-blocked for back-pressure
+                $self->{streamCongestionBlocked}->{$streamId} = 1;
             }
-            # If bytesWritten is 0 or negative (flow control blocked), keep buffer as-is
         }
 
         # Check if complete - only close when buffer is empty
@@ -813,6 +833,19 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHa
 }
 
 sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
+    # ALWAYS try to send packets first - this ensures any data in QUIC's buffer
+    # gets sent out, which triggers ACKs that open the congestion window
+    $sendPacketsCallback->() if($sendPacketsCallback);
+
+    # Flush any data buffered in nghttp3 to QUIC
+    # This is CRITICAL: data that was pushed to nghttp3 but couldn't be flushed
+    # (due to congestion) needs to be drained here when cwnd opens
+    my $totalFlushed = $server->flush_pending_data();
+
+    # ALWAYS send packets after flush attempt - QUIC may have ACKs, probes,
+    # or other control frames to send even if we couldn't add new data
+    $sendPacketsCallback->() if($sendPacketsCallback);
+
     # Retry sending buffered data for streams that may have been blocked by flow control
     # Called periodically from main loop after QUIC ACKs open up the send window
     # $sendPacketsCallback: optional callback to send UDP packets during flush
@@ -828,17 +861,12 @@ sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
             my $stream = $self->{streamStreams}->{$streamId};
             next unless(defined($stream));
 
-            # Skip if already congestion-blocked, unless ACKs have opened the cwnd
-            if($self->{streamCongestionBlocked}->{$streamId}) {
-                # Check if cwnd has space now (ACKs may have opened it)
-                my $cwndLeft = $self->{quicConnection}->{quic_conn}->get_cwnd_left();
-                if($cwndLeft < 1200) {
-                    # Still blocked, skip this stream
-                    next;
-                }
-                # cwnd has space, clear the flag and try again
-                delete $self->{streamCongestionBlocked}->{$streamId};
-            }
+            # NOTE: Removed cwnd check that was causing deadlock.
+            # Previously we checked cwndLeft < 1200 and skipped streams, but this
+            # caused a circular dependency: can't send → no packets → no ACKs → cwnd stays small.
+            # Now we always try to send and let QUIC's internal flow control handle it.
+            # The congestionBlocked flag is cleared here and we try to send below.
+            delete $self->{streamCongestionBlocked}->{$streamId};
 
             # Loop until we can't send more (congestion control blocks)
             # Limit writes per call to prevent overwhelming the receiver's UDP buffer
@@ -871,6 +899,13 @@ sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
                     # Congestion blocked (or error) - send any pending packets and exit
                     # Don't retry immediately - we need to wait for ACKs from the network
                     # The main loop will process ACKs and call flushPendingStreams again
+                    $self->{_flushBlockedCount} //= 0;
+                    $self->{_flushBlockedCount}++;
+                    # Only log occasionally to avoid flooding
+                    if ($self->{_flushBlockedCount} % 500 == 1) {
+                        my $cwndLeft = $self->{quicConnection}->{quic_conn}->get_cwnd_left();
+                        print STDERR "DEBUG flushPending: BLOCKED (count=$self->{_flushBlockedCount}) cwndLeft=$cwndLeft toSend=" . length($toSend) . "\n";
+                    }
                     $sendPacketsCallback->() if($sendPacketsCallback);
 
                     # Mark stream as congestion-blocked (for back-pressure)
@@ -936,9 +971,8 @@ sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
         }
     }
 
-    # Return true if we made progress but are still blocked (caller should loop)
-    # Return false if nothing to do or all data sent
-    my $hasBlockedStreams = scalar(keys %{$self->{streamCongestionBlocked}}) > 0;
+    # Return true if we should be called again (more work to do)
+    # Check if we flushed data from nghttp3 - if so, there might be more
     my $hasPendingData = 0;
     foreach my $streamId (keys %{$self->{streamResponses}}) {
         if(length($self->{streamResponses}->{$streamId} // '') > 0) {
@@ -950,7 +984,11 @@ sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
     # Also check for pending flush streams (nghttp3 buffer not yet drained)
     my $hasPendingFlush = scalar(keys %{$self->{streamPendingFlush}}) > 0;
 
-    return ($hasPendingData || $hasPendingFlush) && !$hasBlockedStreams;  # true = call again
+    # Return true if:
+    # 1. We flushed data from nghttp3 (more might be waiting), OR
+    # 2. We have pending data in streamResponses that isn't blocked
+    my $hasBlockedStreams = scalar(keys %{$self->{streamCongestionBlocked}}) > 0;
+    return $totalFlushed > 0 || (($hasPendingData || $hasPendingFlush) && !$hasBlockedStreams);
 }
 
 sub cleanupStream($self, $streamId) {

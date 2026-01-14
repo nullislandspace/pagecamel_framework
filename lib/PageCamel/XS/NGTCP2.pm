@@ -59,12 +59,24 @@ our @EXPORT_OK = qw(
     NGTCP2_ERR_HANDSHAKE_TIMEOUT
     NGTCP2_ERR_VERSION_NEGOTIATION_FAILURE
     NGTCP2_ERR_IDLE_CLOSE
+    NGTCP2_CC_ALGO_RENO
+    NGTCP2_CC_ALGO_CUBIC
+    NGTCP2_CC_ALGO_BBR
+    NGTCP2_CC_ALGO_BBR2
 );
 
 our %EXPORT_TAGS = (
     constants => \@EXPORT_OK,
     all => \@EXPORT_OK,
 );
+
+# Congestion control algorithm constants
+use constant {
+    NGTCP2_CC_ALGO_RENO  => 0,
+    NGTCP2_CC_ALGO_CUBIC => 1,
+    NGTCP2_CC_ALGO_BBR   => 2,
+    NGTCP2_CC_ALGO_BBR2  => 3,
+};
 
 1;
 

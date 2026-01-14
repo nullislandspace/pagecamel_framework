@@ -978,6 +978,14 @@ set_handshake_timeout(self, timeout)
         self->settings.handshake_timeout = (ngtcp2_duration)timeout;
 
 void
+set_cc_algo(self, algo)
+        PageCamel_Settings *self
+        int algo
+    CODE:
+        /* 0=RENO, 1=CUBIC, 2=BBR, 3=BBR2 */
+        self->settings.cc_algo = (ngtcp2_cc_algo)algo;
+
+void
 set_initial_rtt(self, rtt)
         PageCamel_Settings *self
         UV rtt
@@ -1480,7 +1488,9 @@ server_new(class, ...)
         callbacks.handshake_completed = handshake_completed_trampoline;
         callbacks.path_validation = path_validation_trampoline;
 
-        /* Debug: show transport params */
+        /* Debug: show transport params and settings (always log cc_algo for debugging) */
+        fprintf(stderr, "NGTCP2: server_new cc_algo=%d (0=RENO, 1=CUBIC, 2=BBR, 3=BBR2)\n",
+                (int)settings->settings.cc_algo);
         if (NGTCP2_DEBUG) {
             fprintf(stderr, "NGTCP2: server_new transport params:\n");
             fprintf(stderr, "  original_dcid.datalen=%zu\n", params->params.original_dcid.datalen);
@@ -1513,6 +1523,14 @@ server_new(class, ...)
 
         if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: server_new succeeded, conn=%p, session=%p\n",
                 (void*)qc->conn, (void*)qc->session);
+
+        /* Always log initial cwnd for debugging */
+        {
+            ngtcp2_conn_stat cstat;
+            ngtcp2_conn_get_conn_stat(qc->conn, &cstat);
+            fprintf(stderr, "NGTCP2: initial cwnd=%lu ssthresh=%lu\n",
+                    (unsigned long)cstat.cwnd, (unsigned long)cstat.ssthresh);
+        }
 
         /* Link the GnuTLS session to the ngtcp2 connection - CRITICAL */
         ngtcp2_conn_set_tls_native_handle(qc->conn, qc->session);
@@ -1808,6 +1826,18 @@ write_stream(self, stream_id, data, ts, fin = 0)
             (ngtcp2_tstamp)ts
         );
 
+        /* Debug: log every 100th call or if blocked */
+        static int write_stream_calls = 0;
+        write_stream_calls++;
+        if (write_stream_calls % 100 == 1 || (nwrite == 0 && write_stream_calls < 50)) {
+            uint64_t cwnd = ngtcp2_conn_get_cwnd_left(self->conn);
+            ngtcp2_conn_stat cstat;
+            ngtcp2_conn_get_conn_stat(self->conn, &cstat);
+            fprintf(stderr, "XS write_stream #%d: stream=%lld datalen=%zu nwrite=%zd ndatalen=%zd cwnd=%lu in_flight=%lu\n",
+                    write_stream_calls, (long long)stream_id, datalen, nwrite, ndatalen,
+                    (unsigned long)cwnd, (unsigned long)cstat.bytes_in_flight);
+        }
+
         /* Always return two values: (packet_data, bytes_consumed/error) */
         if (nwrite < 0) {
             /* Error - return (undef, -error_code) */
@@ -1865,6 +1895,19 @@ get_cwnd_left(self)
         RETVAL = ngtcp2_conn_get_cwnd_left(self->conn);
     OUTPUT:
         RETVAL
+
+# Get congestion control statistics (cwnd, bytes_in_flight, ssthresh)
+void
+get_cong_stat(self)
+        PageCamel_QUIC_Connection *self
+    PPCODE:
+        ngtcp2_conn_stat cstat;
+        ngtcp2_conn_get_conn_stat(self->conn, &cstat);
+        /* Return (cwnd, bytes_in_flight, ssthresh, smoothed_rtt) */
+        mXPUSHu(cstat.cwnd);
+        mXPUSHu(cstat.bytes_in_flight);
+        mXPUSHu(cstat.ssthresh);
+        mXPUSHu(cstat.smoothed_rtt);
 
 # Get connection close error info (for diagnostics)
 void

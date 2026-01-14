@@ -370,19 +370,17 @@ static int acked_stream_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
 {
     dTHX;
     PageCamel_HTTP3_Connection *h3c = (PageCamel_HTTP3_Connection *)user_data;
-    size_t idx = stream_id % 4096;
 
-    /* Advance the consumed offset - this is how many BODY bytes were ACKed.
-     * This is the authoritative signal that data was consumed by nghttp3. */
-    /* size_t old_offset = stream_consumed_offset[idx]; */
-    stream_consumed_offset[idx] += datalen;
-    /* fprintf(stderr, "NGHTTP3: acked_stream_data stream=%lld datalen=%llu offset %zu -> %zu\n",
-            (long long)stream_id, (unsigned long long)datalen, old_offset, stream_consumed_offset[idx]); */
-
-    /* Also update the buffer's offset for cleanup tracking */
+    /* Update the per-stream buffer offset - this tracks ACKed data for cleanup.
+     * Note: We no longer use the global stream_consumed_offset array since it
+     * was shared across connections, causing corruption when multiple connections
+     * used the same stream IDs. */
     StreamDataBuffer *buf = find_stream_buffer(h3c, stream_id);
     if (buf && buf->data) {
-        buf->offset += datalen;
+        /* Note: acked_stream_data tracks ACKed bytes, which may differ from
+         * bytes returned by read_data. We don't update buf->offset here because
+         * read_data_trampoline already advanced it when returning data.
+         * This callback is mainly for cleanup when all data is ACKed. */
 
         /* If all data has been consumed and ACKed, free the buffer */
         if (buf->offset >= buf->len && buf->eof) {
@@ -427,7 +425,6 @@ static nghttp3_ssize read_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
     void *user_data, void *stream_user_data)
 {
     PageCamel_HTTP3_Connection *h3c = (PageCamel_HTTP3_Connection *)user_data;
-    size_t idx = stream_id % 4096;
 
     if (veccnt == 0) {
         return 0;
@@ -441,8 +438,9 @@ static nghttp3_ssize read_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
         return NGHTTP3_ERR_WOULDBLOCK;
     }
 
-    /* Get consumed offset - updated by acked_stream_data_trampoline when data is ACKed */
-    size_t consumed = stream_consumed_offset[idx];
+    /* Get consumed offset from the per-stream buffer (NOT global array!)
+     * This is critical for multiple connections sharing stream IDs */
+    size_t consumed = buf->offset;
 
     if (!buf->data || consumed >= buf->len) {
         /* No data available beyond what's been consumed */
@@ -463,8 +461,9 @@ static nghttp3_ssize read_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
     /* CRITICAL: Advance consumed offset NOW.
      * nghttp3 keeps its own copy of data for retransmission.
      * If we don't advance, next read_data call returns same data,
-     * causing nghttp3 to create duplicate DATA frames. */
-    stream_consumed_offset[idx] = consumed + available;
+     * causing nghttp3 to create duplicate DATA frames.
+     * Using buf->offset (per-connection) instead of global array. */
+    buf->offset = consumed + available;
 
     /* Check if this is all the data */
     if (buf->eof) {
@@ -1360,10 +1359,8 @@ submit_response_with_body(self, stream_id, headers_ref)
             nva[i].flags = NGHTTP3_NV_FLAG_NONE;
         }
 
-        /* Initialize consumed offset for this stream */
-        stream_consumed_offset[stream_id % 4096] = 0;
-
-        /* Create empty stream buffer - data will be added via set_stream_body_data */
+        /* Create empty stream buffer - data will be added via set_stream_body_data
+         * The buffer's offset field is initialized to 0 by get_or_create_stream_buffer */
         get_or_create_stream_buffer(self, stream_id);
 
         /* Submit response WITH data_reader - nghttp3 will call read_data_trampoline */
@@ -1469,7 +1466,7 @@ clear_stream_buffer(self, stream_id)
         IV stream_id
     CODE:
         free_stream_buffer(self, stream_id);
-        stream_consumed_offset[stream_id % 4096] = 0;
+        /* No need to reset global array - we use per-buffer offset now */
 
 # Get amount of buffered data for a stream
 UV
@@ -1481,7 +1478,8 @@ get_stream_buffer_size(self, stream_id)
     CODE:
         buf = find_stream_buffer(self, stream_id);
         if (buf && buf->data) {
-            size_t consumed = stream_consumed_offset[stream_id % 4096];
+            /* Use per-buffer offset instead of global array */
+            size_t consumed = buf->offset;
             RETVAL = (buf->len > consumed) ? (buf->len - consumed) : 0;
         }
         else {

@@ -6,18 +6,11 @@ use warnings;
 use PageCamel::XS::NGHTTP3 qw(:constants);
 use PageCamel::XS::NGHTTP3::Headers;
 use PageCamel::Protocol::QUIC::Connection;
+use PageCamel::Helpers::DateStrings;
 use Carp qw(croak);
 use Scalar::Util qw(weaken);
 
 our $VERSION = '0.01';
-
-# HTTP/3 stream types
-use constant {
-    STREAM_TYPE_CONTROL        => 0x00,
-    STREAM_TYPE_PUSH           => 0x01,
-    STREAM_TYPE_QPACK_ENCODER  => 0x02,
-    STREAM_TYPE_QPACK_DECODER  => 0x03,
-};
 
 sub new($class, %config) {
     my $self = bless {
@@ -118,6 +111,7 @@ sub _open_control_streams($self) {
 # Flush pending HTTP/3 data from nghttp3 to QUIC streams
 # This is critical after binding control streams (SETTINGS must be sent)
 # and after submitting responses
+# Returns: total bytes written to QUIC (0 if congestion blocked)
 sub flush_pending_data($self) {
     my $quic = $self->{quic_conn};
     my $http3 = $self->{http3_conn};
@@ -131,11 +125,32 @@ sub flush_pending_data($self) {
     my $iterations_used = 0;
 
     for my $iter (1..$max_iterations) {
-        # Pass -1 to let nghttp3 tell us which stream has data
-        my ($actual_stream_id, $data, $fin) = $http3->writev_stream(-1);
+        my ($actual_stream_id, $data, $fin);
+
+        # CRITICAL: First check if we have pending data from a previous blocked write
+        if ($self->{_pendingWriteData}) {
+            $actual_stream_id = $self->{_pendingWriteData}{stream_id};
+            $data = $self->{_pendingWriteData}{data};
+            $fin = $self->{_pendingWriteData}{fin};
+            # Don't clear yet - only clear after successful write
+        } else {
+            # Pass -1 to let nghttp3 tell us which stream has data
+            ($actual_stream_id, $data, $fin) = $http3->writev_stream(-1);
+        }
 
         # No more data to send - nghttp3 returns undef when nothing pending
-        last unless defined $actual_stream_id && defined $data && length($data);
+        if (!defined $actual_stream_id || !defined $data || !length($data)) {
+            # Debug: why did writev_stream return nothing?
+            if ($iter == 1 && $self->{_flushCount} && $self->{_flushCount} % 100 == 0) {
+                # Check flow control state
+                my $streamDataLeft = $quic->{quic_conn}->get_max_stream_data_left(0) // -1;
+                my $connDataLeft = $quic->{quic_conn}->get_max_data_left() // -1;
+                my $cwndLeft = $quic->{quic_conn}->get_cwnd_left() // -1;
+                print STDERR PageCamel::Helpers::DateStrings::getISODate() .
+                    " DEBUG flush: writev_stream empty on iter=1 streamDataLeft=$streamDataLeft connDataLeft=$connDataLeft cwndLeft=$cwndLeft\n";
+            }
+            last;
+        }
 
         $iterations_used = $iter;
 
@@ -145,24 +160,82 @@ sub flush_pending_data($self) {
         # Handle write errors or partial writes
         if (!defined($bytes_written) || $bytes_written < 0) {
             # Error - don't acknowledge any data to nghttp3
+            print STDERR "DEBUG flush_pending_data: stream=$actual_stream_id ERROR bytes_written=" . ($bytes_written // 'undef') . " data_len=" . length($data) . "\n";
             last;
         }
 
         if ($bytes_written == 0) {
-            # Flow control blocked - don't acknowledge, try again later
+            # Flow control blocked - SAVE the data for retry later
+            # This is critical! nghttp3's writev_stream already "consumed" this data internally.
+            # If we don't save it, the data is lost forever.
+            $self->{_pendingWriteData} = {
+                stream_id => $actual_stream_id,
+                data => $data,
+                fin => $fin,
+            };
+            # Only log occasionally to avoid flooding - but include flow control diagnostics
+            $self->{_writeBlockedCount} //= 0;
+            $self->{_writeBlockedCount}++;
+            if ($self->{_writeBlockedCount} % 100 == 1) {
+                # Check all flow control limits and congestion control to diagnose what's blocking
+                my $streamDataLeft = $quic->{quic_conn}->get_max_stream_data_left($actual_stream_id) // -1;
+                my $connDataLeft = $quic->{quic_conn}->get_max_data_left() // -1;
+                my ($cwnd, $in_flight, $ssthresh, $rtt) = $quic->{quic_conn}->get_cong_stat();
+                my $cwndLeft = $quic->{quic_conn}->get_cwnd_left() // -1;
+                print STDERR "DEBUG flush: BLOCKED #$self->{_writeBlockedCount} stream=$actual_stream_id data_len=" . length($data) .
+                    " cwnd=$cwnd in_flight=$in_flight ssthresh=$ssthresh rtt=$rtt cwndLeft=$cwndLeft\n";
+            }
             last;
         }
 
+        # Successfully wrote some data
         $total_bytes += $bytes_written;
 
-        # CRITICAL: Only acknowledge the bytes that were actually written to QUIC
+        # Always acknowledge written bytes to nghttp3
         $http3->add_write_offset($actual_stream_id, $bytes_written);
+
+        # Handle pending data tracking
+        if ($self->{_pendingWriteData}) {
+            if ($bytes_written >= length($data)) {
+                # Fully written - clear pending
+                delete $self->{_pendingWriteData};
+            } else {
+                # Partial write - keep the remaining data as pending
+                $self->{_pendingWriteData}{data} = substr($data, $bytes_written);
+            }
+        } elsif ($bytes_written < length($data)) {
+            # Fresh data from writev_stream, but only partially written - save the rest
+            $self->{_pendingWriteData} = {
+                stream_id => $actual_stream_id,
+                data => substr($data, $bytes_written),
+                fin => $fin,
+            };
+        }
+
+        # Log successful write flow control state occasionally
+        $self->{_writeSuccessCount} //= 0;
+        $self->{_writeSuccessCount}++;
+        if ($self->{_writeSuccessCount} % 500 == 1) {
+            my ($cwnd, $in_flight, $ssthresh, $rtt) = $quic->{quic_conn}->get_cong_stat();
+            my $cwndLeft = $quic->{quic_conn}->get_cwnd_left() // -1;
+            print STDERR "DEBUG flush: SUCCESS #$self->{_writeSuccessCount} stream=$actual_stream_id wrote=$bytes_written" .
+                " cwnd=$cwnd in_flight=$in_flight ssthresh=$ssthresh rtt=$rtt cwndLeft=$cwndLeft\n";
+        }
 
         # Note: Don't break on partial write. Continue looping - on the next iteration,
         # writev_stream will return more data (nghttp3 tracks the offset), and write_stream
         # will return 0 if truly blocked. Breaking here prevents cwnd from growing properly
         # because we only send 1 packet per flush cycle instead of filling the cwnd.
     }
+
+    # Debug: log flush results periodically
+    $self->{_flushCount} //= 0;
+    $self->{_flushCount}++;
+    if($self->{_flushCount} % 100 == 0) {
+        print STDERR PageCamel::Helpers::DateStrings::getISODate() . " DEBUG flush_pending_data: call #$self->{_flushCount} total_bytes=$total_bytes iterations=$iterations_used\n";
+    }
+
+    return $total_bytes;
 }
 
 # Process incoming stream data from QUIC
@@ -191,33 +264,12 @@ sub process_stream_data($self, $stream_id, $data, $fin) {
 }
 
 sub _process_uni_stream($self, $stream_id, $data, $fin) {
-    # First byte is stream type
     return unless length($data);
 
-    my $type = unpack('C', substr($data, 0, 1));
-    my $payload = substr($data, 1);
-
-    if ($type == STREAM_TYPE_CONTROL) {
-        # Client control stream
-        return $self->{http3_conn}->read_stream($stream_id, $payload, $fin);
-    }
-    elsif ($type == STREAM_TYPE_QPACK_ENCODER) {
-        # Client QPACK encoder stream
-        return $self->{http3_conn}->read_stream($stream_id, $payload, $fin);
-    }
-    elsif ($type == STREAM_TYPE_QPACK_DECODER) {
-        # Client QPACK decoder stream
-        return $self->{http3_conn}->read_stream($stream_id, $payload, $fin);
-    }
-    elsif ($type == STREAM_TYPE_PUSH) {
-        # Push streams are server-initiated, client should not send these
-        warn "HTTP/3: Unexpected push stream from client\n";
-        return NGHTTP3_ERR_H3_STREAM_CREATION_ERROR();
-    }
-    else {
-        # Unknown stream type - ignore per RFC 9114
-        return 0;
-    }
+    # nghttp3 expects to receive the stream type byte itself - it will parse
+    # the varint stream type and handle the stream accordingly.
+    # We should NOT strip the type byte - just pass all data directly.
+    return $self->{http3_conn}->read_stream($stream_id, $data, $fin);
 }
 
 # Get data to write to QUIC streams
@@ -370,7 +422,26 @@ sub response_stream($self, $stream_id, $status, $headers) {
 
 sub send_body_chunk($self, $stream_id, $data, $fin = 0) {
     # Push body data through nghttp3's proper API
+    # Returns: length($data) if data was accepted into nghttp3, 0 if blocked
+    #
+    # IMPORTANT: Once we push data to nghttp3, we return length($data) so the caller
+    # clears its buffer. nghttp3 now owns the data. flush_pending_data() will drain
+    # nghttp3 → QUIC as the congestion window opens.
     my $hasData = defined($data) && length($data);
+    my $dataLen = $hasData ? length($data) : 0;
+
+    # NOTE: Removed pendingUdpPackets check that was causing deadlock.
+    # The check prevented new data from being pushed to nghttp3 when UDP was backed up,
+    # but this created a circular dependency: no new data → no new packets → pending UDP
+    # packets never cleared. The UDP buffering in sendQUICPackets handles the case where
+    # packets can't be sent immediately - they'll be queued and retried.
+
+    # CRITICAL: Try to flush existing pending data FIRST to make room
+    $self->flush_pending_data();
+
+    # NOTE: We do NOT check cwnd here anymore! The cwnd check was causing a deadlock:
+    # - cwnd small → block data → no frames → no packets → no ACKs → cwnd stays small
+    # QUIC's write_stream handles cwnd internally - let it decide what to accept.
 
     # Push data to nghttp3's internal buffer (if any)
     if ($hasData) {
@@ -379,6 +450,8 @@ sub send_body_chunk($self, $stream_id, $data, $fin = 0) {
             warn "HTTP/3: Failed to push body chunk: $rv\n";
             return $rv;
         }
+        # Track that we pushed this much data
+        $self->{stream_bytes_pushed}->{$stream_id} += $dataLen;
     }
 
     # Mark EOF if this is the last chunk
@@ -390,11 +463,13 @@ sub send_body_chunk($self, $stream_id, $data, $fin = 0) {
     if ($hasData || $fin) {
         $self->{http3_conn}->resume_stream($stream_id);
 
-        # Flush DATA frames from nghttp3 to QUIC
+        # Try to flush immediately to QUIC
         $self->flush_pending_data();
     }
 
-    return $hasData ? length($data) : 0;
+    # Data is now in nghttp3's buffer - return length so caller clears its buffer
+    # flush_pending_data() will drain nghttp3 → QUIC as ACKs arrive
+    return $dataLen;
 }
 
 sub send_trailers($self, $stream_id, $headers) {

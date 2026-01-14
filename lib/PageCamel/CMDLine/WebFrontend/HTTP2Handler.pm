@@ -531,7 +531,7 @@ sub createPooledBackend($self) {
     );
 
     if(!defined($backend)) {
-        carp("HTTP2Handler: Failed to connect to backend: $ERRNO");
+        print STDERR getISODate() . " HTTP/2: Failed to connect to backend: $ERRNO\n";
         return;
     }
 

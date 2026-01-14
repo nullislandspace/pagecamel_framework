@@ -5,6 +5,7 @@ use warnings;
 
 use PageCamel::XS::NGTCP2 qw(:constants);
 use PageCamel::XS::NGTCP2::Stream;
+use PageCamel::Helpers::DateStrings;
 use Carp qw(croak);
 use Scalar::Util qw(weaken blessed);
 
@@ -218,6 +219,12 @@ sub process_packet($self, $packet, $peer_addr, $ts) {
             $self->{state} = 'closing';
         } elsif ($rv == NGTCP2_ERR_CLOSING()) {
             $self->{state} = 'closing';
+        } elsif ($rv == NGTCP2_ERR_DROP_CONN()) {
+            # Connection should be silently dropped - mark as closed immediately
+            # Do NOT try to send any response packets
+            warn "QUIC: Error processing packet: " .
+                 PageCamel::XS::NGTCP2::strerror($rv) . "\n";
+            $self->{state} = 'closed';
         } else {
             warn "QUIC: Error processing packet: " .
                  PageCamel::XS::NGTCP2::strerror($rv) . "\n";
@@ -351,6 +358,16 @@ sub write_stream($self, $stream_id, $data, $fin = 0) {
     if(defined($packet) && length($packet)) {
         $self->{pending_stream_packets} //= [];
         push @{$self->{pending_stream_packets}}, $packet;
+    }
+
+    # Debug: track write_stream results
+    $self->{_writeStreamCalls} //= 0;
+    $self->{_writeStreamBytes} //= 0;
+    $self->{_writeStreamCalls}++;
+    $self->{_writeStreamBytes} += $result if($result > 0);
+    if($self->{_writeStreamCalls} % 500 == 0) {
+        my $pktLen = (defined($packet) && length($packet)) ? length($packet) : 0;
+        print STDERR PageCamel::Helpers::DateStrings::getISODate() . " DEBUG write_stream: call #$self->{_writeStreamCalls} total_bytes=$self->{_writeStreamBytes} result=$result pktLen=$pktLen\n";
     }
 
     # Return bytes consumed (may be less than input length)

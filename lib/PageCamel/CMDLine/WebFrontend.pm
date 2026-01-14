@@ -803,7 +803,7 @@ sub handleClient($self, $client) {
             eval {
                 close $client;
             };
-            print STDERR "Failed to connect to backend $selectedbackend: $error\n";
+            print STDERR getISODate() . " HTTP/1.1: Failed to connect to backend $selectedbackend: $error\n";
             $self->endprogram();
         }
 
@@ -1132,6 +1132,9 @@ sub runHTTP3Handler($self) {
         # Handle QUIC timeouts and send packets
         $self->handleQUICTimeouts();
 
+        # Flush any pending UDP packets that couldn't be sent earlier
+        $self->flushPendingUdpPackets();
+
         # Process backend I/O for all HTTP/3 connections
         $self->handleHTTP3Backends();
 
@@ -1154,6 +1157,9 @@ sub cleanupClosedQUICConnections($self) {
 
         if($quicConn->is_closed()) {
             # Connection is fully closed, cleanup
+            my $handler = $quicConn->{_http3Handler};
+            my $bytesSent = $handler ? ($handler->{streamBytesSent}->{0} // 0) : 0;
+            print STDERR getISODate() . " DEBUG cleanupClosedQUICConnections: closing connId=" . unpack('H*', $connId) . " bytesSent=$bytesSent\n";
             $self->cleanupQUICConnection($quicConn);
             push @toRemove, $connId;
         }
@@ -1172,9 +1178,30 @@ sub handleQUICPacket($self, $udpSocket) {
 
     return unless(defined($peerAddr) && length($packet));
 
-    # Extract peer info
-    my ($peerPort, $peerIp) = Socket::unpack_sockaddr_in($peerAddr);
-    my $peerhost = Socket::inet_ntoa($peerIp);
+    # Track incoming packet statistics
+    $self->{_incomingUdpPackets} //= 0;
+    $self->{_incomingUdpBytes} //= 0;
+    $self->{_incomingUdpPackets}++;
+    $self->{_incomingUdpBytes} += length($packet);
+
+    # Log EVERY incoming packet for first 100, then every 10th
+    if($self->{_incomingUdpPackets} <= 100 || $self->{_incomingUdpPackets} % 10 == 0) {
+        print STDERR getISODate() . " INCOMING UDP #$self->{_incomingUdpPackets}: " . length($packet) . " bytes\n";
+    }
+
+    # Extract peer info (handle both IPv4 and IPv6)
+    my ($peerPort, $peerhost);
+    if(length($peerAddr) == 16) {
+        # IPv4
+        my $peerIp;
+        ($peerPort, $peerIp) = Socket::unpack_sockaddr_in($peerAddr);
+        $peerhost = Socket::inet_ntoa($peerIp);
+    } else {
+        # IPv6
+        my $peerIp;
+        ($peerPort, $peerIp) = Socket::unpack_sockaddr_in6($peerAddr);
+        $peerhost = Socket::inet_ntop(Socket::AF_INET6, $peerIp);
+    }
     my $peerkey = "$peerhost:$peerPort";
 
     # Get local socket info
@@ -1191,13 +1218,37 @@ sub handleQUICPacket($self, $udpSocket) {
 
     if(defined($quicConn)) {
         # Existing connection - process packet
+        $self->{_processedPackets} //= 0;
+        $self->{_processedPackets}++;
+
         my $rv = $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
 
         if($rv < 0) {
             # Connection error or closing
+            $self->{_processedErrors} //= 0;
+            $self->{_processedErrors}++;
             if($quicConn->is_closed()) {
                 $self->cleanupQUICConnection($quicConn);
             }
+        } else {
+            $self->{_processedOk} //= 0;
+            $self->{_processedOk}++;
+
+            # Log cwnd after processing ACK (every 10th successful packet)
+            if($self->{_processedOk} % 10 == 0) {
+                my ($cwnd, $in_flight, $ssthresh, $rtt) = $quicConn->{quic_conn}->get_cong_stat();
+                my $cwndLeft = $quicConn->{quic_conn}->get_cwnd_left() // -1;
+                print STDERR getISODate() . " AFTER ACK #$self->{_processedOk}: cwnd=$cwnd in_flight=$in_flight ssthresh=$ssthresh rtt=$rtt cwndLeft=$cwndLeft\n";
+            }
+        }
+
+        # Log incoming packet stats periodically
+        if($self->{_processedPackets} % 50 == 0) {
+            my $inPkts = $self->{_incomingUdpPackets} // 0;
+            my $inBytes = $self->{_incomingUdpBytes} // 0;
+            my $procOk = $self->{_processedOk} // 0;
+            my $procErr = $self->{_processedErrors} // 0;
+            print STDERR getISODate() . " INCOMING STATS: udpPackets=$inPkts udpBytes=$inBytes processedOk=$procOk processedErr=$procErr\n";
         }
 
         # Send any response packets
@@ -1311,7 +1362,17 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
     $quicConn->{_selectedbackend} = undef;
 
     # Process the initial packet
-    $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
+    my $rv = $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
+
+    # Check if connection should be dropped (e.g., invalid packet)
+    if($quicConn->is_closed()) {
+        # Clean up connection from hash tables
+        delete $self->{quicConnections}->{$client_dcid};
+        delete $self->{quicConnections}->{$server_scid};
+        delete $self->{quicConnections}->{$client_scid};
+        delete $self->{quicConnectionsByAddr}->{$peerkey};
+        return;
+    }
 
     # Send response packets
     $self->sendQUICPackets($quicConn, $udpSocket);
@@ -1455,16 +1516,143 @@ sub handleHTTP3ConnectRequest($self, $quicConn, $http3Server, $streamId, $header
     return;
 }
 
+sub canSendUdp($self, $udpSocket) {
+    # Check if UDP socket is writable using select() with 0 timeout
+    # Returns true if we can send without blocking
+    return 0 unless $udpSocket;
+    my $wvec = '';
+    vec($wvec, fileno($udpSocket), 1) = 1;
+    my $ready = select(undef, $wvec, undef, 0);
+    return $ready > 0;
+}
+
+sub isUdpBackPressured($self, $quicConn) {
+    # Check if connection has pending UDP packets that couldn't be sent
+    # Used for back-pressure to prevent overwhelming the UDP buffer
+    return 0 unless $quicConn;
+    return 0 unless $quicConn->{_pendingUdpPackets};
+    return scalar(@{$quicConn->{_pendingUdpPackets}}) > 0;
+}
+
 sub sendQUICPackets($self, $quicConn, $udpSocket) {
     my $ts = PageCamel::XS::NGTCP2::timestamp();
-    my @packets = $quicConn->get_packets($ts);
 
-    foreach my $pkt (@packets) {
+    # Initialize pending buffer if not exists
+    $quicConn->{_pendingUdpPackets} //= [];
+    my $hadPending = scalar(@{$quicConn->{_pendingUdpPackets}});
+
+    # ALWAYS generate new packets - this includes ACKs which are critical for
+    # flow control and congestion control. Without ACKs, the client will time out.
+    # Previously we skipped get_packets() when hadPending > 0, which caused deadlock.
+    my @newPackets = $quicConn->get_packets($ts);
+
+    # Debug: log packet generation
+    my $newCount = scalar(@newPackets);
+    $quicConn->{_getPacketsCalls} //= 0;
+    $quicConn->{_getPacketsCalls}++;
+    if($newCount > 0 || $quicConn->{_getPacketsCalls} % 500 == 0) {
+        print STDERR getISODate() . " UDP get_packets: call #$quicConn->{_getPacketsCalls} new=$newCount pending=$hadPending\n";
+    }
+
+    # Combine pending packets with new packets (pending first to maintain order)
+    my @allPackets = (@{$quicConn->{_pendingUdpPackets}}, @newPackets);
+    $quicConn->{_pendingUdpPackets} = [];  # Clear pending, will re-add if needed
+
+    my $totalBytesSent = 0;
+    my $packetsSent = 0;
+    my $blocked = 0;
+
+    foreach my $pkt (@allPackets) {
         my $peerAddr = $pkt->{peer_addr};
         next if(!defined($peerAddr) || !defined($peerAddr->{host}) || !defined($peerAddr->{port}));
 
-        my $sockaddr = Socket::pack_sockaddr_in($peerAddr->{port}, Socket::inet_aton($peerAddr->{host}));
-        $udpSocket->send($pkt->{data}, 0, $sockaddr);
+        # Cache sockaddr on the packet to avoid repeated packing
+        if(!$pkt->{_sockaddr}) {
+            if($peerAddr->{host} =~ /:/) {
+                # IPv6
+                $pkt->{_sockaddr} = Socket::pack_sockaddr_in6($peerAddr->{port}, Socket::inet_pton(Socket::AF_INET6, $peerAddr->{host}));
+            } else {
+                # IPv4
+                $pkt->{_sockaddr} = Socket::pack_sockaddr_in($peerAddr->{port}, Socket::inet_aton($peerAddr->{host}));
+            }
+        }
+
+        if($blocked) {
+            # Already blocked, queue remaining packets
+            push @{$quicConn->{_pendingUdpPackets}}, $pkt;
+            next;
+        }
+
+        my $sent = $udpSocket->send($pkt->{data}, 0, $pkt->{_sockaddr});
+
+        if(!defined($sent)) {
+            # Send failed - check if it's EAGAIN/EWOULDBLOCK
+            if($!{EAGAIN} || $!{EWOULDBLOCK}) {
+                # Socket buffer full - queue this and remaining packets
+                $blocked = 1;
+                push @{$quicConn->{_pendingUdpPackets}}, $pkt;
+            } else {
+                # Other error - log and skip this packet
+                print STDERR getISODate() . " sendQUICPackets: send failed: $!\n";
+            }
+        } elsif($sent < length($pkt->{data})) {
+            # Partial send (shouldn't happen with UDP, but handle it)
+            print STDERR getISODate() . " sendQUICPackets: partial send $sent/" . length($pkt->{data}) . "\n";
+            $totalBytesSent += $sent;
+            $packetsSent++;
+        } else {
+            # Full send success
+            $totalBytesSent += $sent;
+            $packetsSent++;
+        }
+    }
+
+    # Debug: log packet stats
+    my $pendingCount = scalar(@{$quicConn->{_pendingUdpPackets}});
+    $quicConn->{_udpPacketsSent} //= 0;
+    $quicConn->{_udpBytesSent} //= 0;
+    $quicConn->{_udpPacketsSent} += $packetsSent;
+    $quicConn->{_udpBytesSent} += $totalBytesSent;
+
+    # Log every 100 packets or if we have pending packets
+    if($pendingCount > 0 || ($packetsSent > 0 && $quicConn->{_udpPacketsSent} % 100 < $packetsSent)) {
+        print STDERR getISODate() . " UDP: sent=$packetsSent bytes=$totalBytesSent pending=$pendingCount total_pkts=$quicConn->{_udpPacketsSent} total_bytes=$quicConn->{_udpBytesSent}\n";
+    }
+
+    # Return number of pending packets (for back-pressure detection)
+    return $pendingCount;
+}
+
+sub flushPendingUdpPackets($self) {
+    # Flush pending UDP packets for all QUIC connections
+    # This is called from the main loop to retry packets that couldn't be sent earlier
+    my %seen;
+
+    foreach my $connId (keys %{$self->{quicConnections}}) {
+        my $quicConn = $self->{quicConnections}->{$connId};
+        next unless(defined($quicConn));
+
+        # Skip if we already processed this connection (multiple IDs per connection)
+        my $connPtr = "$quicConn";
+        next if($seen{$connPtr}++);
+
+        # Skip if no pending packets
+        next unless($quicConn->{_pendingUdpPackets} && @{$quicConn->{_pendingUdpPackets}});
+
+        my $udpSocket = $quicConn->{_udpSocket};
+        next unless(defined($udpSocket));
+
+        # Try to send pending packets (sendQUICPackets will handle the retry logic)
+        # Pass an empty get_packets result by not generating new packets
+        my $pendingBefore = scalar(@{$quicConn->{_pendingUdpPackets}});
+        $self->sendQUICPackets($quicConn, $udpSocket);
+        my $pendingAfter = $quicConn->{_pendingUdpPackets} ? scalar(@{$quicConn->{_pendingUdpPackets}}) : 0;
+
+        if($pendingAfter < $pendingBefore) {
+            # Some packets were sent, log progress
+            my $sent = $pendingBefore - $pendingAfter;
+            print STDERR getISODate() . " flushPendingUdpPackets: flushed $sent pending packets, $pendingAfter remaining\n";
+        }
     }
 
     return;
@@ -1492,6 +1680,13 @@ sub handleQUICTimeouts($self) {
 
             my $rv = $quicConn->handle_expiry($ts);
 
+            # Debug: log if handle_expiry returned an error
+            if(defined($rv) && $rv < 0) {
+                my $handler = $quicConn->{_http3Handler};
+                my $bytesSent = $handler ? ($handler->{streamBytesSent}->{0} // 0) : 0;
+                print STDERR getISODate() . " DEBUG handleQUICTimeouts: handle_expiry returned $rv (bytesSent=$bytesSent)\n";
+            }
+
             # Send any resulting packets (probe packets for congestion control)
             my $udpSocket = $quicConn->{_udpSocket};
             $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
@@ -1510,6 +1705,9 @@ sub handleQUICTimeouts($self) {
 
             # Check if connection closed
             if($quicConn->is_closed()) {
+                my $handler = $quicConn->{_http3Handler};
+                my $bytesSent = $handler ? ($handler->{streamBytesSent}->{0} // 0) : 0;
+                print STDERR getISODate() . " DEBUG handleQUICTimeouts: connection closed after handle_expiry (bytesSent=$bytesSent)\n";
                 $self->cleanupQUICConnection($quicConn);
             }
         }
@@ -1561,6 +1759,14 @@ sub handleHTTP3Backends($self) {
     my $blocksize = 16_384;
     my $maxBufferSize = 50_000_000;
 
+    # Debug: track call frequency
+    $self->{_h3bCalls} //= 0;
+    $self->{_h3bCalls}++;
+    if($self->{_h3bCalls} % 100 == 0) {
+        my $numConns = scalar(keys %{$self->{quicConnections}});
+        print STDERR getISODate() . " DEBUG handleHTTP3Backends: call #$self->{_h3bCalls} numConnections=$numConns\n";
+    }
+
     # Collect all backends from all handlers
     my @allBackends;
     my %backendToQuicConn;  # backend socket → QUIC connection mapping
@@ -1586,21 +1792,27 @@ sub handleHTTP3Backends($self) {
             my $backend = $handler->{streamBackends}->{$streamId};
             next unless(defined($backend));
 
-            # Skip if stream is congestion-blocked (waiting for ACKs)
-            if($handler->{streamCongestionBlocked}->{$streamId}) {
-                next;
-            }
+            # NOTE: Removed congestion-blocked skip that was contributing to deadlock.
+            # The buffer size check below provides sufficient back-pressure.
+            # We want to keep reading from backends (up to buffer limit) so data
+            # is ready when congestion clears.
 
             # Check response buffer size for back-pressure
             my $responseLen = length($handler->{streamResponses}->{$streamId} // '');
             if($responseLen > $maxResponseBuffer) {
                 # Buffer too large - don't read more until client catches up
+                print STDERR "DEBUG handleHTTP3Backends: stream=$streamId SKIPPED (buffer full) responseBuffer=$responseLen\n";
                 next;
             }
 
             push @allBackends, $backend;
             $backendToQuicConn{$backend} = $quicConn;
         }
+    }
+
+    # Debug: show how many backends we're polling
+    if($self->{_h3bCalls} % 100 == 0) {
+        print STDERR getISODate() . " DEBUG handleHTTP3Backends: backends_to_poll=" . scalar(@allBackends) . "\n";
     }
 
     # Build select sets for backends (may be empty if all congestion-blocked)
