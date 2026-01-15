@@ -322,13 +322,21 @@ sub handleConnectRequest($self, $server, $streamId, $headers) {
 }
 
 sub handleStreamData($self, $server, $streamId, $data, $fin) {
-    # Handle incoming data on a stream (for tunnels/WebSocket)
+    # Handle incoming data on a stream (for tunnels/WebSocket AND request bodies)
     my $state = $self->{streamStates}->{$streamId} // '';
 
     if($state eq 'tunnel_active') {
-        # Forward data to backend
+        # Forward data to backend (WebSocket tunnel)
         my $backend = $self->{streamBackends}->{$streamId};
         if(defined($backend)) {
+            $self->{tobackendbuffers}->{$streamId} //= '';
+            $self->{tobackendbuffers}->{$streamId} .= $data;
+        }
+    } elsif($state eq 'waiting_response') {
+        # Forward request body data to backend (PUT/POST uploads)
+        # Body data arrives in chunks after the initial request headers
+        my $backend = $self->{streamBackends}->{$streamId};
+        if(defined($backend) && length($data)) {
             $self->{tobackendbuffers}->{$streamId} //= '';
             $self->{tobackendbuffers}->{$streamId} .= $data;
         }
@@ -341,6 +349,7 @@ sub translateRequest($self, $streamId, $headers, $body) {
     # Convert HTTP/3 headers to HTTP/1.1 request format
     my %h;
     my @otherHeaders;
+    my $hasContentLength = 0;
 
     for(my $i = 0; $i < scalar(@{$headers}); $i += 2) {
         my $name = $headers->[$i];
@@ -350,6 +359,10 @@ sub translateRequest($self, $streamId, $headers, $body) {
             $h{$name} = $value;
         } else {
             push @otherHeaders, "$name: $value";
+            # Track if client already sent content-length
+            if(lc($name) eq 'content-length') {
+                $hasContentLength = 1;
+            }
         }
     }
 
@@ -364,19 +377,20 @@ sub translateRequest($self, $streamId, $headers, $body) {
     # Add Host header from :authority
     $request .= "Host: $authority\r\n";
 
-    # Add other headers
+    # Add other headers (may include content-length from client)
     foreach my $hdr (@otherHeaders) {
         $request .= "$hdr\r\n";
     }
 
-    # Add Content-Length if body present
-    if(defined($body) && length($body)) {
+    # Only add Content-Length if client didn't send one and we have initial body data
+    # Note: For streaming uploads, the client's content-length header is authoritative
+    if(!$hasContentLength && defined($body) && length($body)) {
         $request .= "Content-Length: " . length($body) . "\r\n";
     }
 
     $request .= "\r\n";
 
-    # Add body
+    # Add initial body chunk (more may arrive via handleStreamData)
     if(defined($body) && length($body)) {
         $request .= $body;
     }

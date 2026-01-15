@@ -1511,6 +1511,13 @@ sub handleQUICHandshake($self, $quicConn) {
         on_error => sub($server, $streamId, $error) {
             print STDERR getISODate(), " HTTP/3: Error on stream $streamId: $error\n";
         },
+        on_request_body => sub($server, $streamId, $data) {
+            # Forward request body data to HTTP3Handler for streaming to backend
+            my $handler = $quicConn->{_http3Handler};
+            if(defined($handler) && length($data)) {
+                $handler->handleStreamData($server, $streamId, $data, 0);
+            }
+        },
     );
 
     $quicConn->{_http3Server} = $http3Server;
