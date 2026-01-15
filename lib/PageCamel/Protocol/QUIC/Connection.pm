@@ -206,10 +206,11 @@ sub process_packet($self, $packet, $peer_addr, $ts) {
     # No manual key derivation is needed.
 
     # Check for path change (connection migration)
+    # NOTE: For servers, ngtcp2 handles migration automatically in read_pkt when
+    # it receives packets from a new address. We do NOT call initiate_migration()
+    # which is only for clients. We just update our peer_addr tracking.
     if ($self->_addr_changed($peer_addr)) {
-        if ($self->_handle_migration($peer_addr)) {
-            $self->{peer_addr} = $peer_addr;
-        }
+        $self->{peer_addr} = $peer_addr;
     }
 
     # Process packet through ngtcp2 (this triggers recv_client_initial callback
