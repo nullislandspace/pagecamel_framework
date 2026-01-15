@@ -1088,7 +1088,7 @@ sub runHTTP3Handler($self) {
     # Main event loop
     while(1) {
         # Calculate select timeout from QUIC connection expiry times
-        my $selectTimeout = 0.1;  # Default 100ms
+        my $selectTimeout = 0.001;  # Default 1ms (reduced for HTTP/3 throughput)
         if(keys %{$self->{quicConnections}}) {
             my $now = PageCamel::XS::NGTCP2::timestamp();
             my $minExpiry = undef;
@@ -1109,8 +1109,8 @@ sub runHTTP3Handler($self) {
                 } else {
                     my $timeoutNs = $minExpiry - $now;
                     $selectTimeout = $timeoutNs / 1_000_000_000;
-                    $selectTimeout = 0.1 if($selectTimeout > 0.1);
-                    $selectTimeout = 0.001 if($selectTimeout < 0.001);
+                    $selectTimeout = 0.01 if($selectTimeout > 0.01);  # Max 10ms for HTTP/3
+                    $selectTimeout = 0.0001 if($selectTimeout < 0.0001);  # Min 100us
                 }
             }
         }
@@ -1168,6 +1168,54 @@ sub cleanupClosedQUICConnections($self) {
     # Remove from hash after iteration
     foreach my $connId (@toRemove) {
         delete $self->{quicConnections}->{$connId};
+    }
+}
+
+sub processIncomingUdpNonBlocking($self, $udpSocket, $quicConn) {
+    # Non-blocking check for incoming UDP packets (ACKs)
+    # This is called during flush loops to prevent ACK starvation
+    # which causes RTT inflation and throughput collapse.
+
+    # Use select with 0 timeout for non-blocking check
+    my $rin = '';
+    vec($rin, fileno($udpSocket), 1) = 1;
+    my $nfound = select($rin, undef, undef, 0);
+
+    return unless($nfound > 0);
+
+    # Process up to 10 packets per call to avoid stalling the flush loop
+    my $maxPackets = 10;
+    while($maxPackets-- > 0) {
+        # Non-blocking recv
+        my $packet;
+        my $peerAddr = $udpSocket->recv($packet, 65535, Socket::MSG_DONTWAIT);
+
+        last unless(defined($peerAddr) && length($packet));
+
+        # Track statistics
+        $self->{_incomingUdpPackets} //= 0;
+        $self->{_incomingUdpBytes} //= 0;
+        $self->{_incomingUdpPackets}++;
+        $self->{_incomingUdpBytes} += length($packet);
+
+        # Process the packet (this handles ACKs)
+        my $ts = PageCamel::XS::NGTCP2::timestamp();
+        my ($peerPort, $peerhost);
+        if(length($peerAddr) == 16) {
+            my $peerIp;
+            ($peerPort, $peerIp) = Socket::unpack_sockaddr_in($peerAddr);
+            $peerhost = Socket::inet_ntoa($peerIp);
+        } else {
+            my $peerIp6;
+            ($peerPort, $peerIp6) = Socket::unpack_sockaddr_in6($peerAddr);
+            $peerhost = Socket::inet_ntop(Socket::AF_INET6, $peerIp6);
+        }
+
+        $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
+
+        # Check if more packets available
+        vec($rin, fileno($udpSocket), 1) = 1;
+        last unless(select($rin, undef, undef, 0) > 0);
     }
 }
 
@@ -1436,8 +1484,24 @@ sub handleQUICHandshake($self, $quicConn) {
     $quicConn->{_http3Handler} = $http3Handler;
 
     # Create HTTP/3 server instance to handle HTTP/3 framing over QUIC
+    # CRITICAL: The send_callback is invoked during flush_pending_data() to send QUIC packets
+    # immediately. This prevents RTT inflation from packets sitting in queues with stale timestamps.
     my $http3Server = PageCamel::Protocol::HTTP3::Server->new(
         quic_conn => $quicConn,
+        send_callback => sub {
+            my $udpSocket = $quicConn->{_udpSocket};
+            if(defined($udpSocket)) {
+                $quicConn->{_sendCallbackInvocations} //= 0;
+                $quicConn->{_sendCallbackInvocations}++;
+                my $before = $quicConn->{_udpPacketsSent} // 0;
+                $self->sendQUICPackets($quicConn, $udpSocket);
+                my $after = $quicConn->{_udpPacketsSent} // 0;
+                my $sent = $after - $before;
+                if($quicConn->{_sendCallbackInvocations} <= 10 || $quicConn->{_sendCallbackInvocations} % 1000 == 0) {
+                    print STDERR "DEBUG sendCallback invocation #$quicConn->{_sendCallbackInvocations}: sent $sent packets\n";
+                }
+            }
+        },
         on_request => sub($server, $streamId, $headers, $fin) {
             $self->handleHTTP3Request($quicConn, $server, $streamId, $headers, $fin);
         },
@@ -1848,7 +1912,8 @@ sub handleHTTP3Backends($self) {
 
     if($readSet->count() > 0 || $writeSet->count() > 0) {
         $ERRNO = 0;
-        my ($r, $w, undef) = IO::Select->select($readSet, $writeSet, undef, 0.01);
+        # Use 0 timeout (non-blocking) - main loop handles wait timing
+        my ($r, $w, undef) = IO::Select->select($readSet, $writeSet, undef, 0);
 
         # Handle EINTR - but don't return early, still need to flush
         if(!defined($r) && $ERRNO{EINTR}) {
@@ -1875,6 +1940,9 @@ sub handleHTTP3Backends($self) {
             # Send any resulting QUIC packets
             my $udpSocket = $quicConn->{_udpSocket};
             $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+
+            # CRITICAL: Process incoming ACKs after each backend read to prevent RTT inflation
+            $self->processIncomingUdpNonBlocking($udpSocket, $quicConn) if(defined($udpSocket));
         }
     }
 
@@ -1899,13 +1967,29 @@ sub handleHTTP3Backends($self) {
         # Flush pending stream data (retry sends blocked by flow control)
         # Pass callback to send packets during flush to keep congestion window open
         # Loop until no more progress can be made
+        # CRITICAL: Process incoming ACKs on each iteration to prevent RTT inflation
         my $udpSocket = $quicConn->{_udpSocket};
         my $sendPacketsCallback = sub {
             $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
         };
         my $maxFlushIterations = 100;
-        while($handler->flushPendingStreams($http3Server, $sendPacketsCallback) && --$maxFlushIterations > 0) {
+        my $flushedBytes = 1;  # Start with true to enter loop at least once
+        while($flushedBytes && --$maxFlushIterations > 0) {
+            $flushedBytes = $handler->flushPendingStreams($http3Server, $sendPacketsCallback);
             $self->sendQUICPackets($quicConn, $udpSocket) if(defined($udpSocket));
+
+            # CRITICAL: Process any pending incoming ACKs to prevent RTT inflation
+            # This MUST happen inside the loop, even when flush returns 0 (blocked).
+            # Without this, ACKs pile up, cwnd stays full, and data transfer stalls.
+            if(defined($udpSocket)) {
+                $self->processIncomingUdpNonBlocking($udpSocket, $quicConn);
+            }
+        }
+
+        # CRITICAL: Always process ACKs after the loop, even if we never entered it
+        # (e.g., when flushPendingStreams returns 0 on first call)
+        if(defined($udpSocket)) {
+            $self->processIncomingUdpNonBlocking($udpSocket, $quicConn);
         }
 
         # Send any remaining QUIC packets after the flush

@@ -72,10 +72,32 @@ sub new($class, %config) {
 sub run($self) {
     my $quicConn = $self->{quicConnection};
 
+    # CRITICAL: Define send callback BEFORE creating HTTP/3 server
+    # This callback is invoked by flush_pending_data() to send QUIC packets immediately.
+    # It MUST be available during Server->new() because the constructor calls flush_pending_data()
+    # to send initial SETTINGS frames. Without this, packets sit in queue and get stale timestamps.
+    my $sendCallbackCount = 0;
+    my $sendCallbackPkts = 0;
+    my $sendCallback = sub {
+        $sendCallbackCount++;
+        my @pkts = $quicConn->get_packets(Time::HiRes::time());
+        $sendCallbackPkts += scalar(@pkts);
+        if ($sendCallbackCount <= 10 || $sendCallbackCount % 1000 == 0) {
+            print STDERR "DEBUG sendCallback #$sendCallbackCount: got " . scalar(@pkts) . " packets (total=$sendCallbackPkts)\n";
+        }
+        foreach my $pkt (@pkts) {
+            if(defined($self->{sendPacketCallback})) {
+                $self->{sendPacketCallback}->($pkt->{data}, $pkt->{peer_addr});
+            }
+        }
+    };
+
     # Create HTTP/3 server instance over the QUIC connection
+    # The send_callback is passed here so it's available during initialization
     my $http3Server;
     $http3Server = PageCamel::Protocol::HTTP3::Server->new(
         quic_connection => $quicConn,
+        send_callback => $sendCallback,
         on_request => sub($streamId, $headers, $data) {
             $self->handleRequest($http3Server, $streamId, $headers, $data);
         },
@@ -562,34 +584,59 @@ sub handleBackendData($self, $server, $socket, $toclientbufferRef, $maxBufferSiz
     # Skip if buffer is too large (back-pressure)
     return if(length(${$toclientbufferRef}) >= $maxBufferSize);
 
-    my $buf;
-    my $bytesRead = $socket->sysread($buf, 16_384);
+    # CRITICAL: Read in a loop until EAGAIN to avoid 2000+ select iterations for large files
+    # Each read is 64KB to reduce syscall overhead while staying under common socket buffer sizes
+    my $totalBytesRead = 0;
+    my $maxReadPerCall = 4_000_000;  # Cap at 4MB per handleBackendData call to maintain fairness
 
-    my $responseLen = length($self->{streamResponses}->{$streamId} // '');
-    my $bytesSent = $self->{streamBytesSent}->{$streamId} // 0;
-    # Log every 1MB milestone to reduce noise
-    my $prevMB = int(($bytesSent - ($bytesRead // 0)) / 1_000_000);
-    my $curMB = int($bytesSent / 1_000_000);
-    if(defined($bytesRead) && $bytesRead > 0 && $curMB > $prevMB) {
-        print STDERR "DEBUG handleBackendData: stream=$streamId bytesSent=${curMB}MB responseBuffer=$responseLen\n";
-    }
+    while($totalBytesRead < $maxReadPerCall) {
+        # Check if congestion-blocked - if so, stop reading until data drains
+        if($self->{streamCongestionBlocked}->{$streamId}) {
+            last;
+        }
 
-    if(!defined($bytesRead) || $bytesRead == 0) {
-        # Backend disconnected
-        $self->{backenddisconnects}->{$streamId} = 1;
+        my $buf;
+        my $bytesRead = $socket->sysread($buf, 65_536);  # 64KB per read
+
+        if(!defined($bytesRead)) {
+            # EAGAIN/EWOULDBLOCK or other error - no more data available
+            if($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
+                last;  # No more data, exit loop
+            }
+            # Actual error
+            $self->{backenddisconnects}->{$streamId} = 1;
+            $self->processBackendResponse($server, $streamId);
+            return;
+        }
+
+        if($bytesRead == 0) {
+            # Backend disconnected
+            $self->{backenddisconnects}->{$streamId} = 1;
+            $self->processBackendResponse($server, $streamId);
+            return;
+        }
+
+        $totalBytesRead += $bytesRead;
+
+        # Track total bytes read from backend
+        $self->{backendBytesRead}->{$streamId} //= 0;
+        $self->{backendBytesRead}->{$streamId} += $bytesRead;
+
+        # Append to response buffer
+        $self->{streamResponses}->{$streamId} .= $buf;
+
+        # Process response after each chunk to handle headers and push data to nghttp3
         $self->processBackendResponse($server, $streamId);
-        return;
     }
 
-    # Track total bytes read from backend
-    $self->{backendBytesRead}->{$streamId} //= 0;
-    $self->{backendBytesRead}->{$streamId} += $bytesRead;
-
-    # Append to response buffer
-    $self->{streamResponses}->{$streamId} .= $buf;
-
-    # Try to process response
-    $self->processBackendResponse($server, $streamId);
+    # Log every 4MB milestone
+    my $bytesSent = $self->{streamBytesSent}->{$streamId} // 0;
+    my $curMB = int($bytesSent / 4_000_000) * 4;
+    my $prevMB = int(($bytesSent - $totalBytesRead) / 4_000_000) * 4;
+    if($totalBytesRead > 0 && $curMB > $prevMB) {
+        my $responseLen = length($self->{streamResponses}->{$streamId} // '');
+        print STDERR "DEBUG handleBackendData: stream=$streamId bytesSent=${bytesSent} buffered=$responseLen readThisCall=$totalBytesRead\n";
+    }
 
     return;
 }
@@ -684,17 +731,15 @@ sub processBackendResponse($self, $server, $streamId) {
                 if(defined($bytesWritten) && $bytesWritten > 0) {
                     $self->{streamBytesSent}->{$streamId} += $bytesWritten;
                     if($bytesWritten < length($body)) {
-                        # Partial write - keep unsent portion in buffer
+                        # Partial write - keep unsent portion in buffer (DON'T set congestion-blocked)
                         $self->{streamResponses}->{$streamId} = substr($body, $bytesWritten);
-                        # Mark as congestion-blocked since we couldn't send everything
-                        $self->{streamCongestionBlocked}->{$streamId} = 1;
                     } else {
                         $self->{streamResponses}->{$streamId} = '';
                     }
                 } else {
-                    # Flow control blocked - keep entire body in buffer
+                    # Flow control blocked (0 bytes) - keep entire body in buffer
                     $self->{streamResponses}->{$streamId} = $body;
-                    # Mark as congestion-blocked for back-pressure
+                    # Only set congestion-blocked when completely blocked (0 bytes)
                     $self->{streamCongestionBlocked}->{$streamId} = 1;
                 }
             } else {
@@ -736,14 +781,14 @@ sub processBackendResponse($self, $server, $streamId) {
                     # All data sent - clear buffer
                     $self->{streamResponses}->{$streamId} = '';
                 } else {
-                    # Partial write (flow control) - keep unsent portion
+                    # Partial write - keep unsent portion, but DON'T set congestion-blocked
+                    # Partial write means "sent some, buffer full for now" - not "totally blocked"
+                    # We should continue reading from backend and let next iteration send more
                     $self->{streamResponses}->{$streamId} = substr($response, $bytesWritten);
-                    # Mark as congestion-blocked for back-pressure
-                    $self->{streamCongestionBlocked}->{$streamId} = 1;
                 }
             } else {
-                # bytesWritten is 0 or negative (flow control blocked), keep buffer as-is
-                # Mark as congestion-blocked for back-pressure
+                # bytesWritten is 0 or negative - completely flow control blocked
+                # This is the ONLY case where we set congestion-blocked for back-pressure
                 $self->{streamCongestionBlocked}->{$streamId} = 1;
             }
         }
@@ -840,7 +885,9 @@ sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
     # Flush any data buffered in nghttp3 to QUIC
     # This is CRITICAL: data that was pushed to nghttp3 but couldn't be flushed
     # (due to congestion) needs to be drained here when cwnd opens
-    my $totalFlushed = $server->flush_pending_data();
+    # IMPORTANT: Pass sendPacketsCallback so packets are sent immediately after each write
+    # This prevents RTT inflation from packets sitting in pending_stream_packets
+    my $totalFlushed = $server->flush_pending_data($sendPacketsCallback);
 
     # ALWAYS send packets after flush attempt - QUIC may have ACKs, probes,
     # or other control frames to send even if we couldn't add new data
@@ -891,10 +938,10 @@ sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
                         $self->{streamResponses}->{$streamId} = substr($toSend, $bytesWritten);
                     }
 
-                    # Send packets every few writes to keep congestion window open
-                    if($sendPacketsCallback && $writeCount % 5 == 0) {
-                        $sendPacketsCallback->();
-                    }
+                    # CRITICAL: Send packets IMMEDIATELY after EVERY write to minimize RTT inflation
+                    # $stream->send() → send_body_chunk() → flush_pending_data() queues packets
+                    # but doesn't send them. We must send immediately to get accurate RTT measurements.
+                    $sendPacketsCallback->() if($sendPacketsCallback);
                 } else {
                     # Congestion blocked (or error) - send any pending packets and exit
                     # Don't retry immediately - we need to wait for ACKs from the network

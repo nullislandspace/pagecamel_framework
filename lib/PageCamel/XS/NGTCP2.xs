@@ -1812,6 +1812,10 @@ write_stream(self, stream_id, data, ts, fin = 0)
         datavec.base = (uint8_t *)dataptr;
         datavec.len = datalen;
 
+        /* Get current timestamp for comparison */
+        ngtcp2_tstamp now_ts = get_timestamp();
+        ngtcp2_tstamp ts_delta = (now_ts > ts) ? (now_ts - ts) : 0;
+
         nwrite = ngtcp2_conn_writev_stream(
             self->conn,
             &ps.path,
@@ -1826,16 +1830,17 @@ write_stream(self, stream_id, data, ts, fin = 0)
             (ngtcp2_tstamp)ts
         );
 
-        /* Debug: log every 100th call or if blocked */
+        /* Debug: log timestamp delta and CC state */
         static int write_stream_calls = 0;
         write_stream_calls++;
-        if (write_stream_calls % 100 == 1 || (nwrite == 0 && write_stream_calls < 50)) {
+        if (write_stream_calls % 100 == 1 || (nwrite == 0 && write_stream_calls < 50) || ts_delta > 10000000) {
             uint64_t cwnd = ngtcp2_conn_get_cwnd_left(self->conn);
             ngtcp2_conn_stat cstat;
             ngtcp2_conn_get_conn_stat(self->conn, &cstat);
-            fprintf(stderr, "XS write_stream #%d: stream=%lld datalen=%zu nwrite=%zd ndatalen=%zd cwnd=%lu in_flight=%lu\n",
+            fprintf(stderr, "XS write_stream #%d: stream=%lld datalen=%zu nwrite=%zd ndatalen=%zd cwnd=%lu in_flight=%lu ts_delta_ns=%lu rtt=%lu\n",
                     write_stream_calls, (long long)stream_id, datalen, nwrite, ndatalen,
-                    (unsigned long)cwnd, (unsigned long)cstat.bytes_in_flight);
+                    (unsigned long)cwnd, (unsigned long)cstat.bytes_in_flight,
+                    (unsigned long)ts_delta, (unsigned long)cstat.smoothed_rtt);
         }
 
         /* Always return two values: (packet_data, bytes_consumed/error) */

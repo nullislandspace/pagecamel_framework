@@ -53,6 +53,7 @@ sub new($class, %config) {
         on_stream_close => $config{on_stream_close},
         on_handshake    => $config{on_handshake},
         on_migration    => $config{on_migration},
+        on_acked_stream_data => $config{on_acked_stream_data},  # Called when stream data is ACKed
 
         # Metrics
         bytes_sent     => 0,
@@ -112,6 +113,7 @@ sub _init_connection($self) {
     if (!blessed($settings) || !$settings->isa('PageCamel::XS::NGTCP2::Settings')) {
         $settings = PageCamel::XS::NGTCP2::Settings->new();
         $settings->set_initial_ts(PageCamel::XS::NGTCP2::timestamp());
+        $settings->set_cc_algo(NGTCP2_CC_ALGO_BBR2);  # Use BBR2 for better throughput
         $settings->enable_logging();  # Enable ngtcp2 debug logging
     }
 
@@ -153,6 +155,7 @@ sub _init_connection($self) {
         on_stream_close => sub { $self->_on_stream_close(@_) },
         on_handshake_completed => sub { $self->_on_handshake_completed(@_) },
         on_path_validation => sub { $self->_on_path_validation(@_) },
+        on_acked_stream_data_offset => sub { $self->_on_acked_stream_data_offset(@_) },
     );
 }
 
@@ -302,12 +305,19 @@ sub handle_expiry($self, $ts) {
     }
 
     # Check if connection is in closing/draining state
-    if ($self->{quic_conn}->is_in_closing_period()) {
+    my $closing = $self->{quic_conn}->is_in_closing_period();
+    my $draining = $self->{quic_conn}->is_in_draining_period();
+    if ($closing || $draining) {
+        print STDERR "DEBUG handle_expiry: closing=$closing draining=$draining rv=$rv state=$self->{state}\n";
+    }
+    if ($closing) {
         $self->{state} = 'closing';
     }
-    if ($self->{quic_conn}->is_in_draining_period()) {
+    if ($draining) {
         $self->{state} = 'closed';
     }
+
+    return $rv;
 }
 
 # Stream operations
@@ -336,8 +346,9 @@ sub get_stream($self, $stream_id) {
 sub write_stream($self, $stream_id, $data, $fin = 0) {
     # Returns: bytes consumed (>=0) on success, negative error code on failure
     # Note: bytes consumed may be less than data length if flow control blocks
+    # IMPORTANT: This creates ONLY ONE packet per call to ensure packets are
+    # sent immediately with accurate timestamps. Caller loops as needed.
     unless ($self->is_established()) {
-        # print STDERR "QUIC::Connection: write_stream - connection not established (state=$self->{state})\n";
         return -1;  # Not established
     }
 
@@ -347,30 +358,16 @@ sub write_stream($self, $stream_id, $data, $fin = 0) {
     my ($packet, $result) = $self->{quic_conn}->write_stream($stream_id, $data, $ts, $fin);
 
     # Handle error case (result is negative error code)
-    if(!defined($result) || $result < 0) {
-        my $errcode = $result // -999;
-        # NGTCP2_ERR_STREAM_DATA_BLOCKED (-8) means flow control blocked
-        # Other errors are typically connection/stream state issues
-        return $errcode;
+    if (!defined($result) || $result < 0) {
+        return $result // -999;
     }
 
-    # Store packet for later transmission if we have one
-    if(defined($packet) && length($packet)) {
+    # Store packet for immediate transmission via get_packets()
+    if (defined($packet) && length($packet)) {
         $self->{pending_stream_packets} //= [];
         push @{$self->{pending_stream_packets}}, $packet;
     }
 
-    # Debug: track write_stream results
-    $self->{_writeStreamCalls} //= 0;
-    $self->{_writeStreamBytes} //= 0;
-    $self->{_writeStreamCalls}++;
-    $self->{_writeStreamBytes} += $result if($result > 0);
-    if($self->{_writeStreamCalls} % 500 == 0) {
-        my $pktLen = (defined($packet) && length($packet)) ? length($packet) : 0;
-        print STDERR PageCamel::Helpers::DateStrings::getISODate() . " DEBUG write_stream: call #$self->{_writeStreamCalls} total_bytes=$self->{_writeStreamBytes} result=$result pktLen=$pktLen\n";
-    }
-
-    # Return bytes consumed (may be less than input length)
     return $result;
 }
 
@@ -503,6 +500,23 @@ sub _on_path_validation($self, $result, $flags) {
     }
 
     return 0;
+}
+
+sub _on_acked_stream_data_offset($self, $stream_id, $offset, $datalen) {
+    # Stream data has been acknowledged by the peer
+    # CRITICAL: This callback is essential for nghttp3 flow control.
+    # Without calling add_ack_offset, nghttp3 thinks its send buffer is full
+    # and stops calling read_data for more body data.
+    if ($self->{on_acked_stream_data}) {
+        $self->{on_acked_stream_data}->($self, $stream_id, $datalen);
+    }
+
+    return 0;
+}
+
+# Set callback for ACKed stream data (allows HTTP3::Server to hook in after creation)
+sub set_on_acked_stream_data($self, $callback) {
+    $self->{on_acked_stream_data} = $callback;
 }
 
 sub _addr_changed($self, $new_addr) {

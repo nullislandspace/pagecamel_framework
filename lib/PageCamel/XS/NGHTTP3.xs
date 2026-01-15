@@ -420,11 +420,14 @@ static int acked_stream_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
 }
 
 /* read_data callback - called by nghttp3 when it needs body data to send */
+static int read_data_call_count = 0;
+
 static nghttp3_ssize read_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
     nghttp3_vec *vec, size_t veccnt, uint32_t *pflags,
     void *user_data, void *stream_user_data)
 {
     PageCamel_HTTP3_Connection *h3c = (PageCamel_HTTP3_Connection *)user_data;
+    read_data_call_count++;
 
     if (veccnt == 0) {
         return 0;
@@ -435,6 +438,10 @@ static nghttp3_ssize read_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
 
     if (!buf) {
         /* No buffer yet - block until data arrives */
+        if (read_data_call_count <= 10 || read_data_call_count % 1000 == 1) {
+            fprintf(stderr, "DEBUG read_data #%d: stream=%lld NO BUFFER\n",
+                    read_data_call_count, (long long)stream_id);
+        }
         return NGHTTP3_ERR_WOULDBLOCK;
     }
 
@@ -442,32 +449,61 @@ static nghttp3_ssize read_data_trampoline(nghttp3_conn *conn, int64_t stream_id,
      * This is critical for multiple connections sharing stream IDs */
     size_t consumed = buf->offset;
 
+    /* Debug: always log when buf->eof is set, regardless of data state */
+    if (buf->eof) {
+        fprintf(stderr, "DEBUG read_data #%d: stream=%lld EOF_FLAG_SET consumed=%zu len=%zu data=%p\n",
+                read_data_call_count, (long long)stream_id, consumed, buf->len, (void*)buf->data);
+    }
+
     if (!buf->data || consumed >= buf->len) {
         /* No data available beyond what's been consumed */
         if (buf->eof) {
-            /* Signal end of data */
+            /* Signal end of data - always log EOF since it's important */
             *pflags |= NGHTTP3_DATA_FLAG_EOF;
+            fprintf(stderr, "DEBUG read_data #%d: stream=%lld EOF_RETURN consumed=%zu len=%zu\n",
+                    read_data_call_count, (long long)stream_id, consumed, buf->len);
             return 0;
         }
         /* Block until more data arrives - caller should call resume_stream() */
+        if (read_data_call_count <= 10 || read_data_call_count % 1000 == 1) {
+            fprintf(stderr, "DEBUG read_data #%d: stream=%lld WOULDBLOCK consumed=%zu len=%zu data=%p\n",
+                    read_data_call_count, (long long)stream_id, consumed, buf->len, (void*)buf->data);
+        }
         return NGHTTP3_ERR_WOULDBLOCK;
     }
 
-    /* Return pointer to unconsumed data */
+    /* Return pointer to unconsumed data - but limit to MAX_CHUNK_SIZE per call.
+     * This provides natural back-pressure: if QUIC can't send, nghttp3 won't
+     * pull more data, and we won't accumulate huge buffers.
+     * 16KB matches typical QUIC packet payload size. */
+    #define MAX_READ_DATA_CHUNK 16384
     size_t available = buf->len - consumed;
-    vec[0].base = (uint8_t *)(buf->data + consumed);
-    vec[0].len = available;
+    size_t to_return = (available > MAX_READ_DATA_CHUNK) ? MAX_READ_DATA_CHUNK : available;
 
-    /* CRITICAL: Advance consumed offset NOW.
+    vec[0].base = (uint8_t *)(buf->data + consumed);
+    vec[0].len = to_return;
+
+    /* Debug: log successful data returns - first few, then periodically */
+    if (read_data_call_count <= 10 || read_data_call_count % 1000 == 1) {
+        fprintf(stderr, "DEBUG read_data #%d: stream=%lld RETURNING chunk=%zu available=%zu consumed=%zu len=%zu\n",
+                read_data_call_count, (long long)stream_id, to_return, available, consumed, buf->len);
+    }
+
+    /* CRITICAL: Advance consumed offset by what we're returning (not all available).
      * nghttp3 keeps its own copy of data for retransmission.
      * If we don't advance, next read_data call returns same data,
      * causing nghttp3 to create duplicate DATA frames.
      * Using buf->offset (per-connection) instead of global array. */
-    buf->offset = consumed + available;
+    buf->offset = consumed + to_return;
 
-    /* Check if this is all the data */
-    if (buf->eof) {
+    /* CRITICAL: Only set EOF flag when this is truly the LAST chunk.
+     * If we set EOF while there's still more data, nghttp3 won't call read_data
+     * again and the remaining data will never be sent!
+     * Check: buf->offset == buf->len means we've returned everything. */
+    if (buf->eof && buf->offset >= buf->len) {
         *pflags |= NGHTTP3_DATA_FLAG_EOF;
+        fprintf(stderr, "DEBUG read_data #%d: stream=%lld FINAL_CHUNK_WITH_EOF offset=%zu len=%zu\n",
+                read_data_call_count, (long long)stream_id, buf->offset, buf->len);
     }
 
     return 1;  /* Number of vectors filled */
@@ -1047,6 +1083,16 @@ writev_stream(self, stream_id)
             16
         );
 
+        /* Debug: log writev_stream results - always log first few, then periodically */
+        {
+            static int writev_call_count = 0;
+            writev_call_count++;
+            if (vcnt <= 0 && (writev_call_count <= 10 || writev_call_count % 1000 == 1)) {
+                fprintf(stderr, "DEBUG writev_stream #%d: vcnt=%d pstream_id=%lld fin=%d (0=empty, -501=blocked, -505=not_found)\n",
+                        writev_call_count, vcnt, (long long)pstream_id, fin);
+            }
+        }
+
         if (vcnt > 0) {
             SV *data_sv;
             size_t total_len = 0;
@@ -1056,6 +1102,16 @@ writev_stream(self, stream_id)
             /* Calculate total length */
             for (i = 0; i < vcnt; i++) {
                 total_len += vec[i].len;
+            }
+
+            /* Debug: log successful writev_stream - first few, then periodically */
+            {
+                static int success_count = 0;
+                success_count++;
+                if (success_count <= 10 || success_count % 1000 == 1) {
+                    fprintf(stderr, "DEBUG writev_stream SUCCESS #%d: vcnt=%d stream=%lld len=%zu fin=%d\n",
+                            success_count, vcnt, (long long)pstream_id, total_len, fin);
+                }
             }
 
             /* Create single buffer */
@@ -1073,6 +1129,18 @@ writev_stream(self, stream_id)
             /* Return (actual_stream_id, data, fin) - nghttp3 may have changed pstream_id */
             mXPUSHi((IV)pstream_id);
             mXPUSHs(data_sv);
+            mXPUSHi(fin);
+        }
+        else if (vcnt == 0 && fin) {
+            /* CRITICAL: Stream EOF with no data - return (stream_id, '', 1) to signal FIN.
+             * This happens when read_data returns 0 with NGHTTP3_DATA_FLAG_EOF.
+             * Without this, the FIN is never sent and the connection times out. */
+            static int fin_only_count = 0;
+            fin_only_count++;
+            fprintf(stderr, "DEBUG writev_stream FIN-ONLY #%d: stream=%lld fin=%d\n",
+                    fin_only_count, (long long)pstream_id, fin);
+            mXPUSHi((IV)pstream_id);
+            mXPUSHs(newSVpvn("", 0));  /* Empty data */
             mXPUSHi(fin);
         }
 
@@ -1457,6 +1525,20 @@ set_stream_eof(self, stream_id)
         buf = find_stream_buffer(self, stream_id);
         if (buf) {
             buf->eof = 1;
+            fprintf(stderr, "DEBUG set_stream_eof: stream=%lld FOUND buffer len=%zu offset=%zu eof=%d\n",
+                    (long long)stream_id, buf->len, buf->offset, buf->eof);
+        } else {
+            /* Create buffer with EOF flag even if no data was ever pushed.
+             * This ensures read_data can return EOF signal to nghttp3. */
+            buf = get_or_create_stream_buffer(self, stream_id);
+            if (buf) {
+                buf->eof = 1;
+                fprintf(stderr, "DEBUG set_stream_eof: stream=%lld CREATED new buffer with eof=1\n",
+                        (long long)stream_id);
+            } else {
+                fprintf(stderr, "DEBUG set_stream_eof: stream=%lld FAILED to create buffer!\n",
+                        (long long)stream_id);
+            }
         }
 
 # Clear stream buffer (for cleanup)

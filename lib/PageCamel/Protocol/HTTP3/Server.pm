@@ -13,9 +13,16 @@ use Scalar::Util qw(weaken);
 our $VERSION = '0.01';
 
 sub new($class, %config) {
+    # Debug: print all config keys
+    print STDERR "DEBUG Server.pm new() config keys: " . join(", ", sort keys %config) . "\n";
+    print STDERR "DEBUG Server.pm new() send_callback defined: " . (defined($config{send_callback}) ? "YES" : "NO") . "\n";
+
+    # Handle both quic_conn and quic_connection for compatibility
+    my $quic = $config{quic_conn} // $config{quic_connection} // croak("quic_conn or quic_connection required");
+
     my $self = bless {
         # QUIC connection
-        quic_conn          => $config{quic_conn} // croak("quic_conn required"),
+        quic_conn          => $quic,
 
         # Settings (increased from RFC minimums for better performance)
         # max_field_section_size: 64KB allows larger header blocks without fragmentation
@@ -42,6 +49,7 @@ sub new($class, %config) {
         on_request_end     => $config{on_request_end},
         on_connect_request => $config{on_connect_request},
         on_error           => $config{on_error},
+        send_callback      => $config{send_callback},  # For sending packets immediately
 
         # Metrics
         requests_received  => 0,
@@ -71,6 +79,25 @@ sub _init_http3($self) {
         on_reset_stream => sub { $self->_on_reset_stream(@_) },
         on_stop_sending => sub { $self->_on_stop_sending(@_) },
     );
+
+    # CRITICAL: Hook into QUIC ACK notifications to tell nghttp3 about ACKed data.
+    # Without this, nghttp3 thinks its send buffer is full of unACKed data and
+    # stops calling read_data for more body data, causing large file transfers to stall.
+    my $quic = $self->{quic_conn};
+    my $http3 = $self->{http3_conn};
+    $quic->set_on_acked_stream_data(sub {
+        my ($conn, $stream_id, $datalen) = @_;
+        # Tell nghttp3 that $datalen bytes on $stream_id have been ACKed
+        my $rv = $http3->add_ack_offset($stream_id, $datalen);
+        # Debug: log occasionally
+        $self->{_ackCount} //= 0;
+        $self->{_ackCount}++;
+        if ($self->{_ackCount} <= 10 || $self->{_ackCount} % 1000 == 0) {
+            print STDERR PageCamel::Helpers::DateStrings::getISODate() .
+                " DEBUG HTTP3::Server: add_ack_offset stream=$stream_id datalen=$datalen rv=$rv (ack #$self->{_ackCount})\n";
+        }
+        return 0;
+    });
 
     # Open control streams
     $self->_open_control_streams();
@@ -108,11 +135,32 @@ sub _open_control_streams($self) {
     $self->flush_pending_data();
 }
 
+# Set callback for sending packets immediately after data is written to QUIC
+# This prevents RTT inflation from packets sitting in queues
+sub set_send_callback($self, $callback) {
+    print STDERR "DEBUG Server.pm: set_send_callback called with " . (defined($callback) ? "callback" : "undef") . "\n";
+    $self->{send_callback} = $callback;
+    return;
+}
+
 # Flush pending HTTP/3 data from nghttp3 to QUIC streams
 # This is critical after binding control streams (SETTINGS must be sent)
 # and after submitting responses
 # Returns: total bytes written to QUIC (0 if congestion blocked)
-sub flush_pending_data($self) {
+# Optional $send_callback: called after each successful write to send packets immediately
+# If not provided, uses the callback set via set_send_callback()
+sub flush_pending_data($self, $send_callback = undef) {
+    # Use stored callback if none provided explicitly
+    $send_callback //= $self->{send_callback};
+
+    # Debug: check if callback is available (only log occasionally)
+    $self->{_flushCallbackCheckCount} //= 0;
+    $self->{_flushCallbackCheckCount}++;
+    if($self->{_flushCallbackCheckCount} <= 5) {
+        print STDERR "DEBUG flush_pending_data: callback_defined=" . (defined($send_callback) ? "YES" : "NO") .
+            " stored_callback=" . (defined($self->{send_callback}) ? "YES" : "NO") . "\n";
+    }
+
     my $quic = $self->{quic_conn};
     my $http3 = $self->{http3_conn};
 
@@ -132,6 +180,12 @@ sub flush_pending_data($self) {
             $actual_stream_id = $self->{_pendingWriteData}{stream_id};
             $data = $self->{_pendingWriteData}{data};
             $fin = $self->{_pendingWriteData}{fin};
+            # Debug: log when using pending data
+            $self->{_pendingUsedCount} //= 0;
+            $self->{_pendingUsedCount}++;
+            if ($self->{_pendingUsedCount} <= 10 || $self->{_pendingUsedCount} % 1000 == 0) {
+                print STDERR "DEBUG flush: USING PENDING #$self->{_pendingUsedCount} stream=$actual_stream_id pending_len=" . length($data) . " fin=$fin\n";
+            }
             # Don't clear yet - only clear after successful write
         } else {
             # Pass -1 to let nghttp3 tell us which stream has data
@@ -139,7 +193,8 @@ sub flush_pending_data($self) {
         }
 
         # No more data to send - nghttp3 returns undef when nothing pending
-        if (!defined $actual_stream_id || !defined $data || !length($data)) {
+        # CRITICAL: Handle FIN-only frames - empty data with fin=1 must be processed!
+        if (!defined $actual_stream_id || !defined $data) {
             # Debug: why did writev_stream return nothing?
             if ($iter == 1 && $self->{_flushCount} && $self->{_flushCount} % 100 == 0) {
                 # Check flow control state
@@ -149,7 +204,25 @@ sub flush_pending_data($self) {
                 print STDERR PageCamel::Helpers::DateStrings::getISODate() .
                     " DEBUG flush: writev_stream empty on iter=1 streamDataLeft=$streamDataLeft connDataLeft=$connDataLeft cwndLeft=$cwndLeft\n";
             }
+            # CRITICAL: Send any pending packets even when no more data
+            if($send_callback) {
+                print STDERR "DEBUG flush: invoking send_callback (empty data path)\n";
+                $send_callback->();
+            }
             last;
+        }
+
+        # Check for empty data without FIN - nothing meaningful to send
+        if (!length($data) && !$fin) {
+            # No data and no FIN - nghttp3 is done for now
+            $send_callback->() if($send_callback);
+            last;
+        }
+
+        # Log FIN-only frames (important for debugging stream completion)
+        if (!length($data) && $fin) {
+            print STDERR PageCamel::Helpers::DateStrings::getISODate() .
+                " DEBUG flush: FIN-ONLY frame for stream=$actual_stream_id\n";
         }
 
         $iterations_used = $iter;
@@ -161,13 +234,22 @@ sub flush_pending_data($self) {
         if (!defined($bytes_written) || $bytes_written < 0) {
             # Error - don't acknowledge any data to nghttp3
             print STDERR "DEBUG flush_pending_data: stream=$actual_stream_id ERROR bytes_written=" . ($bytes_written // 'undef') . " data_len=" . length($data) . "\n";
+            # CRITICAL: Send any pending packets before exiting on error
+            $send_callback->() if($send_callback);
             last;
         }
 
-        if ($bytes_written == 0) {
-            # Flow control blocked - SAVE the data for retry later
+        if ($bytes_written == 0 && length($data) > 0) {
+            # Flow control blocked on DATA - SAVE the data for retry later
             # This is critical! nghttp3's writev_stream already "consumed" this data internally.
             # If we don't save it, the data is lost forever.
+            # NOTE: Only do this if we had actual data to send. FIN-only frames (empty data)
+            # can legitimately return 0 bytes written.
+            $self->{_pendingSaveCount} //= 0;
+            $self->{_pendingSaveCount}++;
+            if ($self->{_pendingSaveCount} <= 10 || $self->{_pendingSaveCount} % 1000 == 0) {
+                print STDERR "DEBUG flush: SAVING PENDING (blocked) #$self->{_pendingSaveCount} stream=$actual_stream_id data_len=" . length($data) . " fin=$fin\n";
+            }
             $self->{_pendingWriteData} = {
                 stream_id => $actual_stream_id,
                 data => $data,
@@ -185,7 +267,21 @@ sub flush_pending_data($self) {
                 print STDERR "DEBUG flush: BLOCKED #$self->{_writeBlockedCount} stream=$actual_stream_id data_len=" . length($data) .
                     " cwnd=$cwnd in_flight=$in_flight ssthresh=$ssthresh rtt=$rtt cwndLeft=$cwndLeft\n";
             }
+            # CRITICAL: Still send any pending packets before exiting!
+            # Even if blocked, we may have created packets in previous iterations
+            $send_callback->() if($send_callback);
             last;
+        }
+
+        # FIN-only frame (empty data with fin=1) - bytes_written=0 is expected and successful
+        if ($bytes_written == 0 && length($data) == 0 && $fin) {
+            print STDERR PageCamel::Helpers::DateStrings::getISODate() .
+                " DEBUG flush: FIN-only frame sent successfully for stream=$actual_stream_id\n";
+            # Clear pending if this was from pending data
+            delete $self->{_pendingWriteData} if $self->{_pendingWriteData};
+            # Continue to next iteration (might be more data/streams)
+            # But first send packets to get FIN out immediately
+            $send_callback->() if($send_callback);
         }
 
         # Successfully wrote some data
@@ -205,6 +301,12 @@ sub flush_pending_data($self) {
             }
         } elsif ($bytes_written < length($data)) {
             # Fresh data from writev_stream, but only partially written - save the rest
+            my $remainingLen = length($data) - $bytes_written;
+            $self->{_pendingSaveCount} //= 0;
+            $self->{_pendingSaveCount}++;
+            if ($self->{_pendingSaveCount} <= 10 || $self->{_pendingSaveCount} % 1000 == 0) {
+                print STDERR "DEBUG flush: SAVING PENDING (partial) #$self->{_pendingSaveCount} stream=$actual_stream_id remaining=$remainingLen wrote=$bytes_written fin=$fin\n";
+            }
             $self->{_pendingWriteData} = {
                 stream_id => $actual_stream_id,
                 data => substr($data, $bytes_written),
@@ -220,6 +322,17 @@ sub flush_pending_data($self) {
             my $cwndLeft = $quic->{quic_conn}->get_cwnd_left() // -1;
             print STDERR "DEBUG flush: SUCCESS #$self->{_writeSuccessCount} stream=$actual_stream_id wrote=$bytes_written" .
                 " cwnd=$cwnd in_flight=$in_flight ssthresh=$ssthresh rtt=$rtt cwndLeft=$cwndLeft\n";
+        }
+
+        # CRITICAL: Send packets IMMEDIATELY after each write to minimize RTT inflation
+        # Without this, packets sit in queue while we generate more, inflating measured RTT
+        if($send_callback) {
+            $self->{_successCallbackCount} //= 0;
+            $self->{_successCallbackCount}++;
+            if($self->{_successCallbackCount} <= 10 || $self->{_successCallbackCount} % 1000 == 0) {
+                print STDERR "DEBUG flush: invoking send_callback after SUCCESS #$self->{_successCallbackCount}\n";
+            }
+            $send_callback->();
         }
 
         # Note: Don't break on partial write. Continue looping - on the next iteration,
@@ -452,19 +565,47 @@ sub send_body_chunk($self, $stream_id, $data, $fin = 0) {
         }
         # Track that we pushed this much data
         $self->{stream_bytes_pushed}->{$stream_id} += $dataLen;
+
+        # Debug: log data pushes periodically
+        $self->{_sendBodyCount} //= 0;
+        $self->{_sendBodyCount}++;
+        if ($self->{_sendBodyCount} % 100 == 1) {
+            my $totalPushed = $self->{stream_bytes_pushed}->{$stream_id};
+            print STDERR PageCamel::Helpers::DateStrings::getISODate() .
+                " DEBUG send_body_chunk #$self->{_sendBodyCount}: stream=$stream_id pushed=$dataLen total=$totalPushed rv=$rv\n";
+        }
     }
 
     # Mark EOF if this is the last chunk
     if ($fin) {
+        my $totalPushed = $self->{stream_bytes_pushed}->{$stream_id} // 0;
+        print STDERR PageCamel::Helpers::DateStrings::getISODate() .
+            " DEBUG send_body_chunk: FIN=1 stream=$stream_id totalPushed=$totalPushed calling set_stream_eof\n";
         $self->{http3_conn}->set_stream_eof($stream_id);
     }
 
     # Tell nghttp3 data is available (or EOF status changed)
     if ($hasData || $fin) {
-        $self->{http3_conn}->resume_stream($stream_id);
+        my $resume_rv = $self->{http3_conn}->resume_stream($stream_id);
 
         # Try to flush immediately to QUIC
-        $self->flush_pending_data();
+        my $flushed = $self->flush_pending_data();
+
+        # Debug: log when FIN is set
+        if ($fin) {
+            print STDERR PageCamel::Helpers::DateStrings::getISODate() .
+                " DEBUG send_body_chunk: after FIN resume_rv=$resume_rv flushed=$flushed\n";
+        }
+
+        # Debug: log when flush doesn't write anything but we have data
+        if ($flushed == 0 && $hasData) {
+            $self->{_noFlushCount} //= 0;
+            $self->{_noFlushCount}++;
+            if ($self->{_noFlushCount} % 100 == 1) {
+                print STDERR PageCamel::Helpers::DateStrings::getISODate() .
+                    " DEBUG send_body_chunk: NO FLUSH #$self->{_noFlushCount} stream=$stream_id pushed=$dataLen resume_rv=$resume_rv flushed=0\n";
+            }
+        }
     }
 
     # Data is now in nghttp3's buffer - return length so caller clears its buffer
