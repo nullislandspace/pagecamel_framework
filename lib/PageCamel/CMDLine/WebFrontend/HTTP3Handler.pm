@@ -307,7 +307,7 @@ sub handleConnectRequest($self, $server, $streamId, $headers) {
         }
 
         # Backend truly unavailable - send 590
-        $server->response($streamId, 590, ['content-type', 'text/html'], '');
+        $server->response($streamId, 590, ['content-type', 'text/html'], $self->{errorPage590Html} // '');
         return;
     }
 

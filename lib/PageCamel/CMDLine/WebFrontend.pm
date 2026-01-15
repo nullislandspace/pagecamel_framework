@@ -1479,7 +1479,7 @@ sub handleQUICHandshake($self, $quicConn) {
             peerport => $peerport,
             usessl   => 1,
         },
-        errorPage590Html  => $self->{config}->{errorPage590Html} // '<html><body><h1>590 Backend Unavailable</h1></body></html>',
+        errorPage590Html  => $self->_get590Html(),
     );
     $quicConn->{_http3Handler} = $http3Handler;
 
