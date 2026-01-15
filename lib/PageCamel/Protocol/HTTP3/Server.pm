@@ -702,6 +702,7 @@ sub _frame_data($self, $payload) {
 
 # Encode variable-length integer (RFC 9000 Section 16)
 sub _encode_varint($self, $value) {
+    no warnings 'portable';  # Suppress warning for 64-bit hex constant
     if ($value < 64) {
         # 1 byte: 00xxxxxx
         return pack('C', $value);
