@@ -33,7 +33,6 @@ sub new($class, %config) {
         # Settings
         settings       => $config{settings},
         transport_params => $config{transport_params},
-        enable_0rtt    => $config{enable_0rtt} // 1,
 
         # State
         state          => 'handshaking',  # handshaking, established, closing, closed

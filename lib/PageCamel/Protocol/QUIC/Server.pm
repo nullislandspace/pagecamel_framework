@@ -22,7 +22,6 @@ sub new($class, %config) {
         max_streams_uni    => $config{max_streams_uni} // 100,
         initial_max_data   => $config{initial_max_data} // 10_485_760,  # 10MB
         max_stream_data    => $config{max_stream_data} // 1_048_576,    # 1MB
-        enable_0rtt        => $config{enable_0rtt} // 1,
         enable_migration   => $config{enable_migration} // 1,
 
         # State
@@ -109,7 +108,6 @@ sub accept_connection($self, $initial_packet, $peer_addr, $local_addr) {
         cert_file       => $self->{cert_file},
         key_file        => $self->{key_file},
         alpn_protocols  => $self->{alpn_protocols},
-        enable_0rtt     => $self->{enable_0rtt},
         on_stream_data  => sub { $self->_on_stream_data(@_) },
         on_stream_open  => sub { $self->_on_stream_open(@_) },
         on_stream_close => sub { $self->_on_stream_close(@_) },
@@ -414,8 +412,6 @@ Optional configuration:
 =item initial_max_data - Initial max data (default: 10MB)
 
 =item max_stream_data - Max stream data (default: 1MB)
-
-=item enable_0rtt - Enable 0-RTT (default: 1)
 
 =item enable_migration - Enable connection migration (default: 1)
 

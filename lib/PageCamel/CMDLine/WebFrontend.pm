@@ -52,7 +52,6 @@ sub REAPER {
     return;
 }
 
-
 sub new($class, $isDebugging, $configfile) {
     my $self = bless {}, $class;
     

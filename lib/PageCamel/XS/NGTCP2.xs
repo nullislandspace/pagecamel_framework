@@ -109,8 +109,15 @@ static ngtcp2_tstamp get_timestamp(void) {
 /* Callback for ngtcp2_crypto to get the ngtcp2_conn from conn_ref */
 static ngtcp2_conn *get_conn_callback(ngtcp2_crypto_conn_ref *conn_ref) {
     PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)conn_ref->user_data;
-    if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: get_conn_callback called, qc=%p, conn=%p\n", (void*)qc, qc ? (void*)qc->conn : NULL);
-    return qc ? qc->conn : NULL;
+    ngtcp2_conn *conn = qc ? qc->conn : NULL;
+    if (NGTCP2_DEBUG) {
+        fprintf(stderr, "NGTCP2: get_conn_callback called, qc=%p, conn=%p\n", (void*)qc, (void*)conn);
+        if (conn) {
+            const ngtcp2_transport_params *tp = ngtcp2_conn_get_remote_transport_params(conn);
+            fprintf(stderr, "NGTCP2: get_conn_callback: remote_transport_params=%p\n", (void*)tp);
+        }
+    }
+    return conn;
 }
 
 /* Helper to find domain by hostname (case-insensitive) */
@@ -927,7 +934,6 @@ strerror(error_code)
     OUTPUT:
         RETVAL
 
-
 MODULE = PageCamel::XS::NGTCP2    PACKAGE = PageCamel::XS::NGTCP2::Settings
 
 # Create new settings object
@@ -1099,7 +1105,6 @@ set_initial_scid(self, cid)
         /* Server's own Source Connection ID */
         if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: set_initial_scid, len=%zu\n", cid->cid.datalen);
         memcpy(&self->params.initial_scid, &cid->cid, sizeof(ngtcp2_cid));
-
 
 MODULE = PageCamel::XS::NGTCP2    PACKAGE = PageCamel::XS::NGTCP2::CID
 
