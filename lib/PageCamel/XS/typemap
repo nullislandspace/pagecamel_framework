@@ -1,0 +1,232 @@
+# PageCamel XS Typemap for QUIC/HTTP3 bindings
+# Maps C types to Perl types for XS compilation
+
+TYPEMAP
+
+# ngtcp2 types
+ngtcp2_conn *                   T_PTROBJ_NGTCP2_CONN
+ngtcp2_path *                   T_PTROBJ_NGTCP2_PATH
+ngtcp2_cid *                    T_PTROBJ_NGTCP2_CID
+ngtcp2_settings *               T_PTROBJ_NGTCP2_SETTINGS
+ngtcp2_transport_params *       T_PTROBJ_NGTCP2_TRANSPORT_PARAMS
+ngtcp2_callbacks *              T_PTROBJ_NGTCP2_CALLBACKS
+
+# nghttp3 types
+nghttp3_conn *                  T_PTROBJ_NGHTTP3_CONN
+nghttp3_callbacks *             T_PTROBJ_NGHTTP3_CALLBACKS
+nghttp3_settings *              T_PTROBJ_NGHTTP3_SETTINGS
+nghttp3_nv *                    T_PTROBJ_NGHTTP3_NV
+
+# Our wrapper types (with and without pointer)
+PageCamel_QUIC_Connection       T_PTROBJ_QUIC_CONN
+PageCamel_QUIC_Connection *     T_PTROBJ_QUIC_CONN
+PageCamel_HTTP3_Connection      T_PTROBJ_HTTP3_CONN
+PageCamel_HTTP3_Connection *    T_PTROBJ_HTTP3_CONN
+PageCamel_Path *                T_PTROBJ_PATH
+PageCamel_Settings *            T_PTROBJ_SETTINGS
+PageCamel_TransportParams *     T_PTROBJ_TRANSPORT_PARAMS
+PageCamel_CID *                 T_PTROBJ_CID
+PageCamel_HTTP3_Settings *      T_PTROBJ_HTTP3_SETTINGS
+
+# Standard types
+const char *                    T_PV
+size_t                          T_UV
+ssize_t                         T_IV
+int64_t                         T_IV
+uint64_t                        T_UV
+uint32_t                        T_UV
+uint16_t                        T_UV
+uint8_t                         T_UV
+ngtcp2_tstamp                   T_UV
+ngtcp2_duration                 T_UV
+
+INPUT
+
+T_PTROBJ_NGTCP2_CONN
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::Connection\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::Connection\");
+
+T_PTROBJ_NGTCP2_PATH
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::Path\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::Path\");
+
+T_PTROBJ_NGTCP2_CID
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::CID\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::CID\");
+
+T_PTROBJ_NGTCP2_SETTINGS
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::Settings\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::Settings\");
+
+T_PTROBJ_NGTCP2_TRANSPORT_PARAMS
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::TransportParams\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::TransportParams\");
+
+T_PTROBJ_NGTCP2_CALLBACKS
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::Callbacks\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::Callbacks\");
+
+T_PTROBJ_NGHTTP3_CONN
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGHTTP3::Connection\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGHTTP3::Connection\");
+
+T_PTROBJ_NGHTTP3_CALLBACKS
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGHTTP3::Callbacks\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGHTTP3::Callbacks\");
+
+T_PTROBJ_NGHTTP3_SETTINGS
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGHTTP3::Settings\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGHTTP3::Settings\");
+
+T_PTROBJ_NGHTTP3_NV
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGHTTP3::NV\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGHTTP3::NV\");
+
+T_PTROBJ_QUIC_CONN
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::Connection\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::Connection\");
+
+T_PTROBJ_PATH
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::Path\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::Path\");
+
+T_PTROBJ_SETTINGS
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::Settings\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::Settings\");
+
+T_PTROBJ_TRANSPORT_PARAMS
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::TransportParams\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::TransportParams\");
+
+T_PTROBJ_CID
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGTCP2::CID\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGTCP2::CID\");
+
+T_PTROBJ_HTTP3_CONN
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGHTTP3::Connection\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGHTTP3::Connection\");
+
+T_PTROBJ_HTTP3_SETTINGS
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::XS::NGHTTP3::Settings\")) {
+        IV tmp = SvIV((SV*)SvRV($arg));
+        $var = INT2PTR($type, tmp);
+    }
+    else
+        Perl_croak(aTHX_ \"$var is not of type PageCamel::XS::NGHTTP3::Settings\");
+
+OUTPUT
+
+T_PTROBJ_NGTCP2_CONN
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::Connection\", (void*)$var);
+
+T_PTROBJ_NGTCP2_PATH
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::Path\", (void*)$var);
+
+T_PTROBJ_NGTCP2_CID
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::CID\", (void*)$var);
+
+T_PTROBJ_NGTCP2_SETTINGS
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::Settings\", (void*)$var);
+
+T_PTROBJ_NGTCP2_TRANSPORT_PARAMS
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::TransportParams\", (void*)$var);
+
+T_PTROBJ_NGTCP2_CALLBACKS
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::Callbacks\", (void*)$var);
+
+T_PTROBJ_NGHTTP3_CONN
+    sv_setref_pv($arg, \"PageCamel::XS::NGHTTP3::Connection\", (void*)$var);
+
+T_PTROBJ_NGHTTP3_CALLBACKS
+    sv_setref_pv($arg, \"PageCamel::XS::NGHTTP3::Callbacks\", (void*)$var);
+
+T_PTROBJ_NGHTTP3_SETTINGS
+    sv_setref_pv($arg, \"PageCamel::XS::NGHTTP3::Settings\", (void*)$var);
+
+T_PTROBJ_NGHTTP3_NV
+    sv_setref_pv($arg, \"PageCamel::XS::NGHTTP3::NV\", (void*)$var);
+
+T_PTROBJ_QUIC_CONN
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::Connection\", (void*)$var);
+
+T_PTROBJ_PATH
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::Path\", (void*)$var);
+
+T_PTROBJ_SETTINGS
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::Settings\", (void*)$var);
+
+T_PTROBJ_TRANSPORT_PARAMS
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::TransportParams\", (void*)$var);
+
+T_PTROBJ_CID
+    sv_setref_pv($arg, \"PageCamel::XS::NGTCP2::CID\", (void*)$var);
+
+T_PTROBJ_HTTP3_CONN
+    sv_setref_pv($arg, \"PageCamel::XS::NGHTTP3::Connection\", (void*)$var);
+
+T_PTROBJ_HTTP3_SETTINGS
+    sv_setref_pv($arg, \"PageCamel::XS::NGHTTP3::Settings\", (void*)$var);
