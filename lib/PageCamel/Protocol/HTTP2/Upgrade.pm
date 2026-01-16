@@ -22,8 +22,7 @@ use MIME::Base64 qw(encode_base64url decode_base64url);
 my $end_headers_re = qr/\G.+?\x0d?\x0a\x0d?\x0a/s;
 my $header_re      = qr/\G[ \t]*(.+?)[ \t]*\:[ \t]*(.+?)[ \t]*\x0d?\x0a/;
 
-sub upgrade_request {
-    my ( $con, %h ) = @_;
+sub upgrade_request($con, %h) {
     my $request = sprintf "%s %s HTTP/1.1\x0d\x0aHost: %s\x0d\x0a",
       $h{':method'}, $h{':path'},
       $h{':authority'};
@@ -50,8 +49,7 @@ sub upgrade_response {
 
 }
 
-sub decode_upgrade_request {
-    my ( $con, $buf_ref, $buf_offset, $headers_ref ) = @_;
+sub decode_upgrade_request($con, $buf_ref, $buf_offset, $headers_ref = undef) {
 
     pos(${$buf_ref}) = $buf_offset;
 
@@ -112,8 +110,7 @@ sub decode_upgrade_request {
 
 }
 
-sub decode_upgrade_response {
-    my ( $con, $buf_ref, $buf_offset ) = @_;
+sub decode_upgrade_response($con, $buf_ref, $buf_offset) {
 
     pos(${$buf_ref}) = $buf_offset;
 

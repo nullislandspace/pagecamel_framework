@@ -37,8 +37,7 @@ use PageCamel::Protocol::HTTP2::Trace qw(tracer);
     }
 }
 
-sub new_stream {
-    my $self = shift;
+sub new_stream($self) {
     return if $self->goaway;
 
     $self->{last_stream} += 2
@@ -53,9 +52,7 @@ sub new_stream {
     return $self->{last_stream};
 }
 
-sub new_peer_stream {
-    my $self      = shift;
-    my $stream_id = shift;
+sub new_peer_stream($self, $stream_id) {
     if (   $stream_id < $self->{last_peer_stream}
         || ( $stream_id % 2 ) == ( $self->{type} == CLIENT ) ? 1 : 0
         || $self->goaway )
@@ -88,8 +85,7 @@ sub new_peer_stream {
     return $self->{last_peer_stream};
 }
 
-sub stream {
-    my ( $self, $stream_id ) = @_;
+sub stream($self, $stream_id) {
     return unless exists $self->{streams}->{$stream_id};
 
     return $self->{streams}->{$stream_id};
@@ -97,8 +93,7 @@ sub stream {
 
 # stream_state ( $self, $stream_id, $new_state?, $pending? )
 
-sub stream_state {
-    my ( $self, $stream_id, @rest ) = @_;
+sub stream_state($self, $stream_id, @rest) {
     return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
 
@@ -142,21 +137,18 @@ sub stream_state {
     return $s->{state};
 }
 
-sub stream_pending_state {
-    my $self      = shift;
-    my $stream_id = shift;
+sub stream_pending_state($self, $stream_id, @rest) {
     return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
-    if (@_) {
-        $s->{pending_state} = shift;
+    if (@rest) {  # A third argument was passed (even if undef)
+        $s->{pending_state} = $rest[0];
         $self->{pending_stream} =
           defined $s->{pending_state} ? $stream_id : undef;
     }
     return $s->{pending_state};
 }
 
-sub stream_cb {
-    my ( $self, $stream_id, $state, $cb ) = @_;
+sub stream_cb($self, $stream_id, $state, $cb) {
 
     return unless exists $self->{streams}->{$stream_id};
 
@@ -164,8 +156,7 @@ sub stream_cb {
     return;
 }
 
-sub stream_frame_cb {
-    my ( $self, $stream_id, $frame, $cb ) = @_;
+sub stream_frame_cb($self, $stream_id, $frame, $cb) {
 
     return unless exists $self->{streams}->{$stream_id};
 
@@ -173,16 +164,15 @@ sub stream_frame_cb {
     return;
 }
 
-sub stream_data {
-    my ( $self, $stream_id, $data ) = @_;
+sub stream_data($self, $stream_id, $data = undef) {
     return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
 
     if (defined $data) {
 
         # Exec callbacks for data
-        if ( exists $s->{frame_cb} && exists $s->{frame_cb}->{&DATA} ) {
-            for my $cb ( @{ $s->{frame_cb}->{&DATA} } ) {
+        if ( exists $s->{frame_cb} && exists $s->{frame_cb}->{DATA()} ) {
+            for my $cb ( @{ $s->{frame_cb}->{DATA()} } ) {
                 $cb->( $data );
             }
         }
@@ -194,9 +184,7 @@ sub stream_data {
     return $s->{data};
 }
 
-sub stream_headers_done {
-    my $self      = shift;
-    my $stream_id = shift;
+sub stream_headers_done($self, $stream_id) {
     return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
 
@@ -229,8 +217,8 @@ sub stream_headers_done {
     }
 
     # Exec callbacks for headers
-    if ( exists $s->{frame_cb} && exists $s->{frame_cb}->{&HEADERS} ) {
-        for my $cb ( @{ $s->{frame_cb}->{&HEADERS} } ) {
+    if ( exists $s->{frame_cb} && exists $s->{frame_cb}->{HEADERS()} ) {
+        for my $cb ( @{ $s->{frame_cb}->{HEADERS()} } ) {
             $cb->($eh);
         }
     }
@@ -241,8 +229,7 @@ sub stream_headers_done {
     return 1;
 }
 
-sub validate_headers {
-    my ( $self, $headers, $stream_id, $is_response ) = @_;
+sub validate_headers($self, $headers, $stream_id, $is_response) {
     my $pseudo_flag = 1;
     my %pseudo_hash = ();
 
@@ -377,39 +364,32 @@ sub validate_headers {
 }
 
 # RST_STREAM for stream errors
-sub stream_error {
-    my ( $self, $stream_id, $error ) = @_;
+sub stream_error($self, $stream_id, $error) {
     $self->enqueue( RST_STREAM, 0, $stream_id, $error );
     return;
 }
 
 # Flow control windown of stream
-sub _stream_fcw {
-    my $dir       = shift;
-    my $self      = shift;
-    my $stream_id = shift;
+sub _stream_fcw($dir, $self, $stream_id, $delta = undef) {
     return unless exists $self->{streams}->{$stream_id};
     my $s = $self->{streams}->{$stream_id};
 
-    if (@_) {
-        $s->{$dir} += shift;
+    if (defined $delta) {
+        $s->{$dir} += $delta;
         tracer->debug( "Stream $stream_id $dir now is " . $s->{$dir} . "\n" );
     }
     return $s->{$dir};
 }
 
-sub stream_fcw_send {
-    my ( $self, $stream_id, @rest ) = @_;
+sub stream_fcw_send($self, $stream_id, @rest) {
     return _stream_fcw( 'fcw_send', $self, $stream_id, @rest );
 }
 
-sub stream_fcw_recv {
-    my ( $self, $stream_id, @rest ) = @_;
+sub stream_fcw_recv($self, $stream_id, @rest) {
     return _stream_fcw( 'fcw_recv', $self, $stream_id, @rest );
 }
 
-sub stream_fcw_update {
-    my ( $self, $stream_id ) = @_;
+sub stream_fcw_update($self, $stream_id) {
 
     # TODO: check size of data of stream  in memory
     my $size = $self->dec_setting(SETTINGS_INITIAL_WINDOW_SIZE);
@@ -419,8 +399,7 @@ sub stream_fcw_update {
     return;
 }
 
-sub stream_send_blocked {
-    my ( $self, $stream_id ) = @_;
+sub stream_send_blocked($self, $stream_id) {
     my $s = $self->{streams}->{$stream_id} or return;
 
     if ( defined( $s->{blocked_data} ) && length( $s->{blocked_data} )
@@ -431,8 +410,7 @@ sub stream_send_blocked {
     return;
 }
 
-sub stream_reprio {
-    my ( $self, $stream_id, $exclusive, $stream_dep ) = @_;
+sub stream_reprio($self, $stream_id, $exclusive, $stream_dep) {
     return
       unless exists $self->{streams}->{$stream_id}
       && ( $stream_dep == 0 || exists $self->{streams}->{$stream_dep} )

@@ -32,20 +32,19 @@ our %TYPES = (
     close        => 0x08
 );
 
-sub new {
-    my $class = shift;
+sub new($class, @args) {
     $class = ref $class if ref $class;
     my $buffer;
 
-    if (@_ == 1) {
-        $buffer = shift @_;
+    if (@args == 1) {
+        $buffer = shift @args;
     }
     else {
-        my %args = @_;
+        my %args = @args;
         $buffer = delete $args{buffer};
     }
 
-    my $self = {@_};
+    my $self = {@args};
     bless $self, $class;
 
     $buffer = '' unless defined $buffer;
@@ -71,25 +70,21 @@ sub new {
     return $self;
 }
 
-sub version {
-    my $self = shift;
+sub version($self) {
 
     return $self->{version};
 }
 
-sub append {
-    my $self = shift;
+sub append($self, $data = undef) {
 
-    return unless defined $_[0];
+    return unless defined $data;
 
-    $self->{buffer} .= $_[0];
-    $_[0] = '' unless readonly $_[0];
+    $self->{buffer} .= $data;
 
     return $self;
 }
 
-sub next {
-    my $self = shift;
+sub next($self) {
 
     my $bytes = $self->next_bytes;
     return unless defined $bytes;
@@ -117,8 +112,7 @@ sub is_close        { $_[0]->opcode == 8 }
 sub is_continuation { $_[0]->opcode == 0 }
 sub is_text         { $_[0]->opcode == 1 }
 sub is_binary       { $_[0]->opcode == 2 }
-sub next_bytes {
-    my $self = shift;
+sub next_bytes($self) {
 
     if (   $self->version eq 'draft-hixie-75'
         || $self->version eq 'draft-ietf-hybi-00')
@@ -243,8 +237,7 @@ sub next_bytes {
     return;
 }
 
-sub to_bytes {
-    my $self = shift;
+sub to_bytes($self) {
 
     if (   $self->version eq 'draft-hixie-75'
         || $self->version eq 'draft-ietf-hybi-00')
@@ -311,16 +304,12 @@ sub to_bytes {
     return $string;
 }
 
-sub to_string {
-    my $self = shift;
+sub to_string($self) {
 
     die 'DO NOT USE';
 }
 
-sub _mask {
-    my $self = shift;
-    my ($payload, $mask) = @_;
-
+sub _mask($self, $payload, $mask) {
     $mask = $mask x (int(length($payload) / 4) + 1);
     $mask = substr($mask, 0, length($payload));
 
@@ -330,8 +319,7 @@ sub _mask {
     return $payload;
 }
 
-sub max_payload_size {
-    my $self = shift;
+sub max_payload_size($self) {
 
     return $self->{max_payload_size};
 }

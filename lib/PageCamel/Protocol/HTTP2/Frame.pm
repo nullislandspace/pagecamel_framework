@@ -49,8 +49,7 @@ my %encoder =
   map { $_ => \&{ 'PageCamel::Protocol::HTTP2::Frame::' . $frame_class{$_} . '::encode' } }
   keys %frame_class;
 
-sub frame_encode {
-    my ( $con, $type, $flags, $stream_id, $data_ref ) = @_;
+sub frame_encode($con, $type, $flags, $stream_id, $data_ref) {
 
     my $payload = $encoder{$type}->( $con, \$flags, $stream_id, $data_ref );
     my $l = length $payload;
@@ -59,8 +58,7 @@ sub frame_encode {
       . $payload;
 }
 
-sub preface_decode {
-    my ( $con, $buf_ref, $buf_offset ) = @_;
+sub preface_decode($con, $buf_ref, $buf_offset) {
     return 0 if length(${$buf_ref}) - $buf_offset < length(PREFACE);
     return
       index( ${$buf_ref}, PREFACE, $buf_offset ) == -1 ? undef : length(PREFACE);
@@ -70,8 +68,7 @@ sub preface_encode {
     return PREFACE;
 }
 
-sub frame_header_decode {
-    my ( undef, $buf_ref, $buf_offset ) = @_;
+sub frame_header_decode($, $buf_ref, $buf_offset) {
 
     my ( $hl, $ll, $type, $flags, $stream_id ) =
       unpack( 'CnC2N', substr( ${$buf_ref}, $buf_offset, FRAME_HEADER_SIZE ) );
@@ -81,8 +78,7 @@ sub frame_header_decode {
     return $length, $type, $flags, $stream_id;
 }
 
-sub frame_decode {
-    my ( $con, $buf_ref, $buf_offset ) = @_;
+sub frame_decode($con, $buf_ref, $buf_offset) {
     return 0 if length(${$buf_ref}) - $buf_offset < FRAME_HEADER_SIZE;
 
     my ( $length, $type, $flags, $stream_id ) =

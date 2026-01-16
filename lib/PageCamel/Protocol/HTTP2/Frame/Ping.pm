@@ -16,8 +16,7 @@ use PageCamel::Helpers::UTF;
 use PageCamel::Protocol::HTTP2::Constants qw(:flags :errors :limits);
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 
-sub decode {
-    my ( $con, $buf_ref, $buf_offset, $length ) = @_;
+sub decode($con, $buf_ref, $buf_offset, $length) {
     my $frame_ref = $con->decode_context->{frame};
 
     # PING associated with connection
@@ -38,8 +37,7 @@ sub decode {
     return $length;
 }
 
-sub encode {
-    my ( $con, $flags_ref, $stream, $data_ref ) = @_;
+sub encode($con, $flags_ref, $stream, $data_ref) {
     if ( length(${$data_ref}) != PING_PAYLOAD_SIZE ) {
         $con->error(INTERNAL_ERROR);
         return;

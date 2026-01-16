@@ -180,13 +180,12 @@ L<Stream States|https://tools.ietf.org/html/rfc7540#section-5.1>
 
 =cut
 
-sub new {
-    my ( $class, %opts ) = @_;
+sub new($class, %opts) {
     my $self = {
         con      => undef,
         input    => '',
         settings => {
-            &SETTINGS_MAX_CONCURRENT_STREAMS => DEFAULT_MAX_CONCURRENT_STREAMS,
+            SETTINGS_MAX_CONCURRENT_STREAMS() => DEFAULT_MAX_CONCURRENT_STREAMS,
             exists $opts{settings} ? %{ delete $opts{settings} } : ()
         },
     };
@@ -292,8 +291,7 @@ Prepare response
 
 my @must = (qw(:status));
 
-sub response {
-    my ( $self, %h ) = @_;
+sub response($self, %h) {
     my @miss = grep { !exists $h{$_} } @must;
     croak "Missing headers in response: @miss" if @miss;
 
@@ -359,8 +357,7 @@ If body of response is not yet ready or server will stream data
     use PageCamel::Protocol::HTTP2::Constants qw(:states);
     use Scalar::Util ();
 
-    sub new {
-        my ( $class, %opts ) = @_;
+sub new($class, %opts) {
         my $self = bless {%opts}, $class;
 
         if ( my $on_cancel = $self->{on_cancel} ) {
@@ -379,28 +376,24 @@ If body of response is not yet ready or server will stream data
         return $self;
     }
 
-    sub send {
-        my $self = shift;
-        $self->{con}->send_data( $self->{stream_id}, shift );
+sub send($self, $data = undef) {
+        $self->{con}->send_data( $self->{stream_id}, $data );
         return;
     }
 
-    sub last {
-        my $self = shift;
+sub last($self, $data = undef) {
         $self->{done} = 1;
-        $self->{con}->send_data( $self->{stream_id}, shift, 1 );
+        $self->{con}->send_data( $self->{stream_id}, $data, 1 );
         return;
     }
 
-    sub close {
-        my $self = shift;
+sub close($self) {
         $self->{done} = 1;
         $self->{con}->send_data( $self->{stream_id}, undef, 1 );
         return;
     }
 
-    sub DESTROY {
-        my $self = shift;
+sub DESTROY($self) {
         if(!$self->{done} && $self->{con}) {
             $self->{con}->send_data( $self->{stream_id}, undef, 1 );
         }
@@ -414,8 +407,7 @@ If body of response is not yet ready or server will stream data
     use PageCamel::Protocol::HTTP2::Constants qw(:states :frame_types);
     use Scalar::Util ();
 
-    sub new {
-        my ( $class, %opts ) = @_;
+sub new($class, %opts) {
         my $self = bless {%opts}, $class;
 
         if ( my $on_close = $self->{on_close} ) {
@@ -450,8 +442,7 @@ If body of response is not yet ready or server will stream data
     }
 
     # Set callback for receiving data on tunnel
-    sub on_data {
-        my ( $self, $cb ) = @_;
+sub on_data($self, $cb) {
         $self->{on_data} = $cb;
         my $weak_self = $self;
         Scalar::Util::weaken($weak_self);
@@ -467,24 +458,21 @@ If body of response is not yet ready or server will stream data
     }
 
     # Send data through tunnel (no END_STREAM flag)
-    sub send {
-        my ( $self, $data ) = @_;
+sub send($self, $data) {
         return if $self->{done};
         $self->{con}->send_data( $self->{stream_id}, $data );
         return;
     }
 
     # Close the tunnel with optional final data
-    sub close {
-        my ( $self, $data ) = @_;
+sub close($self, $data) {
         return if $self->{done};
         $self->{done} = 1;
         $self->{con}->send_data( $self->{stream_id}, $data, 1 );
         return;
     }
 
-    sub DESTROY {
-        my $self = shift;
+sub DESTROY($self) {
         if(!$self->{done} && $self->{con}) {
             $self->{con}->send_data( $self->{stream_id}, undef, 1 );
         }
@@ -492,8 +480,7 @@ If body of response is not yet ready or server will stream data
     }
 }
 
-sub response_stream {
-    my ( $self, %h ) = @_;
+sub response_stream($self, %h) {
     my @miss = grep { !exists $h{$_} } @must;
     croak "Missing headers in response_stream: @miss" if @miss;
 
@@ -548,8 +535,7 @@ L<Server Push|https://tools.ietf.org/html/rfc7540#section-8.2>
 
 my @must_pp = (qw(:authority :method :path :scheme));
 
-sub push {
-    my ( $self, %h ) = @_;
+sub push($self, %h) {
     my $con = $self->{con};
     my @miss = grep { !exists $h{$_} } @must_pp;
     croak "Missing headers in push promise: @miss" if @miss;
@@ -590,8 +576,7 @@ Get connection status:
 
 =cut
 
-sub shutdown {
-    my $self = shift;
+sub shutdown($self) {
     return $self->{con}->shutdown;
 }
 
@@ -617,8 +602,7 @@ Returns:
 
 =cut
 
-sub next_frame {
-    my $self  = shift;
+sub next_frame($self) {
     my $frame = $self->{con}->dequeue;
     if ($frame) {
         my ( $length, $type, $flags, $stream_id ) =
@@ -641,8 +625,7 @@ Feed decoder with chunks of client's request
 
 =cut
 
-sub feed {
-    my ( $self, $chunk ) = @_;
+sub feed($self, $chunk) {
     $self->{input} .= $chunk;
     my $offset = 0;
     my $con    = $self->{con};
@@ -660,7 +643,7 @@ sub feed {
         $con->enqueue_raw( $con->upgrade_response );
         $con->enqueue( SETTINGS, 0, 0,
             {
-                &SETTINGS_MAX_CONCURRENT_STREAMS =>
+                SETTINGS_MAX_CONCURRENT_STREAMS() =>
                   DEFAULT_MAX_CONCURRENT_STREAMS
             }
         );
@@ -711,10 +694,9 @@ Or with explicit value:
 
 =cut
 
-sub enable_connect_protocol {
-    my ( $self, $enabled ) = @_;
+sub enable_connect_protocol($self, $enabled) {
     $enabled //= 1;
-    $self->{settings}->{&SETTINGS_ENABLE_CONNECT_PROTOCOL} = $enabled;
+    $self->{settings}->{SETTINGS_ENABLE_CONNECT_PROTOCOL()} = $enabled;
     $self->{con}->dec_setting( SETTINGS_ENABLE_CONNECT_PROTOCOL, $enabled );
     return $self;
 }
@@ -747,8 +729,7 @@ Returns a PageCamel::Protocol::HTTP2::Server::Tunnel object for bidirectional co
 
 =cut
 
-sub tunnel_response {
-    my ( $self, %h ) = @_;
+sub tunnel_response($self, %h) {
     my $con = $self->{con};
     my $stream_id = $h{stream_id}
       or croak "tunnel_response requires stream_id";
@@ -790,9 +771,7 @@ is omitted server will send random data.
 
 =cut
 
-sub ping {
-    my $self = shift;
-    my $payload = shift;
+sub ping($self, $payload = undef) {
     return $self->{con}->send_ping($payload);
 }
 

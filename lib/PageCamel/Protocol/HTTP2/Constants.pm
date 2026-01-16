@@ -141,8 +141,7 @@ my %reverse;
     }
 }
 
-sub const_name {
-    my ( $tag, $value ) = @_;
+sub const_name($tag, $value) {
     return exists $reverse{$tag} ? ( $reverse{$tag}{$value} || '' ) : '';
 }
 

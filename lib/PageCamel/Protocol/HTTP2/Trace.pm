@@ -41,13 +41,11 @@ sub tracer {
     return $tracer_sngl;
 }
 
-sub _new {
-    my ( $class, %opts ) = @_;
+sub _new($class, %opts) {
     return bless {%opts}, $class;
 }
 
-sub _log {
-    my ( $self, $level, $message ) = @_;
+sub _log($self, $level, $message) {
     $level = uc($level);
     chomp($message);
     my $now = time;
@@ -78,8 +76,7 @@ sub _log {
     }
 }
 
-sub bin2hex {
-    my $bin = shift;
+sub bin2hex($bin) {
     my $c   = 0;
     my $s;
 

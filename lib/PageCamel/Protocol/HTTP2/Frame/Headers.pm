@@ -17,8 +17,7 @@ use PageCamel::Protocol::HTTP2::Constants qw(:flags :errors :states :limits);
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 
 # 6.2 HEADERS
-sub decode {
-    my ( $con, $buf_ref, $buf_offset, $length ) = @_;
+sub decode($con, $buf_ref, $buf_offset, $length) {
     my ( $pad, $offset, $weight, $exclusive, $stream_dep ) = ( 0, 0 );
     my $frame_ref = $con->decode_context->{frame};
 
@@ -75,8 +74,7 @@ sub decode {
     return $length;
 }
 
-sub encode {
-    my ( $con, $flags_ref, $stream, $data_ref ) = @_;
+sub encode($con, $flags_ref, $stream, $data_ref) {
     my $res = '';
 
     if ( exists $data_ref->{padding} ) {

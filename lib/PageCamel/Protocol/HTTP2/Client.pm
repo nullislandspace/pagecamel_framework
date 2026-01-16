@@ -182,8 +182,7 @@ L<Stream States|https://tools.ietf.org/html/rfc7540#section-5.1>
 
 =cut
 
-sub new {
-    my ( $class, %opts ) = @_;
+sub new($class, %opts) {
     my $self = {
         con            => undef,
         input          => '',
@@ -235,9 +234,7 @@ sub new {
     return bless $self, $class;
 }
 
-sub active_streams {
-    my $self = shift;
-    my $add = shift || 0;
+sub active_streams($self, $add = 0) {
     $self->{active_streams} += $add;
     if($self->{active_streams} <= 0 && !$self->{keepalive}) {
         $self->{con}->finish;
@@ -341,8 +338,7 @@ Callback invoked on stream errors
 
 my @must = (qw(:authority :method :path :scheme));
 
-sub request {
-    my ( $self, %h ) = @_;
+sub request($self, %h) {
     my @miss = grep { !exists $h{$_} } @must;
     croak "Missing fields in request: @miss" if @miss;
 
@@ -439,10 +435,9 @@ Keep connection alive after requests
 
 =cut
 
-sub keepalive {
-    my $self = shift;
-    return @_
-      ? scalar( $self->{keepalive} = shift, $self )
+sub keepalive($self, $value = undef) {
+    return defined $value
+      ? scalar( $self->{keepalive} = $value, $self )
       : $self->{keepalive};
 }
 
@@ -497,8 +492,7 @@ Returns:
 
 =cut
 
-sub next_frame {
-    my $self  = shift;
+sub next_frame($self) {
     my $frame = $self->{con}->dequeue;
     tracer->debug("send one frame to wire\n") if $frame;
     return $frame;
@@ -513,8 +507,7 @@ Feed decoder with chunks of server's response
 
 =cut
 
-sub feed {
-    my ( $self, $chunk ) = @_;
+sub feed($self, $chunk) {
     $self->{input} .= $chunk;
     my $offset = 0;
     my $len;
