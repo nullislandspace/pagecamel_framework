@@ -367,8 +367,8 @@ sub request($self, %h) {
     }
     else {
         if ( !$con->preface ) {
-            $con->enqueue_raw( $con->preface_encode ),
-              $con->enqueue( SETTINGS, 0, 0, $self->{settings} );
+            $con->enqueue_raw( $con->preface_encode );
+            $con->enqueue( SETTINGS, 0, 0, $self->{settings} );
             $con->preface(1);
         }
 
@@ -526,7 +526,7 @@ sub feed($self, $chunk) {
         tracer->debug("decoded frame at $offset, length $len\n");
         $offset += $len;
     }
-    substr( $self->{input}, 0, $offset ) = '' if $offset;
+    $self->{input} = substr( $self->{input}, $offset ) if $offset;
     return;
 }
 
@@ -545,8 +545,8 @@ is omitted client will send random data.
 
 =cut
 
-sub ping {
-    return shift->{con}->send_ping(@_);
+sub ping($self, $payload = undef) {
+    return $self->{con}->send_ping($payload);
 }
 
 1;

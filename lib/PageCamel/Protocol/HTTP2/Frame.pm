@@ -64,7 +64,7 @@ sub preface_decode($con, $buf_ref, $buf_offset) {
       index( ${$buf_ref}, PREFACE, $buf_offset ) == -1 ? undef : length(PREFACE);
 }
 
-sub preface_encode {
+sub preface_encode($) {
     return PREFACE;
 }
 

@@ -22,7 +22,7 @@ use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 
 # Autogen properties
 {
-    no strict 'refs';
+    no strict 'refs';  ## no critic (TestingAndDebugging::ProhibitNoStrict)
     for my $prop (
         qw(promised_sid headers pp_headers header_block trailer
         trailer_headers length blocked_data weight end reset tunnel)
@@ -123,11 +123,10 @@ sub stream_state($self, $stream_id, @rest) {
                   && ( ( $stream_id % 2 ) ^ ( $self->{type} == CLIENT ) );
                 tracer->info(
                     "Active streams: $self->{active_peer_streams} $stream_id");
+                my %keep = map { $_ => 1 } qw(state weight stream_dep
+                          fcw_recv fcw_send reset);
                 for my $key ( keys %{$s} ) {
-                    next if grep { $key eq $_ } (
-                        qw(state weight stream_dep
-                          fcw_recv fcw_send reset)
-                    );
+                    next if exists $keep{$key};
                     delete $s->{$key};
                 }
             }
@@ -304,7 +303,7 @@ sub validate_headers($self, $headers, $stream_id, $is_response) {
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
                 return;
             }
-            elsif ( !grep { $_ eq $h } @allowed_h ) {
+            elsif ( !exists { map { $_ => 1 } @allowed_h }->{$h} ) {
                 tracer->warning("invalid pseudo-header <$h>");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
                 return;
@@ -336,14 +335,17 @@ sub validate_headers($self, $headers, $stream_id, $is_response) {
         }
         elsif ( $h eq 'trailer' ) {
             my %th = map { $_ => 1 } split /\s*,\s*/, lc($v);
-            if (
-                grep { exists $th{$_} } (
-                    qw(transfer-encoding content-length host authentication
+            my @forbidden = qw(transfer-encoding content-length host authentication
                       cache-control expect max-forwards pragma range te
-                      content-encoding content-type content-range trailer)
-                )
-              )
-            {
+                      content-encoding content-type content-range trailer);
+            my $has_forbidden = 0;
+            for my $f (@forbidden) {
+                if(exists $th{$f}) {
+                    $has_forbidden = 1;
+                    last;
+                }
+            }
+            if($has_forbidden) {
                 tracer->warning("trailer header contain forbidden headers");
                 $self->stream_error( $stream_id, PROTOCOL_ERROR );
                 return;

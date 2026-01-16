@@ -17,7 +17,7 @@ use PageCamel::Protocol::HTTP2::HuffmanCodes;
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 our ( %hcodes, %rhcodes, $hre );
 use parent qw(Exporter);
-our @EXPORT = qw(huffman_encode huffman_decode);
+our @EXPORT = qw(huffman_encode huffman_decode);  ## no critic (Modules::ProhibitAutomaticExportation)
 
 # Memory unefficient algorithm (well suited for short strings)
 

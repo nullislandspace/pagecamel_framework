@@ -331,14 +331,14 @@ sub headers_encode($context, $headers) {
     }
 
   HLOOP:
-    for my $n ( 0 .. $#$headers / 2 ) {
+    for my $n ( 0 .. ( @{$headers} - 1 ) / 2 ) {
         my $header = lc( $headers->[ 2 * $n ] );
         my $value  = $headers->[ 2 * $n + 1 ];
         my $hdr;
 
         tracer->debug("Encoding header: $header = $value\n");
 
-        for my $i ( 0 .. $#$ht ) {
+        for my $i ( 0 .. @{$ht} - 1 ) {
             next
               unless $ht->[$i]->[0] eq $header
               && $ht->[$i]->[1] eq $value;

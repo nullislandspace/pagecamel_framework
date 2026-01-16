@@ -13,7 +13,7 @@ use Data::Dumper;
 use Data::Printer;
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
-use constant {
+use constant {  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
 
     # Header Compression
     MAX_INT_SIZE     => 4,
@@ -52,7 +52,7 @@ use constant {
     SERVER => 2,
 
     # Preface string
-    PREFACE => "PRI * HTTP/2.0\x0d\x0a\x0d\x0aSM\x0d\x0a\x0d\x0a",
+    PREFACE => "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n",
 
     # Frame types
     DATA          => 0,
@@ -100,8 +100,7 @@ use constant {
 
 };
 
-require Exporter;
-our @ISA         = qw(Exporter);
+use parent qw(Exporter);
 our %EXPORT_TAGS = (
     frame_types => [
         qw(DATA HEADERS PRIORITY RST_STREAM SETTINGS PUSH_PROMISE PING GOAWAY
@@ -133,7 +132,7 @@ our %EXPORT_TAGS = (
 
 my %reverse;
 {
-    no strict 'refs';
+    no strict 'refs';  ## no critic (TestingAndDebugging::ProhibitNoStrict)
     for my $k ( keys %EXPORT_TAGS ) {
         for my $v ( @{ $EXPORT_TAGS{$k} } ) {
             $reverse{$k}{ &{$v} } = $v;

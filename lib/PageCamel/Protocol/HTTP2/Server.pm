@@ -352,7 +352,7 @@ If body of response is not yet ready or server will stream data
 =cut
 
 {
-
+    ## no critic (Modules::ProhibitMultiplePackages)
     package PageCamel::Protocol::HTTP2::Server::Stream;
     use PageCamel::Protocol::HTTP2::Constants qw(:states);
     use Scalar::Util ();
@@ -403,6 +403,7 @@ sub DESTROY($self) {
 
 # RFC 8441 - PageCamel::Protocol::HTTP2::Server::Tunnel for WebSocket over HTTP/2
 {
+    ## no critic (Modules::ProhibitMultiplePackages)
     package PageCamel::Protocol::HTTP2::Server::Tunnel;
     use PageCamel::Protocol::HTTP2::Constants qw(:states :frame_types);
     use Scalar::Util ();
@@ -638,7 +639,7 @@ sub feed($self, $chunk) {
         $con->shutdown(1) unless defined $len;
         return unless $len;
 
-        substr( $self->{input}, $offset, $len ) = '';
+        $self->{input} = substr( $self->{input}, 0, $offset ) . substr( $self->{input}, $offset + $len );
 
         $con->enqueue_raw( $con->upgrade_response );
         $con->enqueue( SETTINGS, 0, 0,
@@ -676,7 +677,7 @@ sub feed($self, $chunk) {
         tracer->debug("decoded frame at $offset, length $len\n");
         $offset += $len;
     }
-    substr( $self->{input}, 0, $offset ) = '' if $offset;
+    $self->{input} = substr( $self->{input}, $offset ) if $offset;
     return;
 }
 

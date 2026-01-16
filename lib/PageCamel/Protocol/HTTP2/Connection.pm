@@ -327,7 +327,7 @@ sub state_machine($self, $act, $type, $flags, $stream_id) {
         {
             $self->stream_state( $stream_id, CLOSED, $pending );
         }
-        elsif ( ( !grep { $type == $_ } ( WINDOW_UPDATE, PRIORITY ) )
+        elsif ( ( $type != WINDOW_UPDATE && $type != PRIORITY )
             && $cln2srv )
         {
             tracer->error( sprintf "invalid frame %s for state HALF CLOSED\n",
@@ -363,8 +363,8 @@ sub send_headers($self, $stream_id, $headers, $end) {
     $self->enqueue( HEADERS, $flags, $stream_id,
         { hblock => \substr( $header_block, 0, $max_size, '' ) } );
     while ( length($header_block) > 0 ) {
-        my $flags = length($header_block) <= $max_size ? 0 : END_HEADERS;
-        $self->enqueue( CONTINUATION, $flags,
+        my $cont_flags = length($header_block) <= $max_size ? 0 : END_HEADERS;
+        $self->enqueue( CONTINUATION, $cont_flags,
             $stream_id, \substr( $header_block, 0, $max_size, '' ) );
     }
     return;
@@ -381,8 +381,8 @@ sub send_pp_headers($self, $stream_id, $promised_id, $headers) {
         [ $promised_id, \substr( $header_block, 0, $max_size - 4, '' ) ] );
 
     while ( length($header_block) > 0 ) {
-        my $flags = length($header_block) <= $max_size ? 0 : END_HEADERS;
-        $self->enqueue( CONTINUATION, $flags,
+        my $cont_flags = length($header_block) <= $max_size ? 0 : END_HEADERS;
+        $self->enqueue( CONTINUATION, $cont_flags,
             $stream_id, \substr( $header_block, 0, $max_size, '' ) );
     }
     return;
@@ -444,12 +444,12 @@ sub _setting($ctx, $self, $setting, $value = undef) {
     return $s->{$setting};
 }
 
-sub enc_setting {
-    return _setting( 'encode_ctx', @_ );
+sub enc_setting($self, @rest) {
+    return _setting( 'encode_ctx', $self, @rest );
 }
 
-sub dec_setting {
-    return _setting( 'decode_ctx', @_ );
+sub dec_setting($self, @rest) {
+    return _setting( 'decode_ctx', $self, @rest );
 }
 
 sub accept_settings($self) {
@@ -466,12 +466,12 @@ sub _fcw($dir, $self, $delta = undef) {
     return $self->{$dir};
 }
 
-sub fcw_send {
-    return _fcw( 'fcw_send', @_ );
+sub fcw_send($self, @rest) {
+    return _fcw( 'fcw_send', $self, @rest );
 }
 
-sub fcw_recv {
-    return _fcw( 'fcw_recv', @_ );
+sub fcw_recv($self, @rest) {
+    return _fcw( 'fcw_recv', $self, @rest );
 }
 
 sub fcw_update($self) {
