@@ -1,7 +1,18 @@
 package PageCamel::XS::NGTCP2::Stream;
-use v5.38;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
 # This package provides a high-level wrapper around QUIC stream operations.
 # It wraps the stream-related methods from PageCamel::XS::NGTCP2::Connection.

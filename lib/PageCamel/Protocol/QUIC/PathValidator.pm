@@ -1,12 +1,21 @@
 package PageCamel::Protocol::QUIC::PathValidator;
-use v5.38;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
 use Time::HiRes qw(time);
-use Carp qw(croak);
 
-our $VERSION = '0.01';
 
 # Path validation states
 use constant {

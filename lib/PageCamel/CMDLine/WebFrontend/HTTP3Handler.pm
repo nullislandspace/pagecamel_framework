@@ -19,7 +19,6 @@ no warnings 'experimental::args_array_with_signatures';
 use base 'PageCamel::CMDLine::WebFrontend::BaseHTTPHandler';
 
 use PageCamel::Protocol::HTTP3::Server;
-use PageCamel::Protocol::HTTP3::QPACK::Encoder;
 use PageCamel::Protocol::HTTP3::QPACK::Decoder;
 use IO::Socket::UNIX;
 use IO::Select;

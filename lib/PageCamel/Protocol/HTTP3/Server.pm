@@ -1,16 +1,25 @@
 package PageCamel::Protocol::HTTP3::Server;
-use v5.38;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
 use PageCamel::XS::NGHTTP3 qw(:constants);
 use PageCamel::XS::NGHTTP3::Headers;
 use PageCamel::Protocol::QUIC::Connection;
 use PageCamel::Helpers::DateStrings;
-use Carp qw(croak);
 use Scalar::Util qw(weaken);
 
-our $VERSION = '0.01';
 
 sub new($class, %config) {
     # Debug: print all config keys
@@ -866,7 +875,6 @@ sub _is_client_bidi_stream($self, $stream_id) {
 # ResponseStream class for streaming responses
 
 package PageCamel::Protocol::HTTP3::ResponseStream;
-use v5.38;
 
 sub new($class, %args) {
     my $self = bless {
@@ -904,7 +912,6 @@ sub is_closed($self) { return $self->{closed}; }
 # Tunnel class for WebSocket/Extended CONNECT
 
 package PageCamel::Protocol::HTTP3::Tunnel;
-use v5.38;
 
 sub new($class, %args) {
     my $self = bless {

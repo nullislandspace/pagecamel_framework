@@ -1,7 +1,18 @@
 package PageCamel::XS::NGHTTP3::Server;
-use v5.38;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
 # This package is defined in NGHTTP3.xs and provides the Perl-level
 # interface to nghttp3_conn objects for server-side HTTP/3.

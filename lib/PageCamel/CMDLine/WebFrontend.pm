@@ -29,7 +29,6 @@ use Sys::Hostname;
 use POSIX;
 use Errno qw();  # Load without importing - only needed for %! hash tying
 use PageCamel::Helpers::FileSlurp qw(writeBinFile);
-use PageCamel::Helpers::Logo590;
 
 # For turning off SSL session cache
 use Readonly;
