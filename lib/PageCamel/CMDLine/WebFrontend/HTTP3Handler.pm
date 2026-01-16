@@ -60,6 +60,8 @@ sub new($class, %config) {
     $self->{streamCongestionBlocked} = {};
     # Per-stream pending flush flag (for buffered responses awaiting nghttp3 drain)
     $self->{streamPendingFlush} = {};
+    # Per-stream chunked encoding flag (for uploads without Content-Length)
+    $self->{streamUseChunked} = {};
 
     return $self;
 }
@@ -334,7 +336,13 @@ sub handleStreamData($self, $server, $streamId, $data, $fin) {
         my $backend = $self->{streamBackends}->{$streamId};
         if(defined($backend) && length($data)) {
             $self->{tobackendbuffers}->{$streamId} //= '';
-            $self->{tobackendbuffers}->{$streamId} .= $data;
+            if($self->{streamUseChunked}->{$streamId}) {
+                # Encode as HTTP/1.1 chunk: size_hex\r\ndata\r\n
+                my $chunk = sprintf("%x\r\n%s\r\n", length($data), $data);
+                $self->{tobackendbuffers}->{$streamId} .= $chunk;
+            } else {
+                $self->{tobackendbuffers}->{$streamId} .= $data;
+            }
         }
     }
 
@@ -378,17 +386,25 @@ sub translateRequest($self, $streamId, $headers, $body) {
         $request .= "$hdr\r\n";
     }
 
-    # Only add Content-Length if client didn't send one and we have initial body data
-    # Note: For streaming uploads, the client's content-length header is authoritative
-    if(!$hasContentLength && defined($body) && length($body)) {
-        $request .= "Content-Length: " . length($body) . "\r\n";
+    # Handle body encoding for uploads without Content-Length
+    # HTTP/3 forbids Transfer-Encoding: chunked, but the backend needs it for HTTP/1.1
+    my %methodsWithBody = ('POST' => 1, 'PUT' => 1, 'PATCH' => 1);
+    if(!$hasContentLength && exists($methodsWithBody{$method})) {
+        # No Content-Length but method can have body - use chunked encoding for backend
+        $request .= "Transfer-Encoding: chunked\r\n";
+        $self->{streamUseChunked}->{$streamId} = 1;
     }
 
     $request .= "\r\n";
 
     # Add initial body chunk (more may arrive via handleStreamData)
     if(defined($body) && length($body)) {
-        $request .= $body;
+        if($self->{streamUseChunked}->{$streamId}) {
+            # Encode as HTTP/1.1 chunk: size_hex\r\ndata\r\n
+            $request .= sprintf("%x\r\n%s\r\n", length($body), $body);
+        } else {
+            $request .= $body;
+        }
     }
 
     # Note: PAGECAMEL overhead is sent once per pooled connection in createPooledBackend()
@@ -917,6 +933,7 @@ sub cleanupStream($self, $streamId) {
     delete $self->{streamBytesSent}->{$streamId};
     delete $self->{streamCongestionBlocked}->{$streamId};
     delete $self->{streamPendingFlush}->{$streamId};
+    delete $self->{streamUseChunked}->{$streamId};
 
     return;
 }

@@ -124,8 +124,10 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 
     ok($request, 'translateRequest with body returns content');
     like($request, qr/POST \/api\/v1\/data HTTP\/1\.1/, 'Contains POST request line');
-    like($request, qr/Content-Length: 16/, 'Contains Content-Length header');
-    like($request, qr/\{"key": "value"\}$/, 'Contains body at end');
+    # POST without Content-Length uses chunked encoding for backend
+    like($request, qr/Transfer-Encoding: chunked/, 'Contains Transfer-Encoding: chunked header');
+    # Body is chunked: hex_size\r\ndata\r\n (16 bytes = 0x10)
+    like($request, qr/10\r\n\{"key": "value"\}\r\n$/, 'Contains body as chunked data');
 }
 
 # Test translateWebsocketUpgrade method

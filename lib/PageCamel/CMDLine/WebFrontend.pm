@@ -1472,6 +1472,15 @@ sub handleQUICHandshake($self, $quicConn) {
                 $handler->handleStreamData($server, $streamId, $data, 0);
             }
         },
+        on_request_end => sub($server, $streamId, $headers, $body) {
+            # Request body complete - send terminal chunk if using chunked encoding
+            my $handler = $quicConn->{_http3Handler};
+            if(defined($handler) && $handler->{streamUseChunked}->{$streamId}) {
+                $handler->{tobackendbuffers}->{$streamId} //= '';
+                $handler->{tobackendbuffers}->{$streamId} .= "0\r\n\r\n";
+                delete $handler->{streamUseChunked}->{$streamId};
+            }
+        },
     );
 
     $quicConn->{_http3Server} = $http3Server;
