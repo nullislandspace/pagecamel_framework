@@ -81,9 +81,6 @@ sub run($self) {
         $sendCallbackCount++;
         my @pkts = $quicConn->get_packets(Time::HiRes::time());
         $sendCallbackPkts += scalar(@pkts);
-        if ($sendCallbackCount <= 10 || $sendCallbackCount % 1000 == 0) {
-            print STDERR "DEBUG sendCallback #$sendCallbackCount: got " . scalar(@pkts) . " packets (total=$sendCallbackPkts)\n";
-        }
         foreach my $pkt (@pkts) {
             if(defined($self->{sendPacketCallback})) {
                 $self->{sendPacketCallback}->($pkt->{data}, $pkt->{peer_addr});
@@ -497,15 +494,6 @@ sub handleBackendData($self, $server, $socket, $toclientbufferRef, $maxBufferSiz
         $self->processBackendResponse($server, $streamId);
     }
 
-    # Log every 4MB milestone
-    my $bytesSent = $self->{streamBytesSent}->{$streamId} // 0;
-    my $curMB = int($bytesSent / 4_000_000) * 4;
-    my $prevMB = int(($bytesSent - $totalBytesRead) / 4_000_000) * 4;
-    if($totalBytesRead > 0 && $curMB > $prevMB) {
-        my $responseLen = length($self->{streamResponses}->{$streamId} // '');
-        print STDERR "DEBUG handleBackendData: stream=$streamId bytesSent=${bytesSent} buffered=$responseLen readThisCall=$totalBytesRead\n";
-    }
-
     return;
 }
 
@@ -551,8 +539,9 @@ sub processBackendResponse($self, $server, $streamId) {
         }
 
         # Check for WebSocket upgrade response
+        my %respHeaders = map { lc() => 1 } @responseHeaders;
         if($self->{streamStates}->{$streamId} eq 'tunnel_pending' ||
-           ($status == 101 && grep { $_ eq 'upgrade' } @responseHeaders)) {
+           ($status == 101 && exists $respHeaders{'upgrade'})) {
             # WebSocket accepted - enter tunnel mode
             $self->{streamStates}->{$streamId} = 'tunnel_active';
 
@@ -814,13 +803,6 @@ sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
                     # Congestion blocked (or error) - send any pending packets and exit
                     # Don't retry immediately - we need to wait for ACKs from the network
                     # The main loop will process ACKs and call flushPendingStreams again
-                    $self->{_flushBlockedCount} //= 0;
-                    $self->{_flushBlockedCount}++;
-                    # Only log occasionally to avoid flooding
-                    if ($self->{_flushBlockedCount} % 500 == 1) {
-                        my $cwndLeft = $self->{quicConnection}->{quic_conn}->get_cwnd_left();
-                        print STDERR "DEBUG flushPending: BLOCKED (count=$self->{_flushBlockedCount}) cwndLeft=$cwndLeft toSend=" . length($toSend) . "\n";
-                    }
                     $sendPacketsCallback->() if($sendPacketsCallback);
 
                     # Mark stream as congestion-blocked (for back-pressure)

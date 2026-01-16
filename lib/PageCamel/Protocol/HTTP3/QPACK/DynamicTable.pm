@@ -16,7 +16,7 @@ use PageCamel::Helpers::UTF;
 
 
 # QPACK Dynamic Table entry overhead (per RFC 9204)
-use constant ENTRY_OVERHEAD => 32;
+use constant ENTRY_OVERHEAD => 32;  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
 
 sub new($class, %config) {
     my $self = bless {
@@ -50,6 +50,7 @@ sub dropped_count($self) { return $self->{dropped_count}; }
 sub set_capacity($self, $capacity) {
     $self->{max_capacity} = $capacity;
     $self->_evict_to_fit(0);  # Evict if needed
+    return;
 }
 
 # Insert entry
@@ -163,6 +164,7 @@ sub clear($self) {
     $self->{size} = 0;
     $self->{name_index} = {};
     $self->{name_value_index} = {};
+    return;
 }
 
 # Internal methods
@@ -183,6 +185,7 @@ sub _evict_to_fit($self, $new_entry_size) {
 
     # Rebuild indexes after eviction
     $self->_rebuild_indexes() if $new_entry_size == 0;
+    return;
 }
 
 sub _rebuild_indexes($self) {
@@ -202,6 +205,7 @@ sub _rebuild_indexes($self) {
         my $key = "$name\0$value";
         $self->{name_value_index}{$key} //= $i;
     }
+    return;
 }
 
 # Acknowledgment tracking for QPACK

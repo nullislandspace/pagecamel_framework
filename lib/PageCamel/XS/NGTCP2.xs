@@ -1493,18 +1493,6 @@ server_new(class, ...)
         callbacks.handshake_completed = handshake_completed_trampoline;
         callbacks.path_validation = path_validation_trampoline;
 
-        /* Debug: show transport params and settings (always log cc_algo for debugging) */
-        fprintf(stderr, "NGTCP2: server_new cc_algo=%d (0=RENO, 1=CUBIC, 2=BBR, 3=BBR2)\n",
-                (int)settings->settings.cc_algo);
-        if (NGTCP2_DEBUG) {
-            fprintf(stderr, "NGTCP2: server_new transport params:\n");
-            fprintf(stderr, "  original_dcid.datalen=%zu\n", params->params.original_dcid.datalen);
-            fprintf(stderr, "  initial_scid.datalen=%zu\n", params->params.initial_scid.datalen);
-            fprintf(stderr, "  initial_max_data=%lu\n", (unsigned long)params->params.initial_max_data);
-            fprintf(stderr, "  initial_max_streams_bidi=%lu\n", (unsigned long)params->params.initial_max_streams_bidi);
-            fprintf(stderr, "  dcid param len=%zu, scid param len=%zu\n", dcid->cid.datalen, scid->cid.datalen);
-        }
-
         /* Create the ngtcp2 connection */
         rv = ngtcp2_conn_server_new(
             &qc->conn,
@@ -1524,17 +1512,6 @@ server_new(class, ...)
             gnutls_certificate_free_credentials(qc->shared_cred);
             Safefree(qc);
             croak("ngtcp2_conn_server_new failed: %s", ngtcp2_strerror(rv));
-        }
-
-        if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: server_new succeeded, conn=%p, session=%p\n",
-                (void*)qc->conn, (void*)qc->session);
-
-        /* Always log initial cwnd for debugging */
-        {
-            ngtcp2_conn_stat cstat;
-            ngtcp2_conn_get_conn_stat(qc->conn, &cstat);
-            fprintf(stderr, "NGTCP2: initial cwnd=%lu ssthresh=%lu\n",
-                    (unsigned long)cstat.cwnd, (unsigned long)cstat.ssthresh);
         }
 
         /* Link the GnuTLS session to the ngtcp2 connection - CRITICAL */
@@ -1834,19 +1811,6 @@ write_stream(self, stream_id, data, ts, fin = 0)
             1,
             (ngtcp2_tstamp)ts
         );
-
-        /* Debug: log timestamp delta and CC state */
-        static int write_stream_calls = 0;
-        write_stream_calls++;
-        if (write_stream_calls % 100 == 1 || (nwrite == 0 && write_stream_calls < 50) || ts_delta > 10000000) {
-            uint64_t cwnd = ngtcp2_conn_get_cwnd_left(self->conn);
-            ngtcp2_conn_stat cstat;
-            ngtcp2_conn_get_conn_stat(self->conn, &cstat);
-            fprintf(stderr, "XS write_stream #%d: stream=%lld datalen=%zu nwrite=%zd ndatalen=%zd cwnd=%lu in_flight=%lu ts_delta_ns=%lu rtt=%lu\n",
-                    write_stream_calls, (long long)stream_id, datalen, nwrite, ndatalen,
-                    (unsigned long)cwnd, (unsigned long)cstat.bytes_in_flight,
-                    (unsigned long)ts_delta, (unsigned long)cstat.smoothed_rtt);
-        }
 
         /* Always return two values: (packet_data, bytes_consumed/error) */
         if (nwrite < 0) {

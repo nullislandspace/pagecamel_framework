@@ -233,6 +233,7 @@ sub _build_indexes {
         # Exact match index
         $NAME_VALUE_INDEX{"$name\0$value"} = $i;
     }
+    return;
 }
 
 _build_indexes();

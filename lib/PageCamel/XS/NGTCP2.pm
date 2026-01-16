@@ -81,7 +81,7 @@ our %EXPORT_TAGS = (
 );
 
 # Congestion control algorithm constants
-use constant {
+use constant {  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
     NGTCP2_CC_ALGO_RENO  => 0,
     NGTCP2_CC_ALGO_CUBIC => 1,
     NGTCP2_CC_ALGO_BBR   => 2,

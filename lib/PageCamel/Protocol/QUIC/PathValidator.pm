@@ -18,7 +18,7 @@ use Time::HiRes qw(time);
 
 
 # Path validation states
-use constant {
+use constant {  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
     PATH_UNKNOWN    => 0,
     PATH_VALIDATING => 1,
     PATH_VALIDATED  => 2,
@@ -26,7 +26,7 @@ use constant {
 };
 
 # Validation parameters
-use constant {
+use constant {  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
     CHALLENGE_SIZE     => 8,      # 8 bytes for PATH_CHALLENGE data
     VALIDATION_TIMEOUT => 3,      # 3 seconds for validation
     MAX_RETRIES        => 3,      # Maximum validation attempts

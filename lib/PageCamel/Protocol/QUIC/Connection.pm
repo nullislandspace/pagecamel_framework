@@ -132,11 +132,11 @@ sub _init_connection($self) {
         # Set reasonable defaults for a server
         $params->set_initial_max_streams_bidi(100);
         $params->set_initial_max_streams_uni(100);
-        $params->set_initial_max_data(1048576);        # 1MB
-        $params->set_initial_max_stream_data_bidi_local(262144);   # 256KB
-        $params->set_initial_max_stream_data_bidi_remote(262144);  # 256KB
-        $params->set_initial_max_stream_data_uni(262144);          # 256KB
-        $params->set_max_idle_timeout(30 * 1000000000);  # 30 seconds in nanoseconds
+        $params->set_initial_max_data(1_048_576);        # 1MB
+        $params->set_initial_max_stream_data_bidi_local(262_144);   # 256KB
+        $params->set_initial_max_stream_data_bidi_remote(262_144);  # 256KB
+        $params->set_initial_max_stream_data_uni(262_144);          # 256KB
+        $params->set_max_idle_timeout(30 * 1_000_000_000);  # 30 seconds in nanoseconds
         $params->set_max_udp_payload_size(1350);         # Standard QUIC MTU
         $params->set_active_connection_id_limit(8);      # Allow multiple CIDs
     }
@@ -165,6 +165,7 @@ sub _init_connection($self) {
         on_path_validation => sub { $self->_on_path_validation(@_) },
         on_acked_stream_data_offset => sub { $self->_on_acked_stream_data_offset(@_) },
     );
+    return;
 }
 
 # Accessors
@@ -191,6 +192,7 @@ sub get_backend_socket($self) {
 
 sub add_connection_id($self, $cid) {
     push @{$self->{connection_ids}}, $cid;
+    return;
 }
 
 sub get_connection_ids($self) {
@@ -316,9 +318,6 @@ sub handle_expiry($self, $ts) {
     # Check if connection is in closing/draining state
     my $closing = $self->{quic_conn}->is_in_closing_period();
     my $draining = $self->{quic_conn}->is_in_draining_period();
-    if ($closing || $draining) {
-        print STDERR "DEBUG handle_expiry: closing=$closing draining=$draining rv=$rv state=$self->{state}\n";
-    }
     if ($closing) {
         $self->{state} = 'closing';
     }
@@ -357,7 +356,7 @@ sub write_stream($self, $stream_id, $data, $fin = 0) {
     # Note: bytes consumed may be less than data length if flow control blocks
     # IMPORTANT: This creates ONLY ONE packet per call to ensure packets are
     # sent immediately with accurate timestamps. Caller loops as needed.
-    unless ($self->is_established()) {
+    if (!$self->is_established()) {
         return -1;  # Not established
     }
 
@@ -385,14 +384,17 @@ sub close_stream($self, $stream_id, $error_code = 0) {
 
     $self->{quic_conn}->shutdown_stream($stream_id, $error_code);
     delete $self->{streams}{$stream_id};
+    return;
 }
 
 sub extend_stream_window($self, $stream_id, $size) {
     $self->{quic_conn}->extend_max_stream_offset($stream_id, $size);
+    return;
 }
 
 sub extend_connection_window($self, $size) {
     $self->{quic_conn}->extend_max_offset($size);
+    return;
 }
 
 # Connection control
@@ -406,12 +408,14 @@ sub close($self, $error_code = 0, $reason = '') {
     for my $stream_id (keys %{$self->{streams}}) {
         $self->close_stream($stream_id, $error_code);
     }
+    return;
 }
 
 sub destroy($self) {
     $self->{state} = 'closed';
     $self->{quic_conn} = undef;
     $self->{streams} = {};
+    return;
 }
 
 # Connection migration
@@ -446,7 +450,7 @@ sub _on_recv_stream_data($self, $stream_id, $offset, $data, $flags) {
     my $fin = ($flags & 0x01) ? 1 : 0;
 
     # Create stream object if needed
-    unless (exists $self->{streams}{$stream_id}) {
+    if (!exists $self->{streams}{$stream_id}) {
         my $stream = PageCamel::XS::NGTCP2::Stream->new(
             connection => $self->{quic_conn},
             stream_id  => $stream_id,
@@ -526,6 +530,7 @@ sub _on_acked_stream_data_offset($self, $stream_id, $offset, $datalen) {
 # Set callback for ACKed stream data (allows HTTP3::Server to hook in after creation)
 sub set_on_acked_stream_data($self, $callback) {
     $self->{on_acked_stream_data} = $callback;
+    return;
 }
 
 sub _addr_changed($self, $new_addr) {

@@ -18,7 +18,7 @@ use Time::HiRes qw(time);
 
 
 # Recommended number of connection IDs per connection
-use constant DEFAULT_CID_COUNT => 8;
+use constant DEFAULT_CID_COUNT => 8;  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
 
 sub new($class, %config) {
     my $self = bless {

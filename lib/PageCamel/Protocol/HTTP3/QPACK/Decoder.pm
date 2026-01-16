@@ -19,7 +19,7 @@ use PageCamel::Protocol::HTTP3::QPACK::DynamicTable;
 
 
 # QPACK instruction prefixes (for decoding)
-use constant {
+use constant {  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
     # Header block instruction patterns (high bits)
     INDEXED_STATIC_MASK         => 0b11000000,
     INDEXED_STATIC_PATTERN      => 0b11000000,  # 1 1 T=1 index
@@ -131,7 +131,7 @@ sub decode($self, $data, %opts) {
             return (undef, "Unknown instruction byte: " . sprintf("0x%02x", $byte));
         }
 
-        unless (defined $name) {
+        if(!defined $name) {
             return (undef, "Failed to decode header at position $pos");
         }
 
@@ -481,6 +481,7 @@ sub process_encoder_stream($self, $data) {
         $self->_send_insert_count_increment($increment);
         $self->{known_received_count} = $insert_count;
     }
+    return;
 }
 
 # Decoder stream operations
@@ -497,6 +498,7 @@ sub _send_section_ack($self, $stream_id) {
     }
 
     $self->{pending_decoder_stream} .= $instruction;
+    return;
 }
 
 sub _send_stream_cancel($self, $stream_id) {
@@ -511,6 +513,7 @@ sub _send_stream_cancel($self, $stream_id) {
     }
 
     $self->{pending_decoder_stream} .= $instruction;
+    return;
 }
 
 sub _send_insert_count_increment($self, $increment) {
@@ -525,6 +528,7 @@ sub _send_insert_count_increment($self, $increment) {
     }
 
     $self->{pending_decoder_stream} .= $instruction;
+    return;
 }
 
 sub _encode_integer($self, $value) {
@@ -548,6 +552,7 @@ sub get_decoder_stream_data($self) {
 # Set dynamic table capacity (from SETTINGS)
 sub set_dynamic_table_capacity($self, $capacity) {
     $self->{dynamic_table}->set_capacity($capacity);
+    return;
 }
 
 # Statistics

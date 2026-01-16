@@ -63,7 +63,7 @@ sub get($self, $name) {
         return $header->[1] if $header->[0] eq $name;
     }
 
-    return undef;
+    return;
 }
 
 sub get_all($self, $name) {
@@ -121,6 +121,7 @@ sub each($self, $callback) {
     for my $header (@{$self->{headers}}) {
         $callback->($header->[0], $header->[1]);
     }
+    return;
 }
 
 # Get all header names
