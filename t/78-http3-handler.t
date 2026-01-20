@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Test::More;
 
+plan skip_all => 'Author tests. Set TEST_HTTP3=1 to run.' unless $ENV{TEST_HTTP3};
+
 # Test HTTP3Handler module
 
 # Note: Full integration tests require a running QUIC connection

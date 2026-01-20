@@ -3,6 +3,10 @@ use warnings;
 use Test::More;
 
 BEGIN {
+    plan skip_all => 'Author tests. Set TEST_HTTP2=1 to run.' unless $ENV{TEST_HTTP2};
+}
+
+BEGIN {
     use_ok( 'PageCamel::Protocol::HTTP2::Trace', qw(tracer bin2hex) );
 }
 

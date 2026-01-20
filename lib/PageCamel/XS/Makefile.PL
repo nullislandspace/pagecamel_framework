@@ -61,7 +61,9 @@ NGHTTP3_INST_DIR = ../../../blib/arch/auto/PageCamel/XS/NGHTTP3
 
 all :: pm_to_blib \$(INST_DYNAMIC) nghttp3_module
 
-nghttp3_module: \$(NGHTTP3_O)
+nghttp3_module: \$(NGHTTP3_INST_DIR)/NGHTTP3.\$(DLEXT)
+
+\$(NGHTTP3_INST_DIR)/NGHTTP3.\$(DLEXT): \$(NGHTTP3_O)
 	\@\$(MKPATH) \$(NGHTTP3_INST_DIR)
 	\$(LD) -o \$(NGHTTP3_INST_DIR)/NGHTTP3.\$(DLEXT) \\
 		\$(LDDLFLAGS) \$(NGHTTP3_O) \\

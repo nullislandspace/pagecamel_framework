@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Test::More;
 
+plan skip_all => 'Author tests. Set TEST_HTTP3=1 to run.' unless $ENV{TEST_HTTP3};
+
 # Test QPACK Encoder
 
 use_ok('PageCamel::Protocol::HTTP3::QPACK::Encoder');

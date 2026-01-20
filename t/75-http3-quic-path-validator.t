@@ -3,6 +3,9 @@ use v5.38;
 use strict;
 use warnings;
 use Test::More;
+
+plan skip_all => 'Author tests. Set TEST_HTTP3=1 to run.' unless $ENV{TEST_HTTP3};
+
 use Time::HiRes qw(time sleep);
 
 # Test QUIC Path Validator
