@@ -655,12 +655,7 @@ NGHTTP3_ERR_INVALID_ARGUMENT()
     OUTPUT:
         RETVAL
 
-IV
-NGHTTP3_ERR_NOBUF()
-    CODE:
-        RETVAL = NGHTTP3_ERR_NOBUF;
-    OUTPUT:
-        RETVAL
+# NGHTTP3_ERR_NOBUF removed in nghttp3 v1.x
 
 IV
 NGHTTP3_ERR_INVALID_STATE()
@@ -960,9 +955,11 @@ server_new(class, ...)
         callbacks.acked_stream_data = acked_stream_data_trampoline;
 
         /* Create the nghttp3 server connection */
-        rv = nghttp3_conn_server_new(
+        rv = nghttp3_conn_server_new_versioned(
             &h3c->conn,
+            NGHTTP3_CALLBACKS_VERSION,
             &callbacks,
+            NGHTTP3_SETTINGS_VERSION,
             settings ? &settings->settings : NULL,
             NULL,  /* mem */
             h3c    /* user_data */
@@ -1029,12 +1026,13 @@ read_stream(self, stream_id, data, fin)
         STRLEN datalen;
         const uint8_t *dataptr = (const uint8_t *)SvPVbyte(data, datalen);
 
-        RETVAL = nghttp3_conn_read_stream(
+        RETVAL = nghttp3_conn_read_stream2(
             self->conn,
             (int64_t)stream_id,
             dataptr,
             datalen,
-            fin
+            fin,
+            0  /* flags */
         );
     OUTPUT:
         RETVAL

@@ -97,7 +97,8 @@ static int acked_stream_data_offset_trampoline(ngtcp2_conn *conn,
 static int handshake_completed_trampoline(ngtcp2_conn *conn, void *user_data);
 
 static int path_validation_trampoline(ngtcp2_conn *conn, uint32_t flags,
-    const ngtcp2_path *path, ngtcp2_path_validation_result res, void *user_data);
+    const ngtcp2_path *path, const ngtcp2_path *old_path,
+    ngtcp2_path_validation_result res, void *user_data);
 
 /* Utility to get current timestamp in nanoseconds */
 static ngtcp2_tstamp get_timestamp(void) {
@@ -242,7 +243,7 @@ static int recv_client_initial_wrapper(ngtcp2_conn *conn,
 
 /* Debug wrapper for recv_crypto_data to trace transport params processing */
 static int recv_crypto_data_wrapper(ngtcp2_conn *conn,
-    ngtcp2_crypto_level crypto_level, uint64_t offset,
+    ngtcp2_encryption_level crypto_level, uint64_t offset,
     const uint8_t *data, size_t datalen, void *user_data)
 {
     int rv;
@@ -253,16 +254,16 @@ static int recv_crypto_data_wrapper(ngtcp2_conn *conn,
         const ngtcp2_cid *rcid;
 
         switch (crypto_level) {
-            case NGTCP2_CRYPTO_LEVEL_INITIAL:
+            case NGTCP2_ENCRYPTION_LEVEL_INITIAL:
                 level_str = "INITIAL";
                 break;
-            case NGTCP2_CRYPTO_LEVEL_HANDSHAKE:
+            case NGTCP2_ENCRYPTION_LEVEL_HANDSHAKE:
                 level_str = "HANDSHAKE";
                 break;
-            case NGTCP2_CRYPTO_LEVEL_APPLICATION:
+            case NGTCP2_ENCRYPTION_LEVEL_1RTT:
                 level_str = "APPLICATION";
                 break;
-            case NGTCP2_CRYPTO_LEVEL_EARLY:
+            case NGTCP2_ENCRYPTION_LEVEL_0RTT:
                 level_str = "EARLY";
                 break;
             default:
@@ -520,8 +521,10 @@ static int handshake_completed_trampoline(ngtcp2_conn *conn, void *user_data)
 }
 
 static int path_validation_trampoline(ngtcp2_conn *conn, uint32_t flags,
-    const ngtcp2_path *path, ngtcp2_path_validation_result res, void *user_data)
+    const ngtcp2_path *path, const ngtcp2_path *old_path,
+    ngtcp2_path_validation_result res, void *user_data)
 {
+    (void)old_path;  /* unused */
     dTHX;
     PageCamel_QUIC_Connection *qc = (PageCamel_QUIC_Connection *)user_data;
 
@@ -595,7 +598,7 @@ NGTCP2_PROTO_VER_V1()
 UV
 NGTCP2_PROTO_VER_V2()
     CODE:
-        RETVAL = NGTCP2_PROTO_VER_V2_DRAFT;
+        RETVAL = NGTCP2_PROTO_VER_V2;
     OUTPUT:
         RETVAL
 
@@ -1712,19 +1715,19 @@ is_handshake_completed(self)
 
 # Check if connection is in closing state
 int
-is_in_closing_period(self)
+in_closing_period(self)
         PageCamel_QUIC_Connection *self
     CODE:
-        RETVAL = ngtcp2_conn_is_in_closing_period(self->conn);
+        RETVAL = ngtcp2_conn_in_closing_period(self->conn);
     OUTPUT:
         RETVAL
 
 # Check if connection is in draining state
 int
-is_in_draining_period(self)
+in_draining_period(self)
         PageCamel_QUIC_Connection *self
     CODE:
-        RETVAL = ngtcp2_conn_is_in_draining_period(self->conn);
+        RETVAL = ngtcp2_conn_in_draining_period(self->conn);
     OUTPUT:
         RETVAL
 
@@ -1836,6 +1839,7 @@ shutdown_stream(self, stream_id, app_error_code)
     CODE:
         RETVAL = ngtcp2_conn_shutdown_stream(
             self->conn,
+            0,  /* flags */
             (int64_t)stream_id,
             (uint64_t)app_error_code
         );
@@ -1875,25 +1879,24 @@ void
 get_cong_stat(self)
         PageCamel_QUIC_Connection *self
     PPCODE:
-        ngtcp2_conn_stat cstat;
-        ngtcp2_conn_get_conn_stat(self->conn, &cstat);
+        ngtcp2_conn_info cinfo;
+        ngtcp2_conn_get_conn_info(self->conn, &cinfo);
         /* Return (cwnd, bytes_in_flight, ssthresh, smoothed_rtt) */
-        mXPUSHu(cstat.cwnd);
-        mXPUSHu(cstat.bytes_in_flight);
-        mXPUSHu(cstat.ssthresh);
-        mXPUSHu(cstat.smoothed_rtt);
+        mXPUSHu(cinfo.cwnd);
+        mXPUSHu(cinfo.bytes_in_flight);
+        mXPUSHu(cinfo.ssthresh);
+        mXPUSHu(cinfo.smoothed_rtt);
 
 # Get connection close error info (for diagnostics)
 void
 get_ccerr(self)
         PageCamel_QUIC_Connection *self
     PPCODE:
-        ngtcp2_connection_close_error ccerr;
-        ngtcp2_conn_get_connection_close_error(self->conn, &ccerr);
+        const ngtcp2_ccerr *ccerr = ngtcp2_conn_get_ccerr(self->conn);
         /* Return (type, error_code, reason_len) */
-        mXPUSHi(ccerr.type);
-        mXPUSHu(ccerr.error_code);
-        mXPUSHu(ccerr.reasonlen);
+        mXPUSHi(ccerr->type);
+        mXPUSHu(ccerr->error_code);
+        mXPUSHu(ccerr->reasonlen);
 
 # Extend stream max offset (flow control)
 IV
@@ -1938,7 +1941,7 @@ UV
 get_num_scid(self)
         PageCamel_QUIC_Connection *self
     CODE:
-        RETVAL = ngtcp2_conn_get_num_scid(self->conn);
+        RETVAL = (UV)ngtcp2_conn_get_scid(self->conn, NULL);
     OUTPUT:
         RETVAL
 

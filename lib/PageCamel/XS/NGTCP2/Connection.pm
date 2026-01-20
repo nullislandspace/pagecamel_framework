@@ -177,11 +177,11 @@ Handle timeout. Call this when the expiry time has passed.
 
 Returns true if the QUIC handshake has completed.
 
-=head2 is_in_closing_period()
+=head2 in_closing_period()
 
 Returns true if the connection is in the closing state.
 
-=head2 is_in_draining_period()
+=head2 in_draining_period()
 
 Returns true if the connection is in the draining state.
 

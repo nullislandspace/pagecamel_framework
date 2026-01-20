@@ -316,8 +316,8 @@ sub handle_expiry($self, $ts) {
     }
 
     # Check if connection is in closing/draining state
-    my $closing = $self->{quic_conn}->is_in_closing_period();
-    my $draining = $self->{quic_conn}->is_in_draining_period();
+    my $closing = $self->{quic_conn}->in_closing_period();
+    my $draining = $self->{quic_conn}->in_draining_period();
     if ($closing) {
         $self->{state} = 'closing';
     }
