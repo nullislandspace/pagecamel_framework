@@ -45,7 +45,7 @@ subtest 'dont mess with continuation' => sub {
     my $con = PageCamel::Protocol::HTTP2::Connection->new(CLIENT);
     $con->preface(1);
 
-    $con->new_stream(1);
+    $con->new_stream();
     my @hdrs = ( HEADERS, 0, 1, { hblock => \"\x82" } );
     my @cont = ( CONTINUATION, END_HEADERS, 1, \"\x85" );
     my @data = ( DATA, 0, 1, \"DATA" );

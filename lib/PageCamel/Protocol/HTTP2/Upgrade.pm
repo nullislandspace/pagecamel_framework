@@ -19,39 +19,34 @@ use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 use MIME::Base64 qw(encode_base64url decode_base64url);
 
 #use re 'debug';
-my $end_headers_re = qr/\G.+?\x0d?\x0a\x0d?\x0a/s;
-my $header_re      = qr/\G[ \t]*(.+?)[ \t]*\:[ \t]*(.+?)[ \t]*\x0d?\x0a/;
+my $end_headers_re = qr/\G.+?\r?\n\r?\n/s;
+my $header_re      = qr/\G[ \t]*(.+?)[ \t]*\:[ \t]*(.+?)[ \t]*\r?\n/;
 
-sub upgrade_request {
-    my ( $con, %h ) = @_;
-    my $request = sprintf "%s %s HTTP/1.1\x0d\x0aHost: %s\x0d\x0a",
+sub upgrade_request($con, %h) {
+    my $request = sprintf "%s %s HTTP/1.1\r\nHost: %s\r\n",
       $h{':method'}, $h{':path'},
       $h{':authority'};
+    my %skip_headers = map { $_ => 1 } qw(connection upgrade http2-settings);
     while ( my ( $h, $v ) = splice( @{ $h{headers} }, 0, 2 ) ) {
-        next if grep { lc($h) eq $_ } (qw(connection upgrade http2-settings));
-        $request .= $h . ': ' . $v . "\x0d\x0a";
+        next if exists $skip_headers{lc($h)};
+        $request .= $h . ': ' . $v . "\r\n";
     }
-    $request .= join "\x0d\x0a",
-      'Connection: Upgrade, HTTP2-Settings',
-      'Upgrade: ' . PageCamel::Protocol::HTTP2::ident_plain,
-      'HTTP2-Settings: '
-      . encode_base64url( $con->frame_encode( SETTINGS, 0, 0, {} ) ),
-      '', '';
+    $request .= "Connection: Upgrade, HTTP2-Settings\r\n";
+    $request .= "Upgrade: " . PageCamel::Protocol::HTTP2::ident_plain . "\r\n";
+    $request .= "HTTP2-Settings: "
+      . encode_base64url( $con->frame_encode( SETTINGS, 0, 0, {} ) ) . "\r\n";
+    $request .= "\r\n";
     return $request;
 }
 
-sub upgrade_response {
-
-    return join "\x0d\x0a",
-      "HTTP/1.1 101 Switching Protocols",
-      "Connection: Upgrade",
-      "Upgrade: " . PageCamel::Protocol::HTTP2::ident_plain,
-      "", "";
-
+sub upgrade_response($) {
+    return "HTTP/1.1 101 Switching Protocols\r\n"
+      . "Connection: Upgrade\r\n"
+      . "Upgrade: " . PageCamel::Protocol::HTTP2::ident_plain . "\r\n"
+      . "\r\n";
 }
 
-sub decode_upgrade_request {
-    my ( $con, $buf_ref, $buf_offset, $headers_ref ) = @_;
+sub decode_upgrade_request($con, $buf_ref, $buf_offset, $headers_ref = undef) {
 
     pos(${$buf_ref}) = $buf_offset;
 
@@ -63,7 +58,7 @@ sub decode_upgrade_request {
 
     # Request
     my ( $method, $uri );
-    if (${$buf_ref} =~ m#\G(\w+) ([^ ]+) HTTP/1\.1\x0d?\x0a#g) {
+    if (${$buf_ref} =~ m#\G(\w+) ([^ ]+) HTTP/1\.1\r?\n#g) {
         ( $method, $uri ) = ( $1, $2 );
     }
     else {
@@ -86,13 +81,11 @@ sub decode_upgrade_request {
             $success |= 0b001
               if exists $h{'upgrade'} && exists $h{'http2-settings'};
         }
-        elsif (
-            $header eq "upgrade" && grep { $_ eq PageCamel::Protocol::HTTP2::ident_plain }
-            split /\s*,\s*/,
-            $value
-          )
-        {
-            $success |= 0b010;
+        elsif ( $header eq "upgrade" ) {
+            my %upgrades = map { $_ => 1 } split /\s*,\s*/, $value;
+            if(exists $upgrades{PageCamel::Protocol::HTTP2::ident_plain}) {
+                $success |= 0b010;
+            }
         }
         elsif ( $header eq "http2-settings"
             && defined $con->frame_decode( \decode_base64url($value), 0 ) )
@@ -112,8 +105,7 @@ sub decode_upgrade_request {
 
 }
 
-sub decode_upgrade_response {
-    my ( $con, $buf_ref, $buf_offset ) = @_;
+sub decode_upgrade_response($con, $buf_ref, $buf_offset) {
 
     pos(${$buf_ref}) = $buf_offset;
 
@@ -124,7 +116,7 @@ sub decode_upgrade_response {
     pos(${$buf_ref}) = $buf_offset;
 
     # Switch Protocols failed
-    return if ${$buf_ref} !~ m#\GHTTP/1\.1 101 .+?\x0d?\x0a#g;
+    return if ${$buf_ref} !~ m#\GHTTP/1\.1 101 .+?\r?\n#g;
 
     my $success = 0;
 

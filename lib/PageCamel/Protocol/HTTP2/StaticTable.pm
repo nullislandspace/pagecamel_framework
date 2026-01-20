@@ -15,7 +15,7 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 use parent qw(Exporter);
 our ( @stable, %rstable );
-our @EXPORT = qw(@stable %rstable);
+our @EXPORT = qw(@stable %rstable);  ## no critic (Modules::ProhibitAutomaticExportation)
 
 @stable = (
     [ ":authority",                  "" ],

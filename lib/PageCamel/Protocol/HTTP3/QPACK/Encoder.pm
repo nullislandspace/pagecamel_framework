@@ -1,15 +1,25 @@
 package PageCamel::Protocol::HTTP3::QPACK::Encoder;
-use v5.38;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
 use PageCamel::Protocol::HTTP3::QPACK::StaticTable;
 use PageCamel::Protocol::HTTP3::QPACK::DynamicTable;
 
-our $VERSION = '0.01';
 
 # QPACK instruction prefixes
-use constant {
+use constant {  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
     # Header block instructions
     INDEXED_STATIC         => 0b11000000,  # 1 1 T=1 index
     INDEXED_DYNAMIC        => 0b10000000,  # 1 0 index
@@ -57,12 +67,12 @@ sub encode($self, $headers, %opts) {
     my @header_list;
     if (ref($headers) eq 'ARRAY') {
         # Flat array: [name1, value1, name2, value2, ...]
-        for (my $i = 0; $i < @$headers; $i += 2) {
+        for (my $i = 0; $i < @{$headers}; $i += 2) {
             push @header_list, [$headers->[$i], $headers->[$i+1]];
         }
     }
     elsif (ref($headers) eq 'HASH') {
-        for my $name (keys %$headers) {
+        for my $name (keys %{$headers}) {
             push @header_list, [$name, $headers->{$name}];
         }
     }
@@ -82,7 +92,7 @@ sub encode($self, $headers, %opts) {
 
     # Encode each header
     for my $header (@header_list) {
-        my ($name, $value) = @$header;
+        my ($name, $value) = @{$header};
         $name = lc($name);  # HTTP/3 requires lowercase
 
         $encoded .= $self->_encode_header($name, $value);
@@ -246,6 +256,7 @@ sub set_dynamic_table_capacity($self, $capacity) {
     my $instruction = chr(SET_DYNAMIC_TABLE_CAPACITY);
     $instruction .= $self->_encode_integer($capacity, 5);
     $self->{pending_encoder_stream} .= $instruction;
+    return;
 }
 
 sub insert_header($self, $name, $value) {
@@ -269,6 +280,7 @@ sub insert_header($self, $name, $value) {
         $instruction .= $self->_encode_string($value);
         $self->{pending_encoder_stream} .= $instruction;
     }
+    return;
 }
 
 sub get_encoder_stream_data($self) {

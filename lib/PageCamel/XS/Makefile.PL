@@ -1,4 +1,3 @@
-use v5.38;
 use ExtUtils::MakeMaker;
 use Config;
 

@@ -16,8 +16,7 @@ use PageCamel::Helpers::UTF;
 use PageCamel::Protocol::HTTP2::Constants qw(:flags :errors);
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 
-sub decode {
-    my ( $con, $buf_ref, $buf_offset, $length ) = @_;
+sub decode($con, $buf_ref, $buf_offset, $length) {
     my $frame_ref = $con->decode_context->{frame};
 
     # Priority frames MUST be associated with a stream
@@ -48,8 +47,7 @@ sub decode {
     return $length;
 }
 
-sub encode {
-    my ( $con, $flags_ref, $stream, $data_ref ) = @_;
+sub encode($con, $flags_ref, $stream, $data_ref) {
     my $stream_dep = $data_ref->[0];
     my $weight     = $data_ref->[1] - 1;
     return pack( 'NC', $stream_dep, $weight );

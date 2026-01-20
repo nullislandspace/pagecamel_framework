@@ -1,7 +1,18 @@
 package PageCamel::XS::NGHTTP3::Headers;
-use v5.38;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
 # High-level wrapper for HTTP/3 headers
 
@@ -52,7 +63,7 @@ sub get($self, $name) {
         return $header->[1] if $header->[0] eq $name;
     }
 
-    return undef;
+    return;
 }
 
 sub get_all($self, $name) {
@@ -110,6 +121,7 @@ sub each($self, $callback) {
     for my $header (@{$self->{headers}}) {
         $callback->($header->[0], $header->[1]);
     }
+    return;
 }
 
 # Get all header names

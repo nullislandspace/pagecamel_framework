@@ -17,12 +17,11 @@ use PageCamel::Protocol::HTTP2::HuffmanCodes;
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 our ( %hcodes, %rhcodes, $hre );
 use parent qw(Exporter);
-our @EXPORT = qw(huffman_encode huffman_decode);
+our @EXPORT = qw(huffman_encode huffman_decode);  ## no critic (Modules::ProhibitAutomaticExportation)
 
 # Memory unefficient algorithm (well suited for short strings)
 
-sub huffman_encode {
-    my $s = shift;
+sub huffman_encode($s) {
     my $ret = my $bin = '';
     for my $i ( 0 .. length($s) - 1 ) {
         $bin .= $hcodes{ ord( substr $s, $i, 1 ) };
@@ -31,8 +30,7 @@ sub huffman_encode {
     return $ret . pack( 'B*', $bin );
 }
 
-sub huffman_decode {
-    my $s = shift;
+sub huffman_decode($s) {
     my $bin = unpack( 'B*', $s );
 
     my $c = 0;

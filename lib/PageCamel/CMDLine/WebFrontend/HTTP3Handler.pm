@@ -19,7 +19,6 @@ no warnings 'experimental::args_array_with_signatures';
 use base 'PageCamel::CMDLine::WebFrontend::BaseHTTPHandler';
 
 use PageCamel::Protocol::HTTP3::Server;
-use PageCamel::Protocol::HTTP3::QPACK::Encoder;
 use PageCamel::Protocol::HTTP3::QPACK::Decoder;
 use IO::Socket::UNIX;
 use IO::Select;
@@ -61,6 +60,8 @@ sub new($class, %config) {
     $self->{streamCongestionBlocked} = {};
     # Per-stream pending flush flag (for buffered responses awaiting nghttp3 drain)
     $self->{streamPendingFlush} = {};
+    # Per-stream chunked encoding flag (for uploads without Content-Length)
+    $self->{streamUseChunked} = {};
 
     return $self;
 }
@@ -82,9 +83,6 @@ sub run($self) {
         $sendCallbackCount++;
         my @pkts = $quicConn->get_packets(Time::HiRes::time());
         $sendCallbackPkts += scalar(@pkts);
-        if ($sendCallbackCount <= 10 || $sendCallbackCount % 1000 == 0) {
-            print STDERR "DEBUG sendCallback #$sendCallbackCount: got " . scalar(@pkts) . " packets (total=$sendCallbackPkts)\n";
-        }
         foreach my $pkt (@pkts) {
             if(defined($self->{sendPacketCallback})) {
                 $self->{sendPacketCallback}->($pkt->{data}, $pkt->{peer_addr});
@@ -338,7 +336,13 @@ sub handleStreamData($self, $server, $streamId, $data, $fin) {
         my $backend = $self->{streamBackends}->{$streamId};
         if(defined($backend) && length($data)) {
             $self->{tobackendbuffers}->{$streamId} //= '';
-            $self->{tobackendbuffers}->{$streamId} .= $data;
+            if($self->{streamUseChunked}->{$streamId}) {
+                # Encode as HTTP/1.1 chunk: size_hex\r\ndata\r\n
+                my $chunk = sprintf("%x\r\n%s\r\n", length($data), $data);
+                $self->{tobackendbuffers}->{$streamId} .= $chunk;
+            } else {
+                $self->{tobackendbuffers}->{$streamId} .= $data;
+            }
         }
     }
 
@@ -382,17 +386,25 @@ sub translateRequest($self, $streamId, $headers, $body) {
         $request .= "$hdr\r\n";
     }
 
-    # Only add Content-Length if client didn't send one and we have initial body data
-    # Note: For streaming uploads, the client's content-length header is authoritative
-    if(!$hasContentLength && defined($body) && length($body)) {
-        $request .= "Content-Length: " . length($body) . "\r\n";
+    # Handle body encoding for uploads without Content-Length
+    # HTTP/3 forbids Transfer-Encoding: chunked, but the backend needs it for HTTP/1.1
+    my %methodsWithBody = ('POST' => 1, 'PUT' => 1, 'PATCH' => 1);
+    if(!$hasContentLength && exists($methodsWithBody{$method})) {
+        # No Content-Length but method can have body - use chunked encoding for backend
+        $request .= "Transfer-Encoding: chunked\r\n";
+        $self->{streamUseChunked}->{$streamId} = 1;
     }
 
     $request .= "\r\n";
 
     # Add initial body chunk (more may arrive via handleStreamData)
     if(defined($body) && length($body)) {
-        $request .= $body;
+        if($self->{streamUseChunked}->{$streamId}) {
+            # Encode as HTTP/1.1 chunk: size_hex\r\ndata\r\n
+            $request .= sprintf("%x\r\n%s\r\n", length($body), $body);
+        } else {
+            $request .= $body;
+        }
     }
 
     # Note: PAGECAMEL overhead is sent once per pooled connection in createPooledBackend()
@@ -498,15 +510,6 @@ sub handleBackendData($self, $server, $socket, $toclientbufferRef, $maxBufferSiz
         $self->processBackendResponse($server, $streamId);
     }
 
-    # Log every 4MB milestone
-    my $bytesSent = $self->{streamBytesSent}->{$streamId} // 0;
-    my $curMB = int($bytesSent / 4_000_000) * 4;
-    my $prevMB = int(($bytesSent - $totalBytesRead) / 4_000_000) * 4;
-    if($totalBytesRead > 0 && $curMB > $prevMB) {
-        my $responseLen = length($self->{streamResponses}->{$streamId} // '');
-        print STDERR "DEBUG handleBackendData: stream=$streamId bytesSent=${bytesSent} buffered=$responseLen readThisCall=$totalBytesRead\n";
-    }
-
     return;
 }
 
@@ -552,8 +555,9 @@ sub processBackendResponse($self, $server, $streamId) {
         }
 
         # Check for WebSocket upgrade response
+        my %respHeaders = map { lc() => 1 } @responseHeaders;
         if($self->{streamStates}->{$streamId} eq 'tunnel_pending' ||
-           ($status == 101 && grep { $_ eq 'upgrade' } @responseHeaders)) {
+           ($status == 101 && exists $respHeaders{'upgrade'})) {
             # WebSocket accepted - enter tunnel mode
             $self->{streamStates}->{$streamId} = 'tunnel_active';
 
@@ -815,13 +819,6 @@ sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
                     # Congestion blocked (or error) - send any pending packets and exit
                     # Don't retry immediately - we need to wait for ACKs from the network
                     # The main loop will process ACKs and call flushPendingStreams again
-                    $self->{_flushBlockedCount} //= 0;
-                    $self->{_flushBlockedCount}++;
-                    # Only log occasionally to avoid flooding
-                    if ($self->{_flushBlockedCount} % 500 == 1) {
-                        my $cwndLeft = $self->{quicConnection}->{quic_conn}->get_cwnd_left();
-                        print STDERR "DEBUG flushPending: BLOCKED (count=$self->{_flushBlockedCount}) cwndLeft=$cwndLeft toSend=" . length($toSend) . "\n";
-                    }
                     $sendPacketsCallback->() if($sendPacketsCallback);
 
                     # Mark stream as congestion-blocked (for back-pressure)
@@ -936,6 +933,7 @@ sub cleanupStream($self, $streamId) {
     delete $self->{streamBytesSent}->{$streamId};
     delete $self->{streamCongestionBlocked}->{$streamId};
     delete $self->{streamPendingFlush}->{$streamId};
+    delete $self->{streamUseChunked}->{$streamId};
 
     return;
 }

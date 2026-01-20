@@ -21,9 +21,8 @@ use Exporter qw(import);
 our @EXPORT_OK = qw(int_encode int_decode str_encode str_decode headers_decode
   headers_encode);
 
-sub int_encode {
-    my ( $int, $N ) = @_;
-    $N ||= 7;
+sub int_encode($int, $N = 7) {
+    $N ||= 7;  # Also handle explicit 0 or undef
     my $ff = ( 1 << $N ) - 1;
 
     if ( $int < $ff ) {
@@ -52,10 +51,9 @@ sub int_encode {
 # returns: count of read bytes of encoded integer
 #          or undef on error (malformed data)
 
-sub int_decode {
-    my ( $buf_ref, $buf_offset, $int_ref, $N ) = @_;
+sub int_decode($buf_ref, $buf_offset, $int_ref, $N = 7) {
     return if length(${$buf_ref}) - $buf_offset <= 0;
-    $N ||= 7;
+    $N ||= 7;  # Also handle explicit 0 or undef
     my $ff = ( 1 << $N ) - 1;
 
     ${$int_ref} = $ff & vec( ${$buf_ref}, $buf_offset, 8 );
@@ -73,8 +71,7 @@ sub int_decode {
     return;
 }
 
-sub str_encode {
-    my $str      = shift;
+sub str_encode($str) {
     my $huff_str = huffman_encode($str);
     my $pack;
     if ( length($huff_str) < length($str) ) {
@@ -96,8 +93,7 @@ sub str_encode {
 #   str_ref    - ref to scalar where result will be stored
 # returns: count of read bytes of encoded data
 
-sub str_decode {
-    my ( $buf_ref, $buf_offset, $str_ref ) = @_;
+sub str_decode($buf_ref, $buf_offset, $str_ref) {
     my $offset = int_decode( $buf_ref, $buf_offset, \my $l, 7 );
     return
       unless defined $offset
@@ -109,8 +105,7 @@ sub str_decode {
     return $offset + $l;
 }
 
-sub evict_ht {
-    my ( $context, $size ) = @_;
+sub evict_ht($context, $size) {
     my @evicted;
 
     my $ht = $context->{header_table};
@@ -127,8 +122,7 @@ sub evict_ht {
     return @evicted;
 }
 
-sub add_to_ht {
-    my ( $context, $key, $value ) = @_;
+sub add_to_ht($context, $key, $value) {
     my $size = length($key) + length($value) + 32;
     return () if $size > $context->{max_ht_size};
 
@@ -142,8 +136,7 @@ sub add_to_ht {
     return @evicted;
 }
 
-sub headers_decode {
-    my ( $con, $buf_ref, $buf_offset, $length, $stream_id ) = @_;
+sub headers_decode($con, $buf_ref, $buf_offset, $length, $stream_id = 0) {
 
     my $context = $con->decode_context;
 
@@ -283,12 +276,12 @@ sub headers_decode {
 
             # It's not possible to increase size of HEADER_TABLE
             if (
-                $ht_size > $context->{settings}->{&SETTINGS_HEADER_TABLE_SIZE} )
+                $ht_size > $context->{settings}->{SETTINGS_HEADER_TABLE_SIZE()} )
             {
                 tracer->error( "Peer attempt to increase "
                       . "maximum header table size higher than current size: "
                       . "$ht_size > "
-                      . $context->{settings}->{&SETTINGS_HEADER_TABLE_SIZE} );
+                      . $context->{settings}->{SETTINGS_HEADER_TABLE_SIZE()} );
                 $con->error(COMPRESSION_ERROR);
                 return;
             }
@@ -324,11 +317,10 @@ sub headers_decode {
     return $offset;
 }
 
-sub headers_encode {
-    my ( $context, $headers ) = @_;
+sub headers_encode($context, $headers) {
     my $res = '';
     my $ht  = $context->{header_table};
-    my $sht = $context->{settings}->{&SETTINGS_HEADER_TABLE_SIZE};
+    my $sht = $context->{settings}->{SETTINGS_HEADER_TABLE_SIZE()};
 
     # Encode dynamic table size update
     if ( $context->{max_ht_size} != $sht ) {
@@ -339,14 +331,14 @@ sub headers_encode {
     }
 
   HLOOP:
-    for my $n ( 0 .. $#$headers / 2 ) {
+    for my $n ( 0 .. ( @{$headers} - 1 ) / 2 ) {
         my $header = lc( $headers->[ 2 * $n ] );
         my $value  = $headers->[ 2 * $n + 1 ];
         my $hdr;
 
         tracer->debug("Encoding header: $header = $value\n");
 
-        for my $i ( 0 .. $#$ht ) {
+        for my $i ( 0 .. @{$ht} - 1 ) {
             next
               unless $ht->[$i]->[0] eq $header
               && $ht->[$i]->[1] eq $value;

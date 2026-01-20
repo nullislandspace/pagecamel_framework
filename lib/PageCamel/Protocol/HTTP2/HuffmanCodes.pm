@@ -15,7 +15,7 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 use parent qw(Exporter);
 our ( %hcodes, %rhcodes, $hre );
-our @EXPORT = qw(%hcodes %rhcodes $hre);
+our @EXPORT = qw(%hcodes %rhcodes $hre);  ## no critic (Modules::ProhibitAutomaticExportation)
 
 %hcodes = (
     0   => '1111111111000',
@@ -279,9 +279,6 @@ our @EXPORT = qw(%hcodes %rhcodes $hre);
 
 %rhcodes = reverse %hcodes;
 
-{
-    local $" = '|';
-    $hre = qr/(?:^|\G)(@{[ keys %rhcodes ]})/;
-}
+$hre = qr/(?:^|\G)(@{[ join '|', keys %rhcodes ]})/;
 
 1;

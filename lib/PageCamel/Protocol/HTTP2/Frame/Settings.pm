@@ -50,8 +50,7 @@ my %s_action = (
     }
 );
 
-sub decode {
-    my ( $con, $buf_ref, $buf_offset, $length ) = @_;
+sub decode($con, $buf_ref, $buf_offset, $length) {
     my $frame_ref = $con->decode_context->{frame};
 
     if ( $frame_ref->{stream} != 0 ) {
@@ -121,8 +120,7 @@ sub decode {
     return $length;
 }
 
-sub encode {
-    my ( $con, $flags_ref, $stream, $data ) = @_;
+sub encode($con, $flags_ref, $stream, $data) {
     my $payload = '';
     for my $key ( sort keys %{$data} ) {
         tracer->debug( "\tSettings "

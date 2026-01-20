@@ -1,14 +1,23 @@
 package PageCamel::Protocol::QUIC::Server;
-use v5.38;
+#---AUTOPRAGMASTART---
+use v5.40;
 use strict;
-use warnings;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
 use PageCamel::XS::NGTCP2 qw(:constants);
 use PageCamel::Protocol::QUIC::Connection;
 use Time::HiRes qw(time);
-use Carp qw(croak);
 
-our $VERSION = '0.01';
 
 sub new($class, %config) {
     my $self = bless {
@@ -56,6 +65,7 @@ sub _init_settings($self) {
     my $cc_algo = NGTCP2_CC_ALGO_BBR2;
     print STDERR "QUIC::Server: Setting cc_algo to $cc_algo (BBR2=3)\n";
     $self->{settings}->set_cc_algo($cc_algo);
+    return;
 }
 
 sub _init_transport_params($self) {
@@ -69,6 +79,7 @@ sub _init_transport_params($self) {
     $self->{transport_params}->set_max_idle_timeout($self->{idle_timeout});
     $self->{transport_params}->set_max_udp_payload_size(1350);
     $self->{transport_params}->set_active_connection_id_limit(8);
+    return;
 }
 
 sub accept_connection($self, $initial_packet, $peer_addr, $local_addr) {
@@ -139,7 +150,7 @@ sub process_packet($self, $packet, $peer_addr) {
 
     # Look up connection
     my $connection = $self->{cid_to_connection}{$dcid};
-    unless ($connection) {
+    if (!$connection) {
         # May be initial packet for new connection
         return $self->accept_connection($packet, $peer_addr, $self->{local_addr});
     }
@@ -182,6 +193,7 @@ sub handle_timeouts($self) {
     for my $conn_id (@closed) {
         $self->_close_connection($conn_id);
     }
+    return;
 }
 
 sub get_next_timeout($self) {
@@ -203,6 +215,7 @@ sub close_connection($self, $conn_id, $error_code = 0, $reason = '') {
 
     $connection->close($error_code, $reason);
     $self->_close_connection($conn_id);
+    return;
 }
 
 sub connection_count($self) {
@@ -279,11 +292,13 @@ sub _register_connection_id($self, $cid, $connection) {
     my $cid_data = ref($cid) ? $cid->data() : $cid;
     $self->{cid_to_connection}{$cid_data} = $connection;
     $connection->add_connection_id($cid_data);
+    return;
 }
 
 sub _unregister_connection_id($self, $cid) {
     my $cid_data = ref($cid) ? $cid->data() : $cid;
     delete $self->{cid_to_connection}{$cid_data};
+    return;
 }
 
 sub _close_connection($self, $conn_id) {
@@ -301,6 +316,7 @@ sub _close_connection($self, $conn_id) {
     }
 
     $connection->destroy();
+    return;
 }
 
 # Callback handlers
@@ -309,26 +325,31 @@ sub _on_stream_data($self, $connection, $stream_id, $data, $fin) {
     if ($self->{on_stream_data}) {
         $self->{on_stream_data}->($connection, $stream_id, $data, $fin);
     }
+    return;
 }
 
 sub _on_stream_open($self, $connection, $stream_id) {
     # Stream opened - may trigger HTTP/3 layer
+    return;
 }
 
 sub _on_stream_close($self, $connection, $stream_id, $error_code) {
     if ($self->{on_stream_close}) {
         $self->{on_stream_close}->($connection, $stream_id, $error_code);
     }
+    return;
 }
 
 sub _on_handshake($self, $connection) {
     # Handshake completed
+    return;
 }
 
 sub _on_migration($self, $connection, $old_path, $new_path) {
     if ($self->{on_migration}) {
         $self->{on_migration}->($connection, $old_path, $new_path);
     }
+    return;
 }
 
 1;
