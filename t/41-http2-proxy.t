@@ -20,6 +20,8 @@ BEGIN {
 }
 
 # Test HTTP2Handler request translation
+# Note: PAGECAMEL overhead is sent once per backend connection in createPooledBackend(),
+# not with each request. The translateRequest method only generates the HTTP/1.1 request.
 subtest 'HTTP2Handler request translation' => sub {
     use_ok('PageCamel::CMDLine::WebFrontend::HTTP2Handler');
 
@@ -48,12 +50,8 @@ subtest 'HTTP2Handler request translation' => sub {
 
     my $request = $handler->translateRequest(1, $headers, undef);
 
-    # Verify PAGECAMEL overhead header
-    like($request, qr/^PAGECAMEL 192\.168\.1\.1 443 10\.0\.0\.1 54321 1 \d+ HTTP\/2\r\n/,
-         'PAGECAMEL header contains HTTP/2 version');
-
-    # Verify HTTP/1.1 request line
-    like($request, qr/GET \/test\/path HTTP\/1\.1\r\n/,
+    # Verify HTTP/1.1 request line (PAGECAMEL is sent separately on connection creation)
+    like($request, qr/^GET \/test\/path HTTP\/1\.1\r\n/,
          'HTTP/1.1 request line is correct');
 
     # Verify Host header
