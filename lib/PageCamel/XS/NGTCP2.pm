@@ -72,7 +72,6 @@ our @EXPORT_OK = qw(
     NGTCP2_CC_ALGO_RENO
     NGTCP2_CC_ALGO_CUBIC
     NGTCP2_CC_ALGO_BBR
-    NGTCP2_CC_ALGO_BBR2
 );
 
 our %EXPORT_TAGS = (
@@ -81,11 +80,11 @@ our %EXPORT_TAGS = (
 );
 
 # Congestion control algorithm constants
+# Note: In ngtcp2 1.20.0+, BBR is BBR v2
 use constant {  ## no critic (ValuesAndExpressions::ProhibitConstantPragma)
     NGTCP2_CC_ALGO_RENO  => 0,
     NGTCP2_CC_ALGO_CUBIC => 1,
     NGTCP2_CC_ALGO_BBR   => 2,
-    NGTCP2_CC_ALGO_BBR2  => 3,
 };
 
 1;

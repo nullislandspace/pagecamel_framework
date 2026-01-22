@@ -1375,7 +1375,11 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
     $quicConn->{_selectedbackend} = undef;
 
     # Process the initial packet
-    my $rv = $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $ts);
+    # IMPORTANT: Get fresh timestamp AFTER connection creation
+    # The connection's Settings was created with its own timestamp, and ngtcp2
+    # asserts that all subsequent timestamps must be >= initial_ts
+    my $fresh_ts = PageCamel::XS::NGTCP2::timestamp();
+    my $rv = $quicConn->process_packet($packet, {host => $peerhost, port => $peerPort}, $fresh_ts);
 
     # Check if connection should be dropped (e.g., invalid packet)
     if($quicConn->is_closed()) {

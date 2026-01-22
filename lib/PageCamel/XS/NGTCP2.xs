@@ -1099,6 +1099,7 @@ set_original_dcid(self, cid)
         /* Server MUST set original_dcid to the client's DCID from Initial packet */
         if (NGTCP2_DEBUG) fprintf(stderr, "NGTCP2: set_original_dcid, len=%zu\n", cid->cid.datalen);
         memcpy(&self->params.original_dcid, &cid->cid, sizeof(ngtcp2_cid));
+        self->params.original_dcid_present = 1;
 
 void
 set_initial_scid(self, cid)

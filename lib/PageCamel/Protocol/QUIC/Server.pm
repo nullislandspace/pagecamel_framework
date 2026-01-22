@@ -61,9 +61,9 @@ sub _init_settings($self) {
     $self->{settings} = PageCamel::XS::NGTCP2::Settings->new();
     $self->{settings}->set_initial_ts(PageCamel::XS::NGTCP2::timestamp());
     $self->{settings}->set_max_tx_udp_payload_size(1350);
-    # Use BBR2 congestion control - better for high-throughput scenarios than CUBIC
-    my $cc_algo = NGTCP2_CC_ALGO_BBR2;
-    print STDERR "QUIC::Server: Setting cc_algo to $cc_algo (BBR2=3)\n";
+    # Use BBR congestion control (v2 in ngtcp2 1.20.0+) - better for high-throughput scenarios
+    my $cc_algo = NGTCP2_CC_ALGO_BBR;
+    print STDERR "QUIC::Server: Setting cc_algo to $cc_algo (BBR=2)\n";
     $self->{settings}->set_cc_algo($cc_algo);
     return;
 }
@@ -95,6 +95,9 @@ sub accept_connection($self, $initial_packet, $peer_addr, $local_addr) {
 
     # Generate server's source connection ID
     my $server_scid = $self->_generate_connection_id();
+
+    # Update initial_ts to current time for the new connection
+    $self->{settings}->set_initial_ts(PageCamel::XS::NGTCP2::timestamp());
 
     # Create path
     my $path = PageCamel::XS::NGTCP2::Path->new(

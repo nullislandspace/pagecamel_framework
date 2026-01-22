@@ -121,7 +121,7 @@ sub _init_connection($self) {
     if (!blessed($settings) || !$settings->isa('PageCamel::XS::NGTCP2::Settings')) {
         $settings = PageCamel::XS::NGTCP2::Settings->new();
         $settings->set_initial_ts(PageCamel::XS::NGTCP2::timestamp());
-        $settings->set_cc_algo(NGTCP2_CC_ALGO_BBR2);  # Use BBR2 for better throughput
+        $settings->set_cc_algo(NGTCP2_CC_ALGO_BBR);  # Use BBR (v2 in ngtcp2 1.20.0+)
         $settings->enable_logging();  # Enable ngtcp2 debug logging
     }
 

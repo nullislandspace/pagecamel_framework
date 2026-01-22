@@ -24,6 +24,7 @@ use IO::Socket::UNIX;
 use IO::Select;
 use Socket qw(MSG_PEEK);
 use Time::HiRes qw(time);
+use PageCamel::XS::NGTCP2 qw(NGTCP2_ERR_CLOSING);
 use PageCamel::Helpers::DateStrings;
 
 sub new($class, %config) {
@@ -81,7 +82,7 @@ sub run($self) {
     my $sendCallbackPkts = 0;
     my $sendCallback = sub {
         $sendCallbackCount++;
-        my @pkts = $quicConn->get_packets(Time::HiRes::time());
+        my @pkts = $quicConn->get_packets(PageCamel::XS::NGTCP2::timestamp());
         $sendCallbackPkts += scalar(@pkts);
         foreach my $pkt (@pkts) {
             if(defined($self->{sendPacketCallback})) {
@@ -144,11 +145,13 @@ sub run($self) {
             }
         }
 
-        # Get QUIC connection timeout
+        # Get QUIC connection timeout (in nanoseconds from ngtcp2)
         my $quicExpiry = $quicConn->get_expiry();
-        my $now = Time::HiRes::time();
-        my $timeout = $quicExpiry > $now ? ($quicExpiry - $now) : 0.001;
-        $timeout = 0.001 if($timeout > 1);  # Cap at 1 second
+        my $now_ns = PageCamel::XS::NGTCP2::timestamp();  # Must use nanoseconds consistently
+        my $timeout_ns = $quicExpiry > $now_ns ? ($quicExpiry - $now_ns) : 1_000_000;  # 1ms in ns
+        my $timeout = $timeout_ns / 1_000_000_000;  # Convert to seconds for select()
+        $timeout = 0.001 if($timeout < 0.001);  # Minimum 1ms
+        $timeout = 1 if($timeout > 1);  # Cap at 1 second
 
         $ERRNO = 0;
         my ($canRead, $canWrite, undef) = IO::Select->select($readSet, $writeSet, undef, $timeout);
@@ -162,7 +165,7 @@ sub run($self) {
         $canWrite //= [];
 
         # Handle QUIC timeouts
-        $quicConn->handle_expiry(Time::HiRes::time());
+        $quicConn->handle_expiry(PageCamel::XS::NGTCP2::timestamp());
 
         # Check if QUIC connection is still alive
         if($quicConn->is_closed()) {
@@ -188,7 +191,7 @@ sub run($self) {
 
         # Create packet sender callback for flushPendingStreams
         my $sendPacketsCallback = sub {
-            my @pkts = $quicConn->get_packets(Time::HiRes::time());
+            my @pkts = $quicConn->get_packets(PageCamel::XS::NGTCP2::timestamp());
             foreach my $pkt (@pkts) {
                 if(defined($self->{sendPacketCallback})) {
                     $self->{sendPacketCallback}->($pkt->{data}, $pkt->{peer_addr});
@@ -198,10 +201,21 @@ sub run($self) {
 
         # Flush pending data from nghttp3 to QUIC (critical for large responses)
         # This drains nghttp3's internal buffer after ACKs open the QUIC send window
-        $self->flushPendingStreams($http3Server, $sendPacketsCallback);
+        eval {
+            $self->flushPendingStreams($http3Server, $sendPacketsCallback);
+        };
+        if ($EVAL_ERROR) {
+            print STDERR "HTTP3Handler: ERROR in flushPendingStreams: $EVAL_ERROR\n";
+        }
 
         # Get outgoing QUIC packets and send them
-        my @packets = $quicConn->get_packets(Time::HiRes::time());
+        my @packets;
+        eval {
+            @packets = $quicConn->get_packets(PageCamel::XS::NGTCP2::timestamp());
+        };
+        if ($EVAL_ERROR) {
+            print STDERR "HTTP3Handler: ERROR in get_packets: $EVAL_ERROR\n";
+        }
         foreach my $pkt (@packets) {
             # Send packet via UDP (handled by parent)
             if(defined($self->{sendPacketCallback})) {
