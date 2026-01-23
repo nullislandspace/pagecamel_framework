@@ -20,6 +20,9 @@ extern "C" {
 /* Chunk size - 64KB per chunk */
 #define H3_CHUNK_SIZE 65536
 
+/* Maximum buffer size - 10MB per stream for backpressure */
+#define H3_MAX_BUFFER_SIZE (10 * 1024 * 1024)
+
 /*
  * Individual data chunk - NEVER reallocated once created.
  * This ensures pointer stability for nghttp3's cached pointers.
@@ -129,6 +132,14 @@ size_t h3_buffer_in_flight(h3_stream_buffer_t *buf);
 
 /* Get total bytes ever written */
 size_t h3_buffer_total(h3_stream_buffer_t *buf);
+
+/* Check if buffer can accept more data (backpressure check)
+ * Returns: 1 if can accept, 0 if would exceed H3_MAX_BUFFER_SIZE
+ */
+int h3_buffer_can_write(h3_stream_buffer_t *buf, size_t len);
+
+/* Get current memory usage (total_len - freed_bytes) */
+size_t h3_buffer_memory_usage(h3_stream_buffer_t *buf);
 
 #ifdef __cplusplus
 }

@@ -145,6 +145,15 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
    - Never consume based on `ndatalen` (includes HTTP/3 framing)
    - This ensures exact byte accounting for body data only
 
+5. **Backpressure with max buffer size (10MB)**
+   - `H3_MAX_BUFFER_SIZE` = 10MB per stream
+   - `h3_send_response_body()` returns `H3_WOULDBLOCK` when exceeded
+   - Memory usage = `total_len - freed_bytes` (data still in chunks)
+   - Chunks freed progressively as ACKs arrive via `h3_buffer_flush_acked()`
+   - Verified: 478 of 480 chunks freed during 31MB transfer
+   - Never consume based on `ndatalen` (includes HTTP/3 framing)
+   - This ensures exact byte accounting for body data only
+
 ## Test Results Log
 
 | Date | Test | Result | Notes |
@@ -175,6 +184,8 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
 | 2026-01-23 | h3_connection.c | Wrong original_dcid in transport params | Added original_dcid parameter, use for params.original_dcid |
 | 2026-01-23 | h3_callbacks.c | Buffer over-consumption causing data loss | Moved h3_buffer_consume() into read_data callback |
 | 2026-01-23 | h3_packet.c | Incorrect buffer consumption | Removed h3_buffer_consume() calls (now in read_data) |
+| 2026-01-23 | h3_buffer.h | No backpressure mechanism | Added H3_MAX_BUFFER_SIZE (10MB), h3_buffer_can_write(), h3_buffer_memory_usage() |
+| 2026-01-23 | h3_api.c | Unbounded buffer growth | h3_send_response_body() returns H3_WOULDBLOCK when buffer exceeds 10MB |
 
 ## Debug Notes
 

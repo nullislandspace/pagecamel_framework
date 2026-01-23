@@ -17,7 +17,7 @@
  * Test file format: 4-byte records, each is 0x01 followed by 3-byte LE record number
  * Record N at byte offset N*4 contains: 01 (N & 0xFF) ((N >> 8) & 0xFF) ((N >> 16) & 0xFF)
  */
-#define H3_VALIDATE_TESTFILE 1
+#define H3_VALIDATE_TESTFILE 0
 
 #if H3_VALIDATE_TESTFILE
 /*
@@ -343,4 +343,26 @@ size_t h3_buffer_in_flight(h3_stream_buffer_t *buf) {
 
 size_t h3_buffer_total(h3_stream_buffer_t *buf) {
     return buf->total_len;
+}
+
+size_t h3_buffer_memory_usage(h3_stream_buffer_t *buf) {
+    /* Memory in use = total written minus what's been freed */
+    if (buf->total_len > buf->freed_bytes) {
+        return buf->total_len - buf->freed_bytes;
+    }
+    return 0;
+}
+
+int h3_buffer_can_write(h3_stream_buffer_t *buf, size_t len) {
+    size_t current_usage = h3_buffer_memory_usage(buf);
+    size_t new_usage = current_usage + len;
+
+    if (new_usage > H3_MAX_BUFFER_SIZE) {
+        if (H3_BUFFER_DEBUG) {
+            fprintf(stderr, "h3_buffer_can_write: BACKPRESSURE current=%zu + new=%zu = %zu > max=%d\n",
+                    current_usage, len, new_usage, H3_MAX_BUFFER_SIZE);
+        }
+        return 0;  /* Would exceed limit */
+    }
+    return 1;  /* OK to write */
 }

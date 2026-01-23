@@ -186,6 +186,11 @@ int h3_send_response_body(
         return H3_ERROR_STREAM;
     }
 
+    /* Check backpressure - don't accept more data if buffer is too full */
+    if (len > 0 && !h3_buffer_can_write(&stream->body_buffer, len)) {
+        return H3_WOULDBLOCK;  /* Caller should retry after flushing */
+    }
+
     /* Append data to buffer */
     if (len > 0) {
         if (h3_buffer_write(&stream->body_buffer, data, len) < 0) {
