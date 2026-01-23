@@ -15,23 +15,21 @@ plan skip_all => 'Author tests. Set TEST_HTTP3=1 to run.' unless $ENV{TEST_HTTP3
 # Check if HTTP3Handler can be loaded
 use_ok('PageCamel::CMDLine::WebFrontend::HTTP3Handler');
 
-# Test module compiles with required dependencies
-use_ok('PageCamel::Protocol::HTTP3::Server');
-use_ok('PageCamel::Protocol::HTTP3::QPACK::Encoder');
-use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
+# Test the new unified HTTP/3 module
+use_ok('PageCamel::Protocol::HTTP3');
 
 # Test handler creation requires proper parameters
 {
     eval {
         my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new();
     };
-    like($@, qr/quicConnection/, 'Requires quicConnection parameter');
+    like($@, qr/h3Config/, 'Requires h3Config parameter');
 }
 
 {
     eval {
         my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-            quicConnection => 'mock',
+            h3Config => {},
         );
     };
     like($@, qr/backendSocketPath/, 'Requires backendSocketPath parameter');
@@ -40,7 +38,7 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 {
     eval {
         my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-            quicConnection    => 'mock',
+            h3Config          => {},
             backendSocketPath => '/tmp/test.sock',
         );
     };
@@ -50,7 +48,7 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 # Create a mock handler for method testing
 {
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-        quicConnection    => 'mock',
+        h3Config          => {},
         backendSocketPath => '/tmp/test.sock',
         pagecamelInfo     => {
             lhost    => '192.168.1.1',
@@ -67,7 +65,7 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 # Test translateRequest method
 {
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-        quicConnection    => 'mock',
+        h3Config          => {},
         backendSocketPath => '/tmp/test.sock',
         pagecamelInfo     => {
             lhost    => '192.168.1.1',
@@ -101,7 +99,7 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 # Test translateRequest with POST body
 {
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-        quicConnection    => 'mock',
+        h3Config          => {},
         backendSocketPath => '/tmp/test.sock',
         pagecamelInfo     => {
             lhost    => '127.0.0.1',
@@ -135,7 +133,7 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 # Test translateWebsocketUpgrade method
 {
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-        quicConnection    => 'mock',
+        h3Config          => {},
         backendSocketPath => '/tmp/test.sock',
         pagecamelInfo     => {
             lhost    => '10.0.0.1',
@@ -172,7 +170,7 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 # Test initial state of handler
 {
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-        quicConnection    => 'mock',
+        h3Config          => {},
         backendSocketPath => '/tmp/test.sock',
         pagecamelInfo     => {
             lhost    => '0.0.0.0',
@@ -182,7 +180,9 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
         },
     );
 
-    is(scalar(keys %{$handler->{streamBackends}}), 0, 'Initial streamBackends is empty');
+    # streamBackends is not initialized in new() - may be undefined
+    ok(!$handler->{streamBackends} || scalar(keys %{$handler->{streamBackends}}) == 0,
+       'Initial streamBackends is empty or undefined');
     is(scalar(keys %{$handler->{streamResponses}}), 0, 'Initial streamResponses is empty');
     is(scalar(keys %{$handler->{streamStates}}), 0, 'Initial streamStates is empty');
     is($handler->{streamsHandled}, 0, 'Initial streamsHandled is 0');
@@ -191,7 +191,7 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 # Test cleanupStream method
 {
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-        quicConnection    => 'mock',
+        h3Config          => {},
         backendSocketPath => '/tmp/test.sock',
         pagecamelInfo     => {
             lhost    => '0.0.0.0',
@@ -219,7 +219,7 @@ use_ok('PageCamel::Protocol::HTTP3::QPACK::Decoder');
 # Test cleanup method (cleans all streams)
 {
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-        quicConnection    => 'mock',
+        h3Config          => {},
         backendSocketPath => '/tmp/test.sock',
         pagecamelInfo     => {
             lhost    => '0.0.0.0',

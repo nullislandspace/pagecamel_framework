@@ -6,32 +6,29 @@ use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 5.0;
+our $VERSION = 6.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
-use Data::Printer;
-use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 no warnings 'experimental::args_array_with_signatures';
 
 use base 'PageCamel::CMDLine::WebFrontend::BaseHTTPHandler';
 
-use PageCamel::Protocol::HTTP3::Server;
-use PageCamel::Protocol::HTTP3::QPACK::Decoder;
+use PageCamel::Protocol::HTTP3;
 use IO::Socket::UNIX;
 use IO::Select;
 use Socket qw(MSG_PEEK);
 use Time::HiRes qw(time);
-use PageCamel::XS::NGTCP2 qw(NGTCP2_ERR_CLOSING);
+use Scalar::Util qw(blessed refaddr);
 use PageCamel::Helpers::DateStrings;
 
 sub new($class, %config) {
     my $self = bless \%config, $class;
 
-    # Required parameters
-    foreach my $key (qw[quicConnection backendSocketPath pagecamelInfo]) {
+    # Required parameters - now we expect h3Config instead of quicConnection
+    foreach my $key (qw[h3Config backendSocketPath pagecamelInfo]) {
         if(!defined($self->{$key})) {
             croak("HTTP3Handler: Setting $key is required but not set!");
         }
@@ -59,12 +56,143 @@ sub new($class, %config) {
     $self->{streamBytesSent} = {};
     # Per-stream congestion-blocked flag (for back-pressure)
     $self->{streamCongestionBlocked} = {};
-    # Per-stream pending flush flag (for buffered responses awaiting nghttp3 drain)
+    # Per-stream pending flush flag (for buffered responses awaiting buffer drain)
     $self->{streamPendingFlush} = {};
     # Per-stream chunked encoding flag (for uploads without Content-Length)
     $self->{streamUseChunked} = {};
+    # Per-stream headers storage (populated from on_request callback)
+    $self->{streamHeaders} = {};
 
     return $self;
+}
+
+# Initialize the HTTP/3 connection. Can be called explicitly for multi-connection
+# mode, or implicitly via run() for per-connection fork mode.
+sub init($self) {
+    print STDERR "DEBUG: HTTP3Handler::init() called\n";
+    return $self->{h3conn} if defined($self->{h3conn});
+
+    my $config = $self->{h3Config};
+    print STDERR "DEBUG: Creating connection scid=" . unpack("H*", $config->{scid} // "") .
+                 ", dcid=" . unpack("H*", $config->{dcid} // "") . "\n";
+
+    # Create unified HTTP/3 connection
+    my $h3conn;
+    eval {
+        $h3conn = PageCamel::Protocol::HTTP3::Connection->new_server(
+            dcid => $config->{dcid},
+            scid => $config->{scid},
+            original_dcid => $config->{original_dcid},
+            local_addr => $config->{local_addr},
+            local_port => $config->{local_port},
+            remote_addr => $config->{remote_addr},
+            remote_port => $config->{remote_port},
+            version => $config->{version} // 1,
+            ssl_domains => $config->{ssl_domains},
+            default_domain => $config->{default_domain},
+            default_backend => $config->{default_backend},
+            initial_max_data => $config->{initial_max_data} // 10 * 1024 * 1024,
+            initial_max_stream_data_bidi => $config->{initial_max_stream_data_bidi} // 1024 * 1024,
+            initial_max_streams_bidi => $config->{initial_max_streams_bidi} // 100,
+            max_idle_timeout_ms => $config->{max_idle_timeout_ms} // 30000,
+            cc_algo => $config->{cc_algo} // 1,  # CUBIC
+            enable_debug => $config->{enable_debug} // 0,
+
+            # Callbacks
+            on_send_packet => sub($data, $addr, $port) {
+                print STDERR "DEBUG: on_send_packet callback: " . length($data) . " bytes to $addr:$port\n";
+                if(defined($self->{sendPacketCallback})) {
+                    return $self->{sendPacketCallback}->($data, "$addr:$port");
+                }
+                return -1;  # No callback configured
+            },
+            on_request => sub($streamId, $headersRef, $body, $isConnect) {
+                $self->handleRequest($self->{h3conn}, $streamId, $headersRef, $body, $isConnect);
+            },
+            on_request_body => sub($streamId, $data, $fin) {
+                $self->handleStreamData($self->{h3conn}, $streamId, $data, $fin);
+            },
+            on_stream_close => sub($streamId, $errorCode) {
+                $self->cleanupStream($streamId);
+            },
+        );
+    };
+    if($@) {
+        print STDERR "DEBUG: new_server() threw: $@\n";
+        return undef;
+    }
+    print STDERR "DEBUG: new_server() returned: " . (defined($h3conn) ? "connection" : "undef") . "\n";
+
+    $self->{h3conn} = $h3conn;
+
+    # Process initial packet if provided
+    if(defined($config->{initial_packet})) {
+        print STDERR "DEBUG: Processing initial packet, length=" . length($config->{initial_packet}) . "\n";
+        my $rv;
+        eval {
+            $rv = $h3conn->process_packet(
+                $config->{initial_packet},
+                $config->{remote_addr},
+                $config->{remote_port}
+            );
+        };
+        if($@) {
+            print STDERR "DEBUG: process_packet threw: $@\n";
+            return undef;
+        }
+        print STDERR "DEBUG: process_packet returned: $rv\n";
+        if($rv < 0 && $rv != PageCamel::Protocol::HTTP3::H3_WOULDBLOCK()) {
+            print STDERR "HTTP3Handler: Initial packet processing error: $rv\n";
+        }
+        print STDERR "DEBUG: Calling flush_packets(), h3conn=" . (defined($h3conn) ? ref($h3conn) . "($h3conn)" : "undef") . "\n";
+        print STDERR "DEBUG: h3conn reftype=" . (ref($h3conn) // "not a ref") . ", blessed=" . (Scalar::Util::blessed($h3conn) // "not blessed") . "\n";
+        print STDERR "DEBUG: h3conn refaddr=" . (refaddr($h3conn) // "none") . ", deref=" . (defined($$h3conn) ? sprintf("0x%x", $$h3conn) : "undef") . "\n";
+        eval { $h3conn->flush_packets(); };
+        if($@) {
+            print STDERR "DEBUG: flush_packets threw: $@\n";
+        }
+        print STDERR "DEBUG: flush_packets done\n";
+    }
+
+    print STDERR "DEBUG: HTTP3Handler::init() returning connection\n";
+    return $h3conn;
+}
+
+# Get the underlying h3 connection object (calls init() if needed)
+sub h3conn($self) {
+    return $self->init();
+}
+
+# Check if connection is closing/closed
+sub is_closing($self) {
+    my $h3conn = $self->{h3conn};
+    return 1 unless defined($h3conn);
+    return $h3conn->is_closing();
+}
+
+# Get timeout in milliseconds
+sub get_timeout_ms($self) {
+    my $h3conn = $self->{h3conn};
+    return 1000 unless defined($h3conn);  # Default 1 second if not initialized
+    return $h3conn->get_timeout_ms();
+}
+
+# Handle timeout
+sub handle_timeout($self) {
+    my $h3conn = $self->{h3conn};
+    return unless defined($h3conn);
+    return $h3conn->handle_timeout();
+}
+
+# Get connection IDs for routing
+sub get_connection_ids($self) {
+    my $config = $self->{h3Config};
+    return () unless defined($config);
+    my @ids;
+    push @ids, $config->{dcid} if defined($config->{dcid});
+    push @ids, $config->{scid} if defined($config->{scid});
+    push @ids, $config->{original_dcid} if defined($config->{original_dcid});
+    return @ids;
 }
 
 sub protocolVersion($self) {
@@ -72,43 +200,10 @@ sub protocolVersion($self) {
 }
 
 sub run($self) {
-    my $quicConn = $self->{quicConnection};
+    # Initialize connection if not already done
+    my $h3conn = $self->init();
 
-    # CRITICAL: Define send callback BEFORE creating HTTP/3 server
-    # This callback is invoked by flush_pending_data() to send QUIC packets immediately.
-    # It MUST be available during Server->new() because the constructor calls flush_pending_data()
-    # to send initial SETTINGS frames. Without this, packets sit in queue and get stale timestamps.
-    my $sendCallbackCount = 0;
-    my $sendCallbackPkts = 0;
-    my $sendCallback = sub {
-        $sendCallbackCount++;
-        my @pkts = $quicConn->get_packets(PageCamel::XS::NGTCP2::timestamp());
-        $sendCallbackPkts += scalar(@pkts);
-        foreach my $pkt (@pkts) {
-            if(defined($self->{sendPacketCallback})) {
-                $self->{sendPacketCallback}->($pkt->{data}, $pkt->{peer_addr});
-            }
-        }
-    };
-
-    # Create HTTP/3 server instance over the QUIC connection
-    # The send_callback is passed here so it's available during initialization
-    my $http3Server;
-    $http3Server = PageCamel::Protocol::HTTP3::Server->new(
-        quic_connection => $quicConn,
-        send_callback => $sendCallback,
-        on_request => sub($streamId, $headers, $data) {
-            $self->handleRequest($http3Server, $streamId, $headers, $data);
-        },
-        on_connect_request => sub($streamId, $headers, $data = undef) {
-            $self->handleConnectRequest($http3Server, $streamId, $headers);
-        },
-        on_data => sub($streamId, $data, $fin) {
-            $self->handleStreamData($http3Server, $streamId, $data, $fin);
-        },
-    );
-
-    # Buffering variables - same names as HTTP/1.1 and HTTP/2 implementations
+    # Buffering variables
     my $toclientbuffer = '';
     my $clientdisconnect = 0;
     my $finishcountdown = 0;
@@ -127,12 +222,6 @@ sub run($self) {
             }
         }
 
-        # Calculate total backend buffer size for back-pressure
-        my $totalBackendBufferSize = 0;
-        foreach my $streamId (keys %{$self->{tobackendbuffers}}) {
-            $totalBackendBufferSize += length($self->{tobackendbuffers}->{$streamId} // '');
-        }
-
         # Build select sets for backend I/O
         my $readSet = IO::Select->new(@backendSockets);
         my $writeSet = IO::Select->new();
@@ -145,11 +234,9 @@ sub run($self) {
             }
         }
 
-        # Get QUIC connection timeout (in nanoseconds from ngtcp2)
-        my $quicExpiry = $quicConn->get_expiry();
-        my $now_ns = PageCamel::XS::NGTCP2::timestamp();  # Must use nanoseconds consistently
-        my $timeout_ns = $quicExpiry > $now_ns ? ($quicExpiry - $now_ns) : 1_000_000;  # 1ms in ns
-        my $timeout = $timeout_ns / 1_000_000_000;  # Convert to seconds for select()
+        # Get timeout from HTTP/3 connection
+        my $timeout_ms = $h3conn->get_timeout_ms();
+        my $timeout = $timeout_ms / 1000;  # Convert to seconds
         $timeout = 0.001 if($timeout < 0.001);  # Minimum 1ms
         $timeout = 1 if($timeout > 1);  # Cap at 1 second
 
@@ -164,20 +251,17 @@ sub run($self) {
         $canRead //= [];
         $canWrite //= [];
 
-        # Handle QUIC timeouts
-        $quicConn->handle_expiry(PageCamel::XS::NGTCP2::timestamp());
+        # Handle timeouts
+        $h3conn->handle_timeout();
 
-        # Check if QUIC connection is still alive
-        if($quicConn->is_closed()) {
+        # Check if connection is still alive
+        if($h3conn->is_closing()) {
             $clientdisconnect = 1;
         }
 
-        # Process any incoming QUIC data (fed by parent process)
-        # The parent process calls process_packet() and we handle the callbacks
-
         # Handle readable backend sockets
         foreach my $socket (@{$canRead}) {
-            $self->handleBackendData($http3Server, $socket, \$toclientbuffer, $maxBufferSize);
+            $self->handleBackendData($h3conn, $socket, \$toclientbuffer, $maxBufferSize);
         }
 
         # Build hash of writable sockets
@@ -187,41 +271,10 @@ sub run($self) {
         $self->writeToBackends($blocksize, 1000, $finishcountdown, \%canWriteHash);
 
         # Process any streams waiting for a backend connection
-        $self->processWaitingStreams($http3Server);
+        $self->processWaitingStreams($h3conn);
 
-        # Create packet sender callback for flushPendingStreams
-        my $sendPacketsCallback = sub {
-            my @pkts = $quicConn->get_packets(PageCamel::XS::NGTCP2::timestamp());
-            foreach my $pkt (@pkts) {
-                if(defined($self->{sendPacketCallback})) {
-                    $self->{sendPacketCallback}->($pkt->{data}, $pkt->{peer_addr});
-                }
-            }
-        };
-
-        # Flush pending data from nghttp3 to QUIC (critical for large responses)
-        # This drains nghttp3's internal buffer after ACKs open the QUIC send window
-        eval {
-            $self->flushPendingStreams($http3Server, $sendPacketsCallback);
-        };
-        if ($EVAL_ERROR) {
-            print STDERR "HTTP3Handler: ERROR in flushPendingStreams: $EVAL_ERROR\n";
-        }
-
-        # Get outgoing QUIC packets and send them
-        my @packets;
-        eval {
-            @packets = $quicConn->get_packets(PageCamel::XS::NGTCP2::timestamp());
-        };
-        if ($EVAL_ERROR) {
-            print STDERR "HTTP3Handler: ERROR in get_packets: $EVAL_ERROR\n";
-        }
-        foreach my $pkt (@packets) {
-            # Send packet via UDP (handled by parent)
-            if(defined($self->{sendPacketCallback})) {
-                $self->{sendPacketCallback}->($pkt->{data}, $pkt->{peer_addr});
-            }
-        }
+        # Flush pending data and send packets
+        $self->flushPendingStreams($h3conn);
 
         # Handle client disconnect
         if($clientdisconnect) {
@@ -251,11 +304,36 @@ sub run($self) {
     return;
 }
 
-sub handleRequest($self, $server, $streamId, $headers, $data) {
+# Process incoming UDP packet from parent process
+sub processPacket($self, $data, $remoteAddr, $remotePort) {
+    my $h3conn = $self->{h3conn};
+    return unless defined($h3conn);
+
+    my $rv = $h3conn->process_packet($data, $remoteAddr, $remotePort);
+    if($rv < 0 && $rv != PageCamel::Protocol::HTTP3::H3_WOULDBLOCK()) {
+        print STDERR "HTTP3Handler: Packet processing error: $rv\n";
+    }
+
+    $h3conn->flush_packets();
+    return $rv;
+}
+
+sub handleRequest($self, $h3conn, $streamId, $headersRef, $body, $isConnect) {
     $self->{streamsHandled}++;
 
+    # Store headers for later use
+    $self->{streamHeaders}->{$streamId} = $headersRef;
+
+    if($isConnect) {
+        $self->handleConnectRequest($h3conn, $streamId, $headersRef);
+    } else {
+        $self->handleNormalRequest($h3conn, $streamId, $headersRef, $body);
+    }
+}
+
+sub handleNormalRequest($self, $h3conn, $streamId, $headersRef, $body) {
     # Convert HTTP/3 headers to HTTP/1.1 request (without PAGECAMEL overhead)
-    my $request = $self->translateRequest($streamId, $headers, $data);
+    my $request = $self->translateRequest($streamId, $headersRef, $body);
 
     # Try to acquire backend from pool
     my $backend = $self->acquireBackend($streamId);
@@ -269,11 +347,11 @@ sub handleRequest($self, $server, $streamId, $headers, $data) {
         }
 
         # Backend truly unavailable - send 590
-        $server->response(
+        $h3conn->send_response(
             $streamId,
             590,
             ['content-type', 'text/html; charset=UTF-8'],
-            $self->{errorPage590Html} // '',
+            $self->{errorPage590Html} // ''
         );
         return;
     }
@@ -288,38 +366,33 @@ sub handleRequest($self, $server, $streamId, $headers, $data) {
     return;
 }
 
-sub handleConnectRequest($self, $server, $streamId, $headers) {
-    $self->{streamsHandled}++;
-
+sub handleConnectRequest($self, $h3conn, $streamId, $headersRef) {
     # Check for WebSocket upgrade via extended CONNECT (RFC 9220)
     my %h;
-    for(my $i = 0; $i < scalar(@{$headers}); $i += 2) {
-        $h{$headers->[$i]} = $headers->[$i + 1];
+    for(my $i = 0; $i < scalar(@{$headersRef}); $i += 2) {
+        $h{$headersRef->[$i]} = $headersRef->[$i + 1];
     }
 
     my $protocol = $h{':protocol'} // '';
     if($protocol ne 'websocket') {
         # Reject non-WebSocket CONNECT requests
-        $server->response($streamId, 400, ['content-type', 'text/plain'], 'Bad Request');
+        $h3conn->send_response($streamId, 400, ['content-type', 'text/plain'], 'Bad Request');
         return;
     }
 
     # Translate to HTTP/1.1 WebSocket upgrade (without PAGECAMEL overhead)
-    my $request = $self->translateWebsocketUpgrade($streamId, $headers);
+    my $request = $self->translateWebsocketUpgrade($streamId, $headersRef);
 
     # Try to acquire backend from pool
     my $backend = $self->acquireBackend($streamId);
     if(!defined($backend)) {
-        # Check if we're at capacity (queue) or backend unavailable (error)
         my $activeBackends = scalar(keys %{$self->{streamBackends}});
         if($activeBackends >= $self->{maxPoolSize}) {
-            # At capacity, queue the request for later (WebSocket/tunnel)
             push @{$self->{waitingForBackend}}, [$streamId, $request, 'tunnel_pending'];
             return;
         }
 
-        # Backend truly unavailable - send 590
-        $server->response($streamId, 590, ['content-type', 'text/html'], $self->{errorPage590Html} // '');
+        $h3conn->send_response($streamId, 590, ['content-type', 'text/html'], $self->{errorPage590Html} // '');
         return;
     }
 
@@ -333,9 +406,11 @@ sub handleConnectRequest($self, $server, $streamId, $headers) {
     return;
 }
 
-sub handleStreamData($self, $server, $streamId, $data, $fin) {
+sub handleStreamData($self, $h3conn, $streamId, $data, $fin) {
     # Handle incoming data on a stream (for tunnels/WebSocket AND request bodies)
     my $state = $self->{streamStates}->{$streamId} // '';
+
+    return unless defined($data) && length($data);
 
     if($state eq 'tunnel_active') {
         # Forward data to backend (WebSocket tunnel)
@@ -346,12 +421,11 @@ sub handleStreamData($self, $server, $streamId, $data, $fin) {
         }
     } elsif($state eq 'waiting_response') {
         # Forward request body data to backend (PUT/POST uploads)
-        # Body data arrives in chunks after the initial request headers
         my $backend = $self->{streamBackends}->{$streamId};
-        if(defined($backend) && length($data)) {
+        if(defined($backend)) {
             $self->{tobackendbuffers}->{$streamId} //= '';
             if($self->{streamUseChunked}->{$streamId}) {
-                # Encode as HTTP/1.1 chunk: size_hex\r\ndata\r\n
+                # Encode as HTTP/1.1 chunk
                 my $chunk = sprintf("%x\r\n%s\r\n", length($data), $data);
                 $self->{tobackendbuffers}->{$streamId} .= $chunk;
             } else {
@@ -363,21 +437,20 @@ sub handleStreamData($self, $server, $streamId, $data, $fin) {
     return;
 }
 
-sub translateRequest($self, $streamId, $headers, $body) {
+sub translateRequest($self, $streamId, $headersRef, $body) {
     # Convert HTTP/3 headers to HTTP/1.1 request format
     my %h;
     my @otherHeaders;
     my $hasContentLength = 0;
 
-    for(my $i = 0; $i < scalar(@{$headers}); $i += 2) {
-        my $name = $headers->[$i];
-        my $value = $headers->[$i + 1];
+    for(my $i = 0; $i < scalar(@{$headersRef}); $i += 2) {
+        my $name = $headersRef->[$i];
+        my $value = $headersRef->[$i + 1];
 
         if($name =~ /^:/) {
             $h{$name} = $value;
         } else {
             push @otherHeaders, "$name: $value";
-            # Track if client already sent content-length
             if(lc($name) eq 'content-length') {
                 $hasContentLength = 1;
             }
@@ -387,52 +460,41 @@ sub translateRequest($self, $streamId, $headers, $body) {
     my $method = $h{':method'} // 'GET';
     my $path = $h{':path'} // '/';
     my $authority = $h{':authority'} // '';
-    my $scheme = $h{':scheme'} // 'https';
 
     # Build HTTP/1.1 request
     my $request = "$method $path HTTP/1.1\r\n";
-
-    # Add Host header from :authority
     $request .= "Host: $authority\r\n";
 
-    # Add other headers (may include content-length from client)
     foreach my $hdr (@otherHeaders) {
         $request .= "$hdr\r\n";
     }
 
-    # Handle body encoding for uploads without Content-Length
-    # HTTP/3 forbids Transfer-Encoding: chunked, but the backend needs it for HTTP/1.1
     my %methodsWithBody = ('POST' => 1, 'PUT' => 1, 'PATCH' => 1);
     if(!$hasContentLength && exists($methodsWithBody{$method})) {
-        # No Content-Length but method can have body - use chunked encoding for backend
         $request .= "Transfer-Encoding: chunked\r\n";
         $self->{streamUseChunked}->{$streamId} = 1;
     }
 
     $request .= "\r\n";
 
-    # Add initial body chunk (more may arrive via handleStreamData)
     if(defined($body) && length($body)) {
         if($self->{streamUseChunked}->{$streamId}) {
-            # Encode as HTTP/1.1 chunk: size_hex\r\ndata\r\n
             $request .= sprintf("%x\r\n%s\r\n", length($body), $body);
         } else {
             $request .= $body;
         }
     }
 
-    # Note: PAGECAMEL overhead is sent once per pooled connection in createPooledBackend()
     return $request;
 }
 
-sub translateWebsocketUpgrade($self, $streamId, $headers) {
-    # Convert HTTP/3 extended CONNECT to HTTP/1.1 WebSocket upgrade
+sub translateWebsocketUpgrade($self, $streamId, $headersRef) {
     my %h;
     my @otherHeaders;
 
-    for(my $i = 0; $i < scalar(@{$headers}); $i += 2) {
-        my $name = $headers->[$i];
-        my $value = $headers->[$i + 1];
+    for(my $i = 0; $i < scalar(@{$headersRef}); $i += 2) {
+        my $name = $headersRef->[$i];
+        my $value = $headersRef->[$i + 1];
 
         if($name =~ /^:/) {
             $h{$name} = $value;
@@ -444,17 +506,13 @@ sub translateWebsocketUpgrade($self, $streamId, $headers) {
     my $path = $h{':path'} // '/';
     my $authority = $h{':authority'} // '';
 
-    # Build HTTP/1.1 WebSocket upgrade request
     my $request = "GET $path HTTP/1.1\r\n";
     $request .= "Host: $authority\r\n";
     $request .= "Upgrade: websocket\r\n";
     $request .= "Connection: Upgrade\r\n";
-
-    # Generate a dummy Sec-WebSocket-Key (backend will accept it)
     $request .= "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n";
     $request .= "Sec-WebSocket-Version: 13\r\n";
 
-    # Add other headers (skip connection-related ones)
     foreach my $hdr (@otherHeaders) {
         next if($hdr =~ /^(connection|upgrade|sec-websocket)/i);
         $request .= "$hdr\r\n";
@@ -462,91 +520,71 @@ sub translateWebsocketUpgrade($self, $streamId, $headers) {
 
     $request .= "\r\n";
 
-    # Note: PAGECAMEL overhead is sent once per pooled connection in createPooledBackend()
     return $request;
 }
 
-# Backend connection pooling methods inherited from BaseHTTPHandler
-# Note: Each HTTP3Handler instance has its own pool, isolated per-client (per QUIC connection)
-
-sub handleBackendData($self, $server, $socket, $toclientbufferRef, $maxBufferSize) {
-    # Find which stream this backend belongs to (O(1) reverse lookup)
+sub handleBackendData($self, $h3conn, $socket, $toclientbufferRef, $maxBufferSize) {
     if(!defined($self->{backendToStream}->{$socket})) {
         return;
     }
     my $streamId = $self->{backendToStream}->{$socket};
 
-    # Skip if buffer is too large (back-pressure)
     return if(length(${$toclientbufferRef}) >= $maxBufferSize);
 
-    # CRITICAL: Read in a loop until EAGAIN to avoid 2000+ select iterations for large files
-    # Each read is 64KB to reduce syscall overhead while staying under common socket buffer sizes
     my $totalBytesRead = 0;
-    my $maxReadPerCall = 4_000_000;  # Cap at 4MB per handleBackendData call to maintain fairness
+    my $maxReadPerCall = 4_000_000;
 
     while($totalBytesRead < $maxReadPerCall) {
-        # Check if congestion-blocked - if so, stop reading until data drains
         if($self->{streamCongestionBlocked}->{$streamId}) {
             last;
         }
 
         my $buf;
-        my $bytesRead = $socket->sysread($buf, 65_536);  # 64KB per read
+        my $bytesRead = $socket->sysread($buf, 65_536);
 
         if(!defined($bytesRead)) {
-            # EAGAIN/EWOULDBLOCK or other error - no more data available
             if($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
-                last;  # No more data, exit loop
+                last;
             }
-            # Actual error
             $self->{backenddisconnects}->{$streamId} = 1;
-            $self->processBackendResponse($server, $streamId);
+            $self->processBackendResponse($h3conn, $streamId);
             return;
         }
 
         if($bytesRead == 0) {
-            # Backend disconnected
             $self->{backenddisconnects}->{$streamId} = 1;
-            $self->processBackendResponse($server, $streamId);
+            $self->processBackendResponse($h3conn, $streamId);
             return;
         }
 
         $totalBytesRead += $bytesRead;
-
-        # Track total bytes read from backend
         $self->{backendBytesRead}->{$streamId} //= 0;
         $self->{backendBytesRead}->{$streamId} += $bytesRead;
-
-        # Append to response buffer
         $self->{streamResponses}->{$streamId} .= $buf;
 
-        # Process response after each chunk to handle headers and push data to nghttp3
-        $self->processBackendResponse($server, $streamId);
+        $self->processBackendResponse($h3conn, $streamId);
     }
 
     return;
 }
 
-sub processBackendResponse($self, $server, $streamId) {
+sub processBackendResponse($self, $h3conn, $streamId) {
     my $state = $self->{streamStates}->{$streamId} // '';
     my $response = $self->{streamResponses}->{$streamId} // '';
 
     if($state eq 'waiting_response') {
-        # Look for end of headers
         my $headerEnd = index($response, "\r\n\r\n");
-        return if($headerEnd < 0);  # Not yet complete
+        return if($headerEnd < 0);
 
         my $headerBlock = substr($response, 0, $headerEnd);
         my $body = substr($response, $headerEnd + 4);
 
-        # Parse status line and headers
         my @lines = split(/\r\n/, $headerBlock);
         my $statusLine = shift @lines;
 
         my ($httpVersion, $status, $statusText) = $statusLine =~ m{^HTTP/(\S+)\s+(\d+)\s*(.*)$};
         $status //= 500;
 
-        # Build header array for HTTP/3
         my @responseHeaders;
         my $contentLength;
 
@@ -555,8 +593,6 @@ sub processBackendResponse($self, $server, $streamId) {
             next unless(defined($name) && defined($value));
 
             $name = lc($name);
-
-            # Skip hop-by-hop headers
             next if($name eq 'connection');
             next if($name eq 'transfer-encoding');
             next if($name eq 'keep-alive');
@@ -568,119 +604,80 @@ sub processBackendResponse($self, $server, $streamId) {
             push @responseHeaders, $name, $value;
         }
 
-        # Check for WebSocket upgrade response
-        my %respHeaders = map { lc() => 1 } @responseHeaders;
+        # Check for WebSocket upgrade
+        my %respHeaders = @responseHeaders;
         if($self->{streamStates}->{$streamId} eq 'tunnel_pending' ||
            ($status == 101 && exists $respHeaders{'upgrade'})) {
-            # WebSocket accepted - enter tunnel mode
             $self->{streamStates}->{$streamId} = 'tunnel_active';
 
-            # Send 200 OK for HTTP/3 tunnel (no content-length)
+            # Send 200 OK for HTTP/3 tunnel
             my @tunnelHeaders = grep { $_ ne 'content-length' } @responseHeaders;
-            my $tunnel = $server->tunnel_response($streamId, 200, \@tunnelHeaders);
-            $self->{streamTunnels}->{$streamId} = $tunnel;
+            $h3conn->send_response_headers($streamId, 200, \@tunnelHeaders, 1);
+            $self->{streamTunnels}->{$streamId} = 1;
 
-            # Forward any remaining data
             if(length($body)) {
-                my $bytesWritten = $tunnel->send($body);
-                if(defined($bytesWritten) && $bytesWritten > 0 && $bytesWritten < length($body)) {
-                    # Partial write - keep unsent portion
-                    $self->{streamResponses}->{$streamId} = substr($body, $bytesWritten);
-                } elsif(!defined($bytesWritten) || $bytesWritten <= 0) {
-                    # Flow control blocked - keep entire body
-                    $self->{streamResponses}->{$streamId} = $body;
-                } else {
-                    $self->{streamResponses}->{$streamId} = '';
-                }
-            } else {
-                $self->{streamResponses}->{$streamId} = '';
+                $h3conn->send_response_body($streamId, $body, 0);
+                $h3conn->flush_packets();
             }
+            $self->{streamResponses}->{$streamId} = '';
             return;
         }
 
-        # Determine if we should stream or buffer
+        # Determine streaming vs buffering
         my $shouldStream = 0;
         if(defined($contentLength) && $contentLength > 1_000_000) {
             $shouldStream = 1;
         }
 
         if($shouldStream) {
-            # Streaming mode
             $self->{streamStates}->{$streamId} = 'streaming';
             $self->{streamContentLength}->{$streamId} = $contentLength;
             $self->{streamBytesSent}->{$streamId} = 0;
+            $self->{streamStreams}->{$streamId} = 1;
 
-            my $stream = $server->response_stream($streamId, $status, \@responseHeaders);
-            $self->{streamStreams}->{$streamId} = $stream;
+            $h3conn->send_response_headers($streamId, $status, \@responseHeaders, 1);
 
             if(length($body)) {
-                my $bytesWritten = $stream->send($body);
-                if(defined($bytesWritten) && $bytesWritten > 0) {
-                    $self->{streamBytesSent}->{$streamId} += $bytesWritten;
-                    if($bytesWritten < length($body)) {
-                        # Partial write - keep unsent portion in buffer (DON'T set congestion-blocked)
-                        $self->{streamResponses}->{$streamId} = substr($body, $bytesWritten);
-                    } else {
-                        $self->{streamResponses}->{$streamId} = '';
-                    }
+                my $rv = $h3conn->send_response_body($streamId, $body, 0);
+                if($rv == PageCamel::Protocol::HTTP3::H3_OK()) {
+                    $self->{streamBytesSent}->{$streamId} += length($body);
+                    $self->{streamResponses}->{$streamId} = '';
+                    $h3conn->flush_packets();
                 } else {
-                    # Flow control blocked (0 bytes) - keep entire body in buffer
-                    $self->{streamResponses}->{$streamId} = $body;
-                    # Only set congestion-blocked when completely blocked (0 bytes)
                     $self->{streamCongestionBlocked}->{$streamId} = 1;
                 }
             } else {
                 $self->{streamResponses}->{$streamId} = '';
             }
         } else {
-            # Buffering mode - wait for complete response or disconnect
             if($self->{backenddisconnects}->{$streamId}) {
-                # Send complete response
-                $server->response($streamId, $status, \@responseHeaders, $body);
-                # Don't cleanup immediately - nghttp3 may still have buffered data
-                # Mark as pending flush - cleanupStream will be called when buffer is empty
+                $h3conn->send_response($streamId, $status, \@responseHeaders, $body);
+                $h3conn->flush_packets();
                 $self->{streamPendingFlush}->{$streamId} = 1;
-                $self->{streamResponses}->{$streamId} = '';  # Clear handler buffer
+                $self->{streamResponses}->{$streamId} = '';
             } else {
-                # Check if we have complete response
                 if(defined($contentLength) && length($body) >= $contentLength) {
                     $body = substr($body, 0, $contentLength);
-                    $server->response($streamId, $status, \@responseHeaders, $body);
-                    # Don't cleanup immediately - nghttp3 may still have buffered data
+                    $h3conn->send_response($streamId, $status, \@responseHeaders, $body);
+                    $h3conn->flush_packets();
                     $self->{streamPendingFlush}->{$streamId} = 1;
                     $self->{streamResponses}->{$streamId} = '';
                 }
             }
         }
     } elsif($state eq 'streaming') {
-        # Forward data to stream with flow control handling
-        my $stream = $self->{streamStreams}->{$streamId};
-        if(defined($stream) && length($response)) {
-            my $bytesWritten = $stream->send($response);
-
-            if(defined($bytesWritten) && $bytesWritten > 0) {
-                # Successfully sent some bytes
-                $self->{streamBytesSent}->{$streamId} += $bytesWritten;
-                # Clear congestion-blocked since we made progress
+        if(length($response)) {
+            my $rv = $h3conn->send_response_body($streamId, $response, 0);
+            if($rv == PageCamel::Protocol::HTTP3::H3_OK()) {
+                $self->{streamBytesSent}->{$streamId} += length($response);
+                $self->{streamResponses}->{$streamId} = '';
                 delete $self->{streamCongestionBlocked}->{$streamId};
-
-                if($bytesWritten >= length($response)) {
-                    # All data sent - clear buffer
-                    $self->{streamResponses}->{$streamId} = '';
-                } else {
-                    # Partial write - keep unsent portion, but DON'T set congestion-blocked
-                    # Partial write means "sent some, buffer full for now" - not "totally blocked"
-                    # We should continue reading from backend and let next iteration send more
-                    $self->{streamResponses}->{$streamId} = substr($response, $bytesWritten);
-                }
+                $h3conn->flush_packets();
             } else {
-                # bytesWritten is 0 or negative - completely flow control blocked
-                # This is the ONLY case where we set congestion-blocked for back-pressure
                 $self->{streamCongestionBlocked}->{$streamId} = 1;
             }
         }
 
-        # Check if complete - only close when buffer is empty
         my $contentLength = $self->{streamContentLength}->{$streamId};
         my $bytesSent = $self->{streamBytesSent}->{$streamId};
         my $bufferEmpty = length($self->{streamResponses}->{$streamId} // '') == 0;
@@ -688,27 +685,22 @@ sub processBackendResponse($self, $server, $streamId) {
         if($bufferEmpty &&
            ($self->{backenddisconnects}->{$streamId} ||
             (defined($contentLength) && $bytesSent >= $contentLength))) {
-            $stream->close() if(defined($stream));
+            $h3conn->send_response_body($streamId, '', 1);  # EOF
+            $h3conn->flush_packets();
             $self->cleanupStream($streamId);
         }
     } elsif($state eq 'tunnel_active') {
-        # Forward data through tunnel with flow control handling
-        my $tunnel = $self->{streamTunnels}->{$streamId};
-        if(defined($tunnel) && length($response)) {
-            my $bytesWritten = $tunnel->send($response);
-            if(defined($bytesWritten) && $bytesWritten > 0) {
-                if($bytesWritten >= length($response)) {
-                    $self->{streamResponses}->{$streamId} = '';
-                } else {
-                    # Partial write - keep unsent portion
-                    $self->{streamResponses}->{$streamId} = substr($response, $bytesWritten);
-                }
+        if(length($response)) {
+            my $rv = $h3conn->send_response_body($streamId, $response, 0);
+            if($rv == PageCamel::Protocol::HTTP3::H3_OK()) {
+                $self->{streamResponses}->{$streamId} = '';
+                $h3conn->flush_packets();
             }
-            # If blocked, keep buffer as-is
         }
 
         if($self->{backenddisconnects}->{$streamId}) {
-            $tunnel->close() if(defined($tunnel));
+            $h3conn->send_response_body($streamId, '', 1);  # EOF
+            $h3conn->flush_packets();
             $self->cleanupStream($streamId);
         }
     }
@@ -717,9 +709,7 @@ sub processBackendResponse($self, $server, $streamId) {
 }
 
 sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHashRef) {
-    # Round-robin fair writes: one block (16KB) per stream per pass
-    # This ensures all streams make progress, preventing one large stream from starving others
-    my $maxBytesPerIteration = 1_000_000;  # 1MB total limit per iteration
+    my $maxBytesPerIteration = 1_000_000;
     my $totalBytesThisIteration = 0;
     my $madeProgress = 1;
 
@@ -729,17 +719,12 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHa
         foreach my $streamId (keys %{$self->{tobackendbuffers}}) {
             my $backend = $self->{streamBackends}->{$streamId};
             next unless(defined($backend));
-
-            # Skip disconnected backends
             next if($self->{backenddisconnects}->{$streamId});
-
-            # Only write if socket is writable
             next unless($canWriteHashRef->{$backend});
 
             my $tobackendbuffer = \$self->{tobackendbuffers}->{$streamId};
             next unless(defined(${$tobackendbuffer}) && length(${$tobackendbuffer}));
 
-            # Write ONE block per stream per pass (fair round-robin)
             my $bufferLen = length(${$tobackendbuffer});
             my $towrite = $bufferLen < $blocksize ? $bufferLen : $blocksize;
 
@@ -764,179 +749,79 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHa
     return;
 }
 
-sub flushPendingStreams($self, $server, $sendPacketsCallback = undef) {
-    # ALWAYS try to send packets first - this ensures any data in QUIC's buffer
-    # gets sent out, which triggers ACKs that open the congestion window
-    $sendPacketsCallback->() if($sendPacketsCallback);
+sub flushPendingStreams($self, $h3conn) {
+    # Flush packets first
+    $h3conn->flush_packets();
 
-    # Flush any data buffered in nghttp3 to QUIC
-    # This is CRITICAL: data that was pushed to nghttp3 but couldn't be flushed
-    # (due to congestion) needs to be drained here when cwnd opens
-    # IMPORTANT: Pass sendPacketsCallback so packets are sent immediately after each write
-    # This prevents RTT inflation from packets sitting in pending_stream_packets
-    my $totalFlushed = $server->flush_pending_data($sendPacketsCallback);
-
-    # ALWAYS send packets after flush attempt - QUIC may have ACKs, probes,
-    # or other control frames to send even if we couldn't add new data
-    $sendPacketsCallback->() if($sendPacketsCallback);
-
-    # Retry sending buffered data for streams that may have been blocked by flow control
-    # Called periodically from main loop after QUIC ACKs open up the send window
-    # $sendPacketsCallback: optional callback to send UDP packets during flush
-    my @streams = keys %{$self->{streamResponses}};
-    foreach my $streamId (@streams) {
+    # Retry sending buffered data for streams
+    foreach my $streamId (keys %{$self->{streamResponses}}) {
         my $response = $self->{streamResponses}->{$streamId};
-        my $buflen = defined($response) ? length($response) : 0;
+        next unless(defined($response) && length($response));
+
         my $state = $self->{streamStates}->{$streamId} // '';
 
-        next unless($buflen > 0);
-
         if($state eq 'streaming') {
-            my $stream = $self->{streamStreams}->{$streamId};
-            next unless(defined($stream));
-
-            # NOTE: Removed cwnd check that was causing deadlock.
-            # Previously we checked cwndLeft < 1200 and skipped streams, but this
-            # caused a circular dependency: can't send → no packets → no ACKs → cwnd stays small.
-            # Now we always try to send and let QUIC's internal flow control handle it.
-            # The congestionBlocked flag is cleared here and we try to send below.
             delete $self->{streamCongestionBlocked}->{$streamId};
 
-            # Loop until we can't send more (congestion control blocks)
-            # Limit writes per call to prevent overwhelming the receiver's UDP buffer
-            my $totalWritten = 0;
-            my $writeCount = 0;
-            my $maxWritesPerFlush = 10;  # Limit to ~12KB per flush to allow pacing
-
-            while(length($self->{streamResponses}->{$streamId} // '') > 0 && $writeCount < $maxWritesPerFlush) {
-                my $toSend = $self->{streamResponses}->{$streamId};
-                my $bytesWritten = $stream->send($toSend);
-
-                if(defined($bytesWritten) && $bytesWritten > 0) {
-                    $totalWritten += $bytesWritten;
-                    $writeCount++;
-                    $self->{streamBytesSent}->{$streamId} += $bytesWritten;
-                    # Clear congestion-blocked flag since we made progress
-                    delete $self->{streamCongestionBlocked}->{$streamId};
-
-                    if($bytesWritten >= length($toSend)) {
-                        $self->{streamResponses}->{$streamId} = '';
-                    } else {
-                        $self->{streamResponses}->{$streamId} = substr($toSend, $bytesWritten);
-                    }
-
-                    # CRITICAL: Send packets IMMEDIATELY after EVERY write to minimize RTT inflation
-                    # $stream->send() → send_body_chunk() → flush_pending_data() queues packets
-                    # but doesn't send them. We must send immediately to get accurate RTT measurements.
-                    $sendPacketsCallback->() if($sendPacketsCallback);
-                } else {
-                    # Congestion blocked (or error) - send any pending packets and exit
-                    # Don't retry immediately - we need to wait for ACKs from the network
-                    # The main loop will process ACKs and call flushPendingStreams again
-                    $sendPacketsCallback->() if($sendPacketsCallback);
-
-                    # Mark stream as congestion-blocked (for back-pressure)
-                    $self->{streamCongestionBlocked}->{$streamId} = 1;
-                    last;
-                }
+            my $rv = $h3conn->send_response_body($streamId, $response, 0);
+            if($rv == PageCamel::Protocol::HTTP3::H3_OK()) {
+                $self->{streamBytesSent}->{$streamId} += length($response);
+                $self->{streamResponses}->{$streamId} = '';
+                $h3conn->flush_packets();
+            } else {
+                $self->{streamCongestionBlocked}->{$streamId} = 1;
             }
 
-            # Check if complete - only close when ALL buffered data has been sent
             my $contentLength = $self->{streamContentLength}->{$streamId};
             my $bytesSent = $self->{streamBytesSent}->{$streamId};
             my $bufferEmpty = length($self->{streamResponses}->{$streamId} // '') == 0;
 
-            # Close stream when buffer is empty AND either:
-            # 1. Backend disconnected (finished sending), OR
-            # 2. We've sent all content-length bytes
             if($bufferEmpty &&
                ($self->{backenddisconnects}->{$streamId} ||
                 (defined($contentLength) && $bytesSent >= $contentLength))) {
-                $stream->close() if(defined($stream));
+                $h3conn->send_response_body($streamId, '', 1);
+                $h3conn->flush_packets();
                 $self->cleanupStream($streamId);
             }
         } elsif($state eq 'tunnel_active') {
-            my $tunnel = $self->{streamTunnels}->{$streamId};
-            next unless(defined($tunnel));
-
-            # Loop until we can't send more
-            while(length($self->{streamResponses}->{$streamId} // '') > 0) {
-                my $toSend = $self->{streamResponses}->{$streamId};
-                my $bytesWritten = $tunnel->send($toSend);
-
-                if(defined($bytesWritten) && $bytesWritten > 0) {
-                    if($bytesWritten >= length($toSend)) {
-                        $self->{streamResponses}->{$streamId} = '';
-                    } else {
-                        $self->{streamResponses}->{$streamId} = substr($toSend, $bytesWritten);
-                    }
-                } else {
-                    last;
-                }
+            my $rv = $h3conn->send_response_body($streamId, $response, 0);
+            if($rv == PageCamel::Protocol::HTTP3::H3_OK()) {
+                $self->{streamResponses}->{$streamId} = '';
+                $h3conn->flush_packets();
             }
 
             if($self->{backenddisconnects}->{$streamId}) {
-                $tunnel->close() if(defined($tunnel));
+                $h3conn->send_response_body($streamId, '', 1);
+                $h3conn->flush_packets();
                 $self->cleanupStream($streamId);
             }
         }
     }
 
-    # Flush nghttp3's internal buffer (for complete responses pushed directly to nghttp3)
-    # This drains DATA frames that nghttp3 has queued but not yet sent to QUIC
-    $server->flush_pending_data();
-    $sendPacketsCallback->() if($sendPacketsCallback);
-
-    # Handle pending flush streams (buffered responses awaiting nghttp3 drain)
+    # Handle pending flush streams
     foreach my $streamId (keys %{$self->{streamPendingFlush}}) {
-        # Check if nghttp3's buffer for this stream is empty
-        my $pendingSize = $server->{http3_conn}->get_stream_buffer_size($streamId);
+        my $pendingSize = $h3conn->get_stream_buffer_size($streamId);
         if($pendingSize == 0) {
-            # Buffer fully drained - cleanup stream
             $self->cleanupStream($streamId);
             delete $self->{streamPendingFlush}->{$streamId};
         }
     }
 
-    # Return true if we should be called again (more work to do)
-    # Check if we flushed data from nghttp3 - if so, there might be more
-    my $hasPendingData = 0;
-    foreach my $streamId (keys %{$self->{streamResponses}}) {
-        if(length($self->{streamResponses}->{$streamId} // '') > 0) {
-            $hasPendingData = 1;
-            last;
-        }
-    }
-
-    # Also check for pending flush streams (nghttp3 buffer not yet drained)
-    my $hasPendingFlush = scalar(keys %{$self->{streamPendingFlush}}) > 0;
-
-    # Return true if:
-    # 1. We flushed data from nghttp3 (more might be waiting), OR
-    # 2. We have pending data in streamResponses that isn't blocked
-    my $hasBlockedStreams = scalar(keys %{$self->{streamCongestionBlocked}}) > 0;
-    return $totalFlushed > 0 || (($hasPendingData || $hasPendingFlush) && !$hasBlockedStreams);
+    return;
 }
 
 sub cleanupStream($self, $streamId) {
-    my $bytesSent = $self->{streamBytesSent}->{$streamId} // 0;
-    # Determine if backend connection is reusable
-    # WebSocket tunnels are NOT reusable (bidirectional data flow)
-    # Backend disconnects are NOT reusable (connection was closed)
     my $isTunnel = defined($self->{streamTunnels}->{$streamId});
     my $backendClosed = $self->{backenddisconnects}->{$streamId} // 0;
     my $reusable = !$isTunnel && !$backendClosed;
 
-    # Release backend to pool (or close if not reusable)
     my $backend = $self->{streamBackends}->{$streamId};
     if(defined($backend)) {
         $self->releaseBackend($streamId, $reusable);
     } else {
-        # No backend - just clean up the mapping
         delete $self->{streamBackends}->{$streamId};
     }
 
-    # Clean up stream state
     delete $self->{streamResponses}->{$streamId};
     delete $self->{streamStates}->{$streamId};
     delete $self->{streamStreams}->{$streamId};
@@ -948,27 +833,24 @@ sub cleanupStream($self, $streamId) {
     delete $self->{streamCongestionBlocked}->{$streamId};
     delete $self->{streamPendingFlush}->{$streamId};
     delete $self->{streamUseChunked}->{$streamId};
+    delete $self->{streamHeaders}->{$streamId};
 
     return;
 }
 
 sub cleanup($self) {
-    # Clean up all active streams
     foreach my $streamId (keys %{$self->{streamBackends}}) {
         $self->cleanupStream($streamId);
     }
 
-    # Clean up pending flush streams (may not have backends)
     foreach my $streamId (keys %{$self->{streamPendingFlush}}) {
         $self->cleanupStream($streamId);
     }
 
-    # Close all pooled backend connections
     while(my $backend = pop @{$self->{backendPool}}) {
         eval { close($backend); };
     }
 
-    # Clear waiting queue
     $self->{waitingForBackend} = [];
 
     return;
@@ -980,16 +862,26 @@ __END__
 
 =head1 NAME
 
-PageCamel::CMDLine::WebFrontend::HTTP3Handler - HTTP/3 request handler
+PageCamel::CMDLine::WebFrontend::HTTP3Handler - HTTP/3 request handler using unified C library
 
 =head1 SYNOPSIS
 
     use PageCamel::CMDLine::WebFrontend::HTTP3Handler;
 
     my $handler = PageCamel::CMDLine::WebFrontend::HTTP3Handler->new(
-        quicConnection    => $quicConn,
+        h3Config => {
+            dcid => $client_dcid,
+            scid => $our_scid,
+            local_addr => '0.0.0.0',
+            local_port => 443,
+            remote_addr => $client_ip,
+            remote_port => $client_port,
+            ssl_domains => { ... },
+            default_domain => 'example.com',
+            initial_packet => $first_udp_packet,
+        },
         backendSocketPath => '/run/pagecamel/backend.sock',
-        pagecamelInfo     => {
+        pagecamelInfo => {
             lhost    => '192.168.1.1',
             lport    => 443,
             peerhost => '10.0.0.1',
@@ -1002,57 +894,30 @@ PageCamel::CMDLine::WebFrontend::HTTP3Handler - HTTP/3 request handler
 
 =head1 DESCRIPTION
 
-This module handles HTTP/3 requests over a QUIC connection, translating
-them to HTTP/1.1 for backend processing. It supports:
+This module handles HTTP/3 requests using the unified PageCamel::Protocol::HTTP3
+library, which integrates ngtcp2 (QUIC) and nghttp3 (HTTP/3) with direct C-to-C
+callback wiring.
+
+This eliminates the data corruption issues from the previous implementation
+that used Perl trampolines for internal ngtcp2<->nghttp3 callbacks.
+
+=head1 CHANGES FROM PREVIOUS VERSION
 
 =over 4
 
-=item * Regular HTTP/3 requests
+=item * Uses PageCamel::Protocol::HTTP3 unified module instead of separate XS modules
 
-=item * WebSocket over HTTP/3 (RFC 9220 Extended CONNECT)
+=item * No longer requires PageCamel::Protocol::HTTP3::Server or QUIC::Connection
 
-=item * Streaming responses for large content
+=item * Callbacks are now handled in C, only crossing to Perl for application events
 
-=item * Proper back-pressure handling
-
-=back
-
-=head1 METHODS
-
-=head2 new(%config)
-
-Create a new HTTP/3 handler.
-
-Required configuration:
-
-=over 4
-
-=item quicConnection - PageCamel::Protocol::QUIC::Connection object
-
-=item backendSocketPath - Path to backend Unix socket
-
-=item pagecamelInfo - Hash with lhost, lport, peerhost, peerport
+=item * Configuration passed via h3Config hash instead of quicConnection object
 
 =back
-
-Optional:
-
-=over 4
-
-=item sendPacketCallback - Callback to send UDP packets
-
-=item errorPage590Html - HTML for backend-not-running error
-
-=back
-
-=head2 run()
-
-Run the handler's main event loop.
 
 =head1 SEE ALSO
 
-L<PageCamel::CMDLine::WebFrontend::HTTP2Handler>,
-L<PageCamel::Protocol::HTTP3::Server>,
-L<PageCamel::Protocol::QUIC::Connection>
+L<PageCamel::Protocol::HTTP3>,
+L<PageCamel::CMDLine::WebFrontend::HTTP2Handler>
 
 =cut
