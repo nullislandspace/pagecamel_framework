@@ -224,22 +224,21 @@ sub init($self) {
         require PageCamel::Protocol::HTTP3;
         $http3Available = 1;
     };
-    if(!$http3Available) {
-        print "WARNING: HTTP/3 module not available (not compiled or not in \@INC)\n";
-        print "         HTTP/3 support will be disabled.\n";
-        print "         Run 'make' in pagecamel_framework to compile the HTTP3 module.\n\n";
-    }
 
+    my $http3Configured = 0;
     foreach my $service (@{$config->{external_network}->{service}}) {
         print '** Service at port ', $service->{port}, ' does ', $service->{usessl} ? '' : 'NOT', " use SSL/TLS\n";
         if($service->{usessl}) {
             $hasssl = 1;
         }
-        if($service->{http3} && $http3Available) {
-            $hashttp3 = 1;
-            print '   HTTP/3 enabled on port ', $service->{port}, "\n";
-        } elsif($service->{http3} && !$http3Available) {
-            print '   HTTP/3 configured but XS modules not available - DISABLED\n';
+        if($service->{http3}) {
+            $http3Configured = 1;
+            if($http3Available) {
+                $hashttp3 = 1;
+                print '   HTTP/3 enabled on port ', $service->{port}, "\n";
+            } else {
+                print "   HTTP/3 configured but module not available - DISABLED\n";
+            }
         }
         foreach my $ip (@{$service->{bind_adresses}->{ip}}) {
             # Create TCP socket
@@ -279,6 +278,14 @@ sub init($self) {
     $self->{udpSocketInfo} = \%udpSocketInfo;
     $self->{hasssl} = $hasssl;
     $self->{hashttp3} = $hashttp3;
+
+    if($http3Configured && !$http3Available) {
+        print "\nWARNING: HTTP/3 is configured but the PageCamel::Protocol::HTTP3 module\n";
+        print "         is not available (C libraries not compiled or not installed).\n";
+        print "         HTTP/3 support is DISABLED. HTTP/1.1 and HTTP/2 are unaffected.\n";
+        print "         To enable HTTP/3, install libngtcp2-dev, libnghttp3-dev, and\n";
+        print "         libgnutls28-dev, then run 'perl Makefile.PL && make'.\n\n";
+    }
 
     # Initialize QUIC/HTTP3 state if HTTP/3 is enabled
     if($hashttp3) {
