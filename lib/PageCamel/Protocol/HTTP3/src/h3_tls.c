@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 /* Debug flag */
-#define H3_TLS_DEBUG 1
+#define H3_TLS_DEBUG 0
 
 /*
  * ngtcp2_crypto conn_ref callback

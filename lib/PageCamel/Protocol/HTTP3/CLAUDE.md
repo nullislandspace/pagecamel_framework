@@ -10,7 +10,7 @@
 - [x] Phase 7: Update Root Build System
 - [x] Phase 8: Adapt Test Scripts
 - [x] Phase 9: Build Verification
-- [x] Phase 10: Integration Testing - COMPLETE ✅
+- [ ] Phase 10: Integration Testing - IN PROGRESS (parallel connections failing)
 
 ## Step-by-Step Progress
 
@@ -56,7 +56,7 @@
 | 9.2 | Post-deletion build test | ✅ | Build succeeds, tests pass |
 | 10.1 | curl-h3 download test | ✅ | 31MB file downloads correctly |
 | 10.2 | MD5 verification | ✅ | 10/10 tests pass, MD5=ae525b610cdca28ffed9b81e2cfa47b8 |
-| 10.3 | Multi-stream test | ⏳ | Not yet tested |
+| 10.3 | Multi-connection test | ⚠️ IN PROGRESS | Parallel connections failing under load |
 
 ## Remaining Work
 
@@ -167,6 +167,10 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
 | 2026-01-23 | curl-h3 connection test | ❌→✅ | Fixed with original_dcid parameter |
 | 2026-01-23 | curl-h3 small request | ✅ PASS | GET / returns 301 redirect correctly |
 | 2026-01-23 | curl-h3 31MB download | ✅ PASS | 10/10 tests pass after buffer consume fix |
+| 2026-01-26 | Sequential downloads | ✅ PASS | 9-10/10 pass with fresh server |
+| 2026-01-26 | 3 parallel downloads | ✅ PASS | 3/3 pass consistently |
+| 2026-01-26 | 5 parallel downloads | ⚠️ PARTIAL | 1-4/5 pass, inconsistent |
+| 2026-01-26 | 10 parallel downloads | ❌ FAIL | 0-7/10 pass, connections enter DRAINING |
 
 ## Build Fixes Applied
 
@@ -268,3 +272,134 @@ h3_buffer_read: stream_offset=356, first=01000059 # Reading at offset 356 = reco
 **Result**: 10/10 download tests pass with correct MD5 checksum.
 
 **Key Insight**: Only the `read_data` callback knows how much actual body data is being returned. The caller (`h3_packet.c`) only knows `ndatalen` which includes HTTP/3 framing overhead.
+
+#### Issue 3: Parallel Connection Failures - IN PROGRESS ⚠️
+
+**Symptoms**:
+- Sequential downloads: 9-10/10 pass
+- 3 parallel connections: 3/3 pass
+- 5 parallel connections: 1-4/5 pass (inconsistent)
+- 10 parallel connections: 0-7/10 pass (highly variable)
+- Fresh server performs better than server running for hours
+- Failures manifest as:
+  - Exit code 55: "Failed sending network data" (connection dropped)
+  - Exit code 56: "Failure in receiving network data"
+  - Exit code 124: Timeout (60 seconds)
+- Server logs show: `is_closing() returned: 1` immediately after connection init
+- Connections enter DRAINING state unexpectedly
+
+**Investigation So Far**:
+
+1. **Removed excessive debug logging** - `fprintf(stderr, ...)` calls in h3_packet.c were causing I/O blocking
+   - Disabled `H3_PACKET_DEBUG`, `H3_TLS_DEBUG`, `H3_CALLBACKS_DEBUG`
+   - Removed unconditional fprintf calls from flush function
+   - Result: Slight improvement but not fixed
+
+2. **Added packet drain loop** - Modified main event loop to drain all UDP packets
+   - `handleQUICPacket()` now returns 1 if packet processed, 0 if none
+   - Main loop calls in a while loop until no more packets
+   - Result: No significant improvement
+
+3. **Checked flush iteration limits** - `maxFlushIterations` was 100 per connection
+   - Reduced to 5: Made things worse (0/5 passed)
+   - Reduced to 20: No improvement
+   - Reverted to 100
+   - Result: Not the cause
+
+4. **Connection state analysis**:
+   - Working connections: `is_closing() returned: 0` → "HTTP/3 connection established"
+   - Failed connections: `is_closing() returned: 1` → "HTTP3Handler connection failed or closing"
+   - `ngtcp2_conn_read_pkt` returns `NGTCP2_ERR_DRAINING` causing immediate close
+
+**Theories**:
+
+1. **Event loop starvation**: Single HTTP/3 process handles all connections. When processing heavy data transfers, new connection handshakes may be delayed, causing client timeouts.
+
+2. **UDP buffer overflow**: Multiple clients sending packets simultaneously may overflow the server's UDP receive buffer, causing packet loss during handshake.
+
+3. **Connection ID collision**: Multiple simultaneous Initial packets may cause confusion in connection ID tracking.
+
+4. **TLS session issues**: GnuTLS may have issues with concurrent handshakes in a single process.
+
+5. **ngtcp2 state machine**: Something in the packet processing order may be confusing the QUIC state machine when multiple connections are active.
+
+6. **Packet misrouting during cleanup**: Packets are routed primarily by peer
+   address (`quicConnectionsByAddr{"$ip:$port"}`), with connection ID lookup as
+   fallback. `cleanupQUICConnection` deletes from both hashes, but these deletions
+   are not atomic. If a new packet arrives from the same peer address between
+   the cleanup of the old connection and the creation of the new one, OR if the
+   old handler's `quicConnectionsByAddr` entry is deleted but some
+   `quicConnections` entries remain (or vice versa), packets could be:
+   - Fed to a stale/dead handler → returns error → connection fails
+   - Treated as a new connection when they belong to an existing one → ngtcp2
+     sees unexpected DCID → enters DRAINING
+   - Routed via address to the wrong handler (if a previous connection from the
+     same IP:port wasn't fully cleaned up)
+   This is especially likely under parallel load where connections are being
+   created and torn down rapidly from the same IP.
+
+**Investigation Round 2 (2026-01-27)**:
+
+5. **Removed remaining debug fprintf/print** - Removed all debug output from:
+   - HTTP3.xs: process_packet, flush_packets, new_server fprintf calls
+   - h3_api.c: h3_flush_packets fprintf call
+   - HTTP3Handler.pm: All DEBUG print STDERR lines
+   - Result: Much less I/O noise, no functional change
+
+6. **Added early-out in h3_packet_flush for closed connections** - REVERTED
+   - First tried: skip DRAINING and CLOSED → 0/5 sequential passed (REGRESSION)
+   - Then tried: skip only CLOSED → 2/5 sequential passed (still worse)
+   - Reverted entirely → needs retest
+   - Lesson: h3_packet_flush MUST run even for closing connections (ngtcp2 needs to
+     send CONNECTION_CLOSE frames; skipping causes clients to hang)
+
+7. **Added is_closing() guards** in Perl event loop functions:
+   - `flushPendingStreams()` returns 0 early if closing
+   - `handleHTTP3Backends()` skips closing handlers
+   - `handleQUICTimeouts()` skips closing handlers
+   - Result: Prevents wasted work on dead connections
+
+8. **Fixed tunnel_active EOF handling** - was sending EOF before buffer was empty:
+   - Both `readFromBackends` and `flushPendingStreams` now check `$bufferEmpty`
+     before sending EOF when backend disconnects in tunnel_active state
+   - Previously could lose buffered data
+
+9. **Changed streaming/tunnel cleanup to defer via streamPendingFlush**:
+   - After sending EOF, set `streamPendingFlush` instead of calling `cleanupStream()`
+   - Wait for C-level buffer to drain (checked in flushPendingStreams loop)
+   - Prevents premature stream cleanup while C library still has data to send
+
+**Packet Routing Architecture** (discovered during investigation):
+
+```
+UDP packet arrives
+  → Primary lookup: quicConnectionsByAddr{"$peerhost:$peerPort"}
+  → Fallback: extractQUICConnectionId(packet) → quicConnections{$dcid}
+  → No match: handleNewQUICConnection()
+```
+
+- Routing is primarily by **peer address** (IP:port), NOT by connection ID
+- Connection ID lookup is only used as fallback (connection migration case)
+- Short header packets (most traffic) don't contain SCID, only DCID
+- Each connection is stored under 3 keys: client_dcid, client_scid, server_scid
+- **Potential issue**: if cleanup removes quicConnectionsByAddr entry but not all
+  quicConnections entries (or vice versa), stale handlers could receive packets
+  meant for new connections
+
+**Files Modified (Round 2)**:
+- `lib/PageCamel/Protocol/HTTP3/HTTP3.xs` - Removed all debug fprintf
+- `lib/PageCamel/Protocol/HTTP3/src/h3_api.c` - Removed h3_flush_packets fprintf
+- `lib/PageCamel/Protocol/HTTP3/src/h3_packet.c` - Reverted early-out (h3_packet_flush)
+- `lib/PageCamel/CMDLine/WebFrontend/HTTP3Handler.pm` - Removed DEBUG prints,
+  added is_closing guard in flushPendingStreams, fixed tunnel_active EOF,
+  changed streaming/tunnel to use streamPendingFlush
+- `lib/PageCamel/CMDLine/WebFrontend.pm` - Added is_closing guards in
+  handleHTTP3Backends and handleQUICTimeouts
+
+**Next Steps to Try**:
+1. Retest sequential after reverting early-out (should be back to 9-10/10)
+2. If sequential still broken, revert Perl changes one at a time to find culprit
+3. Investigate packet routing: could misrouted packets cause DRAINING?
+4. Check if cleanup removes all connection ID mappings atomically
+5. Consider increasing UDP socket buffer size
+6. Profile CPU usage during parallel connections

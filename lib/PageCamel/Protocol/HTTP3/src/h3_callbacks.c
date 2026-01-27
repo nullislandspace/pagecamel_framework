@@ -18,7 +18,7 @@
 #include <time.h>
 
 /* Debug flag */
-#define H3_CALLBACKS_DEBUG 1
+#define H3_CALLBACKS_DEBUG 0
 
 /*
  * ============================================================================

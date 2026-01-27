@@ -69,12 +69,9 @@ sub new($class, %config) {
 # Initialize the HTTP/3 connection. Can be called explicitly for multi-connection
 # mode, or implicitly via run() for per-connection fork mode.
 sub init($self) {
-    print STDERR "DEBUG: HTTP3Handler::init() called\n";
     return $self->{h3conn} if defined($self->{h3conn});
 
     my $config = $self->{h3Config};
-    print STDERR "DEBUG: Creating connection scid=" . unpack("H*", $config->{scid} // "") .
-                 ", dcid=" . unpack("H*", $config->{dcid} // "") . "\n";
 
     # Create unified HTTP/3 connection
     my $h3conn;
@@ -100,7 +97,6 @@ sub init($self) {
 
             # Callbacks
             on_send_packet => sub($data, $addr, $port) {
-                print STDERR "DEBUG: on_send_packet callback: " . length($data) . " bytes to $addr:$port\n";
                 if(defined($self->{sendPacketCallback})) {
                     return $self->{sendPacketCallback}->($data, "$addr:$port");
                 }
@@ -118,16 +114,13 @@ sub init($self) {
         );
     };
     if($@) {
-        print STDERR "DEBUG: new_server() threw: $@\n";
         return undef;
     }
-    print STDERR "DEBUG: new_server() returned: " . (defined($h3conn) ? "connection" : "undef") . "\n";
 
     $self->{h3conn} = $h3conn;
 
     # Process initial packet if provided
     if(defined($config->{initial_packet})) {
-        print STDERR "DEBUG: Processing initial packet, length=" . length($config->{initial_packet}) . "\n";
         my $rv;
         eval {
             $rv = $h3conn->process_packet(
@@ -137,24 +130,16 @@ sub init($self) {
             );
         };
         if($@) {
-            print STDERR "DEBUG: process_packet threw: $@\n";
             return undef;
         }
-        print STDERR "DEBUG: process_packet returned: $rv\n";
         if($rv < 0 && $rv != PageCamel::Protocol::HTTP3::H3_WOULDBLOCK()) {
             print STDERR "HTTP3Handler: Initial packet processing error: $rv\n";
         }
-        print STDERR "DEBUG: Calling flush_packets(), h3conn=" . (defined($h3conn) ? ref($h3conn) . "($h3conn)" : "undef") . "\n";
-        print STDERR "DEBUG: h3conn reftype=" . (ref($h3conn) // "not a ref") . ", blessed=" . (Scalar::Util::blessed($h3conn) // "not blessed") . "\n";
-        print STDERR "DEBUG: h3conn refaddr=" . (refaddr($h3conn) // "none") . ", deref=" . (defined($$h3conn) ? sprintf("0x%x", $$h3conn) : "undef") . "\n";
         eval { $h3conn->flush_packets(); };
         if($@) {
-            print STDERR "DEBUG: flush_packets threw: $@\n";
         }
-        print STDERR "DEBUG: flush_packets done\n";
     }
 
-    print STDERR "DEBUG: HTTP3Handler::init() returning connection\n";
     return $h3conn;
 }
 
@@ -698,7 +683,9 @@ sub processBackendResponse($self, $h3conn, $streamId) {
             }
         }
 
-        if($self->{backenddisconnects}->{$streamId}) {
+        # Only send EOF when buffer is empty AND backend disconnected
+        my $bufferEmpty = length($self->{streamResponses}->{$streamId} // '') == 0;
+        if($bufferEmpty && $self->{backenddisconnects}->{$streamId}) {
             $h3conn->send_response_body($streamId, '', 1);  # EOF
             $h3conn->flush_packets();
             $self->cleanupStream($streamId);
@@ -790,20 +777,13 @@ sub flushPendingStreams($self, $h3conn) {
                 $h3conn->flush_packets();
             }
 
-            if($self->{backenddisconnects}->{$streamId}) {
+            # Only send EOF when buffer is empty AND backend disconnected
+            my $bufferEmpty = length($self->{streamResponses}->{$streamId} // '') == 0;
+            if($bufferEmpty && $self->{backenddisconnects}->{$streamId}) {
                 $h3conn->send_response_body($streamId, '', 1);
                 $h3conn->flush_packets();
                 $self->cleanupStream($streamId);
             }
-        }
-    }
-
-    # Handle pending flush streams
-    foreach my $streamId (keys %{$self->{streamPendingFlush}}) {
-        my $pendingSize = $h3conn->get_stream_buffer_size($streamId);
-        if($pendingSize == 0) {
-            $self->cleanupStream($streamId);
-            delete $self->{streamPendingFlush}->{$streamId};
         }
     }
 

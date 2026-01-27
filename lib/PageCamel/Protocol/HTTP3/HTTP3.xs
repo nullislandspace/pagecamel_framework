@@ -373,19 +373,15 @@ new_server(class, ...)
             }
             else if (strEQ(key, "local_addr")) {
                 addr.local_addr = SvPV_nolen(val);
-                fprintf(stderr, "XS new_server: local_addr=%s\n", addr.local_addr);
             }
             else if (strEQ(key, "local_port")) {
                 addr.local_port = SvIV(val);
-                fprintf(stderr, "XS new_server: local_port=%d\n", addr.local_port);
             }
             else if (strEQ(key, "remote_addr")) {
                 addr.remote_addr = SvPV_nolen(val);
-                fprintf(stderr, "XS new_server: remote_addr=%s\n", addr.remote_addr);
             }
             else if (strEQ(key, "remote_port")) {
                 addr.remote_port = SvIV(val);
-                fprintf(stderr, "XS new_server: remote_port=%d\n", addr.remote_port);
             }
             else if (strEQ(key, "version")) {
                 version = SvUV(val);
@@ -517,7 +513,6 @@ new_server(class, ...)
         /* Store local address for packet processing */
         wrapper->local_addr = addr.local_addr ? strdup(addr.local_addr) : strdup("0.0.0.0");
         wrapper->local_port = addr.local_port;
-        fprintf(stderr, "XS new_server: stored local=%s:%d\n", wrapper->local_addr, wrapper->local_port);
 
         RETVAL = wrapper;
     OUTPUT:
@@ -549,17 +544,13 @@ process_packet(self_sv, data, remote_addr, remote_port)
         h3_addr_info_t addr;
         PageCamel_H3_Wrapper *self;
     CODE:
-        setbuf(stderr, NULL);  /* Ensure unbuffered output */
-
         if (!SvROK(self_sv)) {
-            fprintf(stderr, "XS process_packet: self_sv is not a reference!\n");
             croak("Not a reference");
         }
 
         SV *rv = SvRV(self_sv);
 
         if (!sv_derived_from(self_sv, "PageCamel::Protocol::HTTP3::Connection")) {
-            fprintf(stderr, "XS process_packet: Not a Connection object!\n");
             croak("Not a PageCamel::Protocol::HTTP3::Connection");
         }
 
@@ -568,8 +559,6 @@ process_packet(self_sv, data, remote_addr, remote_port)
 
         STRLEN len;
         const uint8_t *pkt = (const uint8_t *)SvPVbyte(data, len);
-        fprintf(stderr, "XS process_packet: len=%zu, local=%s:%d, remote=%s:%d\n",
-                len, self->local_addr, self->local_port, remote_addr, remote_port);
 
         addr.local_addr = self->local_addr;
         addr.local_port = self->local_port;
@@ -577,7 +566,6 @@ process_packet(self_sv, data, remote_addr, remote_port)
         addr.remote_port = remote_port;
 
         RETVAL = h3_process_packet(self->conn, pkt, len, &addr);
-        fprintf(stderr, "XS process_packet: returned %d\n", RETVAL);
     OUTPUT:
         RETVAL
 
@@ -586,10 +574,7 @@ int
 flush_packets(self)
         PageCamel_H3_Wrapper *self
     CODE:
-        setbuf(stderr, NULL);
-        fprintf(stderr, "XS flush_packets: self=%p, conn=%p\n", (void*)self, (void*)(self ? self->conn : NULL));
         RETVAL = h3_flush_packets(self->conn);
-        fprintf(stderr, "XS flush_packets: returned %d\n", RETVAL);
     OUTPUT:
         RETVAL
 

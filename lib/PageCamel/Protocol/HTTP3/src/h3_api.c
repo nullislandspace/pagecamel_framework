@@ -71,8 +71,6 @@ int h3_process_packet(
 }
 
 int h3_flush_packets(h3_connection_t *conn) {
-    setbuf(stderr, NULL);
-    fprintf(stderr, "h3_flush_packets: ENTRY conn=%p\n", (void*)conn);
     return h3_packet_flush(conn);
 }
 

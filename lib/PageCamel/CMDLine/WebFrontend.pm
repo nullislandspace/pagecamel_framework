@@ -1324,8 +1324,6 @@ sub handleQUICPacket($self, $udpSocket) {
 
     return unless(defined($peerAddr) && length($packet));
 
-    print STDERR "DEBUG: Received QUIC packet, length=" . length($packet) . "\n";
-
     # Track incoming packet statistics
     $self->{_incomingUdpPackets} //= 0;
     # Extract peer info (handle both IPv4 and IPv6)
@@ -1374,12 +1372,10 @@ sub handleQUICPacket($self, $udpSocket) {
     } else {
         # New connection - extract connection ID from packet header
         my $dcid = $self->extractQUICConnectionId($packet);
-        print STDERR "DEBUG: Extracted DCID: " . (defined($dcid) ? unpack("H*", $dcid) : "undef") . "\n";
         return unless(defined($dcid));
 
         # Check for existing handler by connection ID
         $handler = $self->{quicConnections}->{$dcid};
-        print STDERR "DEBUG: Existing handler for DCID: " . (defined($handler) ? "yes" : "no") . "\n";
 
         if(defined($handler)) {
             # Connection migration - packet from new address
@@ -1406,16 +1402,12 @@ sub handleQUICPacket($self, $udpSocket) {
 }
 
 sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $lhost, $lport, $service) {
-    print STDERR "DEBUG: handleNewQUICConnection called from $peerhost:$peerPort\n";
     require PageCamel::CMDLine::WebFrontend::HTTP3Handler;
 
     # Extract BOTH DCID and SCID from the client's Initial packet
     # - client_dcid: what client sent in DCID field (random value for server)
     # - client_scid: what client sent in SCID field (client's own source CID)
     my ($client_dcid, $client_scid) = $self->extractQUICConnectionIds($packet);
-    print STDERR "DEBUG: extractQUICConnectionIds: dcid=" . (defined($client_dcid) ? unpack("H*", $client_dcid) : "undef") .
-                 ", scid=" . (defined($client_scid) ? unpack("H*", $client_scid) : "undef") . "\n";
-
     return unless(defined($client_dcid) && defined($client_scid));
 
     # Generate server's own SCID
@@ -1471,7 +1463,6 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
 
             my ($addr, $port) = $addrPort =~ /^(.+):(\d+)$/;
             if(!defined($addr) || !defined($port)) {
-                print STDERR "DEBUG: sendPacketCallback: failed to parse addrPort=$addrPort\n";
                 return -2;  # Parse error
             }
 
@@ -1486,17 +1477,13 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
             my $rv = $udpSocket->send($data, 0, $sockaddr);
             if(!defined($rv)) {
                 if($!{EAGAIN} || $!{EWOULDBLOCK}) {
-                    print STDERR "DEBUG: sendPacketCallback: would block\n";
                     return -1;  # Would block
                 }
-                print STDERR "DEBUG: sendPacketCallback: send error: $!\n";
                 return -2;  # Send error
             }
-            print STDERR "DEBUG: sendPacketCallback: sent $rv bytes to $addr:$port\n";
             return $rv;
         },
     );
-    print STDERR "DEBUG: HTTP3Handler created, calling init()\n";
 
     # Initialize connection (creates h3conn internally)
     my $h3conn;
@@ -1507,18 +1494,16 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
         print STDERR "HTTP3Handler init failed: $@\n";
         return;
     }
-    print STDERR "DEBUG: init() returned: " . (defined($h3conn) ? "connection" : "undef") . "\n";
 
     # Check if connection failed during initial packet processing
-    print STDERR "DEBUG: checking is_closing()\n";
     my $is_closing = $handler->is_closing();
-    print STDERR "DEBUG: is_closing() returned: $is_closing\n";
     if(!$h3conn || $is_closing) {
         print STDERR "HTTP3Handler connection failed or closing\n";
         return;
     }
 
-    print STDERR "HTTP/3 connection established from $peerhost:$peerPort\n";
+    my $connCount = scalar(keys %{$self->{quicConnections}}) / 3 + 1;  # Each conn has 3 IDs
+    print STDERR "HTTP/3 connection #$connCount from $peerhost:$peerPort\n";
 
     # Store additional metadata on handler for routing
     $handler->{_udpSocket} = $udpSocket;
@@ -1589,6 +1574,11 @@ sub handleQUICTimeouts($self) {
 
 sub cleanupQUICConnection($self, $handler) {
     return unless(defined($handler));
+
+    my $peer = $handler->{_peerAddr};
+    my $peerStr = $peer ? "$peer->{host}:$peer->{port}" : "unknown";
+    my $connCount = (scalar(keys %{$self->{quicConnections}}) - 3) / 3;  # Each conn has 3 IDs
+    print STDERR "HTTP/3 cleanup: $peerStr (remaining: $connCount)\n";
 
     # Cleanup handler (closes backend connections, etc.)
     $handler->cleanup();
@@ -1733,7 +1723,7 @@ sub handleHTTP3Backends($self) {
         $handler->processWaitingStreams($h3conn);
 
         # Flush pending stream data (retry sends blocked by flow control)
-        # Loop until no more progress can be made
+        # Limit iterations per connection for fair scheduling across connections
         my $udpSocket = $handler->{_udpSocket};
         my $maxFlushIterations = 100;
         my $flushedBytes = 1;

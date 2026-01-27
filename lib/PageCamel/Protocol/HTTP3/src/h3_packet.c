@@ -13,7 +13,7 @@
 #include <arpa/inet.h>
 
 /* Debug flag */
-#define H3_PACKET_DEBUG 1
+#define H3_PACKET_DEBUG 0
 
 /*
  * Timestamp utility
@@ -193,50 +193,24 @@ int h3_packet_process(
     ngtcp2_pkt_info pi;
     int rv;
 
-    /* Make stderr unbuffered so debug output survives crashes */
-    static int stderr_unbuffered = 0;
-    if (!stderr_unbuffered) {
-        setbuf(stderr, NULL);
-        stderr_unbuffered = 1;
-    }
-
-    fprintf(stderr, "h3_packet_process: ENTRY conn=%p len=%zu\n", (void*)conn, len);
-
     if (!conn || !conn->quic) {
-        fprintf(stderr, "h3_packet_process: ERROR invalid conn or quic\n");
         return H3_ERROR_INVALID;
     }
 
-    fprintf(stderr, "h3_packet_process: conn->quic=%p\n", (void*)conn->quic);
-
     memset(&pi, 0, sizeof(pi));
-
-    if (H3_PACKET_DEBUG) {
-        fprintf(stderr, "h3_packet: process packet len=%zu\n", len);
-    }
 
     /* Update path if address changed */
     if (addr) {
-        fprintf(stderr, "h3_packet: addr: local=%s:%d remote=%s:%d\n",
-                addr->local_addr, addr->local_port,
-                addr->remote_addr, addr->remote_port);
-        int addr_rv = h3_addr_to_sockaddr(addr,
+        h3_addr_to_sockaddr(addr,
                             (struct sockaddr_storage *)&conn->local_addr,
                             (struct sockaddr_storage *)&conn->remote_addr);
-        fprintf(stderr, "h3_packet: h3_addr_to_sockaddr returned %d, local_family=%d, remote_family=%d\n",
-                addr_rv, conn->local_addr.ss_family, conn->remote_addr.ss_family);
 
         /* Update path addrlen to match the new address families */
         conn->path.local.addrlen = conn->local_addr.ss_family == AF_INET6 ?
                                    sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
         conn->path.remote.addrlen = conn->remote_addr.ss_family == AF_INET6 ?
                                     sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
-        fprintf(stderr, "h3_packet: updated path addrlen: local=%zu remote=%zu\n",
-                conn->path.local.addrlen, conn->path.remote.addrlen);
     }
-
-    fprintf(stderr, "h3_packet: calling ngtcp2_conn_read_pkt, conn->quic=%p\n", (void*)conn->quic);
-    fflush(stderr);
 
     /* Feed packet to QUIC */
     rv = ngtcp2_conn_read_pkt(
@@ -247,7 +221,6 @@ int h3_packet_process(
         len,
         h3_timestamp_ns()
     );
-    fprintf(stderr, "h3_packet: ngtcp2_conn_read_pkt returned %d\n", rv);
 
     if (rv != 0) {
         if (rv == NGTCP2_ERR_DRAINING) {
@@ -257,10 +230,6 @@ int h3_packet_process(
         if (rv == NGTCP2_ERR_DISCARD_PKT) {
             /* Ignore malformed packets */
             return H3_OK;
-        }
-        if (H3_PACKET_DEBUG) {
-            fprintf(stderr, "h3_packet: ngtcp2_conn_read_pkt error: %s\n",
-                    ngtcp2_strerror(rv));
         }
         conn->last_error = rv;
         return H3_ERROR_QUIC;
@@ -293,22 +262,14 @@ int h3_packet_flush(h3_connection_t *conn) {
     int64_t stream_id;
     int fin;
 
-    setbuf(stderr, NULL);
-    fprintf(stderr, "h3_packet_flush: ENTRY conn=%p\n", (void*)conn);
-
     if (!conn || !conn->quic) {
-        fprintf(stderr, "h3_packet_flush: invalid conn or quic\n");
         return H3_ERROR_INVALID;
     }
-    fprintf(stderr, "h3_packet_flush: conn->quic=%p, conn->http3=%p\n",
-            (void*)conn->quic, (void*)conn->http3);
 
     /* First, write any QUIC handshake/control packets */
-    fprintf(stderr, "h3_packet_flush: starting write_pkt loop\n");
     for (;;) {
         ngtcp2_path_storage_zero(&ps);
 
-        fprintf(stderr, "h3_packet_flush: calling ngtcp2_conn_write_pkt\n");
         nwrite = ngtcp2_conn_write_pkt(
             conn->quic,
             &ps.path,
@@ -317,51 +278,42 @@ int h3_packet_flush(h3_connection_t *conn) {
             sizeof(buf),
             ts
         );
-        fprintf(stderr, "h3_packet_flush: ngtcp2_conn_write_pkt returned %zd\n", nwrite);
 
         if (nwrite < 0) {
             if (nwrite == NGTCP2_ERR_WRITE_MORE) {
                 continue;
             }
-            fprintf(stderr, "h3_packet_flush: write_pkt error: %s\n",
-                    ngtcp2_strerror((int)nwrite));
+            if (H3_PACKET_DEBUG) {
+                fprintf(stderr, "h3_packet_flush: write_pkt error: %s\n",
+                        ngtcp2_strerror((int)nwrite));
+            }
             break;
         }
 
         if (nwrite == 0) {
-            fprintf(stderr, "h3_packet_flush: nwrite=0, breaking\n");
             break;
         }
 
         /* Send packet via callback */
-        fprintf(stderr, "h3_packet_flush: sending %zd bytes via callback\n", nwrite);
         if (conn->callbacks.send_packet) {
             h3_addr_info_t addr;
-            fprintf(stderr, "h3_packet_flush: calling h3_sockaddr_to_addr, local=%p, remote=%p\n",
-                    (void*)ps.path.local.addr, (void*)ps.path.remote.addr);
             h3_sockaddr_to_addr(
                 (struct sockaddr_storage *)ps.path.local.addr,
                 (struct sockaddr_storage *)ps.path.remote.addr,
                 &addr
             );
-            fprintf(stderr, "h3_packet_flush: addr: local=%s:%d, remote=%s:%d\n",
-                    addr.local_addr ? addr.local_addr : "(null)", addr.local_port,
-                    addr.remote_addr ? addr.remote_addr : "(null)", addr.remote_port);
             int send_rv = conn->callbacks.send_packet(
                 conn->callbacks.user_data,
                 buf,
                 (size_t)nwrite,
                 &addr
             );
-            fprintf(stderr, "h3_packet_flush: callback returned %d\n", send_rv);
 
             if (send_rv == -1) {
                 /* Would block - stop sending, return what we have */
-                fprintf(stderr, "h3_packet_flush: send would block, stopping\n");
                 return H3_WOULDBLOCK;
             } else if (send_rv < -1) {
                 /* Send error */
-                fprintf(stderr, "h3_packet_flush: send error %d\n", send_rv);
                 return H3_ERROR;
             }
             /* send_rv >= 0 means success (bytes sent) */
@@ -373,7 +325,6 @@ int h3_packet_flush(h3_connection_t *conn) {
             break;  /* Safety limit */
         }
     }
-    fprintf(stderr, "h3_packet_flush: write_pkt loop done, packets=%d\n", packet_count);
 
     /* Now write HTTP/3 stream data */
     if (conn->http3 && conn->control_streams_bound) {
