@@ -10,7 +10,7 @@
 - [x] Phase 7: Update Root Build System
 - [x] Phase 8: Adapt Test Scripts
 - [x] Phase 9: Build Verification
-- [ ] Phase 10: Integration Testing - IN PROGRESS (parallel connections failing)
+- [x] Phase 10: Integration Testing - COMPLETE
 
 ## Step-by-Step Progress
 
@@ -56,7 +56,7 @@
 | 9.2 | Post-deletion build test | ✅ | Build succeeds, tests pass |
 | 10.1 | curl-h3 download test | ✅ | 31MB file downloads correctly |
 | 10.2 | MD5 verification | ✅ | 10/10 tests pass, MD5=ae525b610cdca28ffed9b81e2cfa47b8 |
-| 10.3 | Multi-connection test | ⚠️ IN PROGRESS | Parallel connections failing under load |
+| 10.3 | Multi-connection test | ✅ | Fixed by DCID-primary routing (was address-based) |
 
 ## Remaining Work
 
@@ -171,6 +171,11 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
 | 2026-01-26 | 3 parallel downloads | ✅ PASS | 3/3 pass consistently |
 | 2026-01-26 | 5 parallel downloads | ⚠️ PARTIAL | 1-4/5 pass, inconsistent |
 | 2026-01-26 | 10 parallel downloads | ❌ FAIL | 0-7/10 pass, connections enter DRAINING |
+| 2026-01-27 | Sequential (post DCID fix) | ✅ PASS | 10/10 pass |
+| 2026-01-27 | 3 parallel downloads | ✅ PASS | 3/3 pass |
+| 2026-01-27 | 5 parallel downloads | ✅ PASS | 5/5 pass (was 1-4/5) |
+| 2026-01-27 | 10 parallel downloads | ✅ PASS | 10/10 pass x2 runs (was 0-7/10) |
+| 2026-01-27 | Sequential after parallel | ✅ PASS | 10/10 pass |
 
 ## Build Fixes Applied
 
@@ -273,7 +278,7 @@ h3_buffer_read: stream_offset=356, first=01000059 # Reading at offset 356 = reco
 
 **Key Insight**: Only the `read_data` callback knows how much actual body data is being returned. The caller (`h3_packet.c`) only knows `ndatalen` which includes HTTP/3 framing overhead.
 
-#### Issue 3: Parallel Connection Failures - IN PROGRESS ⚠️
+#### Issue 3: Parallel Connection Failures - FIXED ✅
 
 **Symptoms**:
 - Sequential downloads: 9-10/10 pass
@@ -396,10 +401,35 @@ UDP packet arrives
 - `lib/PageCamel/CMDLine/WebFrontend.pm` - Added is_closing guards in
   handleHTTP3Backends and handleQUICTimeouts
 
-**Next Steps to Try**:
-1. Retest sequential after reverting early-out (should be back to 9-10/10)
-2. If sequential still broken, revert Perl changes one at a time to find culprit
-3. Investigate packet routing: could misrouted packets cause DRAINING?
-4. Check if cleanup removes all connection ID mappings atomically
-5. Consider increasing UDP socket buffer size
-6. Profile CPU usage during parallel connections
+**Investigation Round 3 (2026-01-27) - DCID Routing Fix**:
+
+10. **Root cause identified: Address-based primary routing**
+    - Our `handleQUICPacket` routes packets primarily by peer address (`quicConnectionsByAddr{"$ip:$port"}`)
+    - DCID-based lookup is only a fallback when address lookup fails
+    - This is the **opposite** of what every QUIC server does (ngtcp2 examples, nginx, quiche, h2o, quic-go)
+    - RFC 9000 Section 5.2 explicitly states DCID should be the primary routing key
+    - Address-based routing is "fragile" per RFC 9000 and breaks on connection migration
+
+11. **Specific bugs caused by address-based routing**:
+    a. **Packet misrouting on IP:port reuse**: When client B sends Initial from same IP:port as
+       active connection A (NAT rebinding, rapid reconnect), `quicConnectionsByAddr` routes B's
+       packet to handler A → ngtcp2 sees unexpected packet → DRAINING/error
+    b. **processIncomingUdpNonBlocking feeds ALL packets to one handler**: During flush loops,
+       packets for connection B are fed to handler A → ngtcp2 sees wrong DCID → connection failure
+    c. **Connection migration breaks cleanup**: Address-based cleanup can miss entries or remove
+       wrong entries when addresses change
+
+12. **Fix applied: DCID-primary routing**
+    - Removed `quicConnectionsByAddr` hash entirely
+    - `handleQUICPacket`: Extract DCID first → look up in `quicConnections` → route
+    - `processIncomingUdpNonBlocking`: Removed handler parameter, routes each packet by DCID
+    - Unknown DCID + long header → `handleNewQUICConnection` (potential Initial)
+    - Unknown DCID + short header → drop silently (stale/invalid)
+    - Updated all callers of `processIncomingUdpNonBlocking`
+
+**Research findings (from ngtcp2 examples, nginx, quiche, h2o, quic-go)**:
+- ALL use `HashMap<ConnectionID, Handler>` as the primary routing structure
+- New connections: validate with `ngtcp2_accept()` or check for Initial packet type
+- Connection migration: transparent when routing by DCID (just pass actual source addr to ngtcp2)
+- Draining: keep CID entries in map during draining period (3x PTO) to consume late packets
+- Multiple CIDs per connection: all mapped to same handler (initial DCID + server SCIDs + new CIDs)

@@ -282,8 +282,7 @@ sub init($self) {
 
     # Initialize QUIC/HTTP3 state if HTTP/3 is enabled
     if($hashttp3) {
-        $self->{quicConnections} = {};  # Connection ID -> Connection object
-        $self->{quicConnectionsByAddr} = {};  # "ip:port" -> Connection object
+        $self->{quicConnections} = {};  # Connection ID -> Handler (DCID-primary routing)
     }
 
     if($hasssl) {
@@ -1267,12 +1266,12 @@ sub cleanupClosedQUICConnections($self) {
     return;
 }
 
-sub processIncomingUdpNonBlocking($self, $udpSocket, $handler) {
-    # Non-blocking check for incoming UDP packets (ACKs)
-    # This is called during flush loops to prevent ACK starvation
-    # which causes RTT inflation and throughput collapse.
+sub processIncomingUdpNonBlocking($self, $udpSocket) {
+    # Non-blocking drain of incoming UDP packets with DCID-based routing.
+    # Called during flush loops to prevent ACK starvation which causes
+    # RTT inflation and throughput collapse.
 
-    return unless defined($udpSocket) && defined($handler);
+    return unless defined($udpSocket);
 
     # Use select with 0 timeout for non-blocking check
     my $rin = '';
@@ -1284,19 +1283,11 @@ sub processIncomingUdpNonBlocking($self, $udpSocket, $handler) {
     # Process up to 10 packets per call to avoid stalling the flush loop
     my $maxPackets = 10;
     while($maxPackets-- > 0) {
-        # Non-blocking recv
         my $packet;
         my $peerAddr = $udpSocket->recv($packet, 65_535, Socket::MSG_DONTWAIT);
 
         last unless(defined($peerAddr) && length($packet));
 
-        # Track statistics
-        $self->{_incomingUdpPackets} //= 0;
-        $self->{_incomingUdpBytes} //= 0;
-        $self->{_incomingUdpPackets}++;
-        $self->{_incomingUdpBytes} += length($packet);
-
-        # Process the packet via handler (this handles ACKs)
         my ($peerPort, $peerhost);
         if(length($peerAddr) == 16) {
             my $peerIp;
@@ -1308,7 +1299,27 @@ sub processIncomingUdpNonBlocking($self, $udpSocket, $handler) {
             $peerhost = Socket::inet_ntop(Socket::AF_INET6, $peerIp6);
         }
 
-        $handler->processPacket($packet, $peerhost, $peerPort);
+        # Route by DCID
+        my $dcid = $self->extractQUICConnectionId($packet);
+        my $handler;
+        if(defined($dcid)) {
+            $handler = $self->{quicConnections}->{$dcid};
+        }
+
+        if(defined($handler)) {
+            $handler->processPacket($packet, $peerhost, $peerPort);
+        } else {
+            # Unknown DCID - check for new connection (long header only)
+            my $firstByte = ord(substr($packet, 0, 1));
+            if($firstByte & 0x80) {
+                my $socketInfo = $self->{udpSocketInfo}->{$udpSocket};
+                $self->handleNewQUICConnection(
+                    $udpSocket, $packet, $peerhost, $peerPort,
+                    $socketInfo->{ip}, $socketInfo->{port}, $socketInfo->{service}
+                );
+            }
+            # Short header for unknown DCID → drop silently
+        }
 
         # Check if more packets available
         vec($rin, fileno($udpSocket), 1) = 1;
@@ -1324,8 +1335,6 @@ sub handleQUICPacket($self, $udpSocket) {
 
     return unless(defined($peerAddr) && length($packet));
 
-    # Track incoming packet statistics
-    $self->{_incomingUdpPackets} //= 0;
     # Extract peer info (handle both IPv4 and IPv6)
     my ($peerPort, $peerhost);
     if(length($peerAddr) == 16) {
@@ -1339,24 +1348,19 @@ sub handleQUICPacket($self, $udpSocket) {
         ($peerPort, $peerIp) = Socket::unpack_sockaddr_in6($peerAddr);
         $peerhost = Socket::inet_ntop(Socket::AF_INET6, $peerIp);
     }
-    my $peerkey = "$peerhost:$peerPort";
 
-    # Get local socket info
-    my $socketInfo = $self->{udpSocketInfo}->{$udpSocket};
-    my $lhost = $socketInfo->{ip};
-    my $lport = $socketInfo->{port};
-    my $service = $socketInfo->{service};
-
-    # Try to find existing handler by peer address
-    # Note: quicConnections hash now stores HTTP3Handler objects
-    my $handler = $self->{quicConnectionsByAddr}->{$peerkey};
+    # Route by Destination Connection ID (DCID) - RFC 9000 Section 5.2
+    my $dcid = $self->extractQUICConnectionId($packet);
+    my $handler;
+    if(defined($dcid)) {
+        $handler = $self->{quicConnections}->{$dcid};
+    }
 
     if(defined($handler)) {
-        # Existing connection - process packet via handler
+        # Existing connection - process packet (ngtcp2 handles migration via source addr)
         my $rv = $handler->processPacket($packet, $peerhost, $peerPort);
 
         if($rv < 0 || $handler->is_closing()) {
-            # Connection error or closing
             $self->cleanupQUICConnection($handler);
             return;
         }
@@ -1370,32 +1374,18 @@ sub handleQUICPacket($self, $udpSocket) {
             }
         }
     } else {
-        # New connection - extract connection ID from packet header
-        my $dcid = $self->extractQUICConnectionId($packet);
-        return unless(defined($dcid));
-
-        # Check for existing handler by connection ID
-        $handler = $self->{quicConnections}->{$dcid};
-
-        if(defined($handler)) {
-            # Connection migration - packet from new address
-            $handler->processPacket($packet, $peerhost, $peerPort);
-
-            # Update address mapping for connection migration
-            $self->{quicConnectionsByAddr}->{$peerkey} = $handler;
-
-            # Flush pending streams
-            my $h3conn = $handler->{h3conn};
-            if(defined($h3conn)) {
-                my $maxFlushIterations = 100;
-                while($handler->flushPendingStreams($h3conn) && --$maxFlushIterations > 0) {
-                    # flush_packets is called inside flushPendingStreams
-                }
-            }
-        } else {
-            # Brand new connection
+        # No existing connection for this DCID
+        # Only accept new connections from long header packets (Initial)
+        my $firstByte = ord(substr($packet, 0, 1));
+        if($firstByte & 0x80) {
+            # Long header - potential new connection
+            my $socketInfo = $self->{udpSocketInfo}->{$udpSocket};
+            my $lhost = $socketInfo->{ip};
+            my $lport = $socketInfo->{port};
+            my $service = $socketInfo->{service};
             $self->handleNewQUICConnection($udpSocket, $packet, $peerhost, $peerPort, $lhost, $lport, $service);
         }
+        # Short header for unknown DCID → drop silently (stale or invalid)
     }
 
     return;
@@ -1416,8 +1406,6 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
     # Get SSL config - pass all domains for SNI support
     my $defaultdomain = $self->{config}->{sslconfig}->{ssldefaultdomain};
     my $ssldomains = $self->{config}->{sslconfig}->{ssldomains};
-
-    my $peerkey = "$peerhost:$peerPort";
 
     # Build h3Config for the unified HTTP/3 connection
     my $h3Config = {
@@ -1519,7 +1507,6 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
     $self->{quicConnections}->{$client_dcid} = $handler;
     $self->{quicConnections}->{$server_scid} = $handler;
     $self->{quicConnections}->{$client_scid} = $handler;
-    $self->{quicConnectionsByAddr}->{$peerkey} = $handler;
 
     print getISODate(), " Connection from $peerhost HTTP/3\n";
 
@@ -1596,13 +1583,6 @@ sub cleanupQUICConnection($self, $handler) {
     my @cids = $handler->get_connection_ids();
     foreach my $cid (@cids) {
         delete $self->{quicConnections}->{$cid};
-    }
-
-    # Remove from address map
-    my $peerAddr = $handler->{_peerAddr};
-    if(defined($peerAddr)) {
-        my $peerkey = "$peerAddr->{host}:$peerAddr->{port}";
-        delete $self->{quicConnectionsByAddr}->{$peerkey};
     }
 
     return;
@@ -1701,7 +1681,7 @@ sub handleHTTP3Backends($self) {
 
             # CRITICAL: Process incoming ACKs after each backend read to prevent RTT inflation
             my $udpSocket = $handler->{_udpSocket};
-            $self->processIncomingUdpNonBlocking($udpSocket, $handler) if(defined($udpSocket));
+            $self->processIncomingUdpNonBlocking($udpSocket) if(defined($udpSocket));
         }
     }
 
@@ -1732,13 +1712,13 @@ sub handleHTTP3Backends($self) {
 
             # CRITICAL: Process any pending incoming ACKs to prevent RTT inflation
             if(defined($udpSocket)) {
-                $self->processIncomingUdpNonBlocking($udpSocket, $handler);
+                $self->processIncomingUdpNonBlocking($udpSocket);
             }
         }
 
         # CRITICAL: Always process ACKs after the loop
         if(defined($udpSocket)) {
-            $self->processIncomingUdpNonBlocking($udpSocket, $handler);
+            $self->processIncomingUdpNonBlocking($udpSocket);
         }
     }
 
