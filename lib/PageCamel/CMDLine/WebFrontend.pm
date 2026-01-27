@@ -1725,7 +1725,7 @@ sub handleHTTP3Backends($self) {
         # Flush pending stream data (retry sends blocked by flow control)
         # Limit iterations per connection for fair scheduling across connections
         my $udpSocket = $handler->{_udpSocket};
-        my $maxFlushIterations = 100;
+        my $maxFlushIterations = 5;
         my $flushedBytes = 1;
         while($flushedBytes && --$maxFlushIterations > 0) {
             $flushedBytes = $handler->flushPendingStreams($h3conn);
