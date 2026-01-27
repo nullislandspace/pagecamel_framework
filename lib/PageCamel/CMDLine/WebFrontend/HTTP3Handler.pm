@@ -384,8 +384,9 @@ sub handleConnectRequest($self, $h3conn, $streamId, $headersRef) {
     # Buffer request for backend
     $self->{tobackendbuffers}->{$streamId} = $request;
 
-    # Mark as tunnel pending
-    $self->{streamStates}->{$streamId} = 'tunnel_pending';
+    # Mark as waiting_response so processBackendResponse will handle the 101
+    $self->{streamStates}->{$streamId} = 'waiting_response';
+    $self->{streamTunnelPending}->{$streamId} = 1;  # Flag for tunnel upgrade detection
     $self->{streamResponses}->{$streamId} = '';
 
     return;
@@ -601,15 +602,26 @@ sub processBackendResponse($self, $h3conn, $streamId) {
             push @responseHeaders, $name, $value;
         }
 
-        # Check for WebSocket upgrade
+        # Check for WebSocket upgrade (Extended CONNECT tunnel or HTTP/1.1 101)
         my %respHeaders = @responseHeaders;
-        if($self->{streamStates}->{$streamId} eq 'tunnel_pending' ||
-           ($status == 101 && exists $respHeaders{'upgrade'})) {
+        my $isTunnel = $self->{streamTunnelPending}->{$streamId} || ($status == 101 && exists $respHeaders{'upgrade'});
+        if($isTunnel) {
+            delete $self->{streamTunnelPending}->{$streamId};
             $self->{streamStates}->{$streamId} = 'tunnel_active';
 
             # Send 200 OK for HTTP/3 tunnel
-            my @tunnelHeaders = grep { $_ ne 'content-length' } @responseHeaders;
+            # Filter out hop-by-hop headers (content-length, upgrade, connection)
+            # Must iterate in pairs to keep name/value alignment
+            my @tunnelHeaders;
+            for(my $i = 0; $i < scalar(@responseHeaders); $i += 2) {
+                my $name = $responseHeaders[$i];
+                next if($name eq 'content-length');
+                next if($name eq 'upgrade');
+                next if($name eq 'connection');
+                push @tunnelHeaders, $responseHeaders[$i], $responseHeaders[$i + 1];
+            }
             $h3conn->send_response_headers($streamId, 200, \@tunnelHeaders, 1);
+            $h3conn->flush_packets();
             $self->{streamTunnels}->{$streamId} = 1;
 
             if(length($body)) {

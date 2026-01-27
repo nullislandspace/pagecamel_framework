@@ -300,13 +300,6 @@ static int http3_recv_header_callback(nghttp3_conn *conn, int64_t stream_id,
     nghttp3_vec name_vec = nghttp3_rcbuf_get_buf(name);
     nghttp3_vec value_vec = nghttp3_rcbuf_get_buf(value);
 
-    if (H3_CALLBACKS_DEBUG) {
-        fprintf(stderr, "h3_callbacks: recv_header stream=%lld %.*s: %.*s\n",
-                (long long)stream_id,
-                (int)name_vec.len, name_vec.base,
-                (int)value_vec.len, value_vec.base);
-    }
-
     /* Find or create stream */
     h3_stream_t *stream = h3_stream_find(&h3c->streams, stream_id);
     if (!stream) {
@@ -342,11 +335,6 @@ static int http3_end_headers_callback(nghttp3_conn *conn, int64_t stream_id,
 
     h3_connection_t *h3c = (h3_connection_t *)user_data;
     h3_stream_t *stream = h3_stream_find(&h3c->streams, stream_id);
-
-    if (H3_CALLBACKS_DEBUG) {
-        fprintf(stderr, "h3_callbacks: end_headers stream=%lld fin=%d\n",
-                (long long)stream_id, fin);
-    }
 
     if (!stream) {
         return 0;

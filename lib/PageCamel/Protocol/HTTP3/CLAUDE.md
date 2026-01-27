@@ -12,8 +12,8 @@
 - [x] Phase 9: Build Verification
 - [x] Phase 10: Integration Testing - COMPLETE
 - [x] Phase 11: Upload Testing - COMPLETE
-- [ ] Phase 12: Python Client Download Verification
-- [ ] Phase 13: WebSocket Testing
+- [x] Phase 12: Python Client Verification - COMPLETE
+- [x] Phase 13: WebSocket Testing - COMPLETE
 
 ## Step-by-Step Progress
 
@@ -74,22 +74,32 @@
 | 11.8 | Streaming endpoint test | ✅ | SHA256 match, 5MB to /guest/puttest/dynamic |
 | 11.9 | Known-data checksum test | ✅ | "Hello HTTP/3 Upload Test" → correct SHA256, 24 bytes |
 
-### Phase 12: Python Client Download Verification
+### Phase 12: Python Client Verification (aioquic)
 | Step | Task | Status | Notes |
 |------|------|--------|-------|
-| 12.0 | Set up t/python/ directory | ⏳ | |
-| 12.1 | Copy h3_multiplex.py | ⏳ | |
-| 12.2 | Create h3_download.py | ⏳ | Single download + MD5 |
-| 12.3 | Create h3_parallel_download.py | ⏳ | 3 parallel + MD5 |
-| 12.4 | Run single download test | ⏳ | |
-| 12.5 | Run parallel download test | ⏳ | |
+| 12.0 | Set up t/python/ directory | ✅ | Moved http2_websocket_client.py, copied h3_multiplex.py |
+| 12.1 | Create h3_download.py | ✅ | Single download + MD5 |
+| 12.2 | Create h3_parallel_download.py | ✅ | 3 parallel streams + MD5 |
+| 12.3 | Create h3_upload.py | ✅ | Small + 5MB + connection reuse uploads |
+| 12.4 | Create h3_parallel_upload.py | ✅ | 3 parallel 2MB uploads + SHA256 |
+| 12.5 | Create h3_connection_reuse.py | ✅ | 3 downloads + GET + upload on 1 connection |
+| 12.6 | Run single download test | ✅ | 31MB, MD5 match, 3.1s |
+| 12.7 | Run parallel download test | ✅ | 3x31MB, all MD5 match, 8.8s |
+| 12.8 | Run upload tests | ✅ | 24B + 5MB + 1MB reuse, all SHA256 match |
+| 12.9 | Run parallel upload test | ✅ | 3x2MB, all SHA256 match, 1.0s |
+| 12.10 | Run connection reuse test | ✅ | 3 downloads + GET + upload on single conn |
 
-### Phase 13: WebSocket Testing
+### Phase 13: WebSocket Testing (Extended CONNECT, RFC 9220)
 | Step | Task | Status | Notes |
 |------|------|--------|-------|
-| 13.1 | Install websockets library | ⏳ | |
-| 13.2 | Create h3_websocket.py | ⏳ | |
-| 13.3 | Run WebSocket test | ⏳ | |
+| 13.1 | Enable enable_connect_protocol in nghttp3 settings | ✅ | h3_connection.c: `http3_settings.enable_connect_protocol = 1` |
+| 13.2 | Create h3_websocket.py | ✅ | Uses aioquic, manual WS framing, KaffeeSim protocol |
+| 13.3 | Verify HTTP/2 WebSocket baseline | ✅ | Extended CONNECT works via h2 library, VALUE msgs received |
+| 13.4 | Verify HTTP/3 header reception | ✅ | C callbacks receive all 8 headers, is_connect=1 detected |
+| 13.5 | Verify Perl callback fires | ✅ | on_request called and returns, is_connect=1 passed |
+| 13.6 | Debug tunnel response | ✅ | Fixed 3 bugs: state mismatch, header filtering, missing flush_packets |
+| 13.7 | Run full WebSocket test | ✅ | All 4 tests PASS: PING/PONG, NOTIFY, continuous stream, graceful close |
+| 13.8 | Clean build verification | ✅ | All 4 WS tests PASS, download MD5 match, upload SHA256 match |
 
 ## Remaining Work
 
@@ -166,6 +176,21 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
      c. `deferred_consume` (nghttp3): by consumed (deferred bytes)
    - Missing any site causes flow control stall at initial window size
 
+7. **grep filtering on flat name/value header arrays**
+   - `grep { $_ ne 'content-length' } @headers` removes only the name, leaving orphaned value
+   - Creates odd-length array (broken pairs) → corrupted HTTP/3 response headers
+   - Must iterate in pairs: `for(my $i = 0; $i < scalar(@h); $i += 2)` and skip both elements
+
+8. **Sending tunnel response headers without flush_packets()**
+   - WebSocket tunnel: send_response_headers with 0 body bytes
+   - Without explicit flush_packets(), response stays queued in nghttp3 indefinitely
+   - Client times out waiting for response
+
+9. **Using different state names in handleConnectRequest vs processBackendResponse**
+   - handleConnectRequest set `tunnel_pending`, processBackendResponse only handled `waiting_response`
+   - Backend 101 response was silently ignored because state check failed
+   - Fix: Use consistent state name + separate flag for tunnel detection
+
 ### Known Working Patterns
 
 1. **Chunk-based buffer system (64KB chunks)**
@@ -235,6 +260,19 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
 | 2026-01-27 | Upload HTTP/3 100MB piped | ✅ PASS | SHA256 match, chunked (no Content-Length) |
 | 2026-01-27 | Upload HTTP/3 100MB file | ✅ PASS | SHA256 match, with Content-Length |
 | 2026-01-27 | Upload HTTP/1.1 100MB piped | ✅ PASS | SHA256=2e39e466ea3c5ea57795a38e1782821d4715da498c58dda079fb9e8aa7cb6081 |
+| 2026-01-27 | aioquic single download | ✅ PASS | 31MB, MD5 match, 3.1s |
+| 2026-01-27 | aioquic 3 parallel downloads | ✅ PASS | 3x31MB on 1 conn, all MD5 match, 8.8s |
+| 2026-01-27 | aioquic uploads (24B+5MB+1MB) | ✅ PASS | All SHA256 match, connection reuse works |
+| 2026-01-27 | aioquic 3 parallel uploads | ✅ PASS | 3x2MB on 1 conn, all SHA256 match, 1.0s |
+| 2026-01-27 | aioquic connection reuse | ✅ PASS | 3 downloads + GET + upload on single conn |
+| 2026-01-27 | HTTP/2 WebSocket baseline | ✅ PASS | Extended CONNECT, status 200, VALUE msgs received |
+| 2026-01-27 | HTTP/3 WebSocket headers | ✅ PASS | C layer receives 8 headers, is_connect=1 detected |
+| 2026-01-27 | HTTP/3 WebSocket tunnel | ✅ PASS | Fixed 3 bugs: state mismatch, header pair filtering, missing flush_packets |
+| 2026-01-27 | HTTP/3 WebSocket full test | ✅ PASS | 4/4: PING/PONG, NOTIFY update_all (16 vars), continuous stream (8 updates/2s), graceful close |
+| 2026-01-27 | Debug cleanup + rebuild | ✅ PASS | All temp debug removed from HTTP3Handler, WebFrontend, HTTP3.xs, h3_callbacks.c |
+| 2026-01-27 | WebSocket clean verify | ✅ PASS | 4/4 WS tests pass on clean build (no debug code) |
+| 2026-01-27 | Download regression | ✅ PASS | MD5=ae525b610cdca28ffed9b81e2cfa47b8 (post-WS fix) |
+| 2026-01-27 | Upload regression (5MB) | ✅ PASS | SHA256 match, 5,242,880 bytes (post-WS fix) |
 
 ## Build Fixes Applied
 
@@ -255,6 +293,10 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
 | 2026-01-23 | h3_buffer.h | No backpressure mechanism | Added H3_MAX_BUFFER_SIZE (10MB), h3_buffer_can_write(), h3_buffer_memory_usage() |
 | 2026-01-23 | h3_api.c | Unbounded buffer growth | h3_send_response_body() returns H3_WOULDBLOCK when buffer exceeds 10MB |
 | 2026-01-27 | h3_callbacks.c | Upload flow control not extended for body data | Added extend_max_stream_offset/extend_max_offset in recv_data + new deferred_consume callback |
+| 2026-01-27 | h3_connection.c | Extended CONNECT not advertised | Set `http3_settings.enable_connect_protocol = 1` for RFC 9220 WebSocket support |
+| 2026-01-27 | HTTP3Handler.pm | WebSocket tunnel state mismatch | Changed handleConnectRequest to use `waiting_response` + `streamTunnelPending` flag |
+| 2026-01-27 | HTTP3Handler.pm | Header pair filtering corruption | Replaced broken `grep` with paired iteration, filtering content-length/upgrade/connection |
+| 2026-01-27 | HTTP3Handler.pm | Missing flush_packets after tunnel headers | Added `$h3conn->flush_packets()` after `send_response_headers` for tunnels |
 
 ## Debug Notes
 
@@ -526,3 +568,53 @@ the initial window would stall.
 
 **Verification**: Uploads of 1MB, 5MB, 30MB, and 100MB all pass with correct SHA256
 checksums across HTTP/1.1, HTTP/2, and HTTP/3 protocols.
+
+### WebSocket over HTTP/3: Extended CONNECT (2026-01-27) - FIXED ✅
+
+**Goal**: WebSocket over HTTP/3 via Extended CONNECT (RFC 9220).
+
+**Endpoint**: `wss://test.cavac.at/guest/kaffeesim/ws` (KaffeeSim coffee machine simulator)
+
+**KaffeeSim WebSocket Protocol** (JSON over WebSocket text frames):
+```
+Client→Server: {"type":"PING"}                                    → Server echoes PING
+Client→Server: {"type":"NOTIFY","varname":"update_all"}           → Server sends all state
+Client→Server: {"type":"SET","varname":"...","varvalue":N}        → Control machine (manual mode)
+Client→Server: {"type":"LISTEN","varname":"..."}                  → Subscribe to variable
+Server→Client: {"type":"PING"}                                    → Keep-alive ack
+Server→Client: {"type":"VALUE","varname":"...","varval":"..."}    → State update
+```
+
+**Three bugs found and fixed**:
+
+1. **Stream state mismatch** (`tunnel_pending` vs `waiting_response`):
+   - `handleConnectRequest` set stream state to `tunnel_pending`
+   - `processBackendResponse` only processes `waiting_response` state
+   - Backend's `101 Switching Protocols` was ignored because state didn't match
+   - Fix: Use `waiting_response` state + `streamTunnelPending` flag
+
+2. **Header pair filtering corruption** (33 elements, broken pairs):
+   - `grep { $_ ne 'content-length' } @responseHeaders` on flat name/value array
+   - Only removed the name string, leaving orphaned value (odd count = broken pairs)
+   - Corrupted HTTP/3 headers caused ngtcp2 to enter DRAINING state → H3_ERROR_CLOSED
+   - Fix: Proper paired iteration filtering content-length, upgrade, connection headers
+
+3. **Missing `flush_packets()` after tunnel headers**:
+   - Code only called `flush_packets()` when body had data
+   - WebSocket tunnel with 0 body bytes: response queued in nghttp3 but never transmitted
+   - Fix: Added unconditional `$h3conn->flush_packets()` after `send_response_headers`
+
+**Files modified** (permanent changes):
+- `lib/PageCamel/CMDLine/WebFrontend/HTTP3Handler.pm` - All 3 bug fixes
+
+**All temporary debug code removed** from:
+- `h3_callbacks.c` - recv_header/end_headers/on_request fprintf
+- `HTTP3.xs` - xs_on_request_cb fprintf
+- `HTTP3Handler.pm` - handleRequest/handleConnectRequest/handleBackendData/processBackendResponse print STDERR
+- `WebFrontend.pm` - main loop/handleHTTP3Backends/handleQUICTimeouts print STDERR
+
+**Test results**: 4/4 WebSocket tests PASS:
+- PING/PONG echo
+- NOTIFY update_all → 16 VALUE messages (boiler_temp, boiler_waterlevel, production_enable present)
+- Continuous stream → 8 updates in 2 seconds
+- Graceful close

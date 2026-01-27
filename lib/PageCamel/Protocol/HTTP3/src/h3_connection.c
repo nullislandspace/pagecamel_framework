@@ -365,6 +365,7 @@ h3_connection_t *h3_connection_new_server(
 
     h3_setup_http3_callbacks(&http3_callbacks);
     nghttp3_settings_default(&http3_settings);
+    http3_settings.enable_connect_protocol = 1;  /* RFC 9220: WebSocket over HTTP/3 */
 
     rv = nghttp3_conn_server_new(
         &conn->http3,
