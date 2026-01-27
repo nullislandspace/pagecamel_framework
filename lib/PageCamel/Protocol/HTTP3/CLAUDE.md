@@ -11,6 +11,9 @@
 - [x] Phase 8: Adapt Test Scripts
 - [x] Phase 9: Build Verification
 - [x] Phase 10: Integration Testing - COMPLETE
+- [x] Phase 11: Upload Testing - COMPLETE
+- [ ] Phase 12: Python Client Download Verification
+- [ ] Phase 13: WebSocket Testing
 
 ## Step-by-Step Progress
 
@@ -57,6 +60,36 @@
 | 10.1 | curl-h3 download test | ✅ | 31MB file downloads correctly |
 | 10.2 | MD5 verification | ✅ | 10/10 tests pass, MD5=ae525b610cdca28ffed9b81e2cfa47b8 |
 | 10.3 | Multi-connection test | ✅ | Fixed by DCID-primary routing (was address-based) |
+
+### Phase 11: Upload Testing
+| Step | Task | Status | Notes |
+|------|------|--------|-------|
+| 11.1 | Create test data (5MB) | ✅ | SHA256=5e9757f67f94fa2d1a489abaf073d900b0e97093af3eda1ab8361f6f0aec2cd5 |
+| 11.2 | File upload HTTP/1.1 baseline | ✅ | SHA256 match, 5MB |
+| 11.3 | File upload HTTP/2 | ✅ | SHA256 match, 5MB |
+| 11.4 | File upload HTTP/3 | ✅ | SHA256 match, 5MB + 30MB. Fixed flow control bug |
+| 11.5 | Piped upload HTTP/1.1 baseline | ✅ | SHA256 match, 5MB |
+| 11.6 | Piped upload HTTP/2 | ✅ | SHA256 match, 5MB |
+| 11.7 | Piped upload HTTP/3 | ✅ | SHA256 match, 5MB |
+| 11.8 | Streaming endpoint test | ✅ | SHA256 match, 5MB to /guest/puttest/dynamic |
+| 11.9 | Known-data checksum test | ✅ | "Hello HTTP/3 Upload Test" → correct SHA256, 24 bytes |
+
+### Phase 12: Python Client Download Verification
+| Step | Task | Status | Notes |
+|------|------|--------|-------|
+| 12.0 | Set up t/python/ directory | ⏳ | |
+| 12.1 | Copy h3_multiplex.py | ⏳ | |
+| 12.2 | Create h3_download.py | ⏳ | Single download + MD5 |
+| 12.3 | Create h3_parallel_download.py | ⏳ | 3 parallel + MD5 |
+| 12.4 | Run single download test | ⏳ | |
+| 12.5 | Run parallel download test | ⏳ | |
+
+### Phase 13: WebSocket Testing
+| Step | Task | Status | Notes |
+|------|------|--------|-------|
+| 13.1 | Install websockets library | ⏳ | |
+| 13.2 | Create h3_websocket.py | ⏳ | |
+| 13.3 | Run WebSocket test | ⏳ | |
 
 ## Remaining Work
 
@@ -124,6 +157,15 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
    - Symptoms: data missing from start of file, records "jumping backwards"
    - **FIX**: Consume in `read_data` callback where we know exact body data returned
 
+6. **Extending flow control only from recv_stream_data callback**
+   - `nghttp3_conn_read_stream()` return value EXCLUDES body data payload
+   - Only covers HTTP/3 framing overhead (HEADERS, DATA frame headers, QPACK)
+   - Flow control must be extended from THREE sites:
+     a. `recv_stream_data` (ngtcp2): by nghttp3_conn_read_stream() return value (framing)
+     b. `recv_data` (nghttp3): by datalen (body data)
+     c. `deferred_consume` (nghttp3): by consumed (deferred bytes)
+   - Missing any site causes flow control stall at initial window size
+
 ### Known Working Patterns
 
 1. **Chunk-based buffer system (64KB chunks)**
@@ -145,7 +187,14 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
    - Never consume based on `ndatalen` (includes HTTP/3 framing)
    - This ensures exact byte accounting for body data only
 
-5. **Backpressure with max buffer size (10MB)**
+5. **Three-site flow control extension for uploads**
+   - recv_stream_data: extend by nghttp3_conn_read_stream() return (framing only)
+   - recv_data: extend by datalen (body data payload)
+   - deferred_consume: extend by consumed (deferred bytes)
+   - All three MUST call ngtcp2_conn_extend_max_stream_offset AND ngtcp2_conn_extend_max_offset
+   - Verified: 100MB uploads work with 1MB initial window
+
+6. **Backpressure with max buffer size (10MB)**
    - `H3_MAX_BUFFER_SIZE` = 10MB per stream
    - `h3_send_response_body()` returns `H3_WOULDBLOCK` when exceeded
    - Memory usage = `total_len - freed_bytes` (data still in chunks)
@@ -176,6 +225,16 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
 | 2026-01-27 | 5 parallel downloads | ✅ PASS | 5/5 pass (was 1-4/5) |
 | 2026-01-27 | 10 parallel downloads | ✅ PASS | 10/10 pass x2 runs (was 0-7/10) |
 | 2026-01-27 | Sequential after parallel | ✅ PASS | 10/10 pass |
+| 2026-01-27 | Upload HTTP/1.1 5MB | ✅ PASS | SHA256 match |
+| 2026-01-27 | Upload HTTP/2 5MB | ✅ PASS | SHA256 match |
+| 2026-01-27 | Upload HTTP/3 5MB | ✅ PASS | SHA256 match (after flow control fix) |
+| 2026-01-27 | Upload HTTP/3 30MB | ✅ PASS | SHA256 match |
+| 2026-01-27 | Piped upload all protocols | ✅ PASS | All 3 protocols match |
+| 2026-01-27 | Streaming endpoint | ✅ PASS | SHA256 match |
+| 2026-01-27 | Download regression | ✅ PASS | MD5=ae525b610cdca28ffed9b81e2cfa47b8 |
+| 2026-01-27 | Upload HTTP/3 100MB piped | ✅ PASS | SHA256 match, chunked (no Content-Length) |
+| 2026-01-27 | Upload HTTP/3 100MB file | ✅ PASS | SHA256 match, with Content-Length |
+| 2026-01-27 | Upload HTTP/1.1 100MB piped | ✅ PASS | SHA256=2e39e466ea3c5ea57795a38e1782821d4715da498c58dda079fb9e8aa7cb6081 |
 
 ## Build Fixes Applied
 
@@ -195,6 +254,7 @@ The core C library, XS wrapper, HTTP3Handler, and WebFrontend integration are al
 | 2026-01-23 | h3_packet.c | Incorrect buffer consumption | Removed h3_buffer_consume() calls (now in read_data) |
 | 2026-01-23 | h3_buffer.h | No backpressure mechanism | Added H3_MAX_BUFFER_SIZE (10MB), h3_buffer_can_write(), h3_buffer_memory_usage() |
 | 2026-01-23 | h3_api.c | Unbounded buffer growth | h3_send_response_body() returns H3_WOULDBLOCK when buffer exceeds 10MB |
+| 2026-01-27 | h3_callbacks.c | Upload flow control not extended for body data | Added extend_max_stream_offset/extend_max_offset in recv_data + new deferred_consume callback |
 
 ## Debug Notes
 
@@ -433,3 +493,36 @@ UDP packet arrives
 - Connection migration: transparent when routing by DCID (just pass actual source addr to ngtcp2)
 - Draining: keep CID entries in map during draining period (3x PTO) to consume late packets
 - Multiple CIDs per connection: all mapped to same handler (initial DCID + server SCIDs + new CIDs)
+
+### Upload Bug: QUIC Flow Control Window Not Extended (2026-01-27) - FIXED ✅
+
+**Symptom**: HTTP/3 uploads fail (timeout, no response) when body size exceeds the
+`initial_max_stream_data_bidi` flow control window (default 1MB). Small uploads work.
+
+**Exact threshold**: Body of 1,048,512 bytes works; 1,048,514 bytes fails. The total
+stream data (body + ~62 bytes HTTP/3 framing overhead) crosses exactly 1,048,576 (1MB).
+
+**Root Cause**: `nghttp3_conn_read_stream()` return value only covers HTTP/3 framing
+overhead (HEADERS frame, DATA frame headers, QPACK), NOT the body data payload. We were
+calling `ngtcp2_conn_extend_max_stream_offset()` only with the framing byte count from
+the `recv_stream_data` ngtcp2 callback, but body data bytes were never accounted for.
+The client's flow control window was never extended for body data, so uploads exceeding
+the initial window would stall.
+
+**Fix Applied**: Extend flow control from THREE callback sites:
+
+1. **`recv_stream_data` (ngtcp2 callback)**: Extend by `nghttp3_conn_read_stream()` return
+   value — covers HTTP/3 framing overhead only. (Already existed at h3_callbacks.c:92-93)
+
+2. **`recv_data` (nghttp3 callback)**: Added `ngtcp2_conn_extend_max_stream_offset()` and
+   `ngtcp2_conn_extend_max_offset()` calls with `datalen` — covers body data payload.
+
+3. **`deferred_consume` (nghttp3 callback)**: New callback — extends flow control for
+   bytes that nghttp3 consumed internally (deferred processing).
+
+**Files Modified**:
+- `src/h3_callbacks.c` - Added flow control extension in `http3_recv_data_callback`,
+  added new `http3_deferred_consume_callback`, registered in `h3_setup_http3_callbacks`
+
+**Verification**: Uploads of 1MB, 5MB, 30MB, and 100MB all pass with correct SHA256
+checksums across HTTP/1.1, HTTP/2, and HTTP/3 protocols.

@@ -354,8 +354,10 @@ static int http3_end_headers_callback(nghttp3_conn *conn, int64_t stream_id,
 
     stream->headers_complete = 1;
 
-    /* If fin is set, this request has no body - notify Perl now */
-    if (fin && h3c->callbacks.on_request) {
+    /* Always notify Perl when headers are complete so it can set up the
+     * backend connection. For requests with a body (fin=0), body data
+     * will follow via on_request_body callbacks. */
+    if (h3c->callbacks.on_request) {
         h3c->callbacks.on_request(
             h3c->callbacks.user_data,
             stream_id,
@@ -394,6 +396,12 @@ static int http3_recv_data_callback(nghttp3_conn *conn, int64_t stream_id,
     /* Append to request body buffer */
     h3_stream_append_request_body(stream, data, datalen);
 
+    /* CRITICAL: Extend QUIC flow control for body data bytes.
+     * nghttp3_conn_read_stream() return value only covers HTTP/3 framing
+     * overhead, NOT body data. Body data flow control must be extended here. */
+    ngtcp2_conn_extend_max_stream_offset(h3c->quic, stream_id, datalen);
+    ngtcp2_conn_extend_max_offset(h3c->quic, datalen);
+
     /* Notify Perl of streaming body data */
     if (h3c->callbacks.on_request_body) {
         h3c->callbacks.on_request_body(
@@ -427,26 +435,15 @@ static int http3_end_stream_callback(nghttp3_conn *conn, int64_t stream_id,
         return 0;
     }
 
-    /* If headers were received but no body, the request callback was already
-     * called in end_headers. If there was a body, notify with fin=1 */
-    if (stream->request_body_len > 0 && h3c->callbacks.on_request_body) {
+    /* Notify that the request body is complete.
+     * on_request was already called in end_headers for all requests. */
+    if (h3c->callbacks.on_request_body) {
         h3c->callbacks.on_request_body(
             h3c->callbacks.user_data,
             stream_id,
             NULL,
             0,
             1  /* fin */
-        );
-    } else if (stream->request_body_len > 0 && h3c->callbacks.on_request) {
-        /* If on_request_body not set but we accumulated body, notify on_request now */
-        h3c->callbacks.on_request(
-            h3c->callbacks.user_data,
-            stream_id,
-            stream->headers,
-            stream->header_count,
-            stream->request_body,
-            stream->request_body_len,
-            stream->is_connect
         );
     }
 
@@ -477,6 +474,24 @@ static int http3_acked_stream_data_callback(nghttp3_conn *conn, int64_t stream_i
         /* Update buffer tracking - don't free memory yet */
         h3_buffer_ack(&stream->body_buffer, (size_t)datalen);
     }
+
+    return 0;
+}
+
+/*
+ * deferred_consume callback - Called by nghttp3 when bytes are consumed later
+ * due to stream synchronization. Must extend QUIC flow control for these bytes.
+ */
+static int http3_deferred_consume_callback(nghttp3_conn *conn, int64_t stream_id,
+                                           size_t consumed, void *user_data,
+                                           void *stream_user_data) {
+    (void)conn;
+    (void)stream_user_data;
+
+    h3_connection_t *h3c = (h3_connection_t *)user_data;
+
+    ngtcp2_conn_extend_max_stream_offset(h3c->quic, stream_id, consumed);
+    ngtcp2_conn_extend_max_offset(h3c->quic, consumed);
 
     return 0;
 }
@@ -559,6 +574,7 @@ void h3_setup_http3_callbacks(nghttp3_callbacks *cb) {
     cb->recv_data = http3_recv_data_callback;
     cb->end_stream = http3_end_stream_callback;
     cb->acked_stream_data = http3_acked_stream_data_callback;
+    cb->deferred_consume = http3_deferred_consume_callback;
 }
 
 /*

@@ -1429,7 +1429,7 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
         initial_packet  => $packet,
         # QUIC transport parameters
         initial_max_data => 10 * 1024 * 1024,
-        initial_max_stream_data_bidi => 1024 * 1024,
+        initial_max_stream_data_bidi => 10 * 1024 * 1024,
         initial_max_streams_bidi => 100,
         max_idle_timeout_ms => 30000,
         cc_algo => 1,  # CUBIC

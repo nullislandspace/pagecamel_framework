@@ -395,27 +395,37 @@ sub handleStreamData($self, $h3conn, $streamId, $data, $fin) {
     # Handle incoming data on a stream (for tunnels/WebSocket AND request bodies)
     my $state = $self->{streamStates}->{$streamId} // '';
 
-    return unless defined($data) && length($data);
-
-    if($state eq 'tunnel_active') {
-        # Forward data to backend (WebSocket tunnel)
-        my $backend = $self->{streamBackends}->{$streamId};
-        if(defined($backend)) {
-            $self->{tobackendbuffers}->{$streamId} //= '';
-            $self->{tobackendbuffers}->{$streamId} .= $data;
-        }
-    } elsif($state eq 'waiting_response') {
-        # Forward request body data to backend (PUT/POST uploads)
-        my $backend = $self->{streamBackends}->{$streamId};
-        if(defined($backend)) {
-            $self->{tobackendbuffers}->{$streamId} //= '';
-            if($self->{streamUseChunked}->{$streamId}) {
-                # Encode as HTTP/1.1 chunk
-                my $chunk = sprintf("%x\r\n%s\r\n", length($data), $data);
-                $self->{tobackendbuffers}->{$streamId} .= $chunk;
-            } else {
+    # Append body data if present
+    if(defined($data) && length($data)) {
+        if($state eq 'tunnel_active') {
+            # Forward data to backend (WebSocket tunnel)
+            my $backend = $self->{streamBackends}->{$streamId};
+            if(defined($backend)) {
+                $self->{tobackendbuffers}->{$streamId} //= '';
                 $self->{tobackendbuffers}->{$streamId} .= $data;
             }
+        } elsif($state eq 'waiting_response') {
+            # Forward request body data to backend (PUT/POST uploads)
+            my $backend = $self->{streamBackends}->{$streamId};
+            if(defined($backend)) {
+                $self->{tobackendbuffers}->{$streamId} //= '';
+                if($self->{streamUseChunked}->{$streamId}) {
+                    # Encode as HTTP/1.1 chunk
+                    my $chunk = sprintf("%x\r\n%s\r\n", length($data), $data);
+                    $self->{tobackendbuffers}->{$streamId} .= $chunk;
+                } else {
+                    $self->{tobackendbuffers}->{$streamId} .= $data;
+                }
+            }
+        }
+    }
+
+    # Handle end of request body
+    if($fin) {
+        if($state eq 'waiting_response' && $self->{streamUseChunked}->{$streamId}) {
+            # Send chunked transfer terminator so backend knows body is complete
+            $self->{tobackendbuffers}->{$streamId} //= '';
+            $self->{tobackendbuffers}->{$streamId} .= "0\r\n\r\n";
         }
     }
 
@@ -559,7 +569,9 @@ sub processBackendResponse($self, $h3conn, $streamId) {
 
     if($state eq 'waiting_response') {
         my $headerEnd = index($response, "\r\n\r\n");
-        return if($headerEnd < 0);
+        if($headerEnd < 0) {
+            return;
+        }
 
         my $headerBlock = substr($response, 0, $headerEnd);
         my $body = substr($response, $headerEnd + 4);
@@ -720,8 +732,20 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHa
                 $written = syswrite($backend, ${$tobackendbuffer}, $towrite);
             };
 
-            if($EVAL_ERROR || !defined($written)) {
+            if($EVAL_ERROR) {
                 $self->{backenddisconnects}->{$streamId} = 1;
+                carp("HTTP3Handler: stream=$streamId syswrite exception: $EVAL_ERROR");
+                next;
+            }
+
+            if(!defined($written)) {
+                # EWOULDBLOCK/EAGAIN is not an error - just try again later
+                if($!{EAGAIN} || $!{EWOULDBLOCK}) {
+                    next;
+                }
+                # Real error
+                $self->{backenddisconnects}->{$streamId} = 1;
+                carp("HTTP3Handler: stream=$streamId syswrite error: $!");
                 next;
             }
 
@@ -729,6 +753,8 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHa
                 ${$tobackendbuffer} = substr(${$tobackendbuffer}, $written);
                 $totalBytesThisIteration += $written;
                 $madeProgress = 1;
+                $self->{backendBytesWritten}->{$streamId} //= 0;
+                $self->{backendBytesWritten}->{$streamId} += $written;
             }
         }
     }
