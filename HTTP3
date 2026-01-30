@@ -1,1 +1,0 @@
-sudo apt install libnghttp3-dev libngtcp2-dev libngtcp2-crypto-gnutls-dev libgnutls28-dev

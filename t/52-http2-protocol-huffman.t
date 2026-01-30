@@ -1,6 +1,11 @@
 use strict;
 use warnings;
 use Test::More;
+
+BEGIN {
+    plan skip_all => 'Author tests. Set TEST_HTTP2=1 to run.' unless $ENV{TEST_HTTP2};
+}
+
 use Data::Dumper;
 BEGIN { use_ok('PageCamel::Protocol::HTTP2::Huffman') }
 

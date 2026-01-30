@@ -1,0 +1,32 @@
+# Typemap for PageCamel::Protocol::HTTP3
+
+TYPEMAP
+h3_connection_t *        T_H3_CONN
+PageCamel_H3_Wrapper *   T_H3_WRAPPER
+
+INPUT
+T_H3_CONN
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::Protocol::HTTP3::Connection\")) {
+        $var = INT2PTR($type, SvIV((SV*)SvRV($arg)));
+    }
+    else {
+        Perl_croak(aTHX_ \"%s: %s is not of type PageCamel::Protocol::HTTP3::Connection\",
+                   \"${Package}::$func_name\", \"$var\");
+    }
+
+T_H3_WRAPPER
+    if (SvROK($arg) && sv_derived_from($arg, \"PageCamel::Protocol::HTTP3::Connection\")) {
+        $var = INT2PTR($type, SvIV((SV*)SvRV($arg)));
+    }
+    else {
+        Perl_croak(aTHX_ \"%s: %s is not of type PageCamel::Protocol::HTTP3::Connection\",
+                   \"${Package}::$func_name\", \"$var\");
+    }
+
+OUTPUT
+T_H3_CONN
+    sv_setref_pv($arg, \"PageCamel::Protocol::HTTP3::Connection\", (void*)$var);
+
+T_H3_WRAPPER
+    sv_setref_pv($arg, \"PageCamel::Protocol::HTTP3::Connection\", (void*)$var);
+

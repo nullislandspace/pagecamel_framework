@@ -209,18 +209,18 @@ my %mmParams = (
 
 # Add XS compilation if HTTP/3 is enabled
 if($http3Enabled) {
-    # Point to subdirectories with their own Makefile.PL for XS modules
-    $mmParams{DIR} = ['lib/PageCamel/XS'];
+    # Point to unified HTTP/3 module directory
+    $mmParams{DIR} = ['lib/PageCamel/Protocol/HTTP3'];
 
-    # Write the HTTP/3 configuration for the XS subdirectory
-    open my $fh, '>', 'lib/PageCamel/XS/http3_config.pl' or die "Cannot write http3_config.pl: $!";
+    # Write the HTTP/3 configuration for the HTTP3 subdirectory
+    open my $fh, '>', 'lib/PageCamel/Protocol/HTTP3/http3_config.pl' or die "Cannot write http3_config.pl: $!";
     print $fh "# Auto-generated HTTP/3 configuration\n";
     print $fh "our \$HTTP3_ENABLED = 1;\n";
     print $fh "our \@HTTP3_INCS = qw(" . join(' ', @http3Incs) . ");\n";
     print $fh "our \@HTTP3_LIBS = qw(" . join(' ', @http3Libs) . ");\n";
     print $fh "1;\n";
     close $fh;
-    print "Wrote HTTP/3 configuration to lib/PageCamel/XS/http3_config.pl\n";
+    print "Wrote HTTP/3 configuration to lib/PageCamel/Protocol/HTTP3/http3_config.pl\n";
 }
 
 # Custom targets - must be defined before WriteMakefile()
@@ -229,7 +229,7 @@ sub MY::postamble {
 
 # Clean up nested blib directories that can cause build issues
 clean ::
-	-rm -rf lib/PageCamel/blib lib/PageCamel/XS/blib
+	-rm -rf lib/PageCamel/blib lib/PageCamel/Protocol/HTTP3/blib
 
 # HTTP/3 specific targets
 http3-check:
@@ -241,9 +241,9 @@ http3-check:
 http3-info:
 	@echo "HTTP/3 Build Information:"
 	@echo "========================="
-	@if [ -f lib/PageCamel/XS/http3_config.pl ]; then \
+	@if [ -f lib/PageCamel/Protocol/HTTP3/http3_config.pl ]; then \
 		echo "HTTP/3 support: ENABLED"; \
-		cat lib/PageCamel/XS/http3_config.pl; \
+		cat lib/PageCamel/Protocol/HTTP3/http3_config.pl; \
 	else \
 		echo "HTTP/3 support: DISABLED"; \
 		echo "Install libngtcp2-dev and libnghttp3-dev to enable."; \

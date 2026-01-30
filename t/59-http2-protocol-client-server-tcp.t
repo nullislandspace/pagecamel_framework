@@ -1,6 +1,9 @@
 use strict;
 use warnings;
 use Test::More;
+
+plan skip_all => 'Author tests. Set TEST_HTTP2=1 to run.' unless $ENV{TEST_HTTP2};
+
 use lib 't/lib';
 use PH2ClientServerTest;
 use Test::TCP;
