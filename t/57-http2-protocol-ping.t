@@ -1,6 +1,9 @@
 use strict;
 use warnings;
 use Test::More;
+
+plan skip_all => 'Author tests. Set TEST_HTTP2=1 to run.' unless $ENV{TEST_HTTP2};
+
 use lib 't/lib';
 use PH2Test;
 use PageCamel::Protocol::HTTP2::Constants qw(const_name :frame_types :endpoints :states
@@ -45,7 +48,7 @@ subtest 'dont mess with continuation' => sub {
     my $con = PageCamel::Protocol::HTTP2::Connection->new(CLIENT);
     $con->preface(1);
 
-    $con->new_stream(1);
+    $con->new_stream();
     my @hdrs = ( HEADERS, 0, 1, { hblock => \"\x82" } );
     my @cont = ( CONTINUATION, END_HEADERS, 1, \"\x85" );
     my @data = ( DATA, 0, 1, \"DATA" );

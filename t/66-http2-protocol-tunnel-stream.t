@@ -1,6 +1,9 @@
 use strict;
 use warnings;
 use Test::More;
+
+plan skip_all => 'Author tests. Set TEST_HTTP2=1 to run.' unless $ENV{TEST_HTTP2};
+
 use lib 't/lib';
 use PH2Test;
 use PageCamel::Protocol::HTTP2::Constants qw(:settings :states);

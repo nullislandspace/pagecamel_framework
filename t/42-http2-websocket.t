@@ -19,6 +19,8 @@ BEGIN {
 }
 
 # Test HTTP2Handler WebSocket upgrade translation
+# Note: PAGECAMEL overhead is sent once per backend connection in createPooledBackend(),
+# not with each request. The translateWebsocketUpgrade method only generates the HTTP/1.1 upgrade request.
 subtest 'HTTP2Handler WebSocket upgrade translation' => sub {
     use_ok('PageCamel::CMDLine::WebFrontend::HTTP2Handler');
 
@@ -49,12 +51,8 @@ subtest 'HTTP2Handler WebSocket upgrade translation' => sub {
 
     my $request = $handler->translateWebsocketUpgrade(1, $headers);
 
-    # Verify PAGECAMEL overhead header with HTTP/2
-    like($request, qr/^PAGECAMEL .* HTTP\/2\r\n/,
-         'PAGECAMEL header contains HTTP/2 version');
-
-    # Verify HTTP/1.1 WebSocket upgrade request
-    like($request, qr/GET \/ws\/chat HTTP\/1\.1\r\n/,
+    # Verify HTTP/1.1 WebSocket upgrade request (PAGECAMEL is sent separately on connection creation)
+    like($request, qr/^GET \/ws\/chat HTTP\/1\.1\r\n/,
          'Translated to GET request');
 
     # Verify Upgrade header

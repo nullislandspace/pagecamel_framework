@@ -138,6 +138,10 @@ sub get($self, $ua) {
 
     $self->{socket} = $socket;
 
+    # Track if we need to re-encode as chunked (WebBase decoded the client's chunked data)
+    $self->{rechunk_upstream} = (defined($ua->{headers}->{'Transfer-Encoding'}) &&
+                                  $ua->{headers}->{'Transfer-Encoding'} =~ /chunked/i);
+
     return(status => 100); # Continue
 }
 
@@ -148,7 +152,16 @@ sub handlePOST($self, $ua, $data) {
         return 0;
     }
 
-    $socket->send($data);
+    # Check if we need to re-encode as chunked (WebBase decoded the client's chunked data)
+    if($self->{rechunk_upstream}) {
+        # Re-encode as chunked transfer encoding
+        my $chunklen = sprintf("%x", length($data));
+        $socket->send("$chunklen\r\n");
+        $socket->send($data);
+        $socket->send("\r\n");
+    } else {
+        $socket->send($data);
+    }
 
     return 1;
 }
@@ -156,6 +169,11 @@ sub handlePOST($self, $ua, $data) {
 sub finishPage($self, $ua) {
     my $reph = $self->{server}->{modules}->{$self->{reporting}};
     my $socket = $self->{socket};
+
+    # Send terminal chunk if we were re-encoding as chunked
+    if($self->{rechunk_upstream}) {
+        $socket->send("0\r\n\r\n");
+    }
 
     my %retpage;
     my $statusline = $self->readsocketline($socket, 90);

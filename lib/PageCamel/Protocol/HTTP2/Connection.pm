@@ -36,8 +36,7 @@ my %default_settings = (
     &SETTINGS_ENABLE_CONNECT_PROTOCOL  => DEFAULT_ENABLE_CONNECT_PROTOCOL,
 );
 
-sub new {
-    my ( $class, $type, %opts ) = @_;
+sub new($class, $type, %opts) {
     my $self = bless {
         type => $type,
 
@@ -120,37 +119,34 @@ sub new {
 
     # Sync decode context max_ht_size
     $self->{decode_ctx}->{max_ht_size} =
-      $self->{decode_ctx}->{settings}->{&SETTINGS_HEADER_TABLE_SIZE};
+      $self->{decode_ctx}->{settings}->{SETTINGS_HEADER_TABLE_SIZE()};
 
     return $self;
 }
 
-sub decode_context {
-    return shift->{decode_ctx};
+sub decode_context($self) {
+    return $self->{decode_ctx};
 }
 
-sub encode_context {
-    return shift->{encode_ctx};
+sub encode_context($self) {
+    return $self->{encode_ctx};
 }
 
-sub pending_stream {
-    return shift->{pending_stream};
+sub pending_stream($self) {
+    return $self->{pending_stream};
 }
 
-sub dequeue {
-    my $self = shift;
+sub dequeue($self) {
     return shift @{ $self->{queue} };
 }
 
-sub enqueue_raw {
-    my $self = shift;
-    push @{ $self->{queue} }, @_;
+sub enqueue_raw($self, @frames) {
+    push @{ $self->{queue} }, @frames;
     return;
 }
 
-sub enqueue {
-    my $self = shift;
-    while ( my ( $type, $flags, $stream_id, $data_ref ) = splice( @_, 0, 4 ) ) {
+sub enqueue($self, @args) {
+    while ( my ( $type, $flags, $stream_id, $data_ref ) = splice( @args, 0, 4 ) ) {
         push @{ $self->{queue} },
           $self->frame_encode( $type, $flags, $stream_id, $data_ref );
         $self->state_machine( 'send', $type, $flags, $stream_id );
@@ -158,8 +154,7 @@ sub enqueue {
     return;
 }
 
-sub enqueue_first {
-    my $self = shift;
+sub enqueue_first($self, @args) {
     my $i    = 0;
     for ( 0 .. $#{ $self->{queue} } ) {
         my $type =
@@ -167,7 +162,7 @@ sub enqueue_first {
         last if $type != CONTINUATION && $type != PING;
         $i++;
     }
-    while ( my ( $type, $flags, $stream_id, $data_ref ) = splice( @_, 0, 4 ) ) {
+    while ( my ( $type, $flags, $stream_id, $data_ref ) = splice( @args, 0, 4 ) ) {
         splice @{ $self->{queue} }, $i++, 0,
           $self->frame_encode( $type, $flags, $stream_id, $data_ref );
         $self->state_machine( 'send', $type, $flags, $stream_id );
@@ -175,8 +170,7 @@ sub enqueue_first {
     return;
 }
 
-sub finish {
-    my $self = shift;
+sub finish($self) {
     if(!$self->shutdown) {
         $self->enqueue( GOAWAY, 0, 0,
             [ $self->{last_peer_stream}, $self->{error} ] );
@@ -185,32 +179,27 @@ sub finish {
     return;
 }
 
-sub shutdown {
-    my $self = shift;
-    $self->{shutdown} = shift if @_;
+sub shutdown($self, $value = undef) {
+    $self->{shutdown} = $value if defined $value;
     return $self->{shutdown};
 }
 
-sub goaway {
-    my $self = shift;
-    $self->{goaway} = shift if @_;
+sub goaway($self, $value = undef) {
+    $self->{goaway} = $value if defined $value;
     return $self->{goaway};
 }
 
-sub preface {
-    my $self = shift;
-    $self->{preface} = shift if @_;
+sub preface($self, $value = undef) {
+    $self->{preface} = $value if defined $value;
     return $self->{preface};
 }
 
-sub upgrade {
-    my $self = shift;
-    $self->{upgrade} = shift if @_;
+sub upgrade($self, $value = undef) {
+    $self->{upgrade} = $value if defined $value;
     return $self->{upgrade};
 }
 
-sub state_machine {
-    my ( $self, $act, $type, $flags, $stream_id ) = @_;
+sub state_machine($self, $act, $type, $flags, $stream_id) {
 
     return
          if $stream_id == 0
@@ -338,7 +327,7 @@ sub state_machine {
         {
             $self->stream_state( $stream_id, CLOSED, $pending );
         }
-        elsif ( ( !grep { $type == $_ } ( WINDOW_UPDATE, PRIORITY ) )
+        elsif ( ( $type != WINDOW_UPDATE && $type != PRIORITY )
             && $cln2srv )
         {
             tracer->error( sprintf "invalid frame %s for state HALF CLOSED\n",
@@ -363,8 +352,7 @@ sub state_machine {
 }
 
 # TODO: move this to some other module
-sub send_headers {
-    my ( $self, $stream_id, $headers, $end ) = @_;
+sub send_headers($self, $stream_id, $headers, $end) {
     my $max_size = $self->enc_setting(SETTINGS_MAX_FRAME_SIZE);
 
     my $header_block = headers_encode( $self->encode_context, $headers );
@@ -375,15 +363,14 @@ sub send_headers {
     $self->enqueue( HEADERS, $flags, $stream_id,
         { hblock => \substr( $header_block, 0, $max_size, '' ) } );
     while ( length($header_block) > 0 ) {
-        my $flags = length($header_block) <= $max_size ? 0 : END_HEADERS;
-        $self->enqueue( CONTINUATION, $flags,
+        my $cont_flags = length($header_block) <= $max_size ? 0 : END_HEADERS;
+        $self->enqueue( CONTINUATION, $cont_flags,
             $stream_id, \substr( $header_block, 0, $max_size, '' ) );
     }
     return;
 }
 
-sub send_pp_headers {
-    my ( $self, $stream_id, $promised_id, $headers ) = @_;
+sub send_pp_headers($self, $stream_id, $promised_id, $headers) {
     my $max_size = $self->enc_setting(SETTINGS_MAX_FRAME_SIZE);
 
     my $header_block = headers_encode( $self->encode_context, $headers );
@@ -394,15 +381,14 @@ sub send_pp_headers {
         [ $promised_id, \substr( $header_block, 0, $max_size - 4, '' ) ] );
 
     while ( length($header_block) > 0 ) {
-        my $flags = length($header_block) <= $max_size ? 0 : END_HEADERS;
-        $self->enqueue( CONTINUATION, $flags,
+        my $cont_flags = length($header_block) <= $max_size ? 0 : END_HEADERS;
+        $self->enqueue( CONTINUATION, $cont_flags,
             $stream_id, \substr( $header_block, 0, $max_size, '' ) );
     }
     return;
 }
 
-sub send_data {
-    my ( $self, $stream_id, $chunk, $end ) = @_;
+sub send_data($self, $stream_id, $chunk = undef, $end = undef) {
     my $data = $self->stream_blocked_data($stream_id);
     $data .= defined $chunk ? $chunk : '';
     $self->stream_end( $stream_id, $end ) if defined $end;
@@ -430,18 +416,16 @@ sub send_data {
     return;
 }
 
-sub send_blocked {
-    my $self = shift;
+sub send_blocked($self) {
     for my $stream_id ( keys %{ $self->{streams} } ) {
         $self->stream_send_blocked($stream_id);
     }
     return;
 }
 
-sub error {
-    my $self = shift;
-    if ( @_ && !$self->{shutdown} ) {
-        $self->{error} = shift;
+sub error($self, $value = undef) {
+    if ( defined $value && !$self->{shutdown} ) {
+        $self->{error} = $value;
         $self->{on_error}->( $self->{error} ) if exists $self->{on_error};
         $self->finish;
     }
@@ -453,50 +437,44 @@ sub setting {
     Carp::confess("setting is deprecated\n");
 }
 
-sub _setting {
-    my ( $ctx, $self, $setting ) = @_;
+sub _setting($ctx, $self, $setting, $value = undef) {
     my $s = $self->{$ctx}->{settings};
     return unless exists $s->{$setting};
-    $s->{$setting} = pop if @_ > 3;
+    $s->{$setting} = $value if defined $value;
     return $s->{$setting};
 }
 
-sub enc_setting {
-    return _setting( 'encode_ctx', @_ );
+sub enc_setting($self, @rest) {
+    return _setting( 'encode_ctx', $self, @rest );
 }
 
-sub dec_setting {
-    return _setting( 'decode_ctx', @_ );
+sub dec_setting($self, @rest) {
+    return _setting( 'decode_ctx', $self, @rest );
 }
 
-sub accept_settings {
-    my $self = shift;
+sub accept_settings($self) {
     $self->enqueue( SETTINGS, ACK, 0, {} );
     return;
 }
 
 # Flow control windown of connection
-sub _fcw {
-    my $dir  = shift;
-    my $self = shift;
-
-    if (@_) {
-        $self->{$dir} += shift;
+sub _fcw($dir, $self, $delta = undef) {
+    if (defined $delta) {
+        $self->{$dir} += $delta;
         tracer->debug( "$dir now is " . $self->{$dir} . "\n" );
     }
     return $self->{$dir};
 }
 
-sub fcw_send {
-    return _fcw( 'fcw_send', @_ );
+sub fcw_send($self, @rest) {
+    return _fcw( 'fcw_send', $self, @rest );
 }
 
-sub fcw_recv {
-    return _fcw( 'fcw_recv', @_ );
+sub fcw_recv($self, @rest) {
+    return _fcw( 'fcw_recv', $self, @rest );
 }
 
-sub fcw_update {
-    my $self = shift;
+sub fcw_update($self) {
 
     # TODO: check size of data in memory
     my $size = $self->dec_setting(SETTINGS_INITIAL_WINDOW_SIZE);
@@ -506,8 +484,7 @@ sub fcw_update {
     return;
 }
 
-sub fcw_initial_change {
-    my ( $self, $size ) = @_;
+sub fcw_initial_change($self, $size) {
     my $prev_size = $self->enc_setting(SETTINGS_INITIAL_WINDOW_SIZE);
     my $diff      = $size - $prev_size;
     tracer->debug(
@@ -519,14 +496,12 @@ sub fcw_initial_change {
     return;
 }
 
-sub ack_ping {
-    my ( $self, $payload_ref ) = @_;
+sub ack_ping($self, $payload_ref) {
     $self->enqueue_first( PING, ACK, 0, $payload_ref );
     return;
 }
 
-sub send_ping {
-    my ( $self, $payload ) = @_;
+sub send_ping($self, $payload) {
     if ( !defined $payload ) {
         $payload = pack "C*", map { rand(256) } 1 .. PING_PAYLOAD_SIZE;
     }

@@ -16,6 +16,8 @@ use PageCamel::Helpers::UTF;
 
 no warnings 'experimental::args_array_with_signatures';
 
+use base 'PageCamel::CMDLine::WebFrontend::BaseHTTPHandler';
+
 use PageCamel::Protocol::HTTP2::Server;
 use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :settings :limits);
 use IO::Socket::UNIX;
@@ -34,10 +36,9 @@ sub new($class, %config) {
         }
     }
 
-    # Stream to backend connection mapping
-    $self->{streamBackends} = {};
-    # Reverse lookup: backend socket → stream ID (for O(1) lookup)
-    $self->{backendToStream} = {};
+    # Initialize backend connection pooling (from base class)
+    $self->initPooling();
+
     # Stream to response buffer mapping
     $self->{streamResponses} = {};
     # Stream states
@@ -56,12 +57,11 @@ sub new($class, %config) {
     $self->{streamContentLength} = {};
     $self->{streamBytesSent} = {};
 
-    # Backend connection pool for Keep-Alive reuse
-    $self->{backendPool} = [];              # Available backend connections (ready for reuse)
-    $self->{maxPoolSize} = 8;               # Max connections to keep in pool
-    $self->{waitingForBackend} = [];        # Queue of [streamId, request, state] waiting for backend
-
     return $self;
+}
+
+sub protocolVersion($self) {
+    return 'HTTP/2';
 }
 
 sub run($self) {
@@ -248,7 +248,7 @@ sub run($self) {
         #$totalBackendWriteTime += (time() - $backendWriteStart) if($debugTiming);
 
         # Process waiting streams - assign backends from pool to queued requests
-        $self->processWaitingStreams($server, \$toclientbuffer);
+        $self->processWaitingStreams($server);
 
         # Debug timing report (every 2 seconds) - uncomment to diagnose performance
         #if($debugTiming) {
@@ -521,159 +521,7 @@ sub generateWebsocketKey($self) {
     return MIME::Base64::encode_base64($key, '');
 }
 
-sub createPooledBackend($self) {
-    # Create new backend connection and send PAGECAMEL overhead immediately
-    my $startTime = time();
-
-    my $backend = IO::Socket::UNIX->new(
-        Peer    => $self->{backendSocketPath},
-        Timeout => 15,
-    );
-
-    if(!defined($backend)) {
-        carp("HTTP2Handler: Failed to connect to backend: $ERRNO");
-        return;
-    }
-
-    # Send PAGECAMEL overhead header immediately (required within 15 seconds)
-    my $info = $self->{pagecamelInfo};
-    my $overhead = "PAGECAMEL $info->{lhost} $info->{lport} $info->{peerhost} $info->{peerport} $info->{usessl} $info->{pid} HTTP/2\r\n";
-
-    my $written = syswrite($backend, $overhead);
-    if(!defined($written) || $written != length($overhead)) {
-        carp("HTTP2Handler: Failed to send overhead to backend: $ERRNO");
-        close($backend);
-        return;
-    }
-
-    my $elapsed = time() - $startTime;
-    if($elapsed > 0.001) {  # Log if > 1ms
-        print STDERR getISODate() . " HTTP2Handler: createPooledBackend took ${elapsed}s\n";
-    }
-
-    return $backend;
-}
-
-sub isBackendAlive($self, $backend) {
-    # Check if backend connection is still open
-    # Use select() with 0 timeout to check for readability without blocking
-    # If readable with no data or error, connection is closed
-    return 0 if(!defined($backend));
-
-    my $select = IO::Select->new($backend);
-    my @ready = $select->can_read(0);
-
-    if(@ready) {
-        # Socket is readable - check if there's actually data or if it's EOF
-        my $buf;
-        my $rc = recv($backend, $buf, 1, MSG_PEEK | MSG_DONTWAIT);
-        if(!defined($rc) || length($buf) == 0) {
-            # Connection closed or error
-            return 0;
-        }
-        # Has unexpected data - backend sent something we didn't request
-        # This shouldn't happen, but treat as unhealthy
-        return 0;
-    }
-
-    # Not readable = no pending data and not closed = healthy
-    return 1;
-}
-
-sub acquireBackend($self, $streamId) {
-    # Try to get a healthy connection from pool, or create new one
-
-    # First, try to get from pool
-    while(scalar(@{$self->{backendPool}}) > 0) {
-        my $backend = pop @{$self->{backendPool}};
-
-        if($self->isBackendAlive($backend)) {
-            # Connection is healthy, assign to stream
-            $self->{streamBackends}->{$streamId} = $backend;
-            $self->{backendToStream}->{$backend} = $streamId;
-            #print STDERR getISODate() . " HTTP2Handler: acquireBackend stream=$streamId (reused from pool, poolSize=" . scalar(@{$self->{backendPool}}) . ")\n";
-            return $backend;
-        } else {
-            # Connection is dead, close and try next
-            #print STDERR getISODate() . " HTTP2Handler: discarding stale pooled connection\n";
-            eval { close($backend); };
-        }
-    }
-
-    # Pool empty, check if we can create a new connection
-    my $activeBackends = scalar(keys %{$self->{streamBackends}});
-    if($activeBackends >= $self->{maxPoolSize}) {
-        # At max capacity, caller should queue the stream
-        #print STDERR getISODate() . " HTTP2Handler: acquireBackend stream=$streamId - at max capacity ($activeBackends), queuing\n";
-        return;
-    }
-
-    # Create new connection
-    my $backend = $self->createPooledBackend();
-    if(!defined($backend)) {
-        return;
-    }
-
-    $self->{streamBackends}->{$streamId} = $backend;
-    $self->{backendToStream}->{$backend} = $streamId;
-    #print STDERR getISODate() . " HTTP2Handler: acquireBackend stream=$streamId (new connection, active=$activeBackends)\n";
-
-    return $backend;
-}
-
-sub releaseBackend($self, $streamId, $reusable = 1) {
-    # Release backend connection - return to pool if healthy and reusable, else close
-    my $backend = $self->{streamBackends}->{$streamId};
-    return if(!defined($backend));
-
-    # Clean up mappings
-    delete $self->{streamBackends}->{$streamId};
-    delete $self->{backendToStream}->{$backend};
-
-    # Check if we should return to pool
-    if($reusable && $self->isBackendAlive($backend) && scalar(@{$self->{backendPool}}) < $self->{maxPoolSize}) {
-        push @{$self->{backendPool}}, $backend;
-        #print STDERR getISODate() . " HTTP2Handler: releaseBackend stream=$streamId (returned to pool, poolSize=" . scalar(@{$self->{backendPool}}) . ")\n";
-    } else {
-        eval { close($backend); };
-        #print STDERR getISODate() . " HTTP2Handler: releaseBackend stream=$streamId (closed, reusable=$reusable)\n";
-    }
-
-    return;
-}
-
-sub processWaitingStreams($self, $server, $toclientbufferRef) {
-    # Process streams waiting for a backend connection
-    return if(scalar(@{$self->{waitingForBackend}}) == 0);
-
-    my @stillWaiting;
-    while(my $waiting = shift @{$self->{waitingForBackend}}) {
-        my ($streamId, $request, $state) = @{$waiting};
-
-        my $backend = $self->acquireBackend($streamId);
-        if(!defined($backend)) {
-            # Still no backend available, keep waiting
-            push @stillWaiting, $waiting;
-            last;  # Don't try more if we're at capacity
-        }
-
-        # Got a backend, buffer the request
-        $self->{tobackendbuffers}->{$streamId} = $request;
-        $self->{streamStates}->{$streamId} = $state;
-        $self->{streamResponses}->{$streamId} = '';
-        #print STDERR getISODate() . " HTTP2Handler: processWaitingStreams - assigned backend to stream=$streamId\n";
-    }
-
-    # Put remaining waiting streams back
-    unshift @{$self->{waitingForBackend}}, @stillWaiting;
-
-    return;
-}
-
-# Legacy method for compatibility - now uses pool
-sub connectBackend($self, $streamId) {
-    return $self->acquireBackend($streamId);
-}
+# Backend connection pooling methods are inherited from BaseHTTPHandler
 
 sub handleBackendData($self, $server, $backend, $toclientbufferRef, $max_buffer_size) {
     # Find which stream this backend belongs to (O(1) reverse lookup)
@@ -775,6 +623,11 @@ sub processBackendResponse($self, $server, $streamId, $toclientbufferRef) {
         if($lcname eq 'content-length') {
             $contentLength = $value;
         }
+    }
+
+    # Add Alt-Svc header to advertise HTTP/3 if enabled
+    if($self->{http3Port}) {
+        push @responseHeaders, 'alt-svc', 'h3=":' . $self->{http3Port} . '"; ma=86400';
     }
 
     # Debug: log response processing

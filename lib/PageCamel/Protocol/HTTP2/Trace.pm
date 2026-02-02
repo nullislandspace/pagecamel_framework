@@ -29,7 +29,7 @@ my %levels = (
     emergency => 7,
 );
 
-my $tracer_sngl = PageCamel::Protocol::HTTP2::Trace->_new(
+my $tracer_sngl = PageCamel::Protocol::HTTP2::Trace->_new(  ## no critic (Subroutines::ProtectPrivateSubs)
     min_level =>
       ( exists $ENV{HTTP2_DEBUG} && exists $levels{ $ENV{HTTP2_DEBUG} } )
     ? $levels{ $ENV{HTTP2_DEBUG} }
@@ -41,13 +41,11 @@ sub tracer {
     return $tracer_sngl;
 }
 
-sub _new {
-    my ( $class, %opts ) = @_;
+sub _new($class, %opts) {
     return bless {%opts}, $class;
 }
 
-sub _log {
-    my ( $self, $level, $message ) = @_;
+sub _log($self, $level, $message) {
     $level = uc($level);
     chomp($message);
     my $now = time;
@@ -67,7 +65,7 @@ sub _log {
 }
 
 {
-    no strict 'refs';
+    no strict 'refs';  ## no critic (TestingAndDebugging::ProhibitNoStrict)
     for my $l ( keys %levels ) {
         *{ __PACKAGE__ . "::" . $l } =
           ( $levels{$l} >= $tracer_sngl->{min_level} )
@@ -78,8 +76,7 @@ sub _log {
     }
 }
 
-sub bin2hex {
-    my $bin = shift;
+sub bin2hex($bin) {
     my $c   = 0;
     my $s;
 

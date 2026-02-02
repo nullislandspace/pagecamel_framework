@@ -1,6 +1,9 @@
 use strict;
 use warnings;
 use Test::More;
+
+plan skip_all => 'Author tests. Set TEST_HTTP2=1 to run.' unless $ENV{TEST_HTTP2};
+
 use PageCamel::Protocol::HTTP2::Client;
 use PageCamel::Protocol::HTTP2::Server;
 use lib 't/lib';

@@ -16,8 +16,7 @@ use PageCamel::Helpers::UTF;
 use PageCamel::Protocol::HTTP2::Constants qw(:flags :errors :limits);
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
 
-sub decode {
-    my ( $con, $buf_ref, $buf_offset, $length ) = @_;
+sub decode($con, $buf_ref, $buf_offset, $length) {
     my $frame_ref = $con->decode_context->{frame};
 
     if ( $length != 4 ) {
@@ -57,8 +56,7 @@ sub decode {
     return $length;
 }
 
-sub encode {
-    my ( $con, $flags_ref, $stream, $data ) = @_;
+sub encode($con, $flags_ref, $stream, $data) {
     return pack 'N', $data;
 }
 

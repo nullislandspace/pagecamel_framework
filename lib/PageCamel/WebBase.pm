@@ -571,6 +571,139 @@ sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xf
     return $ok;
 }
 
+sub is_chunked_transfer($self, $ua) {
+    return (defined($ua->{headers}->{'Transfer-Encoding'}) &&
+            $ua->{headers}->{'Transfer-Encoding'} =~ /chunked/i);
+}
+
+sub read_chunk_size_line($self, $socket, $timeout) {
+    my $line = '';
+    my $select = IO::Select->new($socket);
+    my $endtime = time + $timeout;
+
+    while(1) {
+        my $remaining = $endtime - time;
+        return if($remaining <= 0);  # Timeout
+
+        if($select->can_read($remaining)) {
+            my $buf;
+            my $bufstatus = sysread($socket, $buf, 1);
+            return if(!defined($bufstatus) || $bufstatus == 0);  # Error/EOF
+            next if($buf eq "\r");
+            last if($buf eq "\n");
+            $endtime = time + $timeout;  # Reset timeout on data
+            $line .= $buf;
+        }
+    }
+    return $line;
+}
+
+sub get_request_body_chunked($self, $socket, $ua, $timeout, $blocksize) {
+    my @chunks;
+    my $total_size = 0;
+    my $select = IO::Select->new($socket);
+
+    eval {
+        while(1) {
+            # Read chunk size line
+            my $sizeline = $self->read_chunk_size_line($socket, $timeout);
+            return 0 if(!defined($sizeline));
+
+            $sizeline =~ s/;.*$//;  # Remove chunk extensions
+            return 0 if($sizeline !~ /^[0-9a-fA-F]+$/);  # Validate hex
+            my $chunk_size = hex($sizeline);
+
+            last if($chunk_size == 0);  # Terminal chunk
+
+            # Read chunk data
+            my $chunk_data = '';
+            my $remaining = $chunk_size;
+            my $endtime = time + $timeout;
+            while($remaining > 0) {
+                my $left = $endtime - time;
+                return 0 if($left <= 0);
+                if($select->can_read($left)) {
+                    my $buf;
+                    my $want = ($remaining > $blocksize) ? $blocksize : $remaining;
+                    my $got = sysread($socket, $buf, $want);
+                    if(defined($got) && $got > 0) {
+                        $chunk_data .= $buf;
+                        $remaining -= $got;
+                        $endtime = time + $timeout;
+                    }
+                }
+            }
+
+            push @chunks, $chunk_data;
+            $total_size += $chunk_size;
+
+            # Read trailing CRLF
+            $self->read_chunk_size_line($socket, $timeout);
+        }
+
+        # Parse trailer headers (same as leading headers)
+        while(1) {
+            my $trailer = $self->read_chunk_size_line($socket, $timeout);
+            last if(!defined($trailer) || $trailer eq '');
+            # Parse trailer header using same logic as parse_header_line
+            $self->parse_header_line($ua, $trailer);
+        }
+    };
+
+    $ua->{postdata} = join('', @chunks);
+    $ua->{headers}->{'Content-Length'} = $total_size;  # Set for downstream
+    return 1;
+}
+
+sub stream_request_body_chunked($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xfuncname) {
+    my $total_size = 0;
+    my $select = IO::Select->new($socket);
+
+    eval {
+        while(1) {
+            my $sizeline = $self->read_chunk_size_line($socket, $timeout);
+            return 0 if(!defined($sizeline));
+
+            $sizeline =~ s/;.*$//;
+            return 0 if($sizeline !~ /^[0-9a-fA-F]+$/);
+            my $chunk_size = hex($sizeline);
+
+            last if($chunk_size == 0);
+
+            # Read and stream chunk data in blocksize pieces
+            my $remaining = $chunk_size;
+            my $endtime = time + $timeout;
+            while($remaining > 0) {
+                my $left = $endtime - time;
+                return 0 if($left <= 0);
+                if($select->can_read($left)) {
+                    my $buf;
+                    my $want = ($remaining > $blocksize) ? $blocksize : $remaining;
+                    my $got = sysread($socket, $buf, $want);
+                    if(defined($got) && $got > 0) {
+                        return 0 if(!$xmodule->$xfuncname($ua, $buf));  # Stream to handler
+                        $remaining -= $got;
+                        $total_size += $got;
+                        $endtime = time + $timeout;
+                    }
+                }
+            }
+
+            $self->read_chunk_size_line($socket, $timeout);  # Trailing CRLF
+        }
+
+        # Parse trailer headers (same as leading headers)
+        while(1) {
+            my $trailer = $self->read_chunk_size_line($socket, $timeout);
+            last if(!defined($trailer) || $trailer eq '');
+            $self->parse_header_line($ua, $trailer);
+        }
+    };
+
+    $ua->{headers}->{'Content-Length'} = $total_size;
+    return 1;
+}
+
 sub parse_request_line($self, $ua, $header) {
     if($header =~ /^([A-Z]+)\ (\S+)\ HTTP\/(.*)$/) {
         ($ua->{method}, $ua->{url}, $ua->{httpversion}) = ($1, $2, $3);
@@ -1281,7 +1414,8 @@ nextrequest:
     }
 
     if(!$result{pagedone}) {
-        if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
+        if((defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) ||
+           $self->is_chunked_transfer($ua)) {
             if(defined($ua->{headers}->{'Expect'}) && $ua->{headers}->{'Expect'} =~ /100\-continue/i) {
                 #$self->printdebuglog("Continue header detected");
 
@@ -1310,7 +1444,13 @@ nextrequest:
 
             if(!$useuploadstream) {
                 #$self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
-                if(!$self->get_request_body($realsocket, $ua, 30, 65_536)) {
+                my $body_ok;
+                if($self->is_chunked_transfer($ua)) {
+                    $body_ok = $self->get_request_body_chunked($realsocket, $ua, 30, 65_536);
+                } else {
+                    $body_ok = $self->get_request_body($realsocket, $ua, 30, 65_536);
+                }
+                if(!$body_ok) {
                     $ua->{keepalive} = 0;
                     $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                     goto cleanup;
@@ -1407,7 +1547,9 @@ nextrequest:
                         my $xfuncnamestream = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{stream};
                         my $xfuncnamefinish = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{finish};
                         my $ok = 1;
-                        if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
+                        if($self->is_chunked_transfer($ua)) {
+                            $ok = $self->stream_request_body_chunked($realsocket, $ua, 30, 65_536, $xmodule, $xfuncnamestream);
+                        } elsif(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
                             $ok = $self->stream_request_body($realsocket, $ua, 30, 65_536, $xmodule, $xfuncnamestream);
                             #$ok = $xmodule->$xfuncnamestream($ua, $ua->{postdata});
                         }
