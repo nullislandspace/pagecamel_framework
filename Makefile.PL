@@ -9,7 +9,6 @@ find(sub {
     return unless -f $_;
     return if $File::Find::dir =~ m{/blib/};  # Skip nested blib directories
     my $file = $File::Find::name;
-    return unless $file =~ /\.(pm|pl|json|md|tt)$/;
     (my $inst = $file) =~ s{^lib/}{blib/lib/};
     $pm{$file} = $inst;
 }, 'lib');
