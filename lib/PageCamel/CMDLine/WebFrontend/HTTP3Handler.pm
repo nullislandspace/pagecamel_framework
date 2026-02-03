@@ -306,6 +306,16 @@ sub processPacket($self, $data, $remoteAddr, $remotePort) {
 sub handleRequest($self, $h3conn, $streamId, $headersRef, $body, $isConnect) {
     $self->{streamsHandled}++;
 
+    # Update backend socket path from SNI selection (once per connection)
+    # The TLS handshake is complete when on_request fires, so get_backend() is valid
+    if(!$self->{backendSocketPathUpdated}) {
+        my $sniBackend = $h3conn->get_backend();
+        if(defined($sniBackend) && length($sniBackend)) {
+            $self->{backendSocketPath} = $sniBackend;
+        }
+        $self->{backendSocketPathUpdated} = 1;
+    }
+
     # Store headers for later use
     $self->{streamHeaders}->{$streamId} = $headersRef;
 
