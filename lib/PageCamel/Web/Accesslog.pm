@@ -39,7 +39,7 @@ sub register($self) {
 }
 
 sub logstart($self, $ua) {
-    my $webpath = $ua->{url} || '--unknown--';
+    my $webpath = $ua->{url} // '--unknown--';
     my $dbh = $self->{server}->{modules}->{$self->{db}};
 
     my $paramlist = "";
@@ -50,16 +50,17 @@ sub logstart($self, $ua) {
         }
         $paramlist .= "$param=$val;";
     }
-    my $host = $ua->{remote_addr} || '--unknown--';
-    my $method = $ua->{method} || '--unknown--';
-    my $userAgent = $ua->{headers}->{'User-Agent'} || '--unknown--';
-    my $referer = $ua->{headers}->{Referer} || '';
+    my $host = $ua->{remote_addr} // '--unknown--';
+    my $method = $ua->{method} // '--unknown--';
+    my $userAgent = $ua->{headers}->{'User-Agent'} // '--unknown--';
+    my $referer = $ua->{headers}->{Referer} // '';
     my $protocol = 'http';
     if($self->{usessl}) {
         $protocol = 'https';
     }
-    my $range = $ua->{headers}->{'HTTP_RANGE'} || '';
-    my $httpversion = $ua->{httpversion} || '';
+    my $range = $ua->{headers}->{'HTTP_RANGE'} // '';
+    my $httpversion = $ua->{httpversion} // '';
+    my $httpversion_frontend = $ua->{frontend}->{httpversion} // '';
 
     my ($simpleUserAgent, undef) = simplifyUA($userAgent);
 
@@ -110,6 +111,7 @@ sub logstart($self, $ua) {
         headers => $headerlist,
         range   => $range,
         httpversion => $httpversion,
+        httpversion_frontend => $httpversion_frontend,
         geoip_country => $geoip_country,
         geoip_city => $geoip_city,
         geoip_lat => $geoip_lat,
@@ -170,9 +172,9 @@ sub logend($self, $ua, $header, $result) {
 
     my $stmt = "INSERT INTO accesslog (url, url_host, processid, method, parameters, remotehost, username, returncode, doctype, useragent,
                                         compression, referer, useragent_simplified, protocol, headers, rangeheader, httpversion,
-                                        geoip_countrycode, geoip_city, geoip_latitude, geoip_longitude, geoip_radius,
+                                        httpversion_frontend, geoip_countrycode, geoip_city, geoip_latitude, geoip_longitude, geoip_radius,
                                         pagecamel_debug_info)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     my $logsth = $dbh->prepare_cached($stmt) or croak($dbh->errstr);
 
     if($logsth->execute($requestdata{url},
@@ -192,6 +194,7 @@ sub logend($self, $ua, $header, $result) {
                   $requestdata{headers},
                   $requestdata{range},
                   $requestdata{httpversion},
+                  $requestdata{httpversion_frontend},
                   $requestdata{geoip_country},
                   $requestdata{geoip_city},
                   $requestdata{geoip_lat},

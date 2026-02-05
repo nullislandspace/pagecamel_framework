@@ -12,6 +12,7 @@ database/0007_remove_password_expiry.sql
 database/0008_drop_adminpack_extension.sql
 database/0009_hide_developer_users.sql
 database/0010_upgrade_license_functions.sql
+database/0011_frontend_http_version.sql
 devscripts/addurltopod.pl
 devscripts/checkcopyright.pl
 devscripts/compilecanvasjs.pl
