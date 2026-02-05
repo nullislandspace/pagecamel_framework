@@ -2910,7 +2910,9 @@ lib/PageCamel/Web/Static/vnc_html5/util.js
 lib/PageCamel/Web/Static/vnc_html5/websock.js
 lib/PageCamel/Web/Static/vnc_html5/webutil.js
 lib/PageCamel/Web/Static/xterm/addon-attach.js
+lib/PageCamel/Web/Static/xterm/addon-fit.js
 lib/PageCamel/Web/Static/xterm/pagecamel.xml
+lib/PageCamel/Web/Static/xterm/ssh-terminal.css
 lib/PageCamel/Web/Static/xterm/xterm.css
 lib/PageCamel/Web/Static/xterm/xterm.js
 lib/PageCamel/Web/StaticCache.pm

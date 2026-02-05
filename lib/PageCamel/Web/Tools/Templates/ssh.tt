@@ -1,25 +1,106 @@
-<p align="left">
-    <div id="terminal" align="left"></div>
-</p>
+<div id="terminal"></div>
 
-<script>    
-    //function websocketmaskOnload() {
+<script>
     var xterm;
+    var fitAddon;
+    var resizeTimeout;
+    var lastCols = 0;
+    var lastRows = 0;
+
     function websocketmaskOnSocketOpen() {
-        var xterm = new Terminal({rows: 25, cols: 120});
-        var attachAddon = new AttachAddon.AttachAddon(ws, {bidirectional: true});
-        xterm.loadAddon(attachAddon);
+        // Create terminal with proper settings
+        xterm = new Terminal({
+            cursorBlink: true,
+            fontFamily: 'monospace',
+            fontSize: 14,
+            lineHeight: 1.1,       // Slightly increase line height to show underscore
+            convertEol: true,      // Convert LF to CRLF for proper line handling
+            scrollback: 1000
+        });
+
+        // Load FitAddon for automatic sizing
+        fitAddon = new FitAddon.FitAddon();
+        xterm.loadAddon(fitAddon);
+
+        // Open terminal in container
         xterm.open(document.getElementById('terminal'));
-        //term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
+
+        // Handle user input - send to backend
+        xterm.onData(function(data) {
+            if(wsconnected) {
+                wstransmit('CONSOLEDATA', data);
+            }
+        });
+
+        // Delay initial fit to allow layout to settle
+        setTimeout(function() {
+            fitAddon.fit();
+            lastCols = xterm.cols;
+            lastRows = xterm.rows;
+            sendResize();
+
+            // Handle window resize
+            window.addEventListener('resize', handleContainerResize);
+
+            // Handle manual container resize (drag handle)
+            var container = document.getElementById('terminal');
+            var resizeObserver = new ResizeObserver(handleContainerResize);
+            resizeObserver.observe(container);
+        }, 300);
+
+    function handleContainerResize() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if(fitAddon && xterm) {
+                fitAddon.fit();
+                // Only send resize if dimensions actually changed
+                if(xterm.cols !== lastCols || xterm.rows !== lastRows) {
+                    lastCols = xterm.cols;
+                    lastRows = xterm.rows;
+                    sendResize();
+                }
+            }
+        }, 100);
     }
 
+        // Keyboard shortcut: Ctrl+Shift+F to refit terminal
+        document.addEventListener('keydown', function(e) {
+            if(e.ctrlKey && e.shiftKey && e.key === 'F') {
+                e.preventDefault();
+                terminalRefit();
+            }
+        });
 
-    function handleMessage(msg) {                
-        if(msg.type === "XYZ") {
-            console.log(msg);
-            
-            return;
+        xterm.focus();
+    }
+
+    function sendResize() {
+        if(!xterm || !wsconnected) return;
+        wstransmit('RESIZE', JSON.stringify({rows: xterm.rows, cols: xterm.cols}));
+    }
+
+    // Manual resize function - call from console with: terminalRefit()
+    function terminalRefit() {
+        if(fitAddon && xterm) {
+            fitAddon.fit();
+            lastCols = xterm.cols;
+            lastRows = xterm.rows;
+            sendResize();
+            console.log('Terminal resized to ' + xterm.cols + 'x' + xterm.rows);
         }
-        
+    }
+    // Expose globally
+    window.terminalRefit = terminalRefit;
+
+    function handleMessage(msg) {
+        if(msg.type === 'CONSOLEDATA' && xterm) {
+            xterm.write(msg.data);
+        }
+    }
+
+    function websocketmaskOnSocketClose() {
+        if(xterm) {
+            xterm.write('\r\n' + String.fromCharCode(27) + '[31m[Connection closed]' + String.fromCharCode(27) + '[0m\r\n');
+        }
     }
 </script>
