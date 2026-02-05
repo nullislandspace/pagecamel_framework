@@ -142,14 +142,14 @@ sub child_init_hook($self) {
     $self->{domainselsth} = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry
                                       WHERE host_fqdn = ?
                                       AND is_disabled = false
-                                      AND record_type IN ('NS','MX','A', 'AAAA', 'TXT', 'CNAME', 'SOA', 'LOC', 'SSHFP')
+                                      AND record_type IN ('NS','MX','A', 'AAAA', 'TXT', 'CNAME', 'SOA', 'LOC', 'SSHFP', 'HTTPS')
                                       ORDER BY decode_nameserver_record_type(record_type), record_type, mxpriority")
             or croak($dbh->errstr);
 
     $self->{axfrselsth} = $dbh->prepare_cached("SELECT * FROM nameserver_domain_entry
                                       WHERE domain_fqdn = ?
                                       AND is_disabled = false
-                                      AND record_type IN ('NS','MX','A', 'AAAA', 'TXT', 'CNAME', 'SOA', 'LOC', 'SSHFP')
+                                      AND record_type IN ('NS','MX','A', 'AAAA', 'TXT', 'CNAME', 'SOA', 'LOC', 'SSHFP', 'HTTPS')
                                       ORDER BY decode_nameserver_record_type(record_type), record_type, mxpriority")
             or croak($dbh->errstr);
 
@@ -755,7 +755,7 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
     }
 
 
-    my @implemented = qw[ANY A TXT MX CNAME NS SOA SPF SRV AAAA CAA AXFR PTR LOC SSHFP];
+    my @implemented = qw[ANY A TXT MX CNAME NS SOA SPF SRV AAAA CAA AXFR PTR LOC SSHFP HTTPS];
 
     if(!(contains($qtype, \@implemented))) {
         $rcode = 'NOTIMP';
@@ -1023,6 +1023,17 @@ sub compile_reply($self, $qname, $qclass, $qtype, $peerhost, $proto) {
             }
 
             my $rr = Net::DNS::RR->new($line->{host_fqdn} . ' ' . $line->{ttl_time} . " $qclass TXT " . $destination);
+            push @ans, $rr;
+        } elsif($line->{record_type} eq 'HTTPS') {
+            if($line->{textrecord} eq '') {
+                $self->debuglog("Error resolving record $qtype for $qname at entry_id ", $line->{entry_id});
+                next;
+            }
+
+            #$destination = '"' . $line->{textrecord} . '"';
+            $destination = $line->{textrecord};
+
+            my $rr = Net::DNS::RR->new($line->{host_fqdn} . ' ' . $line->{ttl_time} . ' HTTPS 1 . ' . $destination);
             push @ans, $rr;
         } elsif($line->{record_type} eq 'CNAME') {
             if(defined($line->{computer_name})) {
