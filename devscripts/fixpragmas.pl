@@ -40,7 +40,7 @@ foreach my $file (@files) {
                 # Remove this (old) lines
                 $skip = 1;
             }
-            if($pragma =~ /(5.\d+)/ && $pragma !~ /Digest/) {
+            if($pragma =~ /(5\.\d+)/ && $pragma !~ /Digest/) {
                 # Always update the required perl version
                 $skip = 1;
             }
