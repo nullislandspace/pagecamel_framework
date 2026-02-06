@@ -36,7 +36,7 @@ foreach my $file (@files) {
         if($line =~ /^use\ +(.+)\;/) {
             my $pragma = $1;
             my $skip = 0;
-            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF|builtin|Data\:\:Printer)/ && $pragma !~ /Digest/) {
+            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF|builtin|Data\:\:Printer)/ && $pragma !~ /Digest/) {
                 # Remove this (old) lines
                 $skip = 1;
             }
@@ -90,7 +90,6 @@ foreach my $file (@files) {
             print $ofh "use English;\n";
             print $ofh "use Carp qw[carp croak confess cluck longmess shortmess];\n";
             print $ofh "our \$VERSION = 5.0;\n";
-            #print $ofh "use autodie qw( close );\n";
             print $ofh "use Array::Contains;\n";
             print $ofh "use utf8;\n";
             print $ofh "use Data::Dumper;\n";

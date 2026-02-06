@@ -13,7 +13,6 @@ use Data::Dumper;
 use Data::Printer;
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
-# autodie close excluded - conflicts with close() method
 use PageCamel::Protocol::HTTP2::Connection;
 use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :endpoints
   :errors);
