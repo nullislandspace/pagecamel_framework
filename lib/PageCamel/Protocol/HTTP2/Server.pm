@@ -13,11 +13,12 @@ use Data::Dumper;
 use Data::Printer;
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
-# autodie close excluded - conflicts with close() methods in Stream/Tunnel classes
 use PageCamel::Protocol::HTTP2::Connection;
 use PageCamel::Protocol::HTTP2::Constants qw(:frame_types :flags :states :endpoints
   :settings :limits :errors const_name);
 use PageCamel::Protocol::HTTP2::Trace qw(tracer);
+use PageCamel::Protocol::HTTP2::Server::Stream;
+use PageCamel::Protocol::HTTP2::Server::Tunnel;
 use Scalar::Util ();
 
 =encoding utf-8
@@ -350,136 +351,6 @@ If body of response is not yet ready or server will stream data
     undef $server_stream
 
 =cut
-
-{
-    ## no critic (Modules::ProhibitMultiplePackages)
-    package PageCamel::Protocol::HTTP2::Server::Stream;
-    use PageCamel::Protocol::HTTP2::Constants qw(:states);
-    use Scalar::Util ();
-
-sub new($class, %opts) {
-        my $self = bless {%opts}, $class;
-
-        if ( my $on_cancel = $self->{on_cancel} ) {
-            Scalar::Util::weaken( my $self = $self );
-            $self->{con}->stream_cb(
-                $self->{stream_id},
-                CLOSED,
-                sub {
-                    return if $self->{done};
-                    $self->{done} = 1;
-                    $on_cancel->();
-                }
-            );
-        }
-
-        return $self;
-    }
-
-sub send($self, $data = undef) {
-        $self->{con}->send_data( $self->{stream_id}, $data );
-        return;
-    }
-
-sub last($self, $data = undef) {
-        $self->{done} = 1;
-        $self->{con}->send_data( $self->{stream_id}, $data, 1 );
-        return;
-    }
-
-sub close($self) {
-        $self->{done} = 1;
-        $self->{con}->send_data( $self->{stream_id}, undef, 1 );
-        return;
-    }
-
-sub DESTROY($self) {
-        if(!$self->{done} && $self->{con}) {
-            $self->{con}->send_data( $self->{stream_id}, undef, 1 );
-        }
-        return;
-    }
-}
-
-# RFC 8441 - PageCamel::Protocol::HTTP2::Server::Tunnel for WebSocket over HTTP/2
-{
-    ## no critic (Modules::ProhibitMultiplePackages)
-    package PageCamel::Protocol::HTTP2::Server::Tunnel;
-    use PageCamel::Protocol::HTTP2::Constants qw(:states :frame_types);
-    use Scalar::Util ();
-
-sub new($class, %opts) {
-        my $self = bless {%opts}, $class;
-
-        if ( my $on_close = $self->{on_close} ) {
-            my $weak_self = $self;
-            Scalar::Util::weaken($weak_self);
-            $self->{con}->stream_cb(
-                $self->{stream_id},
-                CLOSED,
-                sub {
-                    return if !$weak_self || $weak_self->{done};
-                    $weak_self->{done} = 1;
-                    $on_close->();
-                }
-            );
-        }
-
-        # Set up callback for received DATA frames on this tunnel
-        if ( my $on_data = $self->{on_data} ) {
-            my $weak_self = $self;
-            Scalar::Util::weaken($weak_self);
-            $self->{con}->stream_frame_cb(
-                $self->{stream_id},
-                DATA,
-                sub {
-                    my $data = shift;
-                    $on_data->($data) if $on_data && $weak_self && !$weak_self->{done};
-                }
-            );
-        }
-
-        return $self;
-    }
-
-    # Set callback for receiving data on tunnel
-sub on_data($self, $cb) {
-        $self->{on_data} = $cb;
-        my $weak_self = $self;
-        Scalar::Util::weaken($weak_self);
-        $self->{con}->stream_frame_cb(
-            $self->{stream_id},
-            DATA,
-            sub {
-                my $data = shift;
-                $cb->($data) if $cb && $weak_self && !$weak_self->{done};
-            }
-        );
-        return;
-    }
-
-    # Send data through tunnel (no END_STREAM flag)
-sub send($self, $data) {
-        return if $self->{done};
-        $self->{con}->send_data( $self->{stream_id}, $data );
-        return;
-    }
-
-    # Close the tunnel with optional final data
-sub close($self, $data) {
-        return if $self->{done};
-        $self->{done} = 1;
-        $self->{con}->send_data( $self->{stream_id}, $data, 1 );
-        return;
-    }
-
-sub DESTROY($self) {
-        if(!$self->{done} && $self->{con}) {
-            $self->{con}->send_data( $self->{stream_id}, undef, 1 );
-        }
-        return;
-    }
-}
 
 sub response_stream($self, %h) {
     my @miss = grep { !exists $h{$_} } @must;

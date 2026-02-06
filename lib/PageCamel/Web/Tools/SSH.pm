@@ -29,6 +29,11 @@ sub new($proto, %config) {
     $self->{extrasettings} = [];
     $self->{template} = 'tools/ssh';
 
+    # SSH needs longer timeouts (2-60 minutes)
+    $self->{defaultDisconnectTimeout} = 20 * 60;  # 20 minutes
+    $self->{minDisconnectTimeout} = 2 * 60;       # 2 minutes
+    $self->{maxDisconnectTimeout} = 60 * 60;      # 60 minutes
+
     return $self;
 }
 
@@ -40,12 +45,13 @@ sub wsmaskget($self, $ua, $settings, $webdata) {
         }
     }
 
-    push @{$webdata->{HeadExtraScripts}}, (  
+    push @{$webdata->{HeadExtraScripts}}, (
                                             '/static/xterm/xterm.js',
-                                            '/static/xterm/addon-attach.js',
+                                            '/static/xterm/addon-fit.js',
                                           );
     push @{$webdata->{HeadExtraCSS}}, (
                                             '/static/xterm/xterm.css',
+                                            '/static/xterm/ssh-terminal.css',
                                       );
 
     return 200;
@@ -68,16 +74,30 @@ sub wshandlerstart($self, $ua, $settings) {
 #   $self->{ifh} = $ifh;
 #   $self->{ofh} = $ofh;
     
+    # Set environment variables for proper terminal support
+    $ENV{TERM} = 'xterm-256color';
+    $ENV{LANG} = 'en_US.UTF-8';
+    $ENV{LC_ALL} = 'en_US.UTF-8';
+
+    # Create PTY with default size (will be resized by client)
     $self->{bash} = IO::Pty::Easy->new;
-    $self->{bash}->set_winsize(25, 120);
+    $self->{bash}->set_winsize(24, 80);  # Default, client will send actual size
     $self->{bash}->spawn('/bin/bash');
+
+    # Add PTY to IO::Select for low-latency reads (10ms instead of 100ms)
+    $self->wsaddhandle($self->{bash});
+
+    # Configure PTY: enable echo (LF->CRLF handled by xterm.js convertEol)
     $self->{bash}->write("stty echo\r\n");
 
     return;
 }
 
 sub wscleanup($self) {
-    delete $self->{bash};
+    if(defined($self->{bash})) {
+        $self->wsremovehandle($self->{bash});
+        delete $self->{bash};
+    }
 
     return;
 }
@@ -99,42 +119,49 @@ sub wshandlemessage($self, $message) {
         # echo input back to console
         #$self->writeData($outval);
     }
+    elsif($message->{type} eq 'RESIZE') {
+        my $rows = int($message->{data}->{rows} // 24);
+        my $cols = int($message->{data}->{cols} // 80);
+
+        # Validate bounds
+        $rows = 24 if $rows < 1 || $rows > 500;
+        $cols = 80 if $cols < 1 || $cols > 500;
+
+        # Resize PTY and signal shell
+        $self->{bash}->set_winsize($rows, $cols);
+        if($self->{bash}->is_active) {
+            kill 'WINCH', $self->{bash}->pid;
+        }
+    }
 
     return 1;
 }
     
 sub wscyclic($self, $ua) {
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    # Drain entire PTY buffer to avoid 100ms latency per chunk
+    my $allbytes = '';
+    while(1) {
+        my $bytes = $self->{bash}->read(0);
+        last if !defined($bytes) || !length($bytes);
+        $allbytes .= $bytes;
+    }
 
-    #my $bytes;
-    #read($self->{ifh}, $bytes, 100);
-    my $bytes = $self->{bash}->read(0);
-    if(defined($bytes) && length($bytes)) {
-        #print STDERR "\n#### ", Dumper($bytes), "\n";
-        #$self->dumpString($fixed);
-        if(!$self->writeData($bytes)) {
+    if(length($allbytes)) {
+        if(!$self->writeData($allbytes)) {
             return 0;
         }
     }
-
 
     return 1;
 }
 
 sub writeData($self, $bytes) {
-    my @parts = split//, $bytes;
-    my $fixed = '';
-    foreach my $part (@parts) {
-        if($part eq "\n") {
-            $part = "\r\n";
-        }
-        $fixed .= $part;
-    }
+    # Decode PTY output as UTF-8 for proper JSON encoding
+    my $decoded = decode_utf8($bytes);
 
     my %msg = (
         type => 'CONSOLEDATA',
-        data => $fixed,
+        data => $decoded,
     );
 
     if(!$self->wsprint(\%msg)) {
@@ -142,7 +169,6 @@ sub writeData($self, $bytes) {
     }
 
     return 1;
-
 }
 
 sub dumpString($self, $val) {

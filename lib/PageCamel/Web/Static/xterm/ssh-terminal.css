@@ -1,0 +1,14 @@
+#terminal {
+    width: 100%;
+    height: 80vh;
+    min-width: 600px;
+    min-height: 400px;
+    max-width: 100%;
+    text-align: left !important;
+    resize: both;
+    overflow: hidden;
+}
+
+#terminal * {
+    text-align: left !important;
+}

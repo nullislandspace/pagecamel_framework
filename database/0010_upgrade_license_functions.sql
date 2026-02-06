@@ -1,3 +1,4 @@
+-- XXXDONTSTOPUPGRADEONFAILUREXXX
 -- Upgrade from old PL/Perl license functions to pg_pagecamel_license C extension
 -- This script safely migrates all dependencies, particularly getposdate() defaults
 --

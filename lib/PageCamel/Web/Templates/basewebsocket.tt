@@ -127,8 +127,8 @@
             wsconnecting = 0;
             window.pcws.isconnected = !!wsconnected;
             wsfailed = 0;
-            lastPing = -1;
-            sendPing();
+            lastPing = Math.round(Date.now() / 1000);  // Initialize to now, server will send PING soon
+            checkPingTimeout();
             //console.log("Websocket connected");
             
             if(window.websocketmaskOnSocketOpen) {
@@ -218,7 +218,10 @@
         var msg = JSON.parse(rawmsg);
         
         if(msg.type === "PING") {
+            // Server sent PING - respond with PONG immediately
             lastPing = Math.round(Date.now() / 1000);
+            var pongmsg = { type: 'PONG' };
+            ws.send(JSON.stringify(pongmsg));
         } else if(msg.type === "CONSOLELOG") {
             console.log(msg.logline);
         } else if(msg.type === "REMOTEPRINT") {
@@ -342,30 +345,22 @@
         return !isNaN(parseFloat(n)) && isFinite(n) && n > 0;
     }
 
-    function sendPing () {
+    function checkPingTimeout() {
         if(wsconnected == 1) {
-            var neededPing = Math.round(Date.now() / 1000) - ttvars.client_disconnect_timeout;
+            // Timeout is 3x the ping interval
+            var timeoutInterval = ttvars.client_disconnect_timeout * 3;
+            var neededPing = Math.round(Date.now() / 1000) - timeoutInterval;
             if(lastPing != -1 && neededPing > lastPing) {
-                //console.log("PING ERROR");
+                //console.log("PING TIMEOUT - no PING from server");
                 if(ttvars.blockui == "1") {
                     $('#dataarea').block({ message: ttvars.trquote.Wslost });
                 }
                 ws.close();
                 return;
             }
-            
-            var outmsg = {
-                type: 'PING'
-            };
-            
-            ws.send(JSON.stringify(outmsg));
-
-            if(lastPing == -1) {
-                lastPing = Math.round(Date.now() / 1000);
-            }
         }
 
-        setTimeout(sendPing, ttvars.ping_timeout);
+        setTimeout(checkPingTimeout, ttvars.ping_timeout);
     }
     
     function closeSocket() {

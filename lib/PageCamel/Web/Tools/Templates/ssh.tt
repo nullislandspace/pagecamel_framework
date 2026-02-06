@@ -1,25 +1,136 @@
-<p align="left">
-    <div id="terminal" align="left"></div>
-</p>
+<div id="terminal"></div>
 
-<script>    
-    //function websocketmaskOnload() {
+<script>
     var xterm;
+    var fitAddon;
+    var resizeTimeout;
+    var lastCols = 0;
+    var lastRows = 0;
+    var minCols = 80;
+    var minRows = 35;
+    var cellWidth = 0;
+    var cellHeight = 0;
+    var container;
+
     function websocketmaskOnSocketOpen() {
-        var xterm = new Terminal({rows: 25, cols: 120});
-        var attachAddon = new AttachAddon.AttachAddon(ws, {bidirectional: true});
-        xterm.loadAddon(attachAddon);
-        xterm.open(document.getElementById('terminal'));
-        //term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
+        container = document.getElementById('terminal');
+
+        // Create terminal with minimum size
+        xterm = new Terminal({
+            cols: minCols,
+            rows: minRows,
+            cursorBlink: true,
+            fontFamily: 'sourcecodepro, monospace',
+            fontSize: 14,
+            lineHeight: 1.1,
+            convertEol: true,
+            scrollback: 1000
+        });
+
+        // Load FitAddon for snapping to character boundaries after manual resize
+        fitAddon = new FitAddon.FitAddon();
+        xterm.loadAddon(fitAddon);
+
+        // Open terminal in container
+        xterm.open(container);
+
+        // Calculate and store cell dimensions from rendered terminal
+        // Use proposeDimensions to get what would fit, then derive cell size
+        setTimeout(function() {
+            var dims = fitAddon.proposeDimensions();
+            if(dims && dims.cols > 0 && dims.rows > 0) {
+                cellWidth = container.clientWidth / dims.cols;
+                cellHeight = container.clientHeight / dims.rows;
+            }
+
+            // Snap container to exact size for initial dimensions
+            if(cellWidth > 0 && cellHeight > 0) {
+                container.style.width = Math.ceil(minCols * cellWidth) + 'px';
+                container.style.height = Math.ceil(minRows * cellHeight) + 'px';
+            }
+
+            // Watch for manual resize via drag handle
+            var resizeObserver = new ResizeObserver(handleContainerResize);
+            resizeObserver.observe(container);
+        }, 50);
+
+        // Handle user input - send to backend
+        xterm.onData(function(data) {
+            if(wsconnected) {
+                wstransmit('CONSOLEDATA', data);
+            }
+        });
+
+        // Set initial size
+        lastCols = xterm.cols;
+        lastRows = xterm.rows;
+        sendResize();
+
+    function handleContainerResize() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if(!xterm || cellWidth <= 0 || cellHeight <= 0) return;
+
+            // Calculate new dimensions from container size
+            var newCols = Math.floor(container.clientWidth / cellWidth);
+            var newRows = Math.floor(container.clientHeight / cellHeight);
+
+            // Enforce minimum size
+            newCols = Math.max(newCols, minCols);
+            newRows = Math.max(newRows, minRows);
+
+            // Snap container to exact pixel boundaries
+            container.style.width = Math.ceil(newCols * cellWidth) + 'px';
+            container.style.height = Math.ceil(newRows * cellHeight) + 'px';
+
+            // Only resize terminal if dimensions changed
+            if(newCols !== lastCols || newRows !== lastRows) {
+                xterm.resize(newCols, newRows);
+                lastCols = newCols;
+                lastRows = newRows;
+                sendResize();
+            }
+        }, 100);
     }
 
+        // Keyboard shortcut: Ctrl+Shift+F to refit terminal
+        document.addEventListener('keydown', function(e) {
+            if(e.ctrlKey && e.shiftKey && e.key === 'F') {
+                e.preventDefault();
+                terminalRefit();
+            }
+        });
 
-    function handleMessage(msg) {                
-        if(msg.type === "XYZ") {
-            console.log(msg);
-            
-            return;
+        xterm.focus();
+    }
+
+    function sendResize() {
+        if(!xterm || !wsconnected) return;
+        wstransmit('RESIZE', JSON.stringify({rows: xterm.rows, cols: xterm.cols}));
+    }
+
+    // Manual resize function - call from console with: terminalRefit()
+    function terminalRefit() {
+        if(fitAddon && xterm) {
+            fitAddon.fit();
+            lastCols = xterm.cols;
+            lastRows = xterm.rows;
+            sendResize();
+            console.log('Terminal resized to ' + xterm.cols + 'x' + xterm.rows);
         }
-        
+    }
+    // Expose globally
+    window.terminalRefit = terminalRefit;
+
+    function handleMessage(msg) {
+        if(msg.type === 'CONSOLEDATA' && xterm) {
+            xterm.write(msg.data);
+        }
+    }
+
+    function websocketmaskOnSocketClose() {
+        if(xterm) {
+            xterm.write('\r\n' + String.fromCharCode(27) + '[31m[Connection closed]' + String.fromCharCode(27) + '[0m\r\n');
+        }
     }
 </script>
