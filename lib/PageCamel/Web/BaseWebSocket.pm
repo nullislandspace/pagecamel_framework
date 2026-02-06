@@ -66,6 +66,18 @@ sub new($proto, %config) {
         $self->{usemastertemplate} = 1;
     }
 
+    if(!defined($self->{defaultDisconnectTimeout})) {
+        $self->{defaultDisconnectTimeout} = 70;
+    }
+
+    if(!defined($self->{minDisconnectTimeout})) {
+        $self->{minDisconnectTimeout} = 30;
+    }
+
+    if(!defined($self->{maxDisconnectTimeout})) {
+        $self->{maxDisconnectTimeout} = 10 * 60;  # 10 minutes
+    }
+
     return $self;
 }
 
@@ -105,10 +117,10 @@ sub reload($self) {
 
     $sysh->createNumber(modulename => $self->{modname},
                     settingname => 'client_disconnect_timeout',
-                    settingvalue => 10,
+                    settingvalue => $self->{defaultDisconnectTimeout},
                     description => 'Client disconnect timeout (seconds)',
-                    value_min => 5.0,
-                    value_max => 120.0,
+                    value_min => $self->{minDisconnectTimeout},
+                    value_max => $self->{maxDisconnectTimeout},
                     processinghints => [
                         'decimal=0',
                     ],
@@ -404,7 +416,12 @@ sub sockethandler($self, $ua) {
     
     $self->wshandlerstart($ua, \%settings);
 
-    my $timeout = time + $settings{client_disconnect_timeout};
+    # PING/PONG: Server sends PINGs, client responds with PONG
+    # Timeout is 3x the ping interval
+    my $pingInterval = $settings{client_disconnect_timeout};
+    my $timeoutInterval = $pingInterval * 3;
+    my $nextPing = time + $pingInterval;
+    my $timeout = time + $timeoutInterval;
 
     my $frame = PageCamel::Helpers::WSockFrame->new(max_payload_size => 500 * 1024 * 1024);
     $self->{sessiondata}->{frame} = $frame;
@@ -490,16 +507,9 @@ sub sockethandler($self, $ua) {
                 }
 
 
-                if($realmsg->{type} eq 'PING') {
-                    $timeout = time + $settings{client_disconnect_timeout};
-                    my %msg = (
-                        type => 'PING',
-                    );
-                    if(!$self->wsprint(\%msg)) {
-                        $reph->debuglog("Write to socket failed, closing connection!");
-                        $socketclosed = 1;
-                        last;
-                    }
+                if($realmsg->{type} eq 'PONG') {
+                    # Client responded to our PING - reset timeout
+                    $timeout = time + $timeoutInterval;
                     next;
                 } elsif($realmsg->{type} eq 'DEBUGLOG') {
                     my $debugline;
@@ -535,6 +545,19 @@ sub sockethandler($self, $ua) {
             if(!$self->wscyclic($ua)) {
                 $socketclosed = 1;
                 last;
+            }
+
+            # Send PING to client periodically
+            if($nextPing < time) {
+                my %msg = (
+                    type => 'PING',
+                );
+                if(!$self->wsprint(\%msg)) {
+                    $reph->debuglog("Write to socket failed, closing connection!");
+                    $socketclosed = 1;
+                    last;
+                }
+                $nextPing = time + $pingInterval;
             }
 
             if($timeout < time) {

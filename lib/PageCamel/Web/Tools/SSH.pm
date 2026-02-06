@@ -29,6 +29,11 @@ sub new($proto, %config) {
     $self->{extrasettings} = [];
     $self->{template} = 'tools/ssh';
 
+    # SSH needs longer timeouts (2-60 minutes)
+    $self->{defaultDisconnectTimeout} = 20 * 60;  # 20 minutes
+    $self->{minDisconnectTimeout} = 2 * 60;       # 2 minutes
+    $self->{maxDisconnectTimeout} = 60 * 60;      # 60 minutes
+
     return $self;
 }
 
