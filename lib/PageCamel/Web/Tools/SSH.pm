@@ -79,6 +79,9 @@ sub wshandlerstart($self, $ua, $settings) {
     $self->{bash}->set_winsize(24, 80);  # Default, client will send actual size
     $self->{bash}->spawn('/bin/bash');
 
+    # Add PTY to IO::Select for low-latency reads (10ms instead of 100ms)
+    $self->wsaddhandle($self->{bash});
+
     # Configure PTY: enable echo (LF->CRLF handled by xterm.js convertEol)
     $self->{bash}->write("stty echo\r\n");
 
@@ -86,7 +89,10 @@ sub wshandlerstart($self, $ua, $settings) {
 }
 
 sub wscleanup($self) {
-    delete $self->{bash};
+    if(defined($self->{bash})) {
+        $self->wsremovehandle($self->{bash});
+        delete $self->{bash};
+    }
 
     return;
 }
@@ -127,20 +133,19 @@ sub wshandlemessage($self, $message) {
 }
     
 sub wscyclic($self, $ua) {
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    # Drain entire PTY buffer to avoid 100ms latency per chunk
+    my $allbytes = '';
+    while(1) {
+        my $bytes = $self->{bash}->read(0);
+        last if !defined($bytes) || !length($bytes);
+        $allbytes .= $bytes;
+    }
 
-    #my $bytes;
-    #read($self->{ifh}, $bytes, 100);
-    my $bytes = $self->{bash}->read(0);
-    if(defined($bytes) && length($bytes)) {
-        #print STDERR "\n#### ", Dumper($bytes), "\n";
-        #$self->dumpString($fixed);
-        if(!$self->writeData($bytes)) {
+    if(length($allbytes)) {
+        if(!$self->writeData($allbytes)) {
             return 0;
         }
     }
-
 
     return 1;
 }

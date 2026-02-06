@@ -191,6 +191,23 @@ sub wscyclic($self, $ua) {
     return 1;
 }
 
+# Add a filehandle to the IO::Select watch list
+# Call from subclass (e.g. in wshandlerstart) to wake up when handle has data
+sub wsaddhandle($self, $handle) {
+    if(!defined($self->{extrahandles})) {
+        $self->{extrahandles} = [];
+    }
+    push @{$self->{extrahandles}}, $handle;
+    return;
+}
+
+# Remove a filehandle from the IO::Select watch list
+sub wsremovehandle($self, $handle) {
+    return if !defined($self->{extrahandles});
+    @{$self->{extrahandles}} = grep { $_ != $handle } @{$self->{extrahandles}};
+    return;
+}
+
 sub wsprint($self, $message, $usebinary = 0) {
     my $frame = $self->{sessiondata}->{frame};
     my $ua = $self->{sessiondata}->{ua};
@@ -403,14 +420,25 @@ sub sockethandler($self, $ua) {
         binmode($ua->{realsocket}, ':bytes');
 
         my $select = IO::Select->new($ua->{realsocket});
+
+        # Add extra filehandles registered by subclass
+        if(defined($self->{extrahandles})) {
+            for my $eh (@{$self->{extrahandles}}) {
+                $select->add($eh);
+            }
+        }
+
         my $starttime = time + 10;
 
         while(!$socketclosed) {
             my $workCount = 0;
 
-            # Read data from websocket using IO::Select instead of alarm()
+            # Wait for data on any registered handle (websocket, PTY, etc.)
+            my @ready = $select->can_read($self->{sleeptime});
+
+            # Read from websocket only if it has data
             my $buf;
-            if($select->can_read(0.1)) {
+            if(grep { $_ == $ua->{realsocket} } @ready) {
                 my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
                 if(!defined($status) || $status == 0) {
                     if($self->{isDebugging}) {
