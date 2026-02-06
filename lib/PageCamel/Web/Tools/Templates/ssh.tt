@@ -6,24 +6,53 @@
     var resizeTimeout;
     var lastCols = 0;
     var lastRows = 0;
+    var minCols = 80;
+    var minRows = 35;
+    var cellWidth = 0;
+    var cellHeight = 0;
+    var container;
 
     function websocketmaskOnSocketOpen() {
-        // Create terminal with proper settings
+        container = document.getElementById('terminal');
+
+        // Create terminal with minimum size
         xterm = new Terminal({
+            cols: minCols,
+            rows: minRows,
             cursorBlink: true,
             fontFamily: 'monospace',
             fontSize: 14,
-            lineHeight: 1.1,       // Slightly increase line height to show underscore
-            convertEol: true,      // Convert LF to CRLF for proper line handling
+            lineHeight: 1.1,
+            convertEol: true,
             scrollback: 1000
         });
 
-        // Load FitAddon for automatic sizing
+        // Load FitAddon for snapping to character boundaries after manual resize
         fitAddon = new FitAddon.FitAddon();
         xterm.loadAddon(fitAddon);
 
         // Open terminal in container
-        xterm.open(document.getElementById('terminal'));
+        xterm.open(container);
+
+        // Calculate and store cell dimensions from rendered terminal
+        // Use proposeDimensions to get what would fit, then derive cell size
+        setTimeout(function() {
+            var dims = fitAddon.proposeDimensions();
+            if(dims && dims.cols > 0 && dims.rows > 0) {
+                cellWidth = container.clientWidth / dims.cols;
+                cellHeight = container.clientHeight / dims.rows;
+            }
+
+            // Snap container to exact size for initial dimensions
+            if(cellWidth > 0 && cellHeight > 0) {
+                container.style.width = Math.ceil(minCols * cellWidth) + 'px';
+                container.style.height = Math.ceil(minRows * cellHeight) + 'px';
+            }
+
+            // Watch for manual resize via drag handle
+            var resizeObserver = new ResizeObserver(handleContainerResize);
+            resizeObserver.observe(container);
+        }, 50);
 
         // Handle user input - send to backend
         xterm.onData(function(data) {
@@ -32,33 +61,34 @@
             }
         });
 
-        // Delay initial fit to allow layout to settle
-        setTimeout(function() {
-            fitAddon.fit();
-            lastCols = xterm.cols;
-            lastRows = xterm.rows;
-            sendResize();
-
-            // Handle window resize
-            window.addEventListener('resize', handleContainerResize);
-
-            // Handle manual container resize (drag handle)
-            var container = document.getElementById('terminal');
-            var resizeObserver = new ResizeObserver(handleContainerResize);
-            resizeObserver.observe(container);
-        }, 300);
+        // Set initial size
+        lastCols = xterm.cols;
+        lastRows = xterm.rows;
+        sendResize();
 
     function handleContainerResize() {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(function() {
-            if(fitAddon && xterm) {
-                fitAddon.fit();
-                // Only send resize if dimensions actually changed
-                if(xterm.cols !== lastCols || xterm.rows !== lastRows) {
-                    lastCols = xterm.cols;
-                    lastRows = xterm.rows;
-                    sendResize();
-                }
+            if(!xterm || cellWidth <= 0 || cellHeight <= 0) return;
+
+            // Calculate new dimensions from container size
+            var newCols = Math.floor(container.clientWidth / cellWidth);
+            var newRows = Math.floor(container.clientHeight / cellHeight);
+
+            // Enforce minimum size
+            newCols = Math.max(newCols, minCols);
+            newRows = Math.max(newRows, minRows);
+
+            // Snap container to exact pixel boundaries
+            container.style.width = Math.ceil(newCols * cellWidth) + 'px';
+            container.style.height = Math.ceil(newRows * cellHeight) + 'px';
+
+            // Only resize terminal if dimensions changed
+            if(newCols !== lastCols || newRows !== lastRows) {
+                xterm.resize(newCols, newRows);
+                lastCols = newCols;
+                lastRows = newRows;
+                sendResize();
             }
         }, 100);
     }
