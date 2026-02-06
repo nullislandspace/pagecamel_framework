@@ -20,7 +20,7 @@
             cols: minCols,
             rows: minRows,
             cursorBlink: true,
-            fontFamily: 'monospace',
+            fontFamily: 'sourcecodepro, monospace',
             fontSize: 14,
             lineHeight: 1.1,
             convertEol: true,
