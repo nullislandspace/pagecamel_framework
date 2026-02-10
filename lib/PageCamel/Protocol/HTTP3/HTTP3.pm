@@ -1,4 +1,4 @@
-package PageCamel::Protocol::HTTP3;
+package PageCamel::Protocol::HTTP3; ## no critic (Modules::RequireFilenameMatchesPackage)
 #---AUTOPRAGMASTART---
 use v5.42;
 use strict;

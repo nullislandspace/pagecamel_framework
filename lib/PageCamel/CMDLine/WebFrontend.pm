@@ -414,8 +414,8 @@ sub spawnHTTP3Handler($self) {
         eval {
             $self->runHTTP3Handler();
         };
-        if($@) {
-            print STDERR getISODate(), " HTTP/3 handler died with error: $@\n";
+        if($EVAL_ERROR) {
+            print STDERR getISODate(), " HTTP/3 handler died with error: $EVAL_ERROR\n";
         }
         exit(1);
     } else {
@@ -464,8 +464,8 @@ sub run($self) {
             eval {
                 $self->runHTTP3Handler();
             };
-            if($@) {
-                print STDERR getISODate(), " HTTP/3 handler died with error: $@\n";
+            if($EVAL_ERROR) {
+                print STDERR getISODate(), " HTTP/3 handler died with error: $EVAL_ERROR\n";
             }
             exit(1);
         } else {
@@ -1431,7 +1431,7 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
         initial_max_data => 10 * 1024 * 1024,
         initial_max_stream_data_bidi => 10 * 1024 * 1024,
         initial_max_streams_bidi => 100,
-        max_idle_timeout_ms => 30000,
+        max_idle_timeout_ms => 30_000,
         cc_algo => 1,  # CUBIC
     };
 
@@ -1471,7 +1471,7 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
             }
             my $rv = $udpSocket->send($data, 0, $sockaddr);
             if(!defined($rv)) {
-                if($!{EAGAIN} || $!{EWOULDBLOCK}) {
+                if($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
                     return -1;  # Would block
                 }
                 return -2;  # Send error
@@ -1485,8 +1485,8 @@ sub handleNewQUICConnection($self, $udpSocket, $packet, $peerhost, $peerPort, $l
     eval {
         $h3conn = $handler->init();
     };
-    if($@) {
-        print STDERR "HTTP3Handler init failed: $@\n";
+    if($EVAL_ERROR) {
+        print STDERR "HTTP3Handler init failed: $EVAL_ERROR\n";
         return;
     }
 

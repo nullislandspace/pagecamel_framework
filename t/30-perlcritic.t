@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use File::Spec;
+use File::Find;
 use Test::More;
 
 eval "use Test::Pod::Coverage 1.04";
@@ -21,24 +22,22 @@ if ( $EVAL_ERROR ) {
    plan( skip_all => $msg );
 }
 
-my @modules = all_modules();
-my $tests = 0;
 my @fnames;
-foreach my $module (sort @modules) {
-    next if($module =~ /PageCamel::Net::Server/);
-    next if($module =~ /LetsEncrypt/);
-    next if($module =~ /WSockFrame/);
-    my $fname = 'lib/' . $module . '.pm';
-    $fname =~ s/\:\:/\//go;
-    $tests++;
+find(sub {
+    return if !-f $_;
+    return if $_ !~ /\.pm$/;
+    my $fname = $File::Find::name;
+    return if($fname =~ /Net\/Server/);
+    return if($fname =~ /LetsEncrypt/);
+    return if($fname =~ /WSockFrame/);
+    return if($fname =~ /\/blib\//);
     push @fnames, $fname;
-}
-plan(tests => $tests);
+}, 'lib/');
 
+plan(tests => scalar @fnames);
 
 my $rcfile = File::Spec->catfile( 't', 'perlcriticrc' );
 Test::Perl::Critic->import( -profile => $rcfile, -verbose => "[%p] %m at line %l, column %c.  (Severity: %s)\n   %e\n");
-#all_critic_ok();
 foreach my $fname (sort @fnames) {
     #diag "** $fname";
     critic_ok($fname);
