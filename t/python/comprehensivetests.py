@@ -23,6 +23,7 @@ Usage:
   python3 comprehensivetests.py --list                 # list all test categories
   python3 comprehensivetests.py --iterations 5         # 5 iterations instead of 10
   python3 comprehensivetests.py --small-iter 50        # 50 small-file downloads instead of 100
+  python3 comprehensivetests.py --live                  # test against cavac.at instead of test.cavac.at
 """
 
 import argparse
@@ -52,7 +53,7 @@ PORT = 443
 DOWNLOAD_PATH = "/public/pimenu/download/testfile_1.bin"
 SMALL_DOWNLOAD_PATH = "/public/pimenu/download/test_30k.bin"
 UPLOAD_PATH = "/guest/puttest/static"
-WS_PATH = "/guest/kaffeesim"
+WS_PATH = "/guest/kaffeesim/"
 EXPECTED_MD5 = "ae525b610cdca28ffed9b81e2cfa47b8"
 EXPECTED_SIZE = 31457280  # 31 MB
 WS_DURATION = 30  # seconds per WebSocket test
@@ -1719,6 +1720,8 @@ def parse_args():
                         help="Number of iterations for tests 1-10 (default: 10)")
     parser.add_argument("--small-iter", type=int, default=100,
                         help="Number of iterations for small-file stress test 11 (default: 100)")
+    parser.add_argument("--live", action="store_true",
+                        help="Test against live server (cavac.at) instead of test.cavac.at")
     return parser.parse_args()
 
 
@@ -1726,8 +1729,15 @@ async def main():
     global TESTFILE_DATA, UPLOAD_SHA256
     global SMALL_FILE_DATA, SMALL_EXPECTED_MD5, SMALL_EXPECTED_SIZE
     global NUM_ITERATIONS, SMALL_ITERATIONS, TEST_TIMEOUT
+    global HOST, DOWNLOAD_URL, SMALL_DOWNLOAD_URL, UPLOAD_URL
 
     args = parse_args()
+
+    if args.live:
+        HOST = "cavac.at"
+        DOWNLOAD_URL = f"https://{HOST}:{PORT}{DOWNLOAD_PATH}"
+        SMALL_DOWNLOAD_URL = f"https://{HOST}:{PORT}{SMALL_DOWNLOAD_PATH}"
+        UPLOAD_URL = f"https://{HOST}:{PORT}{UPLOAD_PATH}"
 
     NUM_ITERATIONS = args.iterations
     SMALL_ITERATIONS = args.small_iter
