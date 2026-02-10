@@ -1,6 +1,6 @@
 package PageCamel::Worker::Firewall::SSH;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';

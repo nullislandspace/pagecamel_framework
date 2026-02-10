@@ -1,6 +1,6 @@
 package PageCamel::Web::BaseWebSocket;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
@@ -23,6 +23,7 @@ use Time::HiRes qw[sleep alarm time];
 use PageCamel::Helpers::WebPrint;
 use Digest::SHA1  qw(sha1 sha1_hex);
 use IO::Select;
+use List::Util qw[any];
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -471,7 +472,7 @@ sub sockethandler($self, $ua) {
 
             # Read from websocket only if it has data
             my $buf;
-            if(grep { $_ == $ua->{realsocket} } @ready) {
+            if(any { $_ == $ua->{realsocket} } @ready) {
                 my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
                 if(!defined($status) || $status == 0) {
                     if($self->{isDebugging}) {

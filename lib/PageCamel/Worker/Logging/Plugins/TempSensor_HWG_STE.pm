@@ -1,6 +1,6 @@
 package PageCamel::Worker::Logging::Plugins::TempSensor_HWG_STE;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
