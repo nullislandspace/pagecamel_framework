@@ -38,8 +38,15 @@
     </p>
 [% END %]
 
+<!-- Delete confirmation dialog -->
+<div id="dialog-deletefile" title="[% tr.trquote("Delete file?") %]">
+    <p><span class="ui-icon ui-icon-alert defaultlayout_logouticon"></span>[% tr.trquote("Do you really want to delete this file?") %]</p>
+    <p><b id="dialog-deletefile-name"></b></p>
+</div>
+
 <span id="masktemplatedataset"
     data-trquote-fileapinotsupported="[% tr.trquote("The HTML5 File APIs are not fully supported in this browser.") %]"
+    data-trquote-delete="[% tr.trquote("Delete") %]"
     data-ajaxwebpath="[% ajaxwebpath %]"
     data-hashingworker="[% HashingWorker %]"
     data-uploadworker="[% UploadWorker %]"
@@ -58,8 +65,36 @@
     var activeWorkers = 0;
 
     var filetable;
+    var deleteFileName = '';
 
     function websocketmaskOnload() {
+        $( "#dialog-deletefile" ).dialog({
+            autoOpen: false,
+            resizable: false,
+            modal: true,
+            width: 400,
+            buttons: [
+                {
+                    text: ttvars.trquote.Delete,
+                    click: function() {
+                        var outmsg = {
+                            type: 'DELETEFILE',
+                            filename: deleteFileName
+                        };
+                        sendMessage(outmsg);
+                        $( this ).dialog( "close" );
+                    }
+                },
+                {
+                    text: ttvars.trquote.Close,
+                    click: function() {
+                        $( this ).dialog( "close" );
+                    }
+                }
+            ]
+        });
+
+
         filetable = $('#FileTable').DataTable( {
             serverSide: true,
             processing: true,
@@ -212,14 +247,10 @@
     }
 
     function deleteFile(fname) {
-        //console.log("Deleting file " + fname);
-        var outmsg = {
-            type: 'DELETEFILE',
-            filename: fname
-        };
-
-        sendMessage(outmsg);
-        return;
+        deleteFileName = fname;
+        $('#dialog-deletefile-name').text(fname);
+        $( "#dialog-deletefile" ).dialog("open");
+        return false;
     }
 
     function checkWorkerCount() {
