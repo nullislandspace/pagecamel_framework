@@ -359,7 +359,7 @@ L<Math::Random::Secure> is installed it is used instead.
 =head2 C<new>
 
     Protocol::WebSocket::Frame->new('data');   # same as (buffer => 'data')
-    Protocol::WebSocket::Frame->new(buffer => 'data', type => 'close');
+    Protocol::WebSocket::Frame->new(buffer => pack('n', 1000), type => 'close');
 
 Create a new L<Protocol::WebSocket::Frame> instance. Automatically detect if the
 passed data is a Perl string (UTF-8 flag) or bytes.

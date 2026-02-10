@@ -52,7 +52,7 @@ PORT = 443
 DOWNLOAD_PATH = "/public/pimenu/download/testfile_1.bin"
 SMALL_DOWNLOAD_PATH = "/public/pimenu/download/test_30k.bin"
 UPLOAD_PATH = "/guest/puttest/static"
-WS_PATH = "/guest/kaffeesim/ws"
+WS_PATH = "/guest/kaffeesim"
 EXPECTED_MD5 = "ae525b610cdca28ffed9b81e2cfa47b8"
 EXPECTED_SIZE = 31457280  # 31 MB
 WS_DURATION = 30  # seconds per WebSocket test
@@ -422,21 +422,28 @@ async def ws_test_h1(duration=WS_DURATION):
 
     uri = f"wss://{HOST}{WS_PATH}"
     async with websockets.connect(uri, ssl=ssl_ctx,
-                                  subprotocols=["base64"]) as ws:
-        # PING
-        await ws.send(json.dumps({"type": "PING"}))
-        try:
-            reply = await asyncio.wait_for(ws.recv(), timeout=5.0)
-            obj = json.loads(reply)
-            if obj.get("type") != "PING":
-                return False, f"expected PING echo, got {obj.get('type')}"
-        except asyncio.TimeoutError:
-            return False, "PING reply timeout"
-
-        # NOTIFY
+                                  subprotocols=["pagecamel"]) as ws:
+        # Send NOTIFY to trigger VALUE messages
         await ws.send(json.dumps({"type": "NOTIFY", "varname": "update_all"}))
 
-        # Monitor for duration
+        # Wait for at least one VALUE message to confirm connectivity
+        got_value = False
+        deadline = time.monotonic() + 10.0
+        while time.monotonic() < deadline:
+            try:
+                reply = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                obj = json.loads(reply)
+                if obj.get("type") == "PING":
+                    await ws.send(json.dumps({"type": "PONG"}))
+                elif obj.get("type") == "VALUE":
+                    got_value = True
+                    break
+            except asyncio.TimeoutError:
+                pass
+        if not got_value:
+            return False, "no VALUE message received after NOTIFY"
+
+        # Monitor for duration, responding to server PINGs
         message_count = 0
         last_message_time = time.monotonic()
         end_time = time.monotonic() + duration
@@ -444,8 +451,12 @@ async def ws_test_h1(duration=WS_DURATION):
         while time.monotonic() < end_time:
             try:
                 msg = await asyncio.wait_for(ws.recv(), timeout=1.0)
-                message_count += 1
-                last_message_time = time.monotonic()
+                obj = json.loads(msg)
+                if obj.get("type") == "PING":
+                    await ws.send(json.dumps({"type": "PONG"}))
+                else:
+                    message_count += 1
+                    last_message_time = time.monotonic()
             except asyncio.TimeoutError:
                 if time.monotonic() - last_message_time > 10:
                     return False, f"stall detected after {message_count} messages"
@@ -530,7 +541,7 @@ class H2WebSocketClient:
             (':authority', HOST),
             (':path', WS_PATH),
             ('sec-websocket-version', '13'),
-            ('sec-websocket-protocol', 'base64'),
+            ('sec-websocket-protocol', 'pagecamel'),
             ('origin', f'https://{HOST}'),
         ]
         self.conn.send_headers(self.stream_id, headers, end_stream=False)
@@ -642,29 +653,53 @@ async def ws_test_h2(duration=WS_DURATION):
     try:
         await client.connect()
 
-        # PING
-        await client.send_ws_frame(ws_encode_text(json.dumps({"type": "PING"})))
-        msgs = await client.receive_ws_messages(5)
-        got_ping = any(
-            json.loads(p).get("type") == "PING"
-            for op, p in msgs if op == 1
-        )
-        if not got_ping:
-            return False, "no PING echo"
-
-        # NOTIFY
+        # Send NOTIFY to trigger VALUE messages
         await client.send_ws_frame(ws_encode_text(
             json.dumps({"type": "NOTIFY", "varname": "update_all"})))
 
-        # Monitor
+        # Wait for at least one VALUE message to confirm connectivity
+        got_value = False
+        deadline = time.monotonic() + 10.0
+        while time.monotonic() < deadline and not got_value:
+            chunk = min(2.0, deadline - time.monotonic())
+            msgs = await client.receive_ws_messages(chunk)
+            for op, p in msgs:
+                if op == 1:
+                    try:
+                        obj = json.loads(p)
+                        if obj.get("type") == "PING":
+                            await client.send_ws_frame(ws_encode_text(json.dumps({"type": "PONG"})))
+                        elif obj.get("type") == "VALUE":
+                            got_value = True
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        pass
+        if not got_value:
+            return False, "no VALUE message received after NOTIFY"
+
+        # Monitor, responding to server PINGs
         message_count = 0
         last_message_time = time.monotonic()
         remaining = duration
         while remaining > 0:
             chunk = min(remaining, 5.0)
             msgs = await client.receive_ws_messages(chunk)
-            if msgs:
-                message_count += len(msgs)
+            got_data = False
+            for op, p in msgs:
+                if op == 1:
+                    try:
+                        obj = json.loads(p)
+                        if obj.get("type") == "PING":
+                            await client.send_ws_frame(ws_encode_text(json.dumps({"type": "PONG"})))
+                        else:
+                            message_count += 1
+                            got_data = True
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        message_count += 1
+                        got_data = True
+                else:
+                    message_count += 1
+                    got_data = True
+            if got_data:
                 last_message_time = time.monotonic()
             elif time.monotonic() - last_message_time > 10:
                 return False, f"stall detected after {message_count} messages"
@@ -755,7 +790,7 @@ async def h2_ws_parallel_shared():
             (':authority', HOST),
             (':path', WS_PATH),
             ('sec-websocket-version', '13'),
-            ('sec-websocket-protocol', 'base64'),
+            ('sec-websocket-protocol', 'pagecamel'),
             ('origin', f'https://{HOST}'),
         ]
         conn.send_headers(sid, headers, end_stream=False)
@@ -794,55 +829,6 @@ async def h2_ws_parallel_shared():
         writer.close()
         return False, "not all streams received 200 response"
 
-    # Send PING on all streams
-    for sid in stream_ids:
-        frame = ws_encode_text(json.dumps({"type": "PING"}))
-        conn.send_data(sid, frame, end_stream=False)
-    writer.write(conn.data_to_send())
-    await writer.drain()
-
-    # Collect PING responses
-    ping_end = time.monotonic() + 5.0
-    while time.monotonic() < ping_end:
-        try:
-            data = await asyncio.wait_for(reader.read(65535), timeout=0.5)
-            if not data:
-                break
-            events = conn.receive_data(data)
-            writer.write(conn.data_to_send())
-            await writer.drain()
-            for event in events:
-                if isinstance(event, h2e.DataReceived):
-                    if event.stream_id in tunnel_data:
-                        tunnel_data[event.stream_id].extend(event.data)
-                    conn.acknowledge_received_data(len(event.data), event.stream_id)
-                    writer.write(conn.data_to_send())
-                    await writer.drain()
-        except asyncio.TimeoutError:
-            pass
-
-    # Check PING echoes per stream
-    got_ping = {}
-    for sid in stream_ids:
-        got_ping[sid] = False
-        while True:
-            result = ws_decode_frame(tunnel_data[sid])
-            if result is None:
-                break
-            opcode, payload, consumed = result
-            tunnel_data[sid] = tunnel_data[sid][consumed:]
-            if opcode == 1:
-                try:
-                    if json.loads(payload).get("type") == "PING":
-                        got_ping[sid] = True
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    pass
-
-    for sid in stream_ids:
-        if not got_ping[sid]:
-            writer.close()
-            return False, f"stream {sid}: no PING echo"
-
     # Send NOTIFY on all streams
     for sid in stream_ids:
         frame = ws_encode_text(json.dumps({"type": "NOTIFY", "varname": "update_all"}))
@@ -873,7 +859,7 @@ async def h2_ws_parallel_shared():
         except asyncio.TimeoutError:
             pass
 
-        # Parse frames per stream
+        # Parse frames per stream, respond to PINGs
         for sid in stream_ids:
             while True:
                 result = ws_decode_frame(tunnel_data[sid])
@@ -881,6 +867,17 @@ async def h2_ws_parallel_shared():
                     break
                 opcode, payload, consumed = result
                 tunnel_data[sid] = tunnel_data[sid][consumed:]
+                if opcode == 1:
+                    try:
+                        obj = json.loads(payload)
+                        if obj.get("type") == "PING":
+                            pong_frame = ws_encode_text(json.dumps({"type": "PONG"}))
+                            conn.send_data(sid, pong_frame, end_stream=False)
+                            writer.write(conn.data_to_send())
+                            await writer.drain()
+                            continue
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        pass
                 message_counts[sid] += 1
                 last_message_times[sid] = time.monotonic()
 
@@ -1336,7 +1333,7 @@ async def ws_test_h3(duration=WS_DURATION):
                 (b":authority", HOST.encode()),
                 (b":path", WS_PATH.encode()),
                 (b"sec-websocket-version", b"13"),
-                (b"sec-websocket-protocol", b"base64"),
+                (b"sec-websocket-protocol", b"pagecamel"),
                 (b"origin", f"https://{HOST}".encode()),
             ],
             end_stream=False,
@@ -1388,28 +1385,36 @@ async def ws_test_h3(duration=WS_DURATION):
                 msgs.append((opcode, payload))
             return msgs
 
-        # PING
-        client._http.send_data(stream_id=stream_id,
-                               data=ws_encode_text(json.dumps({"type": "PING"})),
-                               end_stream=False)
-        client.transmit()
-        await drain_events(5)
-        msgs = collect_ws_messages()
-        got_ping = any(
-            json.loads(p).get("type") == "PING"
-            for op, p in msgs if op == 1
-        )
-        if not got_ping:
-            return False, "no PING echo"
-
-        # NOTIFY
+        # Send NOTIFY to trigger VALUE messages
         client._http.send_data(
             stream_id=stream_id,
             data=ws_encode_text(json.dumps({"type": "NOTIFY", "varname": "update_all"})),
             end_stream=False)
         client.transmit()
 
-        # Monitor for duration
+        # Wait for at least one VALUE message to confirm connectivity
+        got_value = False
+        val_deadline = time.monotonic() + 10.0
+        while time.monotonic() < val_deadline and not got_value:
+            await drain_events(min(1.0, val_deadline - time.monotonic()))
+            msgs = collect_ws_messages()
+            for op, p in msgs:
+                if op == 1:
+                    try:
+                        obj = json.loads(p)
+                        if obj.get("type") == "PING":
+                            client._http.send_data(stream_id=stream_id,
+                                                   data=ws_encode_text(json.dumps({"type": "PONG"})),
+                                                   end_stream=False)
+                            client.transmit()
+                        elif obj.get("type") == "VALUE":
+                            got_value = True
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        pass
+        if not got_value:
+            return False, "no VALUE message received after NOTIFY"
+
+        # Monitor for duration, responding to server PINGs
         message_count = 0
         last_message_time = time.monotonic()
         end_time = time.monotonic() + duration
@@ -1417,8 +1422,22 @@ async def ws_test_h3(duration=WS_DURATION):
         while time.monotonic() < end_time:
             await drain_events(min(1.0, end_time - time.monotonic()))
             msgs = collect_ws_messages()
-            if msgs:
-                message_count += len(msgs)
+            got_data = False
+            for op, p in msgs:
+                if op == 1:
+                    try:
+                        obj = json.loads(p)
+                        if obj.get("type") == "PING":
+                            client._http.send_data(stream_id=stream_id,
+                                                   data=ws_encode_text(json.dumps({"type": "PONG"})),
+                                                   end_stream=False)
+                            client.transmit()
+                            continue
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        pass
+                message_count += 1
+                got_data = True
+            if got_data:
                 last_message_time = time.monotonic()
             elif time.monotonic() - last_message_time > 10:
                 return False, f"stall detected after {message_count} messages"
@@ -1484,7 +1503,7 @@ async def h3_ws_parallel_shared():
                     (b":authority", HOST.encode()),
                     (b":path", WS_PATH.encode()),
                     (b"sec-websocket-version", b"13"),
-                    (b"sec-websocket-protocol", b"base64"),
+                    (b"sec-websocket-protocol", b"pagecamel"),
                     (b"origin", f"https://{HOST}".encode()),
                 ],
                 end_stream=False,
@@ -1535,26 +1554,6 @@ async def h3_ws_parallel_shared():
                 msgs.append((opcode, payload))
             return msgs
 
-        # Send PING on all streams
-        for sid in stream_ids:
-            client._http.send_data(
-                stream_id=sid,
-                data=ws_encode_text(json.dumps({"type": "PING"})),
-                end_stream=False)
-        client.transmit()
-
-        await drain_all(5)
-
-        # Check PING echoes
-        for sid in stream_ids:
-            msgs = collect_ws_messages(sid)
-            got_ping = any(
-                json.loads(p).get("type") == "PING"
-                for op, p in msgs if op == 1
-            )
-            if not got_ping:
-                return False, f"stream {sid}: no PING echo"
-
         # Send NOTIFY on all streams
         for sid in stream_ids:
             client._http.send_data(
@@ -1572,8 +1571,23 @@ async def h3_ws_parallel_shared():
             await drain_all(min(1.0, end_time - time.monotonic()))
             for sid in stream_ids:
                 msgs = collect_ws_messages(sid)
-                if msgs:
-                    message_counts[sid] += len(msgs)
+                got_data = False
+                for op, p in msgs:
+                    if op == 1:
+                        try:
+                            obj = json.loads(p)
+                            if obj.get("type") == "PING":
+                                client._http.send_data(
+                                    stream_id=sid,
+                                    data=ws_encode_text(json.dumps({"type": "PONG"})),
+                                    end_stream=False)
+                                client.transmit()
+                                continue
+                        except (json.JSONDecodeError, UnicodeDecodeError):
+                            pass
+                    message_counts[sid] += 1
+                    got_data = True
+                if got_data:
                     last_message_times[sid] = time.monotonic()
 
             now = time.monotonic()

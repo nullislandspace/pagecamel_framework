@@ -537,11 +537,11 @@ sub sockethandler($self, $ua) {
             if($frame->is_close) {
                 $reph->debuglog("CLOSE FRAME RECIEVED!");
                 $socketclosed = 1;
-                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => pack('n', 1000), type => 'close')->to_bytes)) {
                     $reph->debuglog("Write to socket failed, failed to properly close connection!");
                 }
             }
-            
+
             if(!$self->wscyclic($ua)) {
                 $socketclosed = 1;
                 last;
@@ -562,6 +562,7 @@ sub sockethandler($self, $ua) {
 
             if($timeout < time) {
                 $reph->debuglog("CLIENT TIMEOUT");
+                $webprint->write($ua->{realsocket}, $frame->new(buffer => pack('n', 1001), type => 'close')->to_bytes);
                 $socketclosed = 1;
             }
 

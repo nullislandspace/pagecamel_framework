@@ -49,7 +49,7 @@ sub initPooling($self) {
     $self->{backendToStream} = {};
     # Backend connection pool (Keep-Alive reuse)
     $self->{backendPool} = [];           # Available connections ready for reuse
-    $self->{maxPoolSize} = 8;            # Max connections to keep in pool
+    $self->{maxPoolSize} = 32;           # Max connections to keep in pool
     $self->{waitingForBackend} = [];     # Queue of [streamId, request, state] waiting for backend
 
     return;
