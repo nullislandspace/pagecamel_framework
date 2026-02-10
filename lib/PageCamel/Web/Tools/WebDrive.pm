@@ -14,133 +14,40 @@ use Data::Printer;
 use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
-use base qw(PageCamel::Web::BaseModule);
+use base qw(PageCamel::Web::BaseWebSocket);
 use PageCamel::Helpers::DateStrings;
 use MIME::Base64;
-use PageCamel::Helpers::WSockFrame;
 use JSON::XS;
-use Time::HiRes qw[sleep alarm time];
-use PageCamel::Helpers::WebPrint;
+use Digest::SHA1 qw(sha1_hex);
 use File::Basename;
 use Crypt::Digest::SHA256 qw[sha256_hex];
 use PageCamel::Helpers::Padding qw[doFPad];
 use PageCamel::Helpers::URI qw(encode_uri);
-use Digest::SHA1  qw(sha1 sha1_hex);
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
 
     my $self = $class->SUPER::new(%config); # Call parent NEW
     bless $self, $class; # Re-bless with our class
-    
-    if(!defined($self->{chunksize})) {
-        $self->{chunksize} = 1_000_000; # 1MB default chunksize
-    }
 
-    if(!defined($self->{uncpath}) || $self->{uncpath} eq '') {
-        $self->{uncpath} = '';
-    }
+    $self->{chunksize} //= 1_000_000;
+    $self->{uncpath} //= '';
+    $self->{template} = 'tools/webdrive';
+    $self->{extrasettings} = [];
+    $self->{defaultDisconnectTimeout} = 25;
 
     return $self;
 }
 
-sub register($self) {
-    $self->register_webpath($self->{webpath}, 'get', "GET");
+sub wsregister($self) {
     $self->register_webpath($self->{downloadwebpath}, 'get_download', "GET");
-    $self->register_webpath($self->{wspath}, 'socketstart', "GET", "CONNECT");
-    $self->register_protocolupgrade($self->{wspath}, 'sockethandler', "websocket");
-    
     $self->register_webpath($self->{hashingworkerpath}, 'get_hashingworker', "GET");
     $self->register_webpath($self->{uploadworkerpath}, 'get_uploadworker', "GET");
     $self->register_webpath($self->{ajaxwebpath}, 'get_files', "POST");
-
     return;
 }
 
-sub reload($self) {
-    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
-
-
-    $sysh->createNumber(modulename => $self->{modname},
-                    settingname => 'client_connect_timeout',
-                    settingvalue => 10,
-                    description => 'Client connect timeout (seconds)',
-                    value_min => 5.0,
-                    value_max => 120.0,
-                    processinghints => [
-                        'decimal=0',
-                    ],
-                    )
-        or croak("Failed to create setting client_connect_timeout!");
-
-    $sysh->createNumber(modulename => $self->{modname},
-                    settingname => 'client_disconnect_timeout',
-                    settingvalue => 25,
-                    description => 'Client disconnect timeout (seconds)',
-                    value_min => 5.0,
-                    value_max => 120.0,
-                    processinghints => [
-                        'decimal=0',
-                    ],
-                    )
-        or croak("Failed to create setting client_disconnect_timeout!");
-
-   $sysh->createText(modulename => $self->{modname},
-                    settingname => 'websocket_encryption',
-                    settingvalue => 'auto',
-                    description => 'Allow https/ssl encryption of sockets',
-                    processinghints => [
-                        'type=tristate',
-                        'on=Always',
-                        'off=Disable',
-                        'auto=Automatic'
-                                        ])
-        or croak("Failed to create setting websocket_encryption!");
-
-    $sysh->createNumber(modulename => $self->{modname},
-                    settingname => 'chunk_size',
-                    settingvalue => 1 * 1024 * 1024, # Default 1 MB per chunk
-                    description => 'Chunk size (bytes)',
-                    value_min => 100.0,
-                    value_max => 5 * 1024 * 1024, # max 5 MB per chunk
-                    processinghints => [
-                        'decimal=0',
-                    ],
-                    )
-        or croak("Failed to create setting chunk_size!");
-
-    return;
-}
-
-sub get($self, $ua) {
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $th = $self->{server}->{modules}->{templates};
-    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
-
-    my %settings;
-    foreach my $setname (qw[websocket_encryption client_connect_timeout client_disconnect_timeout chunk_size]) {
-        my ($ok, $setref) = $sysh->get($self->{modname}, $setname);
-        if(!$ok || !defined($setref->{settingvalue})) {
-            croak("Failed to read setting $setname");
-        }
-        $settings{$setname} = $setref->{settingvalue};
-    }
-
-    my $wsurl;
-    if($settings{websocket_encryption} eq 'on') {
-        $wsurl = 'wss://';
-    } elsif($settings{websocket_encryption} eq 'off') {
-        $wsurl = 'ws://';
-    } else {
-        # Decide on server ssl settings
-        if($self->{usessl}) {
-            $wsurl = 'wss://';
-        } else {
-            $wsurl = 'ws://';
-        }
-    }
-    $wsurl .= $ua->{headers}->{Host} . $self->{wspath};
-    
+sub wsmaskget($self, $ua, $settings, $webdata) {
     my $fullajaxpath;
     if($self->{usessl}) {
         $fullajaxpath = 'https://';
@@ -148,37 +55,175 @@ sub get($self, $ua) {
         $fullajaxpath = 'http://';
     }
     $fullajaxpath .= $ua->{headers}->{Host} . $self->{ajaxwebpath};
-    
-    my @headextrascripts = (
-    #    '/static/jsSHA-2.1.0/sha.js',
-    );
 
-    my %webdata =
-    (
-        $self->{server}->get_defaultwebdata(),
-        PageTitle       =>  $self->{pagetitle},
-        webpath         =>  $self->{webpath},
-        ajaxwebpath     =>  $fullajaxpath,
-        HashingWorker   =>  $self->{hashingworkerpath},
-        UploadWorker   =>  $self->{uploadworkerpath},
-        Settings        =>  \%settings,
-        WSURL           =>  $wsurl,
-        PingTimeout     => int($settings{client_disconnect_timeout} * 1000 / 2),
-        HeadExtraScripts => \@headextrascripts,
-        UNCPath         => $self->{uncpath},
-        showads => $self->{showads},
-    );
-
-
-    $dbh->rollback;
-    
+    $webdata->{ajaxwebpath} = $fullajaxpath;
+    $webdata->{HashingWorker} = $self->{hashingworkerpath};
+    $webdata->{UploadWorker} = $self->{uploadworkerpath};
+    $webdata->{UNCPath} = $self->{uncpath};
     $ua->{UseUnsafeDataTablesInline} = 1;
 
-    my $template = $th->get("tools/webdrive", 1, %webdata);
-    return (status  =>  404) unless $template;
-    return (status  =>  200,
-            type    => "text/html",
-            data    => $template);
+    return 200;
+}
+
+sub wshandlerstart($self, $ua, $settings) {
+    $self->{upfiles} = [];
+    $self->{waitingforchunk} = 0;
+    return;
+}
+
+sub wshandlemessage($self, $realmsg) {
+    my $settings = $self->{sessiondata}->{settings};
+
+    if($realmsg->{type} eq 'UPLOADREQUEST') {
+        my @remotehashes = split/\,/, $realmsg->{hashes};
+        my %updata = (
+            remotename => $realmsg->{filename},
+            remotesize => $realmsg->{filesize},
+            localname => $self->{basepath} . '/' . $self->clean_fname($realmsg->{filename}),
+            remotehashes => \@remotehashes,
+        );
+
+
+        my $lsize = 0;
+        if(-f $updata{localname}) {
+            $lsize = -s $updata{localname};
+        }
+
+        if($lsize > $updata{remotesize}) {
+            # Need to truncate local file
+            truncate $updata{localname}, $updata{remotesize};
+            $lsize = $updata{remotesize};
+        }
+
+
+        my @localhashes;
+
+        # Generate local chunk checksums
+        if($lsize > 0) {
+            open(my $ifh, '<', $updata{localname}) or croak("$ERRNO");
+            binmode($ifh);
+            my $chunknum = 0;
+
+            while(1) {
+                my $chunk;
+                sysread($ifh, $chunk, $settings->{chunk_size});
+                last if(!defined($chunk) || !length($chunk));
+
+                push @localhashes, sha256_hex(encode_base64($chunk, ''));
+                $chunknum++;
+            }
+            close $ifh;
+        }
+
+        my @missingchunks;
+        my $missingchunk = 0;
+        foreach my $chunk (@remotehashes) {
+            if(!defined($localhashes[$missingchunk]) || $chunk ne $localhashes[$missingchunk]) {
+                push @missingchunks, $missingchunk;
+            }
+            $missingchunk++;
+        }
+        $updata{missingchunks} = \@missingchunks;
+        if(scalar @missingchunks) {
+            push @{$self->{upfiles}}, \%updata;
+        } else {
+            # No missing chunks
+            my %donemsg = (
+                type => 'FILEDONE',
+                filename => $updata{remotename},
+            );
+            if(!$self->wsprint(\%donemsg)) {
+                return 0;
+            }
+        }
+
+    } elsif($realmsg->{type} eq 'SETCHUNK') {
+        if($realmsg->{filename} ne $self->{upfiles}->[0]->{remotename} ||
+            $realmsg->{chunk} ne $self->{upfiles}->[0]->{missingchunks}->[0]) {
+            # Wrong filename or chunk received, closing connection
+            return 0;
+        } else {
+            my $seekto = $realmsg->{chunk} * $settings->{chunk_size};
+            my $filemode = '+<';
+            if(!-f $self->{upfiles}->[0]->{localname}) {
+                $filemode = '>';
+                if($seekto != 0) {
+                    croak("Internal error: New file must begin with first chunk!");
+                }
+            }
+            open(my $ofh, $filemode, $self->{upfiles}->[0]->{localname}) or croak("$ERRNO");
+            binmode $ofh;
+
+            seek($ofh, $seekto, 0);
+            my $tmp = decode_base64($realmsg->{data});
+            print $ofh $tmp;
+            close $ofh;
+
+
+            shift @{$self->{upfiles}->[0]->{missingchunks}}; # Not missing anymore ;-)
+            if(!scalar @{$self->{upfiles}->[0]->{missingchunks}}) {
+                # We are done with this file
+                my %donemsg = (
+                    type => 'FILEDONE',
+                    filename => $self->{upfiles}->[0]->{remotename},
+                );
+                if(!$self->wsprint(\%donemsg)) {
+                    return 0;
+                }
+                shift @{$self->{upfiles}};
+            }
+
+            $self->{waitingforchunk} = 0;
+        }
+    } elsif($realmsg->{type} eq 'DELETEFILE') {
+        my $found = 0;
+        opendir(my $dfh, $self->{basepath}) or return 1;
+        while((my $fname = readdir $dfh)) {
+            my $fullname = $self->{basepath} . '/' . $fname;
+            if($fname eq $realmsg->{filename} && -f $fullname) {
+                $found = 1;
+                last;
+            }
+        }
+        closedir $dfh;
+        if($found) {
+            unlink $self->{basepath} . '/' . $realmsg->{filename};
+        }
+
+        my %donemsg = (
+            type => 'RELOADTABLE',
+        );
+        if(!$self->wsprint(\%donemsg)) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+sub wscyclic($self, $ua) {
+    if(!$self->{waitingforchunk} && scalar @{$self->{upfiles}}) {
+        my $remain = scalar @{$self->{upfiles}->[0]->{missingchunks}};
+        my $remote = scalar @{$self->{upfiles}->[0]->{remotehashes}};
+        my $percentage = 100 - int($remain / $remote * 100);
+        my %msg = (
+            type => 'UPLOADCHUNK',
+            filename => $self->{upfiles}->[0]->{remotename},
+            chunk => $self->{upfiles}->[0]->{missingchunks}->[0],
+            percentage => $percentage,
+        );
+        if(!$self->wsprint(\%msg)) {
+            return 0;
+        }
+        $self->{waitingforchunk} = 1;
+    }
+    return 1;
+}
+
+sub wscleanup($self) {
+    delete $self->{upfiles};
+    delete $self->{waitingforchunk};
+    return;
 }
 
 sub get_hashingworker($self, $ua) {
@@ -202,343 +247,19 @@ sub get_workerscript($self, $ua, $templatename) {
         }
         $settings{$setname} = $setref->{settingvalue};
     }
-    
+
     my %webdata =
     (
         $self->{server}->get_defaultwebdata(),
         Settings        =>  \%settings,
         ExtraScripts     => ['/static/sha256.js'],
-    );   
-    
+    );
+
     my $template = $th->get($templatename, 0, %webdata);
     return (status  =>  404) unless $template;
     return (status  =>  200,
             type    => "application/javascript",
             data    => $template);
-}
-    
-sub socketstart($self, $ua) {
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
-
-    my $upgrade = $ua->{headers}->{"Upgrade"};
-    my $seckey = $ua->{headers}->{"Sec-WebSocket-Key"};
-    my $protocol = $ua->{headers}->{"Sec-WebSocket-Protocol"};
-    my $version = $ua->{headers}->{"Sec-WebSocket-Version"};
-
-    if(!defined($upgrade) || !defined($seckey) || !defined($version)) {
-        return (status => 400); # BAAAD Request! Sit! Stay!
-    }
-
-
-    my $webpath = $ua->{url};
-    my $remove = $self->{wspath};
-    $webpath =~ s/$remove//;
-    $webpath =~ s/^\///;
-
-    my %webdata = (
-        $self->{server}->get_defaultwebdata(),
-    );
-    my $session = {};
-    $session->{sockid} = $webpath;
-    $session->{user} = $webdata{userData}->{user};
-    $self->{sessiondata} = $session;
-
-    $seckey .= "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"; # RFC6455 GUID for Websockets
-
-    $seckey = encode_base64(sha1($seckey), '');
-
-    my $proto = 'base64';
-
-    my %result = (status      =>  101,
-                  Upgrade     => "websocket",
-                  Connection  => "Upgrade",
-                  "Sec-WebSocket-Accept"  => $seckey,
-                  "Sec-WebSocket-Protocol" => $proto,
-                 );
-
-    return %result;
-}
-
-sub sockethandler($self, $ua) {
-    my $session = $self->{sessiondata};
-    my $dbh = $self->{server}->{modules}->{$self->{db}};
-    my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
-    my $reph = $self->{server}->{modules}->{$self->{reporting}};
-    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
-
-    my %settings;
-    foreach my $setname (qw[websocket_encryption client_connect_timeout client_disconnect_timeout chunk_size]) {
-        my ($ok, $setref) = $sysh->get($self->{modname}, $setname);
-        if(!$ok || !defined($setref->{settingvalue})) {
-            croak("Failed to read setting $setname");
-        }
-        $settings{$setname} = $setref->{settingvalue};
-    }
-    
-    my @upfiles;
-    my $waitingforchunk = 0;
-
-    my $timeout = time + $settings{client_disconnect_timeout};
-
-    my $frame = PageCamel::Helpers::WSockFrame->new(max_payload_size => 500 * 1024 * 1024);
-
-    {
-        local $INPUT_RECORD_SEPARATOR = undef;
-
-        my $socketclosed = 0;
-
-        $ua->{realsocket}->blocking(0);
-        binmode($ua->{realsocket}, ':bytes');
-
-        my $starttime = time + 10;
-
-        while(!$socketclosed) {
-            my $workCount = 0;
-
-            # Read data from websocket
-            my $buf;
-            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                local $SIG{ALRM} = sub{croak("alarm")};
-                alarm 0.5;
-                my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
-                if(!$ua->{realsocket}) {
-                #if(0 && defined($status) && $status == 0) {
-                    if($self->{isDebugging}) {
-                        $reph->debuglog("Websocket closed");
-                    }
-                    $socketclosed = 1;
-                    last;
-                }
-                alarm 0;
-            };
-            if(defined($buf) && length($buf)) {
-                $frame->append($buf);
-                $workCount++;
-            }
-
-            while (my $message = $frame->next_bytes) {
-                $workCount++;
-
-                my $realmsg;
-                my $parseok = 0;
-                eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                    $realmsg = decode_json($message);
-                    $parseok = 1;
-                };
-                if(!$parseok || !defined($realmsg) || !defined($realmsg->{type})) {
-                    # Broken message
-                    next;
-                }
-
-                if($frame->opcode == 8) {
-                    #print STDERR "Connection closed by Browser\n";
-                    $socketclosed = 1;
-                    last;
-                }
-
-                if($realmsg->{type} eq 'PING') {
-                    $timeout = time + $settings{client_disconnect_timeout};
-                    my %msg = (
-                        type => 'PING',
-                    );
-                    if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
-                        #print STDERR "Write to socket failed, closing connection!\n";
-                        $socketclosed = 1;
-                        last;
-                    }
-                    next;
-                    
-                } elsif($realmsg->{type} eq 'UPLOADREQUEST') {
-                    #print STDERR "Got upload request for ", $realmsg->{filename}, "\n";
-                    
-                    my @remotehashes = split/\,/, $realmsg->{hashes};
-                    my %updata = (
-                        remotename => $realmsg->{filename},
-                        remotesize => $realmsg->{filesize},
-                        localname => $self->{basepath} . '/' . $self->clean_fname($realmsg->{filename}),
-                        remotehashes => \@remotehashes,
-                    );
-                    
-                    
-                    my $lsize = 0;
-                    if(-f $updata{localname}) {
-                        $lsize = -s $updata{localname};
-                    }
-                    
-                    if($lsize > $updata{remotesize}) {
-                        # Need to truncate local file
-                        truncate $updata{localname}, $updata{remotesize};
-                        $lsize = $updata{remotesize};
-                    }
-                    
-                    
-                    my @localhashes;
-                    
-                    # Generate local chunk checksums
-                    if($lsize > 0) {
-                        open(my $ifh, '<', $updata{localname}) or croak("$ERRNO");
-                        binmode($ifh);
-                        my $chunknum = 0;
-                        
-                        while(1) {
-                            my $chunk;
-                            sysread($ifh, $chunk, $settings{chunk_size});
-                            last if(!defined($chunk) || !length($chunk));
-                            
-                            push @localhashes, sha256_hex(encode_base64($chunk, ''));
-                            #print STDERR "B:", encode_base64($chunk, ''), "#\n";
-                            #print STDERR "S:", sha256_hex(encode_base64($chunk, '')), "#\n";
-                            $chunknum++;
-                        }
-                        close $ifh;
-                    }
-                    
-                    my @missingchunks;
-                    my $missingchunk = 0;
-                    foreach my $chunk (@remotehashes) {
-                        if(!defined($localhashes[$missingchunk]) || $chunk ne $localhashes[$missingchunk]) {
-                            push @missingchunks, $missingchunk;
-                        }
-                        $missingchunk++;
-                    }
-                    $updata{missingchunks} = \@missingchunks;
-                    if(scalar @missingchunks) {
-                        push @upfiles, \%updata;
-                    } else {
-                        # No missing chunks
-                        #print STDERR "Identical files!\n";
-                        my %donemsg = (
-                            type => 'FILEDONE',
-                            filename => $updata{remotename},
-                        );
-                        if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
-                            #print STDERR "Write to socket failed, closing connection!\n";
-                            $socketclosed = 1;
-                            last;
-                        }
-                    }
-                    $workCount++;
-                    
-                } elsif($realmsg->{type} eq 'SETCHUNK') {
-                    #print STDERR "Got a data chunk!!!!!\n";
-                    if($realmsg->{filename} ne $upfiles[0]->{remotename} ||
-                        $realmsg->{chunk} ne $upfiles[0]->{missingchunks}->[0]) {
-                        #print STDERR "Wrong filename or chunk recieved, closing connection!\n";
-                        $socketclosed = 1;
-                    } else {
-                        my $seekto = $realmsg->{chunk} * $settings{chunk_size};
-                        my $filemode = '+<';
-                        if(!-f $upfiles[0]->{localname}) {
-                            $filemode = '>';
-                            if($seekto != 0) {
-                                croak("Internal error: New file must begin with first chunk!");
-                            }
-                        }
-                        open(my $ofh, $filemode, $upfiles[0]->{localname}) or croak("$ERRNO");
-                        binmode $ofh;
-                        
-                        seek($ofh, $seekto, 0);
-                        #print STDERR "$seekto \n";
-                        my $tmp = decode_base64($realmsg->{data});
-                        #print STDERR "LEN: ", length($tmp), ", $tmp\n";
-                        #syswrite($ofh, 'OASCH' . $tmp);
-                        print $ofh $tmp;
-                        close $ofh;
-                        $workCount++;
-
-                        
-                        shift @{$upfiles[0]->{missingchunks}}; # Not missing anymore ;-)
-                        if(!scalar @{$upfiles[0]->{missingchunks}}) {
-                            # We are done with this file
-                            my %donemsg = (
-                                type => 'FILEDONE',
-                                filename => $upfiles[0]->{remotename},
-                            );
-                            if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
-                                #print STDERR "Write to socket failed, closing connection!\n";
-                                $socketclosed = 1;
-                                last;
-                            }
-                            shift @upfiles;
-                        }
-
-                        $waitingforchunk = 0;
-                    }
-                } elsif($realmsg->{type} eq 'DELETEFILE') {
-                    #$realmsg->{filename}
-                    my $found = 0;
-                    opendir(my $dfh, $self->{basepath}) or next;
-                    while((my $fname = readdir $dfh)) {
-                        my $fullname = $self->{basepath} . '/' . $fname;
-                        if($fname eq $realmsg->{filename} && -f $fullname) {
-                            $found = 1;
-                            last;
-                        }
-                    }
-                    closedir $dfh;
-                    if($found) {
-                        unlink $self->{basepath} . '/' . $realmsg->{filename};
-                    }
-                    
-                     my %donemsg = (
-                         type => 'RELOADTABLE',
-                     );
-                     if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%donemsg), type => 'text')->to_bytes)) {
-                         #print STDERR "Write to socket failed, closing connection!\n";
-                         $socketclosed = 1;
-                         last;
-                    }
-                }
-            }
-
-            # This is OUTSIDE the $frame->next_bytes loop, because a close event never returns a full frame
-            # from WSockFrame
-            if($frame->is_close) {
-                #print STDERR "CLOSE FRAME RECIEVED!\n";
-                $socketclosed = 1;
-                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => pack('n', 1000), type => 'close')->to_bytes)) {
-                    #print STDERR "Write to socket failed, failed to properly close connection!\n";
-                }
-            }
-            
-            if(!$waitingforchunk && scalar @upfiles) {
-                my $remain = scalar @{$upfiles[0]->{missingchunks}};
-                my $remote = scalar @{$upfiles[0]->{remotehashes}};
-                my $percentage = 100 - int($remain / $remote * 100);
-                my %msg = (
-                    type => 'UPLOADCHUNK',
-                    filename => $upfiles[0]->{remotename},
-                    chunk => $upfiles[0]->{missingchunks}->[0],
-                    percentage => $percentage,
-                );
-                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => encode_json(\%msg), type => 'text')->to_bytes)) {
-                    #print STDERR "Write to socket failed, closing connection!\n";
-                    $socketclosed = 1;
-                    last;
-                }
-                $waitingforchunk = 1;
-                $workCount++;
-            }
-            
-
-            if(!$workCount) {
-                sleep(0.01);
-            }
-
-            if($timeout < time) {
-                #print STDERR "CLIENT TIMEOUT\n";
-                $socketclosed = 1;
-            }
-
-        }
-    }
-
-    #print STDERR "Done\n";
-
-    delete $self->{sessiondata};
-
-    return 1;
 }
 
 sub get_files($self, $ua) {
@@ -549,7 +270,7 @@ sub get_files($self, $ua) {
         print STDERR "FAAAAIIIIL!\n";
         return (status => 500);
     }
-    
+
     my (@searchpositives, @searchnegatives);
     my $searchstring = $ua->{postparams}->{'search[value]'} || '';
     $searchstring = $self->clean_searchstring($searchstring);
@@ -566,7 +287,7 @@ sub get_files($self, $ua) {
             }
         }
     }
-    
+
     my @rawfnames;
     opendir(my $dfh, $self->{basepath});
     while((my $fname = readdir $dfh)) {
@@ -576,10 +297,10 @@ sub get_files($self, $ua) {
         push @rawfnames, $fname;
     }
     closedir $dfh;
-    
+
     foreach my $fname (sort { "\L$a" cmp "\L$b" } @rawfnames) {
         my $fullname = $self->{basepath} . '/' . $fname;
-        
+
         # Filter results
         my $ismatch = 1;
         if(@searchpositives) {
@@ -597,7 +318,7 @@ sub get_files($self, $ua) {
             }
         }
         next unless($ismatch);
-        
+
         my @stats = stat $fullname;
         my $xsize = $stats[7];
         my $lastmod;
@@ -605,7 +326,7 @@ sub get_files($self, $ua) {
             my ($sec,$min, $hour, $mday,$mon, $year, $wday,$yday, $isdst) = localtime $stats[9];
             $year += 1900;
             $mon += 1;
-        
+
             $mon = doFPad($mon, 2);
             $mday = doFPad($mday, 2);
             $hour = doFPad($hour, 2);
@@ -613,7 +334,7 @@ sub get_files($self, $ua) {
             $sec = doFPad($sec, 2);
             $lastmod = "$year-$mon-$mday $hour:$min:$sec";
         }
-        
+
         my %fdata = (
             'DT_RowId' => 'row_' . $total,
             file => '<a href="' . $self->{downloadwebpath} . '/' . $fname . '">' . $fname . '</a>',
@@ -624,12 +345,12 @@ sub get_files($self, $ua) {
         push @files, \%fdata;
         $count++;
     }
-    
+
     # Sorting
     my @sortnames = qw(file xsize date);
     my $sortcol = $sortnames[$ua->{postparams}->{'order[0][column]'}];
     my $sortdir = $ua->{postparams}->{'order[0][dir]'};
-    
+
     if($sortcol ne 'xsize') {
         if($sortdir eq 'asc') {
             my @sortedfiles = sort { lc($a->{$sortcol}) cmp lc($b->{$sortcol}) } @files;
@@ -647,7 +368,7 @@ sub get_files($self, $ua) {
             @files = @sortedfiles;
         }
     }
-    
+
 
     # Cut list to requested size
     my $limit = $ua->{postparams}->{'length'} || 10;
@@ -663,22 +384,22 @@ sub get_files($self, $ua) {
     if($first >= scalar @files) {
         $first = -1;
     }
-    
+
     if($first == -1) {
         @files = ();
     } else {
         @files = @files[$first..$final];
     }
-    
+
     my %webdata = (
         aaData  => \@files,
         iTotalDisplayRecords => $count,
         iTotalRecords => $total,
         sEcho => '__0__',
     );
-    
+
     my $data = encode_json(\%webdata);
-    
+
     return (
         status => 200,
         type => 'application/json',
@@ -765,7 +486,7 @@ sub get_download($self, $ua) {
     my $extfile;
     $extfile->{realfilename} = $fullname;
     $extfile->{filename} = $filename;
-    
+
 
     $extfile->{datalength} = -s $extfile->{realfilename};
     $extfile->{lastmodified} = getLastModifiedWebdate($extfile->{realfilename});
@@ -1058,7 +779,6 @@ sub file_get_multipart($self, $ua) {
             $data = $self->{file}->{separator} . "\r\n";
             $self->{file}->{len} += length($data);
             $self->{file}->{fh}->close();
-            #print STDERR "Bytes: ", $self->{file}->{len}, "\n";
             delete $self->{file};
 
             return (
@@ -1146,57 +866,50 @@ sub file_get($self, $ua) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 1;
 __END__
 
 =head1 NAME
 
-PageCamel::Web::Tools::WorkerControl -
+PageCamel::Web::Tools::WebDrive - WebSocket-based file upload/download manager
 
 =head1 SYNOPSIS
 
-  use PageCamel::Web::Tools::WorkerControl;
-
-
+  use PageCamel::Web::Tools::WebDrive;
 
 =head1 DESCRIPTION
 
-
+WebDrive provides a browser-based file management interface with WebSocket-based
+chunked upload support. It extends BaseWebSocket to get standard WebSocket handling
+(PING/PONG, IO::Select, pagecamel subprotocol).
 
 =head2 new
 
+Constructor. Sets defaults for chunksize, uncpath, template, and disconnect timeout.
 
+=head2 wsregister
 
-=head2 register
+Registers extra webpaths for download, hashing worker, upload worker, and AJAX file listing.
 
+=head2 wsmaskget
 
+Populates webdata with AJAX path, worker paths, and UNC path for the template.
 
-=head2 reload
+=head2 wshandlerstart
 
+Initializes upload file queue and chunk waiting state for a new WebSocket session.
 
+=head2 wshandlemessage
 
-=head2 get
+Handles UPLOADREQUEST, SETCHUNK, and DELETEFILE messages from the browser.
 
+=head2 wscyclic
 
+Sends UPLOADCHUNK requests to the browser when chunks are pending.
 
-=head2 socketstart
+=head2 wscleanup
 
-
-
-=head2 sockethandler
-
-
+Cleans up upload state after WebSocket disconnection.
 
 =head1 IMPORTANT NOTE
 
