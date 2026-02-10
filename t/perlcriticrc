@@ -142,4 +142,4 @@ max_elsif = 20
 [-BuiltinFunctions::ProhibitComplexMappings]
 
 # no strict 'refs' is allowed under some circumstances
-[-[TestingAndDebugging::ProhibitNoStrict]]
+[-TestingAndDebugging::ProhibitNoStrict]

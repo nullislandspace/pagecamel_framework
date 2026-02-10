@@ -1,6 +1,6 @@
 package PageCamel::Web::BaseWebSocket;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
@@ -23,6 +23,7 @@ use Time::HiRes qw[sleep alarm time];
 use PageCamel::Helpers::WebPrint;
 use Digest::SHA1  qw(sha1 sha1_hex);
 use IO::Select;
+use List::Util qw[any];
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -249,6 +250,22 @@ sub wsprint($self, $message, $usebinary = 0) {
     return 1;
 }
 
+sub wsprintraw($self, $rawdata) {
+    my $frame = $self->{sessiondata}->{frame};
+    my $ua = $self->{sessiondata}->{ua};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
+
+    my $framedata = $frame->new(buffer => $rawdata, type => 'binary')->to_bytes;
+
+    if(!$webprint->write($ua->{realsocket}, $framedata)) {
+        $reph->debuglog("Write to socket failed, closing connection!");
+        return 0;
+    }
+
+    return 1;
+}
+
 sub get($self, $ua) {
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -455,7 +472,7 @@ sub sockethandler($self, $ua) {
 
             # Read from websocket only if it has data
             my $buf;
-            if(grep { $_ == $ua->{realsocket} } @ready) {
+            if(any { $_ == $ua->{realsocket} } @ready) {
                 my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
                 if(!defined($status) || $status == 0) {
                     if($self->{isDebugging}) {
@@ -487,8 +504,8 @@ sub sockethandler($self, $ua) {
                         $socketclosed = 1;
                         last;
                     }
+                    next;
                 }
-
 
                 if($frame->opcode != 1) {
                     $reph->debuglog("UNSUPPORTED OPCODE ", $frame->opcode);
@@ -537,11 +554,11 @@ sub sockethandler($self, $ua) {
             if($frame->is_close) {
                 $reph->debuglog("CLOSE FRAME RECIEVED!");
                 $socketclosed = 1;
-                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => pack('n', 1000), type => 'close')->to_bytes)) {
                     $reph->debuglog("Write to socket failed, failed to properly close connection!");
                 }
             }
-            
+
             if(!$self->wscyclic($ua)) {
                 $socketclosed = 1;
                 last;
@@ -562,6 +579,7 @@ sub sockethandler($self, $ua) {
 
             if($timeout < time) {
                 $reph->debuglog("CLIENT TIMEOUT");
+                $webprint->write($ua->{realsocket}, $frame->new(buffer => pack('n', 1001), type => 'close')->to_bytes);
                 $socketclosed = 1;
             }
 

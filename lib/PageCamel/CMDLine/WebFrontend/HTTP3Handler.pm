@@ -1,6 +1,6 @@
 package PageCamel::CMDLine::WebFrontend::HTTP3Handler;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
@@ -93,7 +93,7 @@ sub init($self) {
             initial_max_data => $config->{initial_max_data} // 10 * 1024 * 1024,
             initial_max_stream_data_bidi => $config->{initial_max_stream_data_bidi} // 1024 * 1024,
             initial_max_streams_bidi => $config->{initial_max_streams_bidi} // 100,
-            max_idle_timeout_ms => $config->{max_idle_timeout_ms} // 30000,
+            max_idle_timeout_ms => $config->{max_idle_timeout_ms} // 30_000,
             cc_algo => $config->{cc_algo} // 1,  # CUBIC
             enable_debug => $config->{enable_debug} // 0,
 
@@ -115,8 +115,8 @@ sub init($self) {
             },
         );
     };
-    if($@) {
-        return undef;
+    if($EVAL_ERROR) {
+        return;
     }
 
     $self->{h3conn} = $h3conn;
@@ -131,14 +131,14 @@ sub init($self) {
                 $config->{remote_port}
             );
         };
-        if($@) {
-            return undef;
+        if($EVAL_ERROR) {
+            return;
         }
         if($rv < 0 && $rv != PageCamel::Protocol::HTTP3::H3_WOULDBLOCK()) {
             print STDERR "HTTP3Handler: Initial packet processing error: $rv\n";
         }
         eval { $h3conn->flush_packets(); };
-        if($@) {
+        if($EVAL_ERROR) {
         }
     }
 
@@ -326,6 +326,8 @@ sub handleRequest($self, $h3conn, $streamId, $headersRef, $body, $isConnect) {
     } else {
         $self->handleNormalRequest($h3conn, $streamId, $headersRef, $body);
     }
+
+    return;
 }
 
 sub handleNormalRequest($self, $h3conn, $streamId, $headersRef, $body) {
@@ -764,12 +766,12 @@ sub writeToBackends($self, $blocksize, $loopcount, $finishcountdown, $canWriteHa
 
             if(!defined($written)) {
                 # EWOULDBLOCK/EAGAIN is not an error - just try again later
-                if($!{EAGAIN} || $!{EWOULDBLOCK}) {
+                if($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
                     next;
                 }
                 # Real error
                 $self->{backenddisconnects}->{$streamId} = 1;
-                carp("HTTP3Handler: stream=$streamId syswrite error: $!");
+                carp("HTTP3Handler: stream=$streamId syswrite error: $ERRNO");
                 next;
             }
 

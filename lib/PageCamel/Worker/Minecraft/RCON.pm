@@ -2,7 +2,7 @@
 # Developed under Artistic license
 package PageCamel::Worker::Minecraft::RCON;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';

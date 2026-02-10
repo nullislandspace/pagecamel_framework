@@ -1,6 +1,6 @@
 package PageCamel::Web::VNC5;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
@@ -746,7 +746,7 @@ sub sockethandler($self, $ua) {
                 if($self->{isDebugging}) {
                     print STDERR "WS send 'Socket close'!\n";
                 }
-                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => pack('n', 1000), type => 'close')->to_bytes)) {
                     print STDERR "Write to socket failed, failed to properly close connection!\n";
                 }
                 $socketclosed = 1;

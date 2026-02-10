@@ -1,6 +1,6 @@
 package PageCamel::CMDLine::WebFrontend::BaseHTTPHandler;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
@@ -49,7 +49,7 @@ sub initPooling($self) {
     $self->{backendToStream} = {};
     # Backend connection pool (Keep-Alive reuse)
     $self->{backendPool} = [];           # Available connections ready for reuse
-    $self->{maxPoolSize} = 8;            # Max connections to keep in pool
+    $self->{maxPoolSize} = 32;           # Max connections to keep in pool
     $self->{waitingForBackend} = [];     # Queue of [streamId, request, state] waiting for backend
 
     return;

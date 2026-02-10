@@ -124,6 +124,8 @@ lib/PageCamel/Protocol/HTTP2/Huffman.pm
 lib/PageCamel/Protocol/HTTP2/HuffmanCodes.pm
 lib/PageCamel/Protocol/HTTP2/LICENSE
 lib/PageCamel/Protocol/HTTP2/Server.pm
+lib/PageCamel/Protocol/HTTP2/Server/Stream.pm
+lib/PageCamel/Protocol/HTTP2/Server/Tunnel.pm
 lib/PageCamel/Protocol/HTTP2/StaticTable.pm
 lib/PageCamel/Protocol/HTTP2/Stream.pm
 lib/PageCamel/Protocol/HTTP2/Trace.pm
@@ -257,6 +259,12 @@ lib/PageCamel/Web/Images/hackman.gif
 lib/PageCamel/Web/Images/hackman2.gif
 lib/PageCamel/Web/Images/hallenplan_computer_fail.png
 lib/PageCamel/Web/Images/hallenplan_computer_ok.png
+lib/PageCamel/Web/Images/kaffeesim/blank-blueprint-paper.jpg
+lib/PageCamel/Web/Images/kaffeesim/blueprintpaper.jpg
+lib/PageCamel/Web/Images/kaffeesim/blueprintpaper.png
+lib/PageCamel/Web/Images/kaffeesim/freshcoffee.png
+lib/PageCamel/Web/Images/kaffeesim/groundcoffee.png
+lib/PageCamel/Web/Images/kaffeesim/water.png
 lib/PageCamel/Web/Images/led_BLACK.png
 lib/PageCamel/Web/Images/led_ERROR.png
 lib/PageCamel/Web/Images/led_OFF.png
@@ -2967,12 +2975,6 @@ lib/PageCamel/Web/Tools/DebugWebHangups.pm
 lib/PageCamel/Web/Tools/DSKY.pm
 lib/PageCamel/Web/Tools/ExecuteScript.pm
 lib/PageCamel/Web/Tools/HostnameRedirect.pm
-lib/PageCamel/Web/Tools/Images/blank-blueprint-paper.jpg
-lib/PageCamel/Web/Tools/Images/blueprintpaper.jpg
-lib/PageCamel/Web/Tools/Images/blueprintpaper.png
-lib/PageCamel/Web/Tools/Images/freshcoffee.png
-lib/PageCamel/Web/Tools/Images/groundcoffee.png
-lib/PageCamel/Web/Tools/Images/water.png
 lib/PageCamel/Web/Tools/KaffeeSim.pm
 lib/PageCamel/Web/Tools/PIMenu.pm
 lib/PageCamel/Web/Tools/RemoteConsoleLog.pm

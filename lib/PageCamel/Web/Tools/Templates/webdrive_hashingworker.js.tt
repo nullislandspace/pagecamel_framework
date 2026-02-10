@@ -2,6 +2,12 @@
 importScripts('[% ExtraScript %]');
 [% END %]
 
+var hasWebCrypto = (typeof crypto !== 'undefined' && crypto.subtle && typeof crypto.subtle.digest === 'function');
+if (hasWebCrypto) {
+    console.log("Hashing worker: using fast Web Crypto API for SHA-256");
+} else {
+    console.log("Hashing worker: using slow JavaScript SHA-256 fallback");
+}
 
 var interworker;
 var hashingActive = 0;
@@ -12,7 +18,7 @@ var filequeue = {};
 onmessage = function(e) {
     var command = e.data[0];
     var data = e.data[1];
-    
+
     if(command == 'STARTUP' && data == '?') {
         // Tell main thread we are ready
         interworker = e.ports[0];
@@ -20,21 +26,21 @@ onmessage = function(e) {
         postMessage(['STARTUP', 'hashingworker']);
         return;
     }
-    
+
     if(command == 'SENDTESTMESSAGE') {
         console.log("hashworker sending test message");
         interworker.postMessage(['TESTMESSAGE', '']);
         return;
     }
-    
+
     if(command == 'ADDFILE') {
         //console.log("Have to hash " + data.name);
         filequeue[data.name] = data;
-        
+
         if(hashingActive == 0) {
             startHashing();
-        }  
-        
+        }
+
         return;
     }
 }
@@ -43,7 +49,7 @@ function handleInterworker(e) {
     // Nothing implemented yet
 }
 
-function startHashing() {
+async function startHashing() {
     var availfiles = Object.keys(filequeue);
     if(availfiles.length == 0) {
         return;
@@ -56,29 +62,29 @@ function startHashing() {
     hashingActive = 1;
     chunkHashes = new Array();
     postMessage(["SETHASHINGPROGRESSLABEL", "Creating block checksums for file " + currentFile]);
-    runHashing();
+    await runHashing();
 }
 
-function runHashing() {
+async function runHashing() {
     var startOffset;
     var endOffset;
 
     while(1) {
         startOffset = currentChunk * [% Settings.chunk_size %];
-        endOffset = startOffset + [% Settings.chunk_size %];    
+        endOffset = startOffset + [% Settings.chunk_size %];
         if(startOffset > filequeue[currentFile].size) {
             // Do the web stuff...
             postMessage(["SETHASHINGPROGRESS", 100]);
-            
+
             var uploadmetamsg = {
                 type: 'UPLOADREQUEST',
                 filename: filequeue[currentFile].name,
                 filesize: filequeue[currentFile].size,
                 hashes: chunkHashes.join(',')
             };
-            
+
             interworker.postMessage(["QUEUEUPLOAD", filequeue[currentFile], JSON.stringify(uploadmetamsg)]);
-            
+
             delete filequeue[currentFile];
             var availfiles = Object.keys(filequeue);
             if(availfiles.length == 0) {
@@ -87,7 +93,7 @@ function runHashing() {
                 postMessage(['HIDEHASHINGPROGRESS', '']);
                 break;;
             }
-            
+
             chunkHashes = new Array();
             currentChunk = 0;
             startOffset = 0;
@@ -96,25 +102,48 @@ function runHashing() {
         }
         var percentage = Math.floor(startOffset / filequeue[currentFile].size * 100);
         postMessage(["SETHASHINGPROGRESS", percentage]);
-        
+
         var blob = filequeue[currentFile].slice(startOffset, endOffset);
         var bindata = new FileReaderSync().readAsArrayBuffer(blob);
-        
-        var shaval = sha256_digest(arrayBufferToBase64(bindata));
+
+        var shaval = await hashChunk(bindata);
         chunkHashes.push(shaval);
         currentChunk++;
+
+        // Yield between chunks to allow message processing
+        await new Promise(function(resolve) { setTimeout(resolve, 0); });
     }
     //console.log("DONE HASHING");
 }
 
-function arrayBufferToBase64( buffer ) {
-    var binary = '';
-    var bytes = new Uint8Array( buffer );
-    var len = bytes.byteLength;
-    //console.log(' ---- ' + len);
-    for (var i = 0; i < len; i++) {
-        binary += String.fromCharCode( bytes[ i ] );
+async function hashChunk(arrayBuffer) {
+    if (hasWebCrypto) {
+        var hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        return arrayBufferToHex(hashBuffer);
+    } else {
+        return sha256_digest(arrayBufferToBinaryString(arrayBuffer));
     }
+}
 
-    return btoa( binary );
+function arrayBufferToHex(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var hex = '';
+    for (var i = 0; i < bytes.length; i++) {
+        var b = bytes[i].toString(16);
+        hex += (b.length === 1 ? '0' + b : b);
+    }
+    return hex;
+}
+
+function arrayBufferToBinaryString(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var len = bytes.byteLength;
+    var chunkSize = 8192;
+    var binary = '';
+    for (var i = 0; i < len; i += chunkSize) {
+        var end = Math.min(i + chunkSize, len);
+        var chunk = bytes.subarray(i, end);
+        binary += String.fromCharCode.apply(null, chunk);
+    }
+    return binary;
 }
