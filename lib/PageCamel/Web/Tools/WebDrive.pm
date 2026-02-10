@@ -109,7 +109,7 @@ sub wshandlemessage($self, $realmsg) {
                 sysread($ifh, $chunk, $settings->{chunk_size});
                 last if(!defined($chunk) || !length($chunk));
 
-                push @localhashes, sha256_hex(encode_base64($chunk, ''));
+                push @localhashes, sha256_hex($chunk);
                 $chunknum++;
             }
             close $ifh;
@@ -137,44 +137,6 @@ sub wshandlemessage($self, $realmsg) {
             }
         }
 
-    } elsif($realmsg->{type} eq 'SETCHUNK') {
-        if($realmsg->{filename} ne $self->{upfiles}->[0]->{remotename} ||
-            $realmsg->{chunk} ne $self->{upfiles}->[0]->{missingchunks}->[0]) {
-            # Wrong filename or chunk received, closing connection
-            return 0;
-        } else {
-            my $seekto = $realmsg->{chunk} * $settings->{chunk_size};
-            my $filemode = '+<';
-            if(!-f $self->{upfiles}->[0]->{localname}) {
-                $filemode = '>';
-                if($seekto != 0) {
-                    croak("Internal error: New file must begin with first chunk!");
-                }
-            }
-            open(my $ofh, $filemode, $self->{upfiles}->[0]->{localname}) or croak("$ERRNO");
-            binmode $ofh;
-
-            seek($ofh, $seekto, 0);
-            my $tmp = decode_base64($realmsg->{data});
-            print $ofh $tmp;
-            close $ofh;
-
-
-            shift @{$self->{upfiles}->[0]->{missingchunks}}; # Not missing anymore ;-)
-            if(!scalar @{$self->{upfiles}->[0]->{missingchunks}}) {
-                # We are done with this file
-                my %donemsg = (
-                    type => 'FILEDONE',
-                    filename => $self->{upfiles}->[0]->{remotename},
-                );
-                if(!$self->wsprint(\%donemsg)) {
-                    return 0;
-                }
-                shift @{$self->{upfiles}};
-            }
-
-            $self->{waitingforchunk} = 0;
-        }
     } elsif($realmsg->{type} eq 'DELETEFILE') {
         my $found = 0;
         opendir(my $dfh, $self->{basepath}) or return 1;
@@ -198,6 +160,52 @@ sub wshandlemessage($self, $realmsg) {
         }
     }
 
+    return 1;
+}
+
+sub wshandlebinarymessage($self, $message) {
+    my $settings = $self->{sessiondata}->{settings};
+
+    # Parse binary SETCHUNK: [chunk_num:4][fname_len:2][fname:N][data:...]
+    my $chunk_num = unpack('N', substr($message, 0, 4));
+    my $fname_len = unpack('n', substr($message, 4, 2));
+    my $filename = substr($message, 6, $fname_len);
+    my $chunkdata = substr($message, 6 + $fname_len);
+
+    # Validate against expected upload
+    if($filename ne $self->{upfiles}->[0]->{remotename} ||
+       $chunk_num ne $self->{upfiles}->[0]->{missingchunks}->[0]) {
+        return 0;
+    }
+
+    # Write chunk to disk (raw binary, no base64 decode needed)
+    my $seekto = $chunk_num * $settings->{chunk_size};
+    my $filemode = '+<';
+    if(!-f $self->{upfiles}->[0]->{localname}) {
+        $filemode = '>';
+        if($seekto != 0) {
+            croak("Internal error: New file must begin with first chunk!");
+        }
+    }
+    open(my $ofh, $filemode, $self->{upfiles}->[0]->{localname}) or croak("$ERRNO");
+    binmode $ofh;
+    seek($ofh, $seekto, 0);
+    print $ofh $chunkdata;
+    close $ofh;
+
+    shift @{$self->{upfiles}->[0]->{missingchunks}};
+    if(!scalar @{$self->{upfiles}->[0]->{missingchunks}}) {
+        my %donemsg = (
+            type => 'FILEDONE',
+            filename => $self->{upfiles}->[0]->{remotename},
+        );
+        if(!$self->wsprint(\%donemsg)) {
+            return 0;
+        }
+        shift @{$self->{upfiles}};
+    }
+
+    $self->{waitingforchunk} = 0;
     return 1;
 }
 
@@ -901,7 +909,12 @@ Initializes upload file queue and chunk waiting state for a new WebSocket sessio
 
 =head2 wshandlemessage
 
-Handles UPLOADREQUEST, SETCHUNK, and DELETEFILE messages from the browser.
+Handles UPLOADREQUEST and DELETEFILE JSON messages from the browser.
+
+=head2 wshandlebinarymessage
+
+Handles binary SETCHUNK messages from the browser. Parses the binary frame format
+(chunk number, filename, raw chunk data) and writes the chunk to disk.
 
 =head2 wscyclic
 

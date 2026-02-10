@@ -249,6 +249,22 @@ sub wsprint($self, $message, $usebinary = 0) {
     return 1;
 }
 
+sub wsprintraw($self, $rawdata) {
+    my $frame = $self->{sessiondata}->{frame};
+    my $ua = $self->{sessiondata}->{ua};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
+
+    my $framedata = $frame->new(buffer => $rawdata, type => 'binary')->to_bytes;
+
+    if(!$webprint->write($ua->{realsocket}, $framedata)) {
+        $reph->debuglog("Write to socket failed, closing connection!");
+        return 0;
+    }
+
+    return 1;
+}
+
 sub get($self, $ua) {
     my $th = $self->{server}->{modules}->{templates};
     my $sysh = $self->{server}->{modules}->{$self->{systemsettings}};
@@ -487,8 +503,8 @@ sub sockethandler($self, $ua) {
                         $socketclosed = 1;
                         last;
                     }
+                    next;
                 }
-
 
                 if($frame->opcode != 1) {
                     $reph->debuglog("UNSUPPORTED OPCODE ", $frame->opcode);

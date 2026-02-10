@@ -239,6 +239,11 @@
             return;
         }
 
+        if(command == 'SENDBINARYTOSERVER') {
+            ws.send(data);
+            return;
+        }
+
         if(command == 'RELOADTABLE') {
             //console.log("Reloading data table");
             reloadFiletable();
