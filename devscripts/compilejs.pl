@@ -63,6 +63,7 @@ pageviewstats.js
 consolehelpers.js
 codehighlight/highlight.pack.js
 lz-string.js
+pako.min.js
 jquery/js/jquery-3.6.0.js
 jquery/js/jquery-migrate-3.3.2.js
 jquery/js/jquery-ui.min.js
