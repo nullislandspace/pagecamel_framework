@@ -2851,6 +2851,7 @@ lib/PageCamel/Web/Static/OpenLayers/VERSION.txt
 lib/PageCamel/Web/Static/pagecameldefaultlayout.css
 lib/PageCamel/Web/Static/pagecameldefaultlayout.js
 lib/PageCamel/Web/Static/pageviewstats.js
+lib/PageCamel/Web/Static/pako.min.js
 lib/PageCamel/Web/Static/pchelpers/import_pcwebsocket.js
 lib/PageCamel/Web/Static/pchelpers/import_sqlite.js
 lib/PageCamel/Web/Static/pchelpers/pagecamel.xml
