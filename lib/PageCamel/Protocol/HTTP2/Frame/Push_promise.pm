@@ -1,0 +1,74 @@
+package PageCamel::Protocol::HTTP2::Frame::Push_promise;
+#---AUTOPRAGMASTART---
+use v5.42;
+use strict;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
+use PageCamel::Protocol::HTTP2::Constants qw(:flags :errors :settings);
+use PageCamel::Protocol::HTTP2::Trace qw(tracer);
+
+sub decode($con, $buf_ref, $buf_offset, $length) {
+    my ( $pad, $offset ) = ( 0, 0 );
+    my $frame_ref = $con->decode_context->{frame};
+
+    # Protocol errors
+    if (
+        # PP frames MUST be associated with a stream
+        $frame_ref->{stream} == 0
+
+        # PP frames MUST be allowed
+        || !$con->dec_setting(SETTINGS_ENABLE_PUSH)
+      )
+    {
+        $con->error(PROTOCOL_ERROR);
+        return;
+    }
+
+    if ( $frame_ref->{flags} & PADDED ) {
+        $pad = unpack( 'C', substr( ${$buf_ref}, $buf_offset ) );
+        $offset += 1;
+    }
+
+    my $promised_sid = unpack 'N', substr ${$buf_ref}, $buf_offset + $offset, 4;
+    $promised_sid &= 0x7FFF_FFFF;
+    $offset += 4;
+
+    my $hblock_size = $length - $offset - $pad;
+    if ( $hblock_size < 0 ) {
+        tracer->error("Not enough space for header block\n");
+        $con->error(FRAME_SIZE_ERROR);
+        return;
+    }
+
+    $con->new_peer_stream($promised_sid) or return;
+    $con->stream_promised_sid( $frame_ref->{stream}, $promised_sid );
+
+    $con->stream_header_block( $frame_ref->{stream},
+        substr( ${$buf_ref}, $buf_offset + $offset, $hblock_size ) );
+
+    # PP header block complete
+    $con->stream_headers_done( $frame_ref->{stream} )
+      or return
+      if $frame_ref->{flags} & END_HEADERS;
+
+    return $length;
+
+}
+
+sub encode($con, $flags_ref, $stream_id, $data_ref) {
+    my $promised_id = $data_ref->[0];
+    my $hblock_ref  = $data_ref->[1];
+
+    return pack( 'N', $promised_id ) . ${$hblock_ref};
+}
+
+1;

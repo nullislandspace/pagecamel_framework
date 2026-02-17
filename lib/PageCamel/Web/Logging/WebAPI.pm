@@ -1,13 +1,12 @@
 package PageCamel::Web::Logging::WebAPI;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;

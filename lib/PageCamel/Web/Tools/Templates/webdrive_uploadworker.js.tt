@@ -43,13 +43,21 @@ onmessage = function(e) {
         
         var blob = uploadqueue[activeUploadFile].slice(startOffset, endOffset);
         var bindata = new FileReaderSync().readAsArrayBuffer(blob);
-        var outmsg = {
-            type: 'SETCHUNK',
-            filename: activeUploadFile,
-            chunk: activeUploadChunk,
-            data: arrayBufferToBase64(bindata)
-        };
-        postMessage(["SENDTOSERVER", JSON.stringify(outmsg)]);
+
+        // Build binary message: [chunk_num:4][fname_len:2][fname:N][data:...]
+        var fnameBytes = new TextEncoder().encode(activeUploadFile);
+        var header = new ArrayBuffer(4 + 2 + fnameBytes.length);
+        var headerView = new DataView(header);
+        headerView.setUint32(0, activeUploadChunk);
+        headerView.setUint16(4, fnameBytes.length);
+        new Uint8Array(header, 6).set(fnameBytes);
+
+        // Concatenate header + raw chunk data
+        var msg = new Uint8Array(header.byteLength + bindata.byteLength);
+        msg.set(new Uint8Array(header), 0);
+        msg.set(new Uint8Array(bindata), header.byteLength);
+
+        postMessage(["SENDBINARYTOSERVER", msg.buffer], [msg.buffer]);
     
         return;
     }
@@ -90,17 +98,4 @@ function handleInterworker(e) {
     }
     
     return;
-}
-
-
-function arrayBufferToBase64( buffer ) {
-    var binary = '';
-    var bytes = new Uint8Array( buffer );
-    var len = bytes.byteLength;
-    //console.log(' ---- ' + len);
-    for (var i = 0; i < len; i++) {
-        binary += String.fromCharCode( bytes[ i ] );
-    }
-    //return binary;
-    return btoa( binary );
 }

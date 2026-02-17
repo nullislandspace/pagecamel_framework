@@ -2,14 +2,13 @@
 # Developed under Artistic license
 package PageCamel::CMDLine::LetsEncrypt;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -36,8 +35,7 @@ use Sys::Hostname;
 
 my $_self;
 
-sub new {
-    my ($proto, $configfile, $isDebugging, $isVerbose) = @_;
+sub new($proto, $configfile, $isDebugging, $isVerbose) {
     my $class = ref($proto) || $proto;
 
     print "Loading config file ", $configfile, "\n";
@@ -85,8 +83,7 @@ sub new {
 
 my $needrestart;
 
-sub run {
-    my ($self) = @_;
+sub run($self) {
 
     chdir($self->{homedir});
     my $lastrun = '';
@@ -164,8 +161,7 @@ sub run {
     return;
 }
 
-sub debuglog {
-    my ($self, @args) = @_;
+sub debuglog($self, @args) {
 
     #return unless($self->{isDebugging});
 
@@ -173,8 +169,7 @@ sub debuglog {
     print STDERR $printarg, "\n";
     return;
 }
-sub work {
-    my ($self, $opt) = @_;
+sub work($self, $opt) {
     my $rv = $self->parse_options($opt);
     return $rv if $rv;
     # Set the default protocol version to 2 unless it is set explicitly or custom server/directory is set (in which case auto-sense is used).
@@ -420,8 +415,8 @@ sub work {
         eval {
             $rv = $opt->{'complete-handler'}->complete($data, \%callback_data);
         };
-        if ($@ or !$rv) {
-            return $self->_error("Completion handler " . ($@ ? "thrown an error: $@" : "did not return a true value"), 'COMPLETION_HANDLER');
+        if ($EVAL_ERROR or !$rv) {
+            return $self->_error("Completion handler " . ($EVAL_ERROR ? "thrown an error: $EVAL_ERROR" : "did not return a true value"), 'COMPLETION_HANDLER');
         }
     }
 
@@ -430,8 +425,7 @@ sub work {
     return { code => $opt->{'issue-code'}||0 };
 }
 
-sub parse_options {
-    my ($self, $opt) = @_;
+sub parse_options($self, $opt) {
     my $args = @ARGV;
 
     #GetOptions ($opt, 'key=s', 'csr=s', 'csr-key=s', 'domains=s', 'path=s', 'crt=s', 'email=s', 'curve=s', 'server=s', 'directory=s', 'api=i', 'config=s', 'renew=i', 'renew-check=s','issue-code=i',
@@ -555,7 +549,7 @@ sub encode_args {
     @ARGV = @ARGVmod;
     eval {
         my $from;
-        if ($^O eq 'MSWin32') {
+        if ($OSNAME eq 'MSWin32') {
             load 'Win32';
             if (defined &Win32::GetACP) {
                 $from = "cp" . Win32::GetACP();
@@ -572,11 +566,10 @@ sub encode_args {
         @ARGV = map { decode $from, $_ } @ARGV;
         autoload 'URI::_punycode';
     };
-    return $@;
+    return $EVAL_ERROR;
 }
 
-sub parse_config {
-    my ($self, $opt) = @_;
+sub parse_config($self, $opt) {
     unless ($opt) {
         return sub {
             return { code => 1, msg => shift }
@@ -626,8 +619,7 @@ sub parse_config {
     }
 }
 
-sub _register {
-    my ($self, $le, $opt) = @_;
+sub _register($self, $le, $opt) {
     return $self->_error("Could not load the resource directory: " . $le->error_details, 'RESOURCE_DIRECTORY_LOAD') if $le->directory;
     $self->debuglog("Registering the account key");
     return $self->_error($le->error_details, 'REGISTRATION') if $le->register;
@@ -641,8 +633,7 @@ sub _register {
     return 0;
 }
 
-sub _puny {
-    my $domain = shift;
+sub _puny($domain) {
     my @rv = ();
     for (split /\./, $domain) {
         my $enc = encode_punycode($_);
@@ -651,8 +642,7 @@ sub _puny {
     return join '.', @rv;
 }
 
-sub _path_mismatch {
-    my ($le, $opt) = @_;
+sub _path_mismatch($le, $opt) {
     if ($opt->{'path'} and my $domains = $le->domains) {
         my @paths = grep {$_} split /\s*,\s*/, $opt->{'path'};
         if (@paths > 1) {
@@ -665,8 +655,7 @@ sub _path_mismatch {
     return 0;
 }
 
-sub _load_mod {
-    my ($self, $opt, $type, $handler) = @_;
+sub _load_mod($self, $opt, $type, $handler) {
     return unless ($opt and $opt->{$type});
     eval {
         my $mod = $opt->{$type};
@@ -677,15 +666,14 @@ sub _load_mod {
         load $opt->{$type};
         $opt->{$handler} = $mod->new();
     };
-    if (my $rv = $@) {
+    if (my $rv = $EVAL_ERROR) {
         $rv=~s/(?: in) \@INC .*$//s; $rv=~s/Compilation failed[^\n]+$//s;
         return $rv || 'error';
     }
     return undef;
 }
 
-sub _load_params {
-    my ($self, $opt, $type) = @_;
+sub _load_params($self, $opt, $type) {
     return unless ($opt and $opt->{$type});
     if ($opt->{$type}!~/[\{\[\}\]]/) {
         $opt->{$type} = $self->_read($opt->{$type});
@@ -695,12 +683,11 @@ sub _load_params {
     eval {
         $opt->{$type} = $j->decode($opt->{$type});
     };
-    return ($@ or (ref $opt->{$type} ne 'HASH')) ?
-        $self->_error("Could not decode '$type'. Please make sure you are providing a valid JSON document and {} are in place." . ($opt->{'debug'} ? $@ : ''), 'JSON_DECODE') : 0;
+    return ($EVAL_ERROR or (ref $opt->{$type} ne 'HASH')) ?
+        $self->_error("Could not decode '$type'. Please make sure you are providing a valid JSON document and {} are in place." . ($opt->{'debug'} ? $EVAL_ERROR : ''), 'JSON_DECODE') : 0;
 }
 
-sub _read {
-    my ($self, $file) = @_;
+sub _read($self, $file) {
     return unless (-e $file and -r _);
     my $fh = IO::File->new();
     $fh->open($file, '<:encoding(UTF-8)') or return;
@@ -710,8 +697,7 @@ sub _read {
     return $src;
 }
 
-sub _write {
-    my ($self, $file, $content) = @_;
+sub _write($self, $file, $content) {
     return 1 unless ($file and $content);
     my $fh = IO::File->new($file, 'w');
     return 1 unless defined $fh;
@@ -721,8 +707,7 @@ sub _write {
     return 0;
 }
 
-sub _error {
-    my ($self, $msg, $code) = @_;
+sub _error($self, $msg, $code) {
     if($msg ne '') {
         print STDERR "ERROR : $msg\n";
     }
@@ -732,8 +717,7 @@ sub _error {
     return { msg => $msg, code => $code||255 };
 }
 
-sub process_challenge_dns {
-    my ($challenge, $params) = @_; # $self gets passed as parameter in callback
+sub process_challenge_dns($challenge, $params) {
     my $self = $_self;
     my $value = encode_base64url(sha256("$challenge->{token}.$challenge->{fingerprint}"));
     my $tld = $challenge->{domain};
@@ -768,8 +752,7 @@ sub process_challenge_dns {
     return 1;
 }
 
-sub process_verification_dns {
-    my ($results, $params) = @_; # $self gets passed as parameter in callback
+sub process_verification_dns($results, $params) {
     my $self = $_self;
     $self->debuglog("Processing the 'dns' verification for '$results->{domain}'");
     if ($results->{valid}) {
@@ -803,8 +786,7 @@ sub process_verification_dns {
     return 1;
 }
 
-sub remoteCall {
-    my ($self, $command, @options) = @_;
+sub remoteCall($self, $command, @options) {
     my $error = 0;
 
     my $xmlrpc = XML::RPC->new($self->{remotedns}->{url}, ("User-Agent" => "PageCamel LetsEncrypt/$VERSION"));
@@ -818,9 +800,9 @@ sub remoteCall {
         alarm 0;
     };
     alarm 0;
-    if($@) {
-        print STDERR "ERROR: ", $@, "\n";
-        die("RPC Timeout encountered!\n") if($@ eq "RPC Timeout");
+    if($EVAL_ERROR) {
+        print STDERR "ERROR: ", $EVAL_ERROR, "\n";
+        die("RPC Timeout encountered!\n") if($EVAL_ERROR eq "RPC Timeout");
         $error = 1;
     }
 

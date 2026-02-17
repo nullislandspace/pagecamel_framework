@@ -1,25 +1,162 @@
-<p align="left">
-    <div id="terminal" align="left"></div>
-</p>
+<div id="terminal"></div>
 
-<script>    
-    //function websocketmaskOnload() {
+<script>
     var xterm;
+    var fitAddon;
+    var resizeTimeout;
+    var lastCols = 0;
+    var lastRows = 0;
+    var minCols = 80;
+    var minRows = 35;
+    var cellWidth = 0;
+    var cellHeight = 0;
+    var paddingX = 0;
+    var paddingY = 0;
+    var scrollBarWidth = 0;
+    var container;
+    var resizeObserver;
+
     function websocketmaskOnSocketOpen() {
-        var xterm = new Terminal({rows: 25, cols: 120});
-        var attachAddon = new AttachAddon.AttachAddon(ws, {bidirectional: true});
-        xterm.loadAddon(attachAddon);
-        xterm.open(document.getElementById('terminal'));
-        //term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
+        container = document.getElementById('terminal');
+
+        // Create terminal with minimum size
+        xterm = new Terminal({
+            cols: minCols,
+            rows: minRows,
+            cursorBlink: true,
+            fontFamily: 'sourcecodepro, monospace',
+            fontSize: 14,
+            lineHeight: 1.1,
+            convertEol: true,
+            scrollback: 1000
+        });
+
+        // Load FitAddon for snapping to character boundaries after manual resize
+        fitAddon = new FitAddon.FitAddon();
+        xterm.loadAddon(fitAddon);
+
+        // Open terminal in container
+        xterm.open(container);
+
+        // Get actual cell dimensions from xterm's renderer and calculate padding
+        setTimeout(function() {
+            var renderDims = xterm._core._renderService.dimensions;
+            cellWidth = renderDims.css.cell.width;
+            cellHeight = renderDims.css.cell.height;
+
+            // Calculate internal padding used by xterm
+            var xtermEl = xterm.element;
+            var xtermStyle = window.getComputedStyle(xtermEl);
+            paddingX = parseInt(xtermStyle.getPropertyValue('padding-left'))
+                     + parseInt(xtermStyle.getPropertyValue('padding-right'));
+            paddingY = parseInt(xtermStyle.getPropertyValue('padding-top'))
+                     + parseInt(xtermStyle.getPropertyValue('padding-bottom'));
+
+            // Account for scrollbar width when scrollback is enabled
+            scrollBarWidth = xterm.options.scrollback > 0
+                           ? (xterm.options.overviewRuler?.width || 14)
+                           : 0;
+
+            // Snap container to exact size for initial dimensions
+            if(cellWidth > 0 && cellHeight > 0) {
+                container.style.width = Math.ceil(minCols * cellWidth + paddingX + scrollBarWidth) + 'px';
+                container.style.height = Math.ceil(minRows * cellHeight + paddingY) + 'px';
+            }
+
+            // Watch for manual resize via drag handle
+            resizeObserver = new ResizeObserver(handleContainerResize);
+            resizeObserver.observe(container);
+        }, 50);
+
+        // Handle user input - send to backend
+        xterm.onData(function(data) {
+            if(wsconnected) {
+                wstransmit('CONSOLEDATA', data);
+            }
+        });
+
+        // Set initial size
+        lastCols = xterm.cols;
+        lastRows = xterm.rows;
+        sendResize();
+
+    function handleContainerResize() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if(!xterm || !fitAddon) return;
+
+            // Let FitAddon calculate what actually fits in the current container
+            var dims = fitAddon.proposeDimensions();
+            if(!dims) return;
+
+            // Enforce minimum size
+            var newCols = Math.max(dims.cols, minCols);
+            var newRows = Math.max(dims.rows, minRows);
+
+            // Disconnect observer before snapping to prevent feedback loop
+            resizeObserver.disconnect();
+
+            // Snap container to exact pixel boundaries using renderer cell dimensions
+            var renderDims = xterm._core._renderService.dimensions;
+            var cw = renderDims.css.cell.width;
+            var ch = renderDims.css.cell.height;
+            if(cw > 0 && ch > 0) {
+                container.style.width = Math.ceil(newCols * cw + paddingX + scrollBarWidth) + 'px';
+                container.style.height = Math.ceil(newRows * ch + paddingY) + 'px';
+            }
+
+            // Only resize terminal if dimensions changed
+            if(newCols !== lastCols || newRows !== lastRows) {
+                xterm.resize(newCols, newRows);
+                xterm.scrollToBottom();
+                lastCols = newCols;
+                lastRows = newRows;
+                sendResize();
+            }
+
+            // Reconnect observer
+            resizeObserver.observe(container);
+        }, 100);
     }
 
+        // Keyboard shortcut: Ctrl+Shift+F to refit terminal
+        document.addEventListener('keydown', function(e) {
+            if(e.ctrlKey && e.shiftKey && e.key === 'F') {
+                e.preventDefault();
+                terminalRefit();
+            }
+        });
 
-    function handleMessage(msg) {                
-        if(msg.type === "XYZ") {
-            console.log(msg);
-            
-            return;
+        xterm.focus();
+    }
+
+    function sendResize() {
+        if(!xterm || !wsconnected) return;
+        wstransmit('RESIZE', JSON.stringify({rows: xterm.rows, cols: xterm.cols}));
+    }
+
+    // Manual resize function - call from console with: terminalRefit()
+    function terminalRefit() {
+        if(fitAddon && xterm) {
+            fitAddon.fit();
+            lastCols = xterm.cols;
+            lastRows = xterm.rows;
+            sendResize();
+            console.log('Terminal resized to ' + xterm.cols + 'x' + xterm.rows);
         }
-        
+    }
+    // Expose globally
+    window.terminalRefit = terminalRefit;
+
+    function handleMessage(msg) {
+        if(msg.type === 'CONSOLEDATA' && xterm) {
+            xterm.write(msg.data);
+        }
+    }
+
+    function websocketmaskOnSocketClose() {
+        if(xterm) {
+            xterm.write('\r\n' + String.fromCharCode(27) + '[31m[Connection closed]' + String.fromCharCode(27) + '[0m\r\n');
+        }
     }
 </script>

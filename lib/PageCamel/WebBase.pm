@@ -1,13 +1,12 @@
 package PageCamel::WebBase;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -145,6 +144,7 @@ use PageCamel::Helpers::URI qw(decode_uri_part decode_uri_path);
 use PageCamel::Helpers::Mandant;
 
 use Time::HiRes qw[time sleep alarm];
+use IO::Select;
 
 use Digest::MD5 qw(md5_hex);
 use PageCamel::Helpers::WebPrint;
@@ -357,7 +357,7 @@ sub allow_deny_hook($self, $peerhost) {
     }
 
 
-    #print STDERR "Accepting connction from $client\n";
+    #$self->printdebuglog("Accepting connction from $client");
     $self->{last_accepted_client} = $peerhost;
     return 1;
 };
@@ -383,7 +383,13 @@ sub child_init_hook($self) {
         print STDERR "******************** CHILD START *********************\n";
     }
     foreach my $modname (keys %{$self->{modules}}) {
+        my $xstart = time;
         $self->{modules}->{$modname}->handle_child_start;   # Notify a new child that it was just forked (re-init socket handles and such)
+        my $xend = time;
+        my $timetaken = $xend - $xstart;
+        if($timetaken > 1) {
+            print STDERR "child_init_hook for $modname took ", $timetaken, " seconds\n";
+        }
     }
     $self->{need_srand_call} = 1;
 
@@ -405,28 +411,36 @@ sub readheader($self, $timeout, $socket) {
     my $line;
     my $ok = 0;
     my $buf;
+    my $select = IO::Select->new($socket);
 
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $endtime = time + $timeout;
 
         while(1) {
-            $buf = undef;
-            #my $bufstatus = sysread($socket, $buf, 1);
-            my $bufstatus = $socket->sysread($buf, 1);
-            #if(defined($bufstatus) && !$bufstatus) {
-            #    return;
-            #}
-            if(!defined($buf) || !length($buf)) {
-                if(time > $endtime) {
+            # Calculate remaining timeout
+            my $remaining = $endtime - time;
+            if($remaining <= 0) {
+                last;  # Timeout
+            }
+
+            # Wait for data using select() instead of busy-wait
+            if($select->can_read($remaining)) {
+                $buf = undef;
+                my $bufstatus = $socket->sysread($buf, 1);
+                if(!defined($bufstatus)) {
+                    # Error (EAGAIN/EWOULDBLOCK with $ERRNO set) - continue waiting
+                    next;
+                }
+                if($bufstatus == 0) {
+                    # EOF - connection closed, stop reading
                     last;
                 }
-                sleep(0.01);
-                next;
+                $line .= $buf;
+                last if($buf eq "\n");
             }
-            $line .= $buf;
-            last if($buf eq "\n");
         }
-        if(time <= $endtime) {
+        # Only mark as OK if we got a complete line (ending with \n) before timeout
+        if(time <= $endtime && defined($line) && $line =~ /\n$/) {
             $ok = 1;
         }
     };
@@ -450,13 +464,12 @@ sub readheader($self, $timeout, $socket) {
 sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
     # Note: Timeout is set per datablock
 
-    my $line;
     my $datalen = 0;
-    my $postdata = '';
+    my @chunks;  # Use array instead of string concat for O(n) instead of O(n²)
     my $ok = 0;
     my $unread = $ua->{headers}->{'Content-Length'};
-    my $tempdata;
-    #print STDERR Dumper($ua->{headers});
+    my $select = IO::Select->new($socket);
+
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $endtime = time + $timeout;
         while($unread) {
@@ -464,31 +477,34 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
             if($unread < $thisblocksize) {
                 $thisblocksize = $unread;
             }
-            $tempdata = undef;
-            my $lastread = sysread($socket, $tempdata, $thisblocksize);
-            if(!defined($tempdata) || !length($tempdata)) {
-                if(time > $endtime) {
-                    last;
-                }
-                sleep(0.01);
-                next;
+
+            # Calculate remaining timeout
+            my $remaining = $endtime - time;
+            if($remaining <= 0) {
+                last;  # Timeout
             }
 
-            # Got data, move timeout window
-            $endtime = time + $timeout;
-           
-            $unread -= $lastread;
-            $datalen += $lastread;
-            $postdata .= $tempdata;
-
-            #print STDERR "Getting POST data ($unread to go)....\n";
-
+            # Wait for data using select() instead of busy-wait
+            if($select->can_read($remaining)) {
+                my $tempdata;
+                my $lastread = sysread($socket, $tempdata, $thisblocksize);
+                if(defined($lastread) && $lastread > 0) {
+                    # Got data, move timeout window
+                    $endtime = time + $timeout;
+                    $unread -= $lastread;
+                    $datalen += $lastread;
+                    push @chunks, $tempdata;
+                }
+                # If lastread is undef or 0, could be EAGAIN - continue waiting
+            }
         }
 
         if(!$unread) {
             $ok = 1;
         }
     };
+
+    my $postdata = join('', @chunks);
 
     if(!$ok) {
         $self->printdebuglog("POST data recieve timeout");
@@ -508,12 +524,11 @@ sub get_request_body($self, $socket, $ua, $timeout, $blocksize) {
 sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xfuncname) {
     # Note: Timeout is set per datablock
 
-    my $line;
     my $datalen = 0;
     my $ok = 0;
     my $unread = $ua->{headers}->{'Content-Length'};
-    my $tempdata;
-    #print STDERR Dumper($ua->{headers});
+    my $select = IO::Select->new($socket);
+
     eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
         my $endtime = time + $timeout;
         while($unread) {
@@ -521,29 +536,30 @@ sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xf
             if($unread < $thisblocksize) {
                 $thisblocksize = $unread;
             }
-            $tempdata = undef;
-            my $lastread = sysread($socket, $tempdata, $thisblocksize);
-            if(!defined($tempdata) || !length($tempdata)) {
-                if(time > $endtime) {
-                    last;
+
+            # Calculate remaining timeout
+            my $remaining = $endtime - time;
+            if($remaining <= 0) {
+                last;  # Timeout
+            }
+
+            # Wait for data using select() instead of busy-wait
+            if($select->can_read($remaining)) {
+                my $tempdata;
+                my $lastread = sysread($socket, $tempdata, $thisblocksize);
+                if(defined($lastread) && $lastread > 0) {
+                    # Got data, move timeout window
+                    $endtime = time + $timeout;
+                    $unread -= $lastread;
+                    $datalen += $lastread;
+                    #$self->printdebuglog("---------> STREAMING $lastread bytes");
+                    if(!$xmodule->$xfuncname($ua, $tempdata)) {
+                        $self->printdebuglog("--------- STREAMING FAILED");
+                        return 0;
+                    }
                 }
-                sleep(0.01);
-                next;
+                # If lastread is undef or 0, could be EAGAIN - continue waiting
             }
-
-            # Got data, move timeout window
-            $endtime = time + $timeout;
-           
-            $unread -= $lastread;
-            $datalen += $lastread;
-            print STDERR "---------> STREAMING $lastread bytes\n";
-            if(!$xmodule->$xfuncname($ua, $tempdata)) {
-                print STDERR "--------- STREAMING FAILED\n";
-                return 0;
-            }
-
-            #print STDERR "Getting POST data ($unread to go)....\n";
-
         }
 
         if(!$unread) {
@@ -551,8 +567,141 @@ sub stream_request_body($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xf
         }
     };
 
-    print STDERR "--------- STREAMING DONE: $ok\n";
+    $self->printdebuglog("--------- STREAMING DONE: $ok");
     return $ok;
+}
+
+sub is_chunked_transfer($self, $ua) {
+    return (defined($ua->{headers}->{'Transfer-Encoding'}) &&
+            $ua->{headers}->{'Transfer-Encoding'} =~ /chunked/i);
+}
+
+sub read_chunk_size_line($self, $socket, $timeout) {
+    my $line = '';
+    my $select = IO::Select->new($socket);
+    my $endtime = time + $timeout;
+
+    while(1) {
+        my $remaining = $endtime - time;
+        return if($remaining <= 0);  # Timeout
+
+        if($select->can_read($remaining)) {
+            my $buf;
+            my $bufstatus = sysread($socket, $buf, 1);
+            return if(!defined($bufstatus) || $bufstatus == 0);  # Error/EOF
+            next if($buf eq "\r");
+            last if($buf eq "\n");
+            $endtime = time + $timeout;  # Reset timeout on data
+            $line .= $buf;
+        }
+    }
+    return $line;
+}
+
+sub get_request_body_chunked($self, $socket, $ua, $timeout, $blocksize) {
+    my @chunks;
+    my $total_size = 0;
+    my $select = IO::Select->new($socket);
+
+    eval {
+        while(1) {
+            # Read chunk size line
+            my $sizeline = $self->read_chunk_size_line($socket, $timeout);
+            return 0 if(!defined($sizeline));
+
+            $sizeline =~ s/;.*$//;  # Remove chunk extensions
+            return 0 if($sizeline !~ /^[0-9a-fA-F]+$/);  # Validate hex
+            my $chunk_size = hex($sizeline);
+
+            last if($chunk_size == 0);  # Terminal chunk
+
+            # Read chunk data
+            my $chunk_data = '';
+            my $remaining = $chunk_size;
+            my $endtime = time + $timeout;
+            while($remaining > 0) {
+                my $left = $endtime - time;
+                return 0 if($left <= 0);
+                if($select->can_read($left)) {
+                    my $buf;
+                    my $want = ($remaining > $blocksize) ? $blocksize : $remaining;
+                    my $got = sysread($socket, $buf, $want);
+                    if(defined($got) && $got > 0) {
+                        $chunk_data .= $buf;
+                        $remaining -= $got;
+                        $endtime = time + $timeout;
+                    }
+                }
+            }
+
+            push @chunks, $chunk_data;
+            $total_size += $chunk_size;
+
+            # Read trailing CRLF
+            $self->read_chunk_size_line($socket, $timeout);
+        }
+
+        # Parse trailer headers (same as leading headers)
+        while(1) {
+            my $trailer = $self->read_chunk_size_line($socket, $timeout);
+            last if(!defined($trailer) || $trailer eq '');
+            # Parse trailer header using same logic as parse_header_line
+            $self->parse_header_line($ua, $trailer);
+        }
+    };
+
+    $ua->{postdata} = join('', @chunks);
+    $ua->{headers}->{'Content-Length'} = $total_size;  # Set for downstream
+    return 1;
+}
+
+sub stream_request_body_chunked($self, $socket, $ua, $timeout, $blocksize, $xmodule, $xfuncname) {
+    my $total_size = 0;
+    my $select = IO::Select->new($socket);
+
+    eval {
+        while(1) {
+            my $sizeline = $self->read_chunk_size_line($socket, $timeout);
+            return 0 if(!defined($sizeline));
+
+            $sizeline =~ s/;.*$//;
+            return 0 if($sizeline !~ /^[0-9a-fA-F]+$/);
+            my $chunk_size = hex($sizeline);
+
+            last if($chunk_size == 0);
+
+            # Read and stream chunk data in blocksize pieces
+            my $remaining = $chunk_size;
+            my $endtime = time + $timeout;
+            while($remaining > 0) {
+                my $left = $endtime - time;
+                return 0 if($left <= 0);
+                if($select->can_read($left)) {
+                    my $buf;
+                    my $want = ($remaining > $blocksize) ? $blocksize : $remaining;
+                    my $got = sysread($socket, $buf, $want);
+                    if(defined($got) && $got > 0) {
+                        return 0 if(!$xmodule->$xfuncname($ua, $buf));  # Stream to handler
+                        $remaining -= $got;
+                        $total_size += $got;
+                        $endtime = time + $timeout;
+                    }
+                }
+            }
+
+            $self->read_chunk_size_line($socket, $timeout);  # Trailing CRLF
+        }
+
+        # Parse trailer headers (same as leading headers)
+        while(1) {
+            my $trailer = $self->read_chunk_size_line($socket, $timeout);
+            last if(!defined($trailer) || $trailer eq '');
+            $self->parse_header_line($ua, $trailer);
+        }
+    };
+
+    $ua->{headers}->{'Content-Length'} = $total_size;
+    return 1;
 }
 
 sub parse_request_line($self, $ua, $header) {
@@ -593,7 +742,7 @@ sub parse_request_line($self, $ua, $header) {
 }
 
 sub parse_header_line($self, $ua, $header) {
-    if($header =~ /^(\S+)\:\ (.+)$/) {
+    if($header =~ /^(\S+)\:\s*(.*)$/) {  # Allow optional space and optional value
         my ($name, $value) = ($1, $2);
         if(defined($httpheadersmapping{lc $name})) {
             # Map header to a normed upper/lowercase form for
@@ -628,7 +777,10 @@ sub parse_header_line($self, $ua, $header) {
             }
         }
     } else {
-        $self->printdebuglog("Illegal header line!");
+        # Log the actual content for debugging
+        my $escaped = $header;
+        $escaped =~ s/([^\x20-\x7E])/sprintf("\\x%02X", ord($1))/ge;
+        $self->printdebuglog("Illegal header line: [$escaped]");
         return 0;
     }
 
@@ -641,7 +793,6 @@ sub parse_post_data($self, $ua) {
     if(!defined($ua->{headers}->{'Content-Type'})) {
         # Do nothing
     } elsif($ua->{headers}->{'Content-Type'} =~ /application\/x\-www\-form\-urlencoded/ && $ua->{method} eq 'POST') {
-        #print STDERR Dumper($ua);
         my %postparams;
         my @parts = split/\&/, $ua->{postdata};
         foreach my $part (@parts) {
@@ -715,7 +866,7 @@ sub parse_post_data($self, $ua) {
                     if($pcontent =~ s/^Content-Type\:\ (.+?)\r\n\r\n//) {
                         $ua->{files}->{$pparams{filename}}->{type} = $1;
                         $ua->{files}->{$pparams{filename}}->{data} = $pcontent;
-                        #print STDERR "File: ", $pparams{filename}, " is type ", $ua->{files}->{$pparams{filename}}->{type}, " size ", length($pcontent), " bytes, MD5 ", md5_hex($pcontent), "\n";
+                        #$self->printdebuglog("File: ", $pparams{filename}, " is type ", $ua->{files}->{$pparams{filename}}->{type}, " size ", length($pcontent), " bytes, MD5 ", md5_hex($pcontent));
                         if(!defined($ua->{postparams}->{$pparams{name}})) {
                             $ua->{postparams}->{$pparams{name}} = $pparams{filename};
                         } else {
@@ -809,7 +960,7 @@ sub process_request($self, $realsocket, $frontendheader) {
 
     if($mandanth->isActive()) {
         $currentmandant = $mandanth->getName();
-        #print STDERR "Current Mandant is ", $currentmandant, "\n";
+        #$self->printdebuglog("Current Mandant is ", $currentmandant);
     }
 
 nextrequest:
@@ -825,15 +976,14 @@ nextrequest:
     $ua->{remote_addr} = $self->{last_accepted_client} || '0.0.0.0';
     $ua->{extra_response_headers} = {};
     $ua->{frontend} = $frontendheader;
+    $self->{last_url} = 'XXXNONEXXX';
 
     my $starttime = time();
 
+    my $xstart = time;
     if($self->{need_srand_call}) {
         $self->{need_srand_call} = 0;
         srand();
-        #my $testnumber = rand(999999);
-        #print STDERR "Restarted PRNG for $PID: testnumber = $testnumber\n";
-        #die;
     }
 
     # Run cleanup functions in case the last cycle bailed out with croak
@@ -850,13 +1000,13 @@ nextrequest:
     # Run the "firewall" stuff before even looking at the client request. If client
     # if marked as "blocked", just send an HTTP status line and minimalistic body
     # to notify the client, then close the connection
-    {
+    if(1){
         foreach my $item (@{$self->{firewall}}) {
             my $module = $item->{Module};
             my $funcname = $item->{Function};
             my $ok = $module->$funcname($ua->{remote_addr});
             if(!$ok) {
-                #print STDERR "BLOCKING CLIENT " . $ua->{remote_addr} . "!!!\n";
+                #$self->printdebuglog("BLOCKING CLIENT " . $ua->{remote_addr} . "!!!\n");
                 my $message = "Attack or server policy violation detected. Client " . $ua->{remote_addr} . " blocked for some time.";
                 $webprint->write($realsocket, "HTTP/1.1 403 Policy violation\r\n" .
                                     "Content-Type: text/plain\r\n".
@@ -874,7 +1024,7 @@ nextrequest:
 
     my $requestline = $self->readheader(15, $realsocket);
     if(!defined($requestline)) {
-        #print STDERR "REQUEST LINE TIMEOUT OR ERROR\n" if($self->{isDebugging});
+        #$self->printdebuglog("REQUEST LINE TIMEOUT OR ERROR") if($self->{isDebugging});
         $ua->{keepalive} = 0;
         $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
 
@@ -887,12 +1037,21 @@ nextrequest:
         goto cleanup;
     }
 
+    $self->{last_url} = $ua->{url};
+
+    if(0 && $ua->{url} =~ /cavacopedia/o) {
+        $webprint->write($realsocket, "HTTP/1.1 402 No cash, no data. Fuck off, silicon valley!\r\n");
+        my $xend = time;
+        $self->printdebuglog("DISABLE CAVACOPEDIA: ", $xend - $xstart);
+        return;
+    }
+
     my $hcount = 0;
 
     while(1) {
         my $header = $self->readheader(5, $realsocket);
         if(!defined($header)) {
-            #print STDERR "HEADER LINE TIMEOUT\n" if($self->{isDebugging});
+            #$self->printdebuglog("HEADER LINE TIMEOUT") if($self->{isDebugging});
             $ua->{keepalive} = 0;
             $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
             goto cleanup;
@@ -900,14 +1059,14 @@ nextrequest:
         $hcount++;
         if($hcount > 500) {
             # too many headers, may be an attack
-            #print STDERR "Too many headers!\n";
+            #$self->printdebuglog("Too many headers!");
             $ua->{keepalive} = 0;
             $webprint->write($realsocket, "HTTP/1.1 413 Request Entity Too Large\r\n");
             goto cleanup;
         }
         last if($header eq "");
         if(!$self->parse_header_line($ua, $header)) {
-            #print STDERR "Error parsing header!\n";
+            #self->printdebuglog("Error parsing header!");
             $ua->{keepalive} = 0;
             $webprint->write($realsocket, "HTTP/1.1 400 Bad Request\r\n");
             goto cleanup;
@@ -944,7 +1103,7 @@ nextrequest:
     foreach my $dpath (keys %{$self->{uploadstreamwebpaths}}) {
         if($webpath =~ /^$dpath/) {
             $useuploadstream = 1;
-            $self->printdebuglog("*** UPLOADSTREAM MODE FOR ", $webpath);
+            #$self->printdebuglog("*** UPLOADSTREAM MODE FOR ", $webpath);
         }
     }
 
@@ -1255,9 +1414,10 @@ nextrequest:
     }
 
     if(!$result{pagedone}) {
-        if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
+        if((defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) ||
+           $self->is_chunked_transfer($ua)) {
             if(defined($ua->{headers}->{'Expect'}) && $ua->{headers}->{'Expect'} =~ /100\-continue/i) {
-                #print STDERR "Continue header detected\n";
+                #$self->printdebuglog("Continue header detected");
 
                 my $expectok = 1;
                 foreach my $dpath (keys %{$self->{continueheaders}}) {
@@ -1275,16 +1435,22 @@ nextrequest:
                 if(!$expectok) {
                     $ua->{keepalive} = 0;
                     $webprint->write($realsocket, "HTTP/1.1 417 Expectation Failed\r\n");
-                    #print STDERR "      Expectation failed\n";
+                    #$self->printdebuglog("      Expectation failed");
                     goto cleanup;
                 }
-                #print STDERR "      Expectation matched\n";
+                #$self->printdebuglog("      Expectation matched");
                 $webprint->write($realsocket, "HTTP/1.1 100 Continue\r\n\r\n");
             }
 
             if(!$useuploadstream) {
                 #$self->printdebuglog("*** GETTING REQUEST BODY FOR ", $webpath);
-                if(!$self->get_request_body($realsocket, $ua, 30, 1024)) {
+                my $body_ok;
+                if($self->is_chunked_transfer($ua)) {
+                    $body_ok = $self->get_request_body_chunked($realsocket, $ua, 30, 65_536);
+                } else {
+                    $body_ok = $self->get_request_body($realsocket, $ua, 30, 65_536);
+                }
+                if(!$body_ok) {
                     $ua->{keepalive} = 0;
                     $webprint->write($realsocket, "HTTP/1.1 408 Request Timeout\r\n");
                     goto cleanup;
@@ -1375,14 +1541,16 @@ nextrequest:
                     # We need to do more stuff for upload streaming
                     {
                         #goto cleanup;
-                        #print STDERR "################# ", Dumper($dpath), "\n";
-                        #print STDERR Dumper($self->{uploadstreamwebpaths}->{$dpath});
+                        #$self->printdebuglog("################# ", Dumper($dpath));
+                        #$self->printdebuglog(Dumper($self->{uploadstreamwebpaths}->{$dpath}));
                         my $xmodule = $self->{uploadstreamwebpaths}->{$dpath}->{Module};
                         my $xfuncnamestream = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{stream};
                         my $xfuncnamefinish = $self->{uploadstreamwebpaths}->{$dpath}->{Functions}->{finish};
                         my $ok = 1;
-                        if(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
-                            $ok = $self->stream_request_body($realsocket, $ua, 30, 1024, $xmodule, $xfuncnamestream);
+                        if($self->is_chunked_transfer($ua)) {
+                            $ok = $self->stream_request_body_chunked($realsocket, $ua, 30, 65_536, $xmodule, $xfuncnamestream);
+                        } elsif(defined($ua->{headers}->{'Content-Length'}) && $ua->{headers}->{'Content-Length'} > 0) {
+                            $ok = $self->stream_request_body($realsocket, $ua, 30, 65_536, $xmodule, $xfuncnamestream);
                             #$ok = $xmodule->$xfuncnamestream($ua, $ua->{postdata});
                         }
 
@@ -1513,7 +1681,7 @@ nextrequest:
     } elsif(defined($result{content_length})) {
         $header{"-Content-Length"} = $result{content_length};
     } elsif(!defined($header{"-Content-Length"}) && !defined($header{"-Transfer-Encoding"}) && !defined($result{data})) {
-        #print STDERR "Forcing content length to 0\n";
+        #$self->printdebuglog("Forcing content length to 0");
         $header{"-Content-Length"} = 0;
     }
 
@@ -1521,7 +1689,7 @@ nextrequest:
     foreach my $hname ('lastmod',
                        ) {
         if(defined($result{$hname}) || defined($result{lc $hname})) {
-            print STDERR "!!!!! Deprecated result key $hname detected. HTTP stream may be invalid!\n";
+            $self->printdebuglog("!!!!! Deprecated result key $hname detected. HTTP stream may be invalid!");
         }
     }
 
@@ -1714,7 +1882,7 @@ nextrequest:
             my %dpart = $module->$funcname($ua);
             $partcount++;
             $totallength += length($dpart{data});
-            #print STDERR getISODate() . "     Data part, length ", length($dpart{data}), " bytes\n";
+            #$self->printdebuglog(getISODate() . "     Data part, length ", length($dpart{data}), " bytes");
             if(!$webprint->write($realsocket, $dpart{data})) {
                 $ua->{keepalive} = 0;
                 goto cleanup;
@@ -1778,7 +1946,7 @@ cleanup:
     }
 
     if($ua->{keepalive}) {
-        #print STDERR getISODate() . "  keepalive, restarting protocol handler\n";
+        #$self->printdebuglog(getISODate() . "  keepalive, restarting protocol handler");
         goto nextrequest;
     }
 
@@ -1787,6 +1955,7 @@ cleanup:
 
 sub printdebuglog($self, @args) {
     my $found = 0;
+
     foreach my $worker (@{$self->{debuglog}}) {
         my $module = $worker->{Module};
         my $funcname = $worker->{Function} ;
@@ -1795,8 +1964,9 @@ sub printdebuglog($self, @args) {
         $module->$funcname(@args);
         $found = 1;
     }
+
     if(!$found) {
-        print STDERR "Fallback: ", getISODate(), " ", join('', @args), "\n";
+        print STDERR "Fallback: >>>", getISODate(), " ", join('', @args), "<<<\n";
     }
 
     return;
@@ -1821,7 +1991,7 @@ sub startconfig($self) {
 sub load_base_project($self, $projectname) {
     my $perlmodule = "PageCamel::Web::$projectname";
     if(!defined($perlmodule->VERSION)) {
-        print "Dynamically loading base project module $perlmodule...\n";
+        $self->printdebuglog("Dynamically loading base project module $perlmodule...");
         load $perlmodule;
     }
 
@@ -1839,30 +2009,30 @@ sub load_base_project($self, $projectname) {
 }
 
 sub endconfig($self) {
-    print "For great justice...\n"; # We REQUIRE an all-your-base reference here!!1!
-    print "Cross registering modules...\n";
+    $self->printdebuglog("For great justice..."); # We REQUIRE an all-your-base reference here!!1!
+    $self->printdebuglog("Cross registering modules...");
     foreach my $modname (keys %{$self->{modules}}) {
-        #print "  crossregistering for $modname\n";
+        #$self->printdebuglog("  crossregistering for $modname");
         $self->{modules}->{$modname}->crossregister;   # Reload module's data
     }
-    print "Loading dynamic data...\n";
+    $self->printdebuglog("Loading dynamic data...");
     foreach my $modname (keys %{$self->{modules}}) {
-        #print "  Loading data for $modname\n";
+        #$self->printdebuglog("  Loading data for $modname\n";
         $self->{modules}->{$modname}->reload;   # Reload module's data
     }
 
-    print "Running final checks in modules before preparing to fork...\n";
+    $self->printdebuglog("Running final checks in modules before preparing to fork...");
     foreach my $modname (keys %{$self->{modules}}) {
-        #print "  finalcheck for $modname\n";
+        #$self->printdebuglog("  finalcheck for $modname");
         $self->{modules}->{$modname}->finalcheck;   # finalcheck() calls
     }
 
-    print "Final checks complete - calling endconfig...\n";
+    $self->printdebuglog("Final checks complete - calling endconfig...");
     foreach my $modname (keys %{$self->{modules}}) {
            $self->{modules}->{$modname}->endconfig;   # Mostly used in preforking servers
     }
 
-    print "Scanning all webpaths for supported methods...\n";
+    $self->printdebuglog("Scanning all webpaths for supported methods...");
     # Always mark the basic HTTP methods as supported even when we don't use them in the configured modules
     # This helps to minimize problems (PageCamel will report "405 Method Not Allowed" instead of "501 Not Implemented")
     my %methods;
@@ -1874,7 +2044,7 @@ sub endconfig($self) {
     foreach my $dpath (keys %{$self->{webpaths}}) {
         my $pathmodule = $self->{webpaths}->{$dpath};
         $pathcount++;
-        #print "      Path: $dpath  ", join(' ', sort @{$pathmodule->{Methods}}), "\n";
+        #$self->printdebuglog("      Path: $dpath  ", join(' ', sort @{$pathmodule->{Methods}}));
 
         foreach my $method (@{$pathmodule->{Methods}}) {
             if(!defined($methods{$method})) {
@@ -1886,7 +2056,7 @@ sub endconfig($self) {
     foreach my $dpath (keys %{$self->{overridewebpaths}}) {
         my $pathmodule = $self->{overridewebpaths}->{$dpath};
         $pathcount++;
-        #print "      Path: $dpath  ", join(' ', sort @{$pathmodule->{Methods}}), "\n";
+        #$self->printdebuglog("      Path: $dpath  ", join(' ', sort @{$pathmodule->{Methods}}));
 
         foreach my $method (@{$pathmodule->{Methods}}) {
             if(!defined($methods{$method})) {
@@ -1895,22 +2065,22 @@ sub endconfig($self) {
             $methods{$method} += 1;
         }
     }
-    print "Found $pathcount registered paths (not including dynamically in-module generated sub-paths) with the following method counts:\n";
+    $self->printdebuglog("Found $pathcount registered paths (not including dynamically in-module generated sub-paths) with the following method counts:");
     foreach my $method (sort keys %methods) {
         next if(!$methods{$method});
-        print "   $method (" . $methods{$method} . ")\n";
+        $self->printdebuglog("   $method (" . $methods{$method} . ")");
     }
 
     my @supportedmethods = sort keys %methods;
 
     # Add internally supported HTTP methods that currently can't be overridden
-    print "Add non-overrideable handling for some HTTP methods...\n";
+    $self->printdebuglog("Add non-overrideable handling for some HTTP methods...");
     my @internal_methods = qw[OPTIONS];
     foreach my $method (@internal_methods) {
         if(contains($method, \@supportedmethods)) {
             croak("Method $method already in use!");
         }
-        print "  $method registered as internal method.\n";
+        $self->printdebuglog("  $method registered as internal method.");
         push @supportedmethods, $method;
         $methods{$method}++;
     }
@@ -1918,37 +2088,38 @@ sub endconfig($self) {
 
     # Now, scan all the custom method handlers. Custom methods for already used
     # methods are forbidden and produce an error.
-    print "Scanning custom methods...\n";
+    $self->printdebuglog("Scanning custom methods...");
     foreach my $method (keys %{$self->{custom_methods}}) {
         if(contains($method, \@supportedmethods)) {
             croak("Method $method already in use!");
         }
-        print "  $method registered as custom method. (This may circumvent authentification!)\n";
+        $self->printdebuglog("  $method registered as custom method. (This may circumvent authentification!)");
         push @supportedmethods, $method;
     }
 
-    print "Scanning for forbidden HTTP methods...\n";
+    $self->printdebuglog("Scanning for forbidden HTTP methods...");
     my @forbidden_methods = qw[TRACE TRACK];
     foreach my $method (@forbidden_methods) {
         if(contains($method, \@supportedmethods)) {
             croak("Method $method in use! Startup canceled due to security risks!");
         } else {
-            print "  OK, forbidden $method not found\n";
+            $self->printdebuglog("  OK, forbidden $method not found");
         }
     }
     $self->{forbidden_methods} = \@forbidden_methods;
 
 
     $self->{supportedmethods} = \@supportedmethods;
-    print "Done.\n";
+    $self->printdebuglog("Done.");
 
     $self->{need_srand_call} = 1;
 
-    print "\n";
-    print "Startup configuration complete!\n\n";
-    print "+------------------------------------+\n";
-    print "| We are GO for auto-sequence start! |\n";
-    print "+------------------------------------+\n\n";
+    $self->printdebuglog("");
+    $self->printdebuglog("Startup configuration complete!");
+    $self->printdebuglog("+------------------------------------+");
+    $self->printdebuglog("| We are GO for auto-sequence start! |");
+    $self->printdebuglog("+------------------------------------+");
+    $self->printdebuglog("");
     return;
 
 }
@@ -1960,7 +2131,7 @@ sub configure_module($self, $modname, $perlmodulename, %config) {
     # ...what perl module it's supposed to be...
     my $perlmodule = "PageCamel::Web::$perlmodulename";
     if(!defined($perlmodule->VERSION)) {
-        print "Dynamically loading $perlmodule...\n";
+        $self->printdebuglog("Dynamically loading $perlmodule...");
         load $perlmodule;
     }
 
@@ -1989,7 +2160,7 @@ sub configure_module($self, $modname, $perlmodulename, %config) {
 
     $self->{modules}->{$modname} = $perlmodule->new(%config);
     $self->{modules}->{$modname}->register; # Register handlers provided by the module
-    #print "Module $modname ($perlmodule) configured.\n";
+    #self->printdebuglog("Module $modname ($perlmodule) configured.");
     return;
 }
 
@@ -2071,14 +2242,13 @@ sub user_login($self, $username, $sessionid) {
 }
 
 sub user_logout($self, $sessionid) {
-    print STDERR "\n\n";
     foreach my $item (@{$self->{logoutitems}}) {
         my $module = $item->{Module};
         my $funcname = $item->{Function};
         #my $starttime = time;
         $module->$funcname($sessionid);
         #my $endtime = time;
-        #print STDERR "***** logoutitem for ", $module->{modname}, " took ", $endtime - $starttime, " seconds\n";
+        #self->printdebuglog("***** logoutitem for ", $module->{modname}, " took ", $endtime - $starttime, " seconds");
 
     }
     return;

@@ -1,13 +1,12 @@
 package PageCamel::Helpers::PrintProcessor;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -148,10 +147,13 @@ sub _generateEscPos($self, $img = undef) {
 
     if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags') {
         $reph->debuglog("    Type: TMT88");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0, 0);
+    } elsif($self->{printerType} eq 'TMM30' || $self->{printerType} eq 'TMM30NoStatusFlags') {
+        $reph->debuglog("    Type: TMT88 in TM-M30 mode (add white pixels on the left for centering)");
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 0, 1);
     } elsif($self->{printerType} eq 'ORDERMAN' || $self->{printerType} eq 'BixolonSRP330II') {
         $reph->debuglog("    Type: TMT88 in ORDERMAN mode");
-        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 1);
+        return $self->_escpos_tmt88($self->{printerExtraFeed}, $self->{printerBeep}, 1, 0);
     } elsif($self->{printerType} eq 'TMP20') {
         $reph->debuglog("    Type: TMP20");
         return $self->_escpos_tmp20($self->{printerExtraFeed}, $self->{printerBeep});
@@ -170,11 +172,11 @@ sub _generateEscPos($self, $img = undef) {
     }
 
     $reph->debuglog("   UNSUPPORTED PRINTER TYPE, TRYING TMT88 compatible");
-    return $self->_escpos_tmt88();
+    return $self->_escpos_tmt88(0, 0, 0, 0);
 }
     
 
-sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
+sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter, $tmm30) {
     my $reph = $self->{reph};
 
     my $raw = '';
@@ -215,8 +217,14 @@ sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
     }
    
     # Image data
+    
+    my $centerpixels = 0;
+    if($tmm30) {
+        $centerpixels = 5 * 8;
+    }
+    my $centerbytes = $centerpixels / 8;
 
-    my $bytew = $w / 8;
+    my $bytew = ($w + $centerpixels) / 8;
 
     for(my $blockoffs = 0; $blockoffs < $h; $blockoffs += $blocksize) {
         my $blockh = $h - $blockoffs;
@@ -228,6 +236,9 @@ sub _escpos_tmt88($self, $extrafeed, $beep, $ordermanprinter = 0) {
         $raw .= chr(0x1D) . chr(0x76) . chr(0x30) . chr(0) . chr($bytew & 0xff) . chr(($bytew >> 8) & 0xff) . chr($blockh & 0xff) . chr(($blockh >> 8) & 0xff); 
 
         for(my $y = 0; $y < $blockh; $y++) {
+            for(my $x = 0; $x < $centerbytes; $x++) {
+                $raw .= chr(0x00);
+            }
             for(my $x = 0; $x < $w; $x+=8) {
                 my $byte = 0;
                 for(my $xoffs = 0; $xoffs < 8; $xoffs++) {
@@ -646,9 +657,8 @@ sub printerOpenCashdrawer($self, $cupsprinters = []) {
     }
 
     my $raw = '';
-    if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags') {
+    if($self->{printerType} eq 'TMT88' || $self->{printerType} eq 'TMT88NoStatusFlags' || $self->{printerType} eq 'TMM30' || $self->{printerType} eq 'TMM30NoStatusFlags') {
         $reph->debuglog("    Type: TMT88");
-
         # Kick drawer 1
         $raw .= chr(0x1B) . chr(0x70) . chr(0x00) . chr(0xFE) . chr(0xFE); # . "\n";
         # Kick drawer 2
@@ -773,13 +783,16 @@ sub _getPrintColor($self, $isfont = 0) {
 sub printAddTextLine($self, $line, $y = undef) {
     chomp $line;
     
-    $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
+        $line = $self->markWithArrow($line, 20, $self->{imgoffs} - 10);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{font}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 27;
     } else {
+        $line = $self->markWithArrow($line, 20, $y - 10);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{font}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
@@ -790,13 +803,16 @@ sub printAddTextLine($self, $line, $y = undef) {
 sub printAddBoldTextLine($self, $line, $y = undef) {
     chomp $line;
     
-    $line = encode_utf8($line);
     my $oldoffs = $self->{imgoffs};
     if(!defined($y)) {
+        $line = $self->markWithArrow($line, 20, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $self->{imgoffs} + 10, $line);
         
         $self->{imgoffs} += 24;
     } else {
+        $line = $self->markWithArrow($line, 20, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 20, 0, 10, $y + 10, $line);
         $oldoffs = $y;
     }
@@ -808,8 +824,12 @@ sub printAddVerySmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 10, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 10, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 10, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 10, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 14;
     }
@@ -821,8 +841,12 @@ sub printAddBoldVerySmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 10, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 10, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 10, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 10, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 14;
     }
@@ -834,8 +858,12 @@ sub printAddSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 15, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 15, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 15, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 19;
     }
@@ -847,8 +875,12 @@ sub printAddBoldSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 15, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 15, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 15, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 15, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 19;
     }
@@ -861,8 +893,12 @@ sub printAddSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 18, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 18, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 18, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{smallfont}, 18, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 22;
     }
@@ -874,8 +910,12 @@ sub printAddBoldSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
     chomp $line;
     
     if(defined($x) && defined($y)) {
+        $line = $self->markWithArrow($line, 18, $y);
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 18, 0, $x, $y + 8, $line);
     } else {
+        $line = $self->markWithArrow($line, 18, $self->{imgoffs});
+        $line = encode_utf8($line);
         $self->{img}->stringFT($self->_getPrintColor(1), $self->{boldfont}, 18, 0, 10, $self->{imgoffs} + 8, $line);
         $self->{imgoffs} += 22;
     }
@@ -886,6 +926,8 @@ sub printAddBoldSemiSmallTextLine($self, $line, $x = undef, $y = undef) {
 sub printAddBigTextLine($self, $line) {
     chomp $line;
     
+    $line = $self->markWithArrow($line, 50, $self->{imgoffs});
+    $line = encode_utf8($line);
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 50, 0, 10, $self->{imgoffs} + 50, $line);
     
     $self->{imgoffs} += 58;
@@ -896,6 +938,8 @@ sub printAddBigTextLine($self, $line) {
 sub printAddMediumBigTextLine($self, $line) {
     chomp $line;
     
+    $line = $self->markWithArrow($line, 30, $self->{imgoffs} + 10);
+    $line = encode_utf8($line);
     $self->{img}->stringFT($self->_getPrintColor(1), $self->{bigfont}, 30, 0, 10, $self->{imgoffs} + 30, $line);
     
     $self->{imgoffs} += 38;
@@ -987,6 +1031,66 @@ sub printAddCutHereLine($self) {
 
     return;
 }
+
+sub markWithArrow($self, $line, $size, $y = undef) {
+    if(!defined($y)) {
+        croak("BLA");
+        #$y = $self->{imgoffs};
+    }
+    if($line =~ /↳/) {
+        $self->printAddArrow($size, $y);
+        $line =~ s/↳/ /g;
+    }
+    return $line;
+}
+
+sub printAddArrow($self, $size, $yoffs) {
+    my $reph = $self->{reph};
+
+    $reph->debuglog("IMAGE OFFSET: $yoffs");
+
+    my $bigpng = "iVBORw0KGgoAAAANSUhEUgAAAAwAAAAUCAMAAACOLiwjAAAABGdBTUEAALGPC/xhBQAAAAFzUkdC
+                  AdnJLH8AAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZQTFRF
+                  AAAA////pdmf3QAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+kMEAosIGe+lMQAAAAoSURB
+                  VBjTY2BgYIQDhkHDAVNwGRCNUAZkMOAGyEYxIBvLgGwFQgaIAV6EAK2s0ft+AAAAAElFTkSuQmCC";
+
+    my $semipng = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAANCAMAAABSF4SHAAAABGdBTUEAALGPC/xhBQAAAAFzUkdC
+                   AdnJLH8AAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZQTFRF
+                   AAAA////pdmf3QAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+kMEAsABGNOcYwAAAAhSURB
+                   VAjXY2BgBAMGEmgGGJ8BJs4ApKGAEcpnhMpDKEYADv8ARiXrBh4AAAAASUVORK5CYII=";
+
+    my $smallpng = "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAKCAMAAABL52QCAAAABGdBTUEAALGPC/xhBQAAAAFzUkdC
+                    AdnJLH8AAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZQTFRF
+                    AAAA////pdmf3QAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+kMEAsDLH3WirUAAAAaSURB
+                    VAjXY2AEAQYGnCQDhA1kQAAjmA0iGAEErwAkhFz/bwAAAABJRU5ErkJggg==";
+
+    my $pngdata;
+    if($size <= 10) {
+        $pngdata = decode_base64 $smallpng;
+    } elsif($size >= 18) {
+        $pngdata = decode_base64 $bigpng;
+    } else {
+        $pngdata = decode_base64 $semipng;
+    }
+
+    my $tmpimg = GD::Image->newFromPngData($pngdata);
+
+    my ($w, $h) = $tmpimg->getBounds();
+
+    for(my $x = 0; $x < $w; $x++) {
+        for(my $y = 0; $y < $h; $y++) {
+            my $index = $tmpimg->getPixel($x, $y);
+            my ($r,$g,$b) = $tmpimg->rgb($index);
+            my $greypixel = int(($r+$g+$b)/3);
+            if($greypixel < 128) {
+                $self->{img}->setPixel(10+$x, $yoffs+$y, $self->_getPrintColor());
+            }
+        }
+    }
+
+    return;
+}
+
 
 sub printAddImage($self, $filename, $isbindata = false, $imagesoftness = 1, $doscale = true, $center = false) {
     my $reph = $self->{reph};

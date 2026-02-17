@@ -1,13 +1,12 @@
 package PageCamel::Helpers::ClacksCache;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -16,6 +15,7 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use base qw(Net::Clacks::ClacksCache);
+use Time::HiRes qw(time);
 
 sub extraInits($self) {
     $self->{oldtime} = 0;
@@ -46,10 +46,21 @@ sub endconfig($self) {
 
 sub handle_child_start($self) {
     # Handle forking correctly by opening a new socket
+
     if(defined($self->{clacks})) {
+        my $xstart = time;
+        $self->{clacks}->fastdisconnect();
         delete $self->{clacks};
+        my $xend = time;
+
+        my $timetaken = $xend - $xstart;
+        if($timetaken > 1) {
+            print STDERR "\n*******************************  DELETE TOOK ", $timetaken, " seconds\n";
+        }
     }
-    $self->reconnect();
+
+    # Will auto-reconnect on first actual use.
+    #$self->reconnect();
 
     return;
 }

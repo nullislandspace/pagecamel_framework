@@ -1,13 +1,12 @@
 package PageCamel::Worker::Firewall::BlockCIDRWhois;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -68,7 +67,7 @@ sub work($self) {
 
     my $delblocksth = $dbh->prepare_cached("DELETE FROM firewall_block_cidr
                                             WHERE is_autoblocked = true
-                                            AND seen_last < (now() - interval '" . $self->{blocktime} . "')")
+                                            AND seen_first < (now() - interval '" . $self->{blocktime} . "')")
             or croak($dbh->errstr);
 
     my $delcansth = $dbh->prepare_cached("DELETE FROM firewall_candidates
@@ -101,8 +100,8 @@ sub work($self) {
 
     my $insth = $dbh->prepare_cached("INSERT INTO firewall_block_cidr
                                         (blocked_network, network_owner_whois,
-                                         is_autoblocked, seen_first, seen_last)
-                                        VALUES (?, ?, true, now(), now())")
+                                         is_autoblocked, seen_first)
+                                        VALUES (?, ?, true, now())")
             or croak($dbh->errstr);
 
     # Clean up stale blocks and candidates

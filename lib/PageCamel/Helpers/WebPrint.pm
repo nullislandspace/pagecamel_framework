@@ -1,13 +1,12 @@
 package PageCamel::Helpers::WebPrint;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -16,8 +15,9 @@ use PageCamel::Helpers::UTF;
 #---AUTOPRAGMAEND---
 
 use File::Binary;
-use Time::HiRes qw(sleep);
+use Time::HiRes qw(sleep time);
 use Errno qw(:POSIX);
+use IO::Select;
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -56,10 +56,18 @@ sub write($self, $ofh, @parts) {
         return 1;
     }
     my $written = 0;
-    my $timeout = time + $timeoutthres;
+    my $endtime = time + $timeoutthres;
     $ERRNO = 0;
-    my $needprintdone = 0;
-    while(1) {
+    my $select = IO::Select->new($ofh);
+
+    while(length($full)) {
+        # Calculate remaining timeout
+        my $remaining = $endtime - time;
+        if($remaining <= 0) {
+            $self->debuglog("***** webPrint TIMEOUT ****** $ERRNO");
+            return 0;
+        }
+
         eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
             $written = syswrite($ofh, $full);
         };
@@ -67,44 +75,31 @@ sub write($self, $ofh, @parts) {
             $self->debuglog("Write error: $EVAL_ERROR");
             return 0;
         }
-        if(!defined($written)) {
-            $written = 0;
+
+        if(defined($written) && $written > 0) {
+            # Successfully wrote data, reset timeout and advance buffer
+            $endtime = time + $timeoutthres;
+            $full = substr($full, $written);
+            next;
         }
-        last if($written == length($full));
-        #$self->debuglog("Sent $written bytes (", length($full) - $written, "remaining)");
-        if($!{EWOULDBLOCK} || $!{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
+
+        # Handle write errors
+        if($ERRNO{EWOULDBLOCK} || $ERRNO{EAGAIN}) { ## no critic (Variables::ProhibitPunctuationVars)
+            # Socket buffer full - wait for writability using select() instead of busy-wait
             if(!$shownlimitmessage) {
-                #self->debuglog("Rate limiting output");
+                #$self->debuglog("Rate limiting output");
                 $shownlimitmessage = 1;
             }
-            $timeout = time + $timeoutthres;
-            if(!$written) {
-                sleep(0.01);
-            }
+            $select->can_write($remaining);  # Wait for socket to be writable
         } elsif(0 && $brokenpipe) {
             $self->debuglog("webPrint write failure: SIGPIPE");
             return 0;
         } elsif($ofh->error || $ERRNO ne '') {
-            $self->debuglog("webPrint write failure: $ERRNO / ", $ofh->opened, " / ", $ofh->error);
+            if($ERRNO !~ /Broken\ pipe/) {
+                $self->debuglog("webPrint write failure: $ERRNO / ", $ofh->opened, " / ", $ofh->error);
+            }
             return 0;
         }
-        if($written) {
-            $timeout = time + $timeoutthres;
-            $full = substr($full, $written);
-            $written = 0;
-            next;
-        }
-        
-        if($timeout < time) {
-            $self->debuglog("***** webPrint TIMEOUT ****** $ERRNO");
-            return 0;
-        }
-        
-        #sleep(0.01);
-        $needprintdone = 1;
-    }
-    if($needprintdone) {
-        #$self->debuglog("Webprint Done");
     }
     return 1;
 }

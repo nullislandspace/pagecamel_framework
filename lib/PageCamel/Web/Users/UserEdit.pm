@@ -1,13 +1,12 @@
 package PageCamel::Web::Users::UserEdit;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -518,8 +517,13 @@ reloaddata:
             #$reph->debuglog("### ", $ok, " / ", Dumper($sysval));
         }
 
-        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $ua->{headers}->{Host}, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
-        $webdata{appqrcodeserver} = $ua->{headers}->{Host};
+        my $serverip = $ua->{headers}->{Host};
+        if($serverip eq '127.0.0.1' && defined($ENV{'PC_APP_IP'})) {
+            $serverip = $ENV{'PC_APP_IP'};
+        }
+
+        $webdata{appqrcode} = $self->{qrcode}->generateEmbeddedImage(SERVER => $serverip, USERKEY => $webdata{username} . '+' . $webdata{appkey}, PROJECTNAME => $projectname);
+        $webdata{appqrcodeserver} = $serverip;
         $webdata{appqrcodekey} = $webdata{username} . '+' . $webdata{appkey};
     }
     $webdata{Groups} = \@groups;

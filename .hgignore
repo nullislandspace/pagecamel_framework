@@ -18,3 +18,16 @@ node_modules
 package-lock.json
 
 \.map$
+^\.claude\/.*
+lib/PageCamel/CMDLine/.claude/settings.local.json
+lib/PageCamel/CMDLine/CLAUDE.md
+lib/PageCamel/Protocol/HTTP3/HTTP3.bs
+lib/PageCamel/Protocol/HTTP3/HTTP3.c
+lib/PageCamel/Protocol/HTTP3/HTTP3.o
+lib/PageCamel/Protocol/HTTP3/src/h3_api.o
+lib/PageCamel/Protocol/HTTP3/src/h3_buffer.o
+lib/PageCamel/Protocol/HTTP3/src/h3_callbacks.o
+lib/PageCamel/Protocol/HTTP3/src/h3_connection.o
+lib/PageCamel/Protocol/HTTP3/src/h3_packet.o
+lib/PageCamel/Protocol/HTTP3/src/h3_tls.o
+

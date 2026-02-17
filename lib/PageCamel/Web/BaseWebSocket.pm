@@ -1,13 +1,12 @@
 package PageCamel::Web::BaseWebSocket;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -23,6 +22,8 @@ use JSON::XS;
 use Time::HiRes qw[sleep alarm time];
 use PageCamel::Helpers::WebPrint;
 use Digest::SHA1  qw(sha1 sha1_hex);
+use IO::Select;
+use List::Util qw[any];
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -66,6 +67,18 @@ sub new($proto, %config) {
         $self->{usemastertemplate} = 1;
     }
 
+    if(!defined($self->{defaultDisconnectTimeout})) {
+        $self->{defaultDisconnectTimeout} = 70;
+    }
+
+    if(!defined($self->{minDisconnectTimeout})) {
+        $self->{minDisconnectTimeout} = 30;
+    }
+
+    if(!defined($self->{maxDisconnectTimeout})) {
+        $self->{maxDisconnectTimeout} = 10 * 60;  # 10 minutes
+    }
+
     return $self;
 }
 
@@ -105,10 +118,10 @@ sub reload($self) {
 
     $sysh->createNumber(modulename => $self->{modname},
                     settingname => 'client_disconnect_timeout',
-                    settingvalue => 10,
+                    settingvalue => $self->{defaultDisconnectTimeout},
                     description => 'Client disconnect timeout (seconds)',
-                    value_min => 5.0,
-                    value_max => 120.0,
+                    value_min => $self->{minDisconnectTimeout},
+                    value_max => $self->{maxDisconnectTimeout},
                     processinghints => [
                         'decimal=0',
                     ],
@@ -191,6 +204,23 @@ sub wscyclic($self, $ua) {
     return 1;
 }
 
+# Add a filehandle to the IO::Select watch list
+# Call from subclass (e.g. in wshandlerstart) to wake up when handle has data
+sub wsaddhandle($self, $handle) {
+    if(!defined($self->{extrahandles})) {
+        $self->{extrahandles} = [];
+    }
+    push @{$self->{extrahandles}}, $handle;
+    return;
+}
+
+# Remove a filehandle from the IO::Select watch list
+sub wsremovehandle($self, $handle) {
+    return if !defined($self->{extrahandles});
+    @{$self->{extrahandles}} = grep { $_ != $handle } @{$self->{extrahandles}};
+    return;
+}
+
 sub wsprint($self, $message, $usebinary = 0) {
     my $frame = $self->{sessiondata}->{frame};
     my $ua = $self->{sessiondata}->{ua};
@@ -217,6 +247,22 @@ sub wsprint($self, $message, $usebinary = 0) {
     #my $endtime = time;
     #$reph->debuglog("   done, took ", $endtime - $starttime, " seconds");
     
+    return 1;
+}
+
+sub wsprintraw($self, $rawdata) {
+    my $frame = $self->{sessiondata}->{frame};
+    my $ua = $self->{sessiondata}->{ua};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
+    my $webprint = PageCamel::Helpers::WebPrint->new(reph => $reph);
+
+    my $framedata = $frame->new(buffer => $rawdata, type => 'binary')->to_bytes;
+
+    if(!$webprint->write($ua->{realsocket}, $framedata)) {
+        $reph->debuglog("Write to socket failed, closing connection!");
+        return 0;
+    }
+
     return 1;
 }
 
@@ -387,7 +433,12 @@ sub sockethandler($self, $ua) {
     
     $self->wshandlerstart($ua, \%settings);
 
-    my $timeout = time + $settings{client_disconnect_timeout};
+    # PING/PONG: Server sends PINGs, client responds with PONG
+    # Timeout is 3x the ping interval
+    my $pingInterval = $settings{client_disconnect_timeout};
+    my $timeoutInterval = $pingInterval * 3;
+    my $nextPing = time + $pingInterval;
+    my $timeout = time + $timeoutInterval;
 
     my $frame = PageCamel::Helpers::WSockFrame->new(max_payload_size => 500 * 1024 * 1024);
     $self->{sessiondata}->{frame} = $frame;
@@ -402,27 +453,35 @@ sub sockethandler($self, $ua) {
         $ua->{realsocket}->blocking(0);
         binmode($ua->{realsocket}, ':bytes');
 
+        my $select = IO::Select->new($ua->{realsocket});
+
+        # Add extra filehandles registered by subclass
+        if(defined($self->{extrahandles})) {
+            for my $eh (@{$self->{extrahandles}}) {
+                $select->add($eh);
+            }
+        }
+
         my $starttime = time + 10;
 
         while(!$socketclosed) {
             my $workCount = 0;
 
-            # Read data from websocket
+            # Wait for data on any registered handle (websocket, PTY, etc.)
+            my @ready = $select->can_read($self->{sleeptime});
+
+            # Read from websocket only if it has data
             my $buf;
-            eval { ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
-                local $SIG{ALRM} = sub{croak("alarm")};
-                alarm 0.5;
+            if(any { $_ == $ua->{realsocket} } @ready) {
                 my $status = sysread($ua->{realsocket}, $buf, $settings{chunk_size} * 2);
-                if(!$ua->{realsocket}) {
-                #if(0 && defined($status) && $status == 0) {
+                if(!defined($status) || $status == 0) {
                     if($self->{isDebugging}) {
                         $reph->debuglog("Websocket closed");
                     }
                     $socketclosed = 1;
                     last;
                 }
-                alarm 0;
-            };
+            }
             if(defined($buf) && length($buf)) {
                 $frame->append($buf);
                 $workCount++;
@@ -445,8 +504,8 @@ sub sockethandler($self, $ua) {
                         $socketclosed = 1;
                         last;
                     }
+                    next;
                 }
-
 
                 if($frame->opcode != 1) {
                     $reph->debuglog("UNSUPPORTED OPCODE ", $frame->opcode);
@@ -465,16 +524,9 @@ sub sockethandler($self, $ua) {
                 }
 
 
-                if($realmsg->{type} eq 'PING') {
-                    $timeout = time + $settings{client_disconnect_timeout};
-                    my %msg = (
-                        type => 'PING',
-                    );
-                    if(!$self->wsprint(\%msg)) {
-                        $reph->debuglog("Write to socket failed, closing connection!");
-                        $socketclosed = 1;
-                        last;
-                    }
+                if($realmsg->{type} eq 'PONG') {
+                    # Client responded to our PING - reset timeout
+                    $timeout = time + $timeoutInterval;
                     next;
                 } elsif($realmsg->{type} eq 'DEBUGLOG') {
                     my $debugline;
@@ -502,22 +554,32 @@ sub sockethandler($self, $ua) {
             if($frame->is_close) {
                 $reph->debuglog("CLOSE FRAME RECIEVED!");
                 $socketclosed = 1;
-                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => 'data', type => 'close')->to_bytes)) {
+                if(!$webprint->write($ua->{realsocket}, $frame->new(buffer => pack('n', 1000), type => 'close')->to_bytes)) {
                     $reph->debuglog("Write to socket failed, failed to properly close connection!");
                 }
             }
-            
+
             if(!$self->wscyclic($ua)) {
                 $socketclosed = 1;
                 last;
             }
-            
-            if(!$workCount) {
-                sleep($self->{sleeptime});
+
+            # Send PING to client periodically
+            if($nextPing < time) {
+                my %msg = (
+                    type => 'PING',
+                );
+                if(!$self->wsprint(\%msg)) {
+                    $reph->debuglog("Write to socket failed, closing connection!");
+                    $socketclosed = 1;
+                    last;
+                }
+                $nextPing = time + $pingInterval;
             }
 
             if($timeout < time) {
                 $reph->debuglog("CLIENT TIMEOUT");
+                $webprint->write($ua->{realsocket}, $frame->new(buffer => pack('n', 1001), type => 'close')->to_bytes);
                 $socketclosed = 1;
             }
 

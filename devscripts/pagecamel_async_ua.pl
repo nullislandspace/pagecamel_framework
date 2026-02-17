@@ -1,11 +1,21 @@
 #/usr/bin/env perl
 
-use v5.40;
-use strict;
-use warnings;
-our $VERSION = 4.8;
 
 package Reporting;
+#---AUTOPRAGMASTART---
+use v5.42;
+use strict;
+use diagnostics;
+use mro 'c3';
+use English;
+use Carp qw[carp croak confess cluck longmess shortmess];
+our $VERSION = 5.0;
+use Array::Contains;
+use utf8;
+use Data::Dumper;
+use Data::Printer;
+use PageCamel::Helpers::UTF;
+#---AUTOPRAGMAEND---
 
 sub new($proto, %config) {
     my $class = ref($proto) || $proto;
@@ -26,10 +36,8 @@ BEGIN {
     unshift @INC, "/home/cavac/src/pagecamel_framework/lib";
 };
 
-use Data::Dumper;
 use PageCamel::Helpers::AsyncUA;
 use Time::HiRes qw(sleep);
-use Carp;
 
 my $reph = Reporting->new();
 

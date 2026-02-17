@@ -1,13 +1,12 @@
 package PageCamel::Helpers::SVCHelper;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -26,7 +25,7 @@ sub new($proto, %config) {
     my $self = bless \%config, $class;
 
     my $ok = 1;
-    foreach my $key (qw[reph clacks]) {
+    foreach my $key (qw[reph memh]) {
         if(!defined($self->{$key})) {
             print STDERR "$key not defined\n";
             $ok = 0;
@@ -95,9 +94,8 @@ sub _change_worker_state($self, $workername, $newstate) {
     my $command1name = 'pagecamel_services::' . $fullname. '_enable';
     my $command2name = 'pagecamel_services::' . $mode . '::service';
 
-    $self->{clacks}->set($command1name, $newstate);
-    $self->{clacks}->set($command2name, $fullname);
-    $self->{clacks}->doNetwork();
+    $self->{memh}->clacks_set($command1name, $newstate);
+    $self->{memh}->clacks_set($command2name, $fullname);
 
     return 1;
 }
@@ -111,8 +109,7 @@ sub _wait_worker_state($self, $workername, $newstate) {
 
     my $ok = 0;
     while(time < $endtime) {
-        $self->{clacks}->doNetwork();
-        my $curstate = $self->{clacks}->retrieve($statusname);
+        my $curstate = $self->{memh}->get($statusname);
         if(!defined($curstate)) {
             $self->feedback($statusname, " not defined in clacks");
             last;

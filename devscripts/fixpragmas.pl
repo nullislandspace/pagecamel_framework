@@ -1,13 +1,12 @@
 #!/usr/bin/env perl
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -37,11 +36,11 @@ foreach my $file (@files) {
         if($line =~ /^use\ +(.+)\;/) {
             my $pragma = $1;
             my $skip = 0;
-            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|autodie|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF|builtin|Data\:\:Printer)/ && $pragma !~ /Digest/) {
+            if($pragma =~ /(strict|warnings|English|mro|diagnostics|Carp|Fatal|Array\:\:Contains|utf8|Encode|Data\:\:Dumper|Helpers\:\:UTF|builtin|Data\:\:Printer)/ && $pragma !~ /Digest/) {
                 # Remove this (old) lines
                 $skip = 1;
             }
-            if($pragma =~ /(5.\d+)/ && $pragma !~ /Digest/) {
+            if($pragma =~ /(5\.\d+)/ && $pragma !~ /Digest/) {
                 # Always update the required perl version
                 $skip = 1;
             }
@@ -84,14 +83,13 @@ foreach my $file (@files) {
         }
         if($line =~ /^package\ / || $line =~ /^\#\!/) {
             print $ofh "#---AUTOPRAGMASTART---\n";
-            print $ofh "use v5.40;\n";
+            print $ofh "use v5.42;\n";
             print $ofh "use strict;\n";
             print $ofh "use diagnostics;\n";
             print $ofh "use mro 'c3';\n";
             print $ofh "use English;\n";
             print $ofh "use Carp qw[carp croak confess cluck longmess shortmess];\n";
-            print $ofh "our \$VERSION = 4.8;\n";
-            print $ofh "use autodie qw( close );\n";
+            print $ofh "our \$VERSION = 5.0;\n";
             print $ofh "use Array::Contains;\n";
             print $ofh "use utf8;\n";
             print $ofh "use Data::Dumper;\n";

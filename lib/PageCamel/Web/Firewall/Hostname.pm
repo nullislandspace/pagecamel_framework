@@ -1,13 +1,12 @@
 package PageCamel::Web::Firewall::Hostname;
 #---AUTOPRAGMASTART---
-use v5.40;
+use v5.42;
 use strict;
 use diagnostics;
 use mro 'c3';
 use English;
 use Carp qw[carp croak confess cluck longmess shortmess];
-our $VERSION = 4.8;
-use autodie qw( close );
+our $VERSION = 5.0;
 use Array::Contains;
 use utf8;
 use Data::Dumper;
@@ -48,6 +47,7 @@ sub register($self) {
 
 sub prefilter($self, $ua) {
     my $dbh = $self->{server}->{modules}->{$self->{db}};
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
 
     if(defined($self->{defaultwebdata})) {
         delete $self->{defaultwebdata};
@@ -121,7 +121,7 @@ sub prefilter($self, $ua) {
             if(!$doignore) {
                 $ua->{url} = $item->{pathprefix} . $ua->{url};
                 if(1 || $self->{isDebugging}) {
-                    print STDERR "******************************************    internally rerouting to ", $ua->{url}, "\n";
+                    $reph->debuglog("***    internally rerouting to ", $ua->{url});
                 }
             }
             if(defined($item->{defaultwebdata})) {
@@ -153,9 +153,11 @@ sub prefilter($self, $ua) {
 
 sub get_defaultwebdata($self, $webdata) {
     return unless defined($self->{defaultwebdata});
+
+    my $reph = $self->{server}->{modules}->{$self->{reporting}};
     foreach my $key (keys %{$self->{defaultwebdata}}) {
         my $val = $self->{defaultwebdata}->{$key};
-        print STDERR "   ADDING DEFAULTWEBDATA: ", $key, " => ", $val, "\n";
+        $reph->debuglog("   ADDING DEFAULTWEBDATA: ", $key, " => ", $val);
         $webdata->{$key} = $val;
     }
     delete $self->{defaultwebdata};
