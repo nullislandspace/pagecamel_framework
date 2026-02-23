@@ -447,7 +447,7 @@
         if(ttvars.textualcopyprimarykey != "1" && ttvars.askoncopy == "") {
             return checkinput();
         }
-        console.log("Checking input");
+        //console.log("Checking input");
         specialcopymode = true;
         var checkresult = checkinput();
         specialcopymode = false;
@@ -457,11 +457,11 @@
         }
 
         if(ttvars.textualcopyprimarykey == "1") {
-            console.log("Opening PK dialog");
+            //console.log("Opening PK dialog");
             var newpk = $('input[name="primary_key"]').val() + '_copy';
             primarykeyEntry(newpk);
         } else if(ttvars.askoncopy != "") {
-            console.log("Opening new name dialog");
+            //console.log("Opening new name dialog");
             var newval = $('input[name="' + ttvars.askoncopy + '"]').val() + '_copy';
             copyFieldNameChange(newval);
         } else {
@@ -471,7 +471,7 @@
         
 
     function copyCallback(newpk) {
-        console.log("Copy callback");
+        //console.log("Copy callback");
         if(newpk == "") {
             alert(ttvars.trquote.Cantbeempty);
             return;
@@ -483,7 +483,7 @@
 
 
     function copyFieldNameCallback(newval) {
-        console.log("Copy callback");
+        //console.log("Copy callback");
         if(newval == "") {
             alert(ttvars.trquote.Cantbeempty);
             return;
@@ -895,59 +895,59 @@
         };
 
         var fields = ttvars.editcolumnlist.split(";");
-        console.log(fields);
+        //console.log(fields);
 
-        console.log("INPUT fields:");
+        //console.log("INPUT fields:");
         $('#MainForm input').each(function(index) {
             var name = $(this).attr("name");
             var id = $(this).attr("id");
             var type = $(this).attr("type");
             if(type == 'button') {
-                console.log("  IGNORE Button " + id);
+                //console.log("  IGNORE Button " + id);
             } else if(name == 'mode') {
                 // Ignore
             } else if(name != '') {
                 var fieldvalue = $('input[name=' + name + ']').val();
                 savedata[name] = fieldvalue;
-                console.log("  " + name + '  /  ' + id + '  /  ' + type + '  =  ' + fieldvalue);
+                //console.log("  " + name + '  /  ' + id + '  /  ' + type + '  =  ' + fieldvalue);
             } else {
-                console.log("  IGNORE " + name + '  /  ' + id);
+                //console.log("  IGNORE " + name + '  /  ' + id);
             }
         });
 
-        console.log("SELECT fields:");
+        //console.log("SELECT fields:");
         $('#MainForm select').each(function(index) {
             var name = $(this).attr("name");
             var id = $(this).attr("id");
             var fieldvalue = $('select[name=' + name + '] option').filter(':selected').val();
-            console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
+            //console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
             savedata[name] = fieldvalue;
         });
 
-        console.log("TEXTAREA fields:");
+        //console.log("TEXTAREA fields:");
         $('#MainForm textarea').each(function(index) {
             var name = $(this).attr("name");
             var id = $(this).attr("id");
             var subtype = $(this).attr("subtype");
             if(subtype == 'readonly' || subtype == 'textarea') {
                 var fieldvalue = $('textarea[name=' + name + ']').val();
-                console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
+                //console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
                 savedata[name] = fieldvalue;
             } else if(subtype == 'editor') {
                 fieldvalue = CVCEDITOR.instances[name + '_id'].getData();
-                console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
+                //console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
                 savedata[name] = fieldvalue;
             } else if(subtype == 'scripteditor') {
                 codemirrors[name].save();
                 fieldvalue = $('textarea[name=' + name + ']').val();
-                console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
+                //console.log("  " + name + '  /  ' + id + '  =  ' + fieldvalue);
                 savedata[name] = fieldvalue;
             } else {
-                console.log("  UNSUPPORTED textarea type for ID " + id);
+                //console.log("  UNSUPPORTED textarea type for ID " + id);
             }
         });
 
-        console.log(savedata);
+        //console.log(savedata);
 
         $.ajax({
             type: "POST",
@@ -956,7 +956,7 @@
             data: savedata,
             success: function(msg) {
                 if(ttvars.iframemode == "edit") {
-                    console.log("DATA SAVED");
+                    //console.log("DATA SAVED");
                     $('form[name="listandedit"]').unblock();
                 } else if(window.autoSaveCallback) {
                     window.autoSaveCallback(true);
